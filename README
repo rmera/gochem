@@ -1,0 +1,41 @@
+Design goals:
+
+*Stick to KISS principle as much as possible
+	-This means, code simplicity comes before user  friendliness
+*Related to the previous: Readability counts.
+*Assume that users can code (dont provide too many simplifying functions)
+*Try to avoid the need for users to know gomatrix as much as possible
+	-Supply convenience functions to deal with coordinates.
+	-Of course users wanting to code calculations will need gomatrix anyway.
+*Fast and light
+*Easy to extend
+*Useful for computational biochemistry at a classic and QM levels.
+
+
+
+
+Currently Does:
+
+Reads/writes PDB
+Reads/writes XYZ files
+Superimpose files (adequate for small molecules since doesn't use sequence information)
+Reads xtc files (working in some computers?)
+Allows to get atoms and coordinates from a list, or manually
+Allows to replace coordinates
+Calculates moment of inertia and elipsoid of inertia--related properties
+Implements the sort.Interface interface, it can be sorted by b-factors.
+
+
+TODOS:
+
+Before version 0.1:
+
+*Add atoms at the end
+*Separate the thing in different files (MUST)
+*Test geometical things (MUST)
+
+
+OTHER TODOS:
+*Protein superimposer (Calign).
+*Read/Write Mopac2009 input/output files for quick optimizations.
+*Same for ORCA. (b-factors of 1 could mean fixed atoms)
