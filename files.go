@@ -329,7 +329,7 @@ func PdbWrite(mol *Molecule, pdbname string) error{
 				return err
 				}
 			}
-		fmt.Fprint(out,"ENDMODEL\n")
+		fmt.Fprint(out,"ENDMDL\n")
 		}
 	fmt.Fprint(out,"END\n")
 	return nil
