@@ -18,12 +18,17 @@ Currently Does:
 
 Reads/writes PDB
 Reads/writes XYZ files
-Superimpose files (adequate for small molecules since doesn't use sequence information)
-Reads xtc files (working in some computers?)
+Superimpose files (adequate for small molecules since doesn't use sequence information).
+Calculate RMSD between two sets of coordinates.
 Allows to get atoms and coordinates from a list, or manually
 Allows to replace coordinates
 Calculates moment of inertia and elipsoid of inertia--related properties
 Implements the sort.Interface interface, it can be sorted by b-factors.
+
+Sort of does:
+Reads xtc files Does not work on all machines (apparently only 64 bits). Also, it is not included in the
+default package since requires the xdrfile package to be installed.
+
 
 
 TODOS:

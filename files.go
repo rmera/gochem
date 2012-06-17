@@ -284,7 +284,7 @@ func PdbRead(pdbname string, read_additional bool) ([]*Atom, []*matrix.DenseMatr
 //End Pdb_read family
 
 
-//The PdbWrite family
+//Writes a PDB file for the molecule mol with the file name pdbname.
 func PdbWrite(mol *Molecule, pdbname string) error{
 	err:=mol.Corrupted()
 	if err!=nil{
@@ -329,7 +329,7 @@ func PdbWrite(mol *Molecule, pdbname string) error{
 				return err
 				}
 			}
-		fmt.Fprint(out,"ENDMODL\n")
+		fmt.Fprint(out,"ENDMODEL\n")
 		}
 	fmt.Fprint(out,"END\n")
 	return nil
