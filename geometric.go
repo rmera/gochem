@@ -126,7 +126,6 @@ func rmsd_fail(test, template *matrix.DenseMatrix) (float64, error){
 		}
 	dev:=matrix.ParallelProduct(ctempla.Transpose(),ctempla)
 	RMSDv:=dev.Trace()
-	fmt.Println(dev) ////////////////////
 	RMSDv=math.Sqrt(RMSDv)
 	return RMSDv, nil
 	}
@@ -139,7 +138,6 @@ func RMSD(test, template *matrix.DenseMatrix) (float64, error){
 		}
 	ctempla:=template.Copy()
 	err:=ctempla.Subtract(test)
-	fmt.Println("r", ctempla)
 	if err!=nil{
 		return 0, err
 		}	

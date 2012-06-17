@@ -300,7 +300,7 @@ func PdbWrite(mol *Molecule, pdbname string) error{
 		towrite:=mol.Coords[j].Arrays()  //An array of array with the data in the matrix
 		chainprev:=mol.Atoms[0].Chain  //this is to know when the chain changes.
 		fmt.Fprintf(out, "MODEL %d\n",j)
-		fmt.Println("chain", mol.Atoms[0])		
+//		fmt.Println("chain", mol.Atoms[0])		
 		for i:=range mol.Atoms{
 			if mol.Atoms[i].Chain!=chainprev{
 				fmt.Fprintln(out,"TER")
@@ -347,7 +347,7 @@ func XyzRead(xyzname string,) ([]*Atom, []*matrix.DenseMatrix, error){
 	defer xyzfile.Close()
 	xyz := bufio.NewReader(xyzfile)	
 	line, err := xyz.ReadString('\n')
-	fmt.Println("line: ", line) /////////////////////////////////7
+//	fmt.Println("line: ", line) /////////////////////////////////7
 	if err != nil {
 		return nil, nil, fmt.Errorf("Ill formatted XYZ file!")
 		}
@@ -356,9 +356,11 @@ func XyzRead(xyzname string,) ([]*Atom, []*matrix.DenseMatrix, error){
 	if err != nil {
 		return nil, nil, fmt.Errorf("Ill formatted XYZ file!")
 		}
-	fmt.Println("natoms: ", natoms)///////////////////////////////7
+//	fmt.Println("natoms: ", natoms)///////////////////////////////7
 	molecule:=make([]*Atom,natoms,natoms)
 	coords:=make([]float64,natoms*3,natoms*3)
+	//THIS COULD BECOME A BUG IF TRY TO READ AN EMPTY FILE!!!!!!!!!!!!!!!!!!!
+	//MUST FIX!!!!!!!
 	_,_=xyz.ReadString('\n') //We dont care about this line
 //	var i int
 //	var line string
