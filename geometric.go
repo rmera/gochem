@@ -34,7 +34,7 @@ import "sort"
 
 //Geometrical functions.
 
-//Determines the best rotation and translations to superimpose the atoms of molecule test, frame frametest,
+//Super determines the best rotation and translations to superimpose the atoms of molecule test, frame frametest,
 //listed in testlst on te atoms of molecule templa, frame frametempla, listed in templalst. 
 //It applies those rotation and translations to the whole frame frametest of molecule test, in palce. 
 //testlst and templalst must have the same number of elements.
@@ -58,7 +58,7 @@ func Super(test, templa *Molecule, testlst, templalst []int, frametest, frametem
 	}
 
 
-//Superimposes the set of cartesian coordinates given as the rows of the matrix test on the ones of the rows
+//GetSuper superimposes the set of cartesian coordinates given as the rows of the matrix test on the ones of the rows
 //of the matrix templa. Returns the transformed matrix, the rotation matrix, 2 translation row vectors
 //For the superposition plus an error. In order to perform the superposition, without using the transformed
 //the first translation vector has to be added first to the moving matrix, then the rotation must be performed
@@ -131,7 +131,7 @@ func rmsd_fail(test, template *matrix.DenseMatrix) (float64, error){
 	return RMSDv, nil
 	}
 
-//Returns the RSMD (root of the mean square deviation) for the sets of cartesian
+//RMSD returns the RSMD (root of the mean square deviation) for the sets of cartesian
 //coordinates in test and template
 func RMSD(test, template *matrix.DenseMatrix) (float64, error){
 	if template.Rows()!=test.Rows() || template.Cols()!= 3 || test.Cols()!=3{
@@ -159,8 +159,8 @@ func RMSD(test, template *matrix.DenseMatrix) (float64, error){
 const appzero float64 = 0.000001  //used at least in Eigenwrap to make floating
 //point comparisons
 
-//Get shape indices based on the axes of the elipsoid of inertia.
-//Not yet tested to give good results.
+//GetRhoShapeIndexes Get shape indices based on the axes of the elipsoid of inertia.
+//Not yet tested to give good results. (Reference needed!)
 func GetRhoShapeIndexes(evals []float64)(float64, float64, error){
 	rhos,err:=GetRhos(evals)
 	linear_distortion:=(1-(rhos[1]/rhos[0]))*100 //Prolate
@@ -168,7 +168,7 @@ func GetRhoShapeIndexes(evals []float64)(float64, float64, error){
 	return linear_distortion,circular_distortion,err
 	}
 	
-
+//GetRhos returns the semiaxis of the elipoid of inertia given the eigenvectors of the moment tensor.
 func GetRhos(evals []float64) ([]float64, error){
 	rhos:=sort.Float64Slice{InvSqrt(evals[0]),InvSqrt(evals[1]),InvSqrt(evals[2])}
 	if evals[2]<=appzero{
@@ -186,7 +186,7 @@ func GetRhos(evals []float64) ([]float64, error){
 /**Other geometrical**/	
 
 
-//Takes sorted evecs, according to the eval,s and returns a row vector that is normal to the
+//GetBestPlaneB takes sorted evecs, according to the eval,s and returns a row vector that is normal to the
 //Plane that best contains the molecule. Note that the function can't possibly check
 //That the vectors are sorted!. The P at the end of the name is for Performance. If 
 //That is not an issue it is safer to use the GetBestPlane function that wraps this one.
@@ -202,7 +202,7 @@ func GetBestPlaneP(evecs *matrix.DenseMatrix) (*matrix.DenseMatrix, error){
 	return normal, nil
 	}
 
-//Takes a molecule
+//GetBestPlane returns a row vector that is normal to the plane that best contains the molecule
 func GetBestPlane(mol *Molecule, frame int,masses bool) (*matrix.DenseMatrix, error){
 	var Mmass *matrix.DenseMatrix
 	if len(mol.Atoms)!=mol.Coords[frame].Rows(){
@@ -253,7 +253,7 @@ func (E eigenpair)Len() int {
 	}
 
 
-//This wraps the matrix.DenseMatrix.Eigen() function in order to guarantee 
+//Eigenapir wraps the matrix.DenseMatrix.Eigen() function in order to guarantee 
 //That the eigenvectors and eigenvalues are sorted according to the eigenvalues
 //and also orthonormality and Handness I don't know how many of these are already 
 //guaranteed by Eig(). Will delete the unneeded parts when sure.
@@ -296,7 +296,7 @@ func Eigenwrap(in *matrix.DenseMatrix) (*matrix.DenseMatrix, []float64, error){
 
 
 
-//Centers in in the center of mass of ref. Mass must be
+//CenterMass centers in in the center of mass of ref. Mass must be
 //A column vector. Returns the centered matrix and the displacement matrix.
 func CenterMass(in, oref, mass *matrix.DenseMatrix) (*matrix.DenseMatrix,*matrix.DenseMatrix, error){
 	ref:=oref.Copy()
@@ -318,7 +318,7 @@ func CenterMass(in, oref, mass *matrix.DenseMatrix) (*matrix.DenseMatrix,*matrix
 	}
 
 
-//Returns the moment tensor for a matrix A of coordinates and a column
+//MomentTensor returns the moment tensor for a matrix A of coordinates and a column
 //vector mass with the respective massess.
 func MomentTensor(A, mass *matrix.DenseMatrix) (*matrix.DenseMatrix, error){
 	center,_,err:=CenterMass(A,A.Copy(),mass)
@@ -342,7 +342,7 @@ func MomentTensor(A, mass *matrix.DenseMatrix) (*matrix.DenseMatrix, error){
 //Be inserted in mathematical expressions and thus they need to return only one value.
 
 
-//Adds the row vector row to each row of the matrix big, in place. Both need the same ammount of columns.
+//AddRow adds the row vector row to each row of the matrix big, in place. Both need the same ammount of columns.
 func AddRow(big,row *matrix.DenseMatrix)(error){
 	bigrows:=big.Rows()
 	if big.Cols() != row.Cols() || row.Rows()!=1{
@@ -355,7 +355,7 @@ func AddRow(big,row *matrix.DenseMatrix)(error){
 	return nil
 	}
 
-//Takes 2 3-len column or row vectors and returns a column or a row
+//Cross3D Takes 2 3-len column or row vectors and returns a column or a row
 //vector, respectively, with the Cross product of them.
 func Cross3D(a,b *matrix.DenseMatrix)(*matrix.DenseMatrix,error){
 	ac:=a.Cols()
@@ -379,7 +379,7 @@ func Cross3D(a,b *matrix.DenseMatrix)(*matrix.DenseMatrix,error){
 	return Cross3DRow(a,b), nil
 	}
 
-//The cross product of 2 row vectors. No error checking!
+//Cross3DRow returns the cross product of 2 row vectors. No error checking!
 func Cross3DRow(a,b *matrix.DenseMatrix)*matrix.DenseMatrix{
 	vec:=make([]float64,3,3)
 	vec[0]=a.Get(0,1)*b.Get(0,2) - a.Get(0,2)*b.Get(0,1)
@@ -389,7 +389,7 @@ func Cross3DRow(a,b *matrix.DenseMatrix)*matrix.DenseMatrix{
 	}
 
 
-//Return the inverse of the square root of val, or zero if
+//InvSqrt return the inverse of the square root of val, or zero if
 //val<appzero. It doesn't check for negative numbers! 
 func InvSqrt(val float64) float64{
 	if val<=appzero{
@@ -398,7 +398,7 @@ func InvSqrt(val float64) float64{
 	return 1.0/math.Sqrt(val)	
 	}
 
-//A naive implementation of the kroneker delta function.
+//KronekerDelta is a naive implementation of the kroneker delta function.
 func KronekerDelta(a,b float64) float64{
 	if math.Abs(a-b)<=appzero{
 		return 1
@@ -408,7 +408,7 @@ func KronekerDelta(a,b float64) float64{
 	
 	
 
-//Dot product between 2 vectors or matrices. Just the sum of the 
+//Dot returns the dot product between 2 vectors or matrices. Just the sum of the 
 //Element-wise multiplication. In this case returning error
 //makes it problematic to use in complex operations, so this returns -1
 //when problems.
@@ -427,7 +427,7 @@ func Dot(A, B *matrix.DenseMatrix) float64{
 	return DMSummation(F)
 	}
 
-//Raises the DenseMatrix A, element-wise, to the nth power.  
+//DMPowInPlace raises the DenseMatrix A, element-wise, to the nth power.  
 func DMPowInPlace(A *matrix.DenseMatrix, n float64){
 	for i:=0;i<A.Rows();i++{
 		for j:=0;j<A.Cols();j++{
@@ -437,7 +437,7 @@ func DMPowInPlace(A *matrix.DenseMatrix, n float64){
 		}
 	}
 
-//Returns A^n. It does not modify A.
+//DMPow returns A^n. It does not modify A.
 func DMPow(B *matrix.DenseMatrix, n float64) *matrix.DenseMatrix{
 	A:=B.Copy()
 	for i:=0;i<A.Rows();i++{
@@ -449,7 +449,7 @@ func DMPow(B *matrix.DenseMatrix, n float64) *matrix.DenseMatrix{
 	return B
 	}
 
-//Scales each column of matrix A by Col.
+//DMScaleByCol scales each column of matrix A by Col.
 func DMScaleByCol(A, Col *matrix.DenseMatrix) error{
 	Rows:=A.Rows()
 	if Rows != Col.Rows() || Col.Cols()>1{
@@ -461,7 +461,7 @@ func DMScaleByCol(A, Col *matrix.DenseMatrix) error{
 	return nil
 	}
 
-//Scales each row of matrix A by Row.
+//DMScaleByRow each row of matrix A by Row. Only for square matrices.
 func DMScaleByRow(A, Row *matrix.DenseMatrix) error{
 	A.TransposeInPlace()  //I guess this is not SUPER efficient
 	Col:=Row.Transpose()
@@ -470,7 +470,7 @@ func DMScaleByRow(A, Row *matrix.DenseMatrix) error{
 	return err
 	}
 
-//Returns the summation of all elements in matrix A.
+//DMSummation returns the sum of all elements in matrix A.
 func DMSummation(A *matrix.DenseMatrix) float64 {
 	Rows:=A.Rows()
 	Cols:=A.Cols()
@@ -482,7 +482,8 @@ func DMSummation(A *matrix.DenseMatrix) float64 {
 		}
 	return sum
 	}
-
+	
+//DMaddfloat returns a matrix which elements are those of matrix A plus the float B.
 func DMaddfloat(A *matrix.DenseMatrix, B float64)*matrix.DenseMatrix{
 	Rows:=A.Rows()
 	Cols:=A.Cols()

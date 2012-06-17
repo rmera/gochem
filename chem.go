@@ -21,7 +21,9 @@
 /***Dedicated to the long life of the Ven. Khenpo Phuntzok Tenzin Rinpoche***/
 
 
-
+//Package chem provides atom and molecule structures, facilities for reading and writing some
+//files used in computational chemistry and some functions for geometric manipulations and shape
+//indicators.
 package chem
 
 import "fmt"
@@ -35,7 +37,7 @@ import  "github.com/skelterjohn/go.matrix"
 
 
 
-//This contains the atoms read except for the coordinates, which will be in a matrix
+//Atom contains the atoms read except for the coordinates, which will be in a matrix
 //and the b-factors, which are in a separate slice of float64.
 type Atom struct{
 	Name string
@@ -53,7 +55,7 @@ type Atom struct{
 	Het bool  // is hetatm in the pdb file?
 	}
 
-//All the info for a molecule in many states. The info that is expected to change between states,
+//Molecule contains all the info for a molecule in many states. The info that is expected to change between states,
 //Coordinates and b-factors are stored separately from other atomic info.
 type Molecule struct{
 	Atoms []*Atom
@@ -65,7 +67,7 @@ type Molecule struct{
 
 //The molecule methods:
 
-//Return an array with massess of atoms and an error if they have not been calculated
+//GetMassArray return an array with massess of atoms and an error if they have not been calculated
 func (M *Molecule) GetMassArray() ([]float64,error){
 	mass:=make([]float64,len(M.Atoms))
 	for i := range M.Atoms{
@@ -77,7 +79,9 @@ func (M *Molecule) GetMassArray() ([]float64,error){
 	
 	return mass, nil
 	}
-//Takes a matrix of coordinates and appends them at the end of the Coords.
+	
+//AddFrame akes a matrix of coordinates and appends them at the end of the Coords.
+// It checks that the number of coordinates matches the number of atoms.
 func (M *Molecule) AddFrame(newframe *matrix.DenseMatrix) error{
 	if newframe.Cols()!=3{
 		return fmt.Errorf("Malformed coord matrix!") 
@@ -90,7 +94,8 @@ func (M *Molecule) AddFrame(newframe *matrix.DenseMatrix) error{
 	return nil
 	}
 
-
+//AddManyFrames adds the array of matrices newfames to the molecule. It checks that
+//the number of coordinates matches the number of atoms.
 func (M *Molecule) AddManyFrames(newframes []*matrix.DenseMatrix) error{
 	atomslen:=len(M.Atoms)
 	for i:=range newframes{
@@ -111,15 +116,16 @@ func (M *Molecule) Coords(first int, last int, frame int) []float64{
 	return M.coords[frame][first*3:(last*3)+3]
 	}
 */
-//Returns a DenseMatrix with the coordinates of the atom atom in the frame frame
+//Coord returns a DenseMatrix with the coordinates of the atom atom in the frame frame
 //Changes to this DenseMatrix affect the original coordinates.
 func (M *Molecule) Coord(atom, frame int) *matrix.DenseMatrix{
 	return M.Coords[frame].GetRowVector(atom)
 	}
 
-//Given a list of ints, this returns an array of DenseMatrices where the nth
+//GetCoordsArray, given a list of ints, and a frame, returns an array of DenseMatrix where the nth
 //element contains the coordinates to the atom in the position clist[n] in M.Atoms.
-//Changes to these matrices affect the original M.Coords.
+//Changes to these matrices affect the original M.Coords. It checks for correctness of the frame and the
+//Atoms requested.
 func (M *Molecule) GetCoordsArray(clist []int, frame int) ([]*matrix.DenseMatrix,error){
 	var err error
 	var ret []*matrix.DenseMatrix
@@ -137,10 +143,11 @@ func (M *Molecule) GetCoordsArray(clist []int, frame int) ([]*matrix.DenseMatrix
 	}
 	
 	
-//Given a list of ints and the desired frame, it returns an array of floats
-//containing the coordinates of the atoms with the corresponding index
+//GetCoords, given a list of ints and the desired frame, returns an array of floats
+//containing the coordinates of the atoms with the corresponding index.
 //This function returns a copy, not a reference, so changes to the returned matrix
-//don't alter the original.
+//don't alter the original. It check for correctness of the frame and the
+//Atoms requested.
 func (M *Molecule) GetCoords(clist []int, frame int) (*matrix.DenseMatrix,error){
 	var err error
 	var ret [][]float64
@@ -177,7 +184,7 @@ func (M *Molecule) GetCoords(clist []int, frame int) (*matrix.DenseMatrix,error)
 	}
 
 
-//Given a list of ints, it returns an array of the atoms with the 
+//GetAtoms, given a list of ints,  returns an array of the atoms with the
 //corresponding position in the molecule
 //Changes to these atoms affect the original molecule.
 func (M *Molecule) GetAtoms(atomlist []int) ([]*Atom, error){
@@ -193,7 +200,7 @@ func (M *Molecule) GetAtoms(atomlist []int) ([]*Atom, error){
 	return ret,err
 	}
 
-//Replaces the coordinates of atoms in the positions given by atomlist with the ones in newcoords (in order)
+//SetCoords replaces the coordinates of atoms in the positions given by atomlist with the ones in newcoords (in order)
 //If atomlist contains a single element, it replaces as many coordinates as given in newcoords, starting 
 //at the element in atomlist. In the latter case, the function checks that there are enough coordinates to
 //replace and returns an error if not.
@@ -221,9 +228,8 @@ func (M *Molecule) SetCoords(atomlist []int, frame int, newcoords *matrix.DenseM
 	return nil
 	}
 	
-	
-//These functions make the molecule structure implement the sort.Interface interface, so
-//They can be sorted. They are sorted by the b-factors in the first frame.	
+//Swap function, as demanded by sort.Interface. It swaps atoms, coordinates 
+//(all frames) and bfactors of the molecule.	
 func (M *Molecule) Swap(i,j int) {
 	M.Atoms[i],M.Atoms[j]=M.Atoms[j],M.Atoms[i]
 	for k:=0;k<len(M.Coords);k++{
@@ -232,20 +238,22 @@ func (M *Molecule) Swap(i,j int) {
 		}
 	}
 
-//Should the atom i be sorted before atom j?
+//Less: Should the atom i be sorted before atom j?
 func (M *Molecule) Less (i, j int) bool {
 	return M.Bfactors[0][i]<M.Bfactors[0][j]
 	}
 
-//Return the length of the molecule.
+//Len return the length of the molecule.
 func (M *Molecule) Len() int{
 	return len(M.Atoms)
 	}
-//The number of frames in the molecule
+	
+//LenFrames returns the number of frames in the molecule
 func (M *Molecule) LenFrames() int{
 	return len(M.Coords)
 	}
-//Checks whether the molecule is corrupted, i.e. the
+	
+//Corrupted checks whether the molecule is corrupted, i.e. the
 //coordinates don't match the number of atoms. It also checks
 //That the coordinate matrices have 3 columns.
 func (M *Molecule) Corrupted() error{

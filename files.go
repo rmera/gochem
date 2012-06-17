@@ -207,10 +207,10 @@ func read_onlycoords_pdb_line(line string, contlines int) ([]float64,float64, er
 	}
 
 
-/*This reads the atomic entries for a PDB file, returns a bunch of without coordinates,
- * and the coordinates in a separate array of arrays. If there is one frame in the PDB
- * the coordinates array will be of lenght 1. It also returns an error which is not 
- * really well set up right now*/
+//PdbRead reads the atomic entries for a PDB file, returns a bunch of without coordinates,
+// and the coordinates in a separate array of arrays. If there is one frame in the PDB
+// the coordinates array will be of lenght 1. It also returns an error which is not 
+// really well set up right now.
 func PdbRead(pdbname string, read_additional bool) ([]*Atom, []*matrix.DenseMatrix,[][]float64, error){
 	molecule:=make([]*Atom,0) //I thiiink is more efficient to have pointers here
 	coords:=make([][]float64,1,1)
@@ -284,7 +284,7 @@ func PdbRead(pdbname string, read_additional bool) ([]*Atom, []*matrix.DenseMatr
 //End Pdb_read family
 
 
-//Writes a PDB file for the molecule mol with the file name pdbname.
+//PdbWrite writes a PDB file for the molecule mol with the file name pdbname.
 func PdbWrite(mol *Molecule, pdbname string) error{
 	err:=mol.Corrupted()
 	if err!=nil{
@@ -337,7 +337,7 @@ func PdbWrite(mol *Molecule, pdbname string) error{
 	
 	
 
-//Reads an xyz file, returns a slice of Atom objects, and slice of matrix.DenseMatrix and an error.
+//XyzRead reads an xyz file, returns a slice of Atom objects, and slice of matrix.DenseMatrix and an error.
 func XyzRead(xyzname string,) ([]*Atom, []*matrix.DenseMatrix, error){
 	xyzfile, err:= os.Open(xyzname)
 	if err!= nil{
@@ -395,7 +395,7 @@ func XyzRead(xyzname string,) ([]*Atom, []*matrix.DenseMatrix, error){
 
 
 
-//Writes the frame frame of molecule mol in an XYZ file with name xyzname which will
+//XyzWrite writes the frame frame of molecule mol in an XYZ file with name xyzname which will
 //be created fot that. If the file exist it will be overwriten.
 func XyzWrite(mol *Molecule, frame int, xyzname string) error{
 	err:=mol.Corrupted()
