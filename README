@@ -4,14 +4,15 @@ It provides structures for handling atoms and molecules, reading/writing some co
 (currently xyz and PDB) and a few functions for geometrical manipulation of molecules.
 
 In gochem the Atom container contains all information about an atom that is not expected to vary
-between states (mas, etc). Coordinates and b-factors are stored separately as Nx3 gomatrix dense
-matrices the firsts and as slices of N float64 the seconds (N being the number of atoms).
+between states (mass, etc). Coordinates and b-factors (or temperature factors) are stored 
+separately as Nx3 gomatrix dense matrices the firsts and as slices of N float64 the seconds 
+(N being the number of atoms).
 
 A Molecule container, then, contains a slice of Atoms, a slice of gomatrix dense matrices (one 
-for each state of the molecule) for the coordinates, and a slice of slices of float64 for the 
-b-factors.
+matrix for each state of the molecule) for the coordinates, and a slice of slices of float64 
+for the b-factors.
 
-The Molecule structure implements the sort.Interface interface, in such a way that the atoms, 
+The Molecule structure implements the sort.Interface interface, so that the atoms, 
 coordinates and b-factors, together, can be sorted with one function call. They are sorted 
 according to the b-factors of the first state of the molecule.
 
@@ -43,6 +44,7 @@ Calculates moment tensor and elipsoid of inertia--related properties (not tested
 Implements the sort.Interface interface, it can be sorted by b-factors.
 
 Sort of does:
+
 Reads xtc files Does not work on all machines (apparently only 64 bits). Also, it is not included in the
 default package since requires the xdrfile package to be installed. It can also be fount on my github, and it must be put manually
 in the directory of the rest of the package.
@@ -52,7 +54,7 @@ in the directory of the rest of the package.
 TODOS:
 
 
-*Protein superimposer (Calign).
+*Protein superimposer (Calign?).
 *Read/Write Mopac2009 input/output files for quick optimizations.
 *Same for ORCA  (b-factors of 1 could mean fixed atoms).
 *Additional geometrical manipulation tools.
