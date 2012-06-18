@@ -16,6 +16,8 @@
     You should have received a copy of the GNU Lesser General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * 
+ * Gochem is developed at the laboratory for instruction in Swedish, Department of Chemistry,
+ * University of Helsinki, Finland.  
  * 
  */
 /***Dedicated to the long life of the Ven. Khenpo Phuntzok Tenzin Rinpoche***/
@@ -116,6 +118,8 @@ func (M *Molecule) Coords(first int, last int, frame int) []float64{
 	return M.coords[frame][first*3:(last*3)+3]
 	}
 */
+
+
 //Coord returns a DenseMatrix with the coordinates of the atom atom in the frame frame
 //Changes to this DenseMatrix affect the original coordinates.
 func (M *Molecule) Coord(atom, frame int) *matrix.DenseMatrix{

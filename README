@@ -1,9 +1,26 @@
+
+Gochem is a libary for chemistry, especially computational biochemistry, in go.
+It provides structures for handling atoms and molecules, reading/writing some common formats 
+(currently xyz and PDB) and a few functions for geometrical manipulation of molecules.
+
+In gochem the Atom container contains all information about an atom that is not expected to vary
+between states (mas, etc). Coordinates and b-factors are stored separately as Nx3 gomatrix dense
+matrices the firsts and as slices of N float64 the seconds (N being the number of atoms).
+
+A Molecule container, then, contains a slice of Atoms, a slice of gomatrix dense matrices (one 
+for each state of the molecule) for the coordinates, and a slice of slices of float64 for the 
+b-factors.
+
+The Molecule structure implements the sort.Interface interface, in such a way that the atoms, 
+coordinates and b-factors, together, can be sorted with one function call. They are sorted 
+according to the b-factors of the first state of the molecule.
+
+
 Design goals:
 
-*Stick to KISS principle as much as possible
-	-This means, code simplicity comes before user  friendliness
-*Related to the previous: Readability counts.
-*Assume that users can code (dont provide too many simplifying functions)
+*Simplicity (of the code).
+*Readability.
+*Assume that users can code (dont overcomplicate the code with zillion simplifying functions)
 *Try to avoid the need for users to know gomatrix as much as possible
 	-Supply convenience functions to deal with coordinates.
 	-Of course users wanting to code calculations will need gomatrix anyway.
@@ -18,11 +35,11 @@ Currently Does:
 
 Reads/writes PDB
 Reads/writes XYZ files
-Superimpose files (adequate for small molecules since doesn't use sequence information).
-Calculate RMSD between two sets of coordinates.
-Allows to get atoms and coordinates from a list, or manually
-Allows to replace coordinates
-Calculates moment of inertia and elipsoid of inertia--related properties
+Superimpose molecules (adequate for small molecules since doesn't use sequence information).
+Calculate RMSD between molecules.
+Allows to get atoms and coordinates from a list, or manually.
+Allows to replace coordinates.
+Calculates moment tensor and elipsoid of inertia--related properties (not tested).
 Implements the sort.Interface interface, it can be sorted by b-factors.
 
 Sort of does:
@@ -33,14 +50,8 @@ default package since requires the xdrfile package to be installed.
 
 TODOS:
 
-Before version 0.1:
 
-*Add atoms at the end
-*Separate the thing in different files (MUST)
-*Test geometical things (MUST)
-
-
-OTHER TODOS:
 *Protein superimposer (Calign).
 *Read/Write Mopac2009 input/output files for quick optimizations.
-*Same for ORCA. (b-factors of 1 could mean fixed atoms)
+*Same for ORCA  (b-factors of 1 could mean fixed atoms).
+*Additional geometrical manipulation tools.

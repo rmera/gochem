@@ -18,6 +18,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * 
  * 
+ * Gochem is developed at the laboratory for instruction in Swedish, Department of Chemistry,
+ * University of Helsinki, Finland.  
+ * 
+ * 
  */
 /***Dedicated to the long life of the Ven. Khenpo Phuntzok Tenzin Rinpoche***/
 

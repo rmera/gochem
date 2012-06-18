@@ -16,6 +16,9 @@
     You should have received a copy of the GNU Lesser General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * 
+ * Gochem is developed at the laboratory for instruction in Swedish, Department of Chemistry,
+ * University of Helsinki, Finland.  
+ * 
  * 
  */
  /***Dedicated to the long life of the Ven. Khenpo Phuntzok Tenzin Rinpoche***/
@@ -64,6 +67,7 @@ func Super(test, templa *Molecule, testlst, templalst []int, frametest, frametem
 //the first translation vector has to be added first to the moving matrix, then the rotation must be performed
 //and finally the second translation has to be added.
 //This is a low level function, although one can use it directly since it returns the transformed matrix.
+//The math for this function is by Prof. Veronica Jimenez-Curihual, University of Concepcion, Chile.
 func GetSuper(test, templa *matrix.DenseMatrix)(*matrix.DenseMatrix, *matrix.DenseMatrix, *matrix.DenseMatrix, *matrix.DenseMatrix, error){
 	dot:=matrix.ParallelProduct
 	if templa.Rows() != test.Rows() || templa.Cols()!= 3 || test.Cols()!=3{
@@ -72,7 +76,7 @@ func GetSuper(test, templa *matrix.DenseMatrix)(*matrix.DenseMatrix, *matrix.Den
 	var Scal float64
 	p:=templa.Rows()
 	Scal=float64(1.0)/float64(p)
-	j:=matrix.Ones(p,1) //Mass is not important for this matter so we'll use this as mass also.
+	j:=matrix.Ones(p,1) //Mass is not important for this matter so we'll just use this.
 	ctest,distest,err:=CenterMass(test,test,j)
 	if err!=nil{
 		return nil, nil, nil, nil, err
@@ -83,7 +87,7 @@ func GetSuper(test, templa *matrix.DenseMatrix)(*matrix.DenseMatrix, *matrix.Den
 		}
 	Mid:=matrix.Eye(p)
 	jT:=j.Transpose()
-	ScaledjProd:=dot(j,jT) //This looks bad
+	ScaledjProd:=dot(j,jT) 
 	ScaledjProd.Scale(Scal)
 	Maux:=dot(dot(ctempla.Transpose(),Mid),ctest)
 	Maux=Maux.Transpose() //Dont understand why this is needed
@@ -158,7 +162,8 @@ const appzero float64 = 0.000001  //used at least in Eigenwrap to make floating
 //point comparisons
 
 //GetRhoShapeIndexes Get shape indices based on the axes of the elipsoid of inertia.
-//Not yet tested to give good results. (Reference needed!)
+//Based on the work of Taylor et al., .(1983), J Mol Graph, 1, 30
+//This function has NOT been tested.
 func GetRhoShapeIndexes(evals []float64)(float64, float64, error){
 	rhos,err:=GetRhos(evals)
 	linear_distortion:=(1-(rhos[1]/rhos[0]))*100 //Prolate
