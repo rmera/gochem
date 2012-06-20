@@ -34,6 +34,68 @@ import "sort"
 
 //Geometrical functions.
 
+//GetSwitchZ takes a matrix with cartesian coordinates in the rows (mol) and a row vector (newz).
+//It returns a linear operator such that, when applied to the matrix mol (the operator on the right side)
+//it will rotate mol such that the z axis is aligned with newz. Also returns error or nil.
+//It appears to be wrong by 0.0014 radians in the X axis. Very little but I dont understand why. Could
+//Just be numerical noise I guess.
+func GetSwitchZ(mol, newz *matrix.DenseMatrix) (*matrix.DenseMatrix, error) {
+	if newz.Cols()!=3 || newz.Rows()!=1{
+		return nil, fmt.Errorf("Wrong newz vector")
+		}
+	if mol.Cols()!=3{
+		return nil, fmt.Errorf("Wrong mol vector")
+		}
+	norm:=newz.TwoNorm()
+	theta:=math.Atan2(norm,newz.Get(0,2)) //Around the new y
+	phi:=math.Atan2(newz.Get(0,1),newz.Get(0,0))  //first around z
+	psi:=0.000000000000  //Second turn around z
+	sinphi:=math.Sin(phi)
+	cosphi:=math.Cos(phi)
+	sintheta:=math.Sin(theta)
+	costheta:=math.Cos(theta)
+	sinpsi:=math.Sin(psi)
+	cospsi:=math.Cos(psi)
+/*The operator used now is the transpose of this one
+ * 	operator:=[]float64{cosphi*costheta*cospsi - sinphi*sinpsi,   sinphi*costheta*cospsi + cosphi*sinpsi, -sintheta*cospsi,
+						-sinphi*cospsi - cosphi*costheta*sinpsi, -sinphi*costheta*sinpsi + cosphi*cospsi,  sintheta*sinpsi,
+						cosphi*sintheta,                          sintheta*sinphi,                         costheta}
+*/	
+	//This one is the transpose of the other operator (commented). It is meant to be multiplied from the left by a row
+	//vector.
+	operator:=[]float64{cosphi*costheta*cospsi - sinphi*sinpsi,   -sinphi*cospsi - cosphi*costheta*sinpsi,   cosphi*sintheta,
+				        sinphi*costheta*cospsi + cosphi*sinpsi,   -sinphi*costheta*sinpsi + cosphi*cospsi,   sintheta*sinphi,
+				        -sintheta*cospsi,                          sintheta*sinpsi,                          costheta } 
+	finalop:=matrix.MakeDenseMatrix(operator,3,3)
+	fmt.Println(operator, "\n\n",finalop)
+	return finalop, nil
+	
+	}
+
+/*
+ * 		self.sin_phi=sin(self.phi)
+		self.cos_phi=cos(self.phi)
+		self.sin_th=sin(self.th)
+		self.cos_th=cos(self.th)
+		self.sin_psi=sin(self.psi)
+		self.cos_psi=cos(self.psi)
+		self.operador=array([[cos_phi*cos_th*cos_psi-sin_phi*sin_psi,     sin_phi*cos_th*cos_psi + cos_phi*sin_psi, -sin_th*cos_psi],
+		                     [-sin_phi*cos_psi - cos_phi*cos_th*sin_psi, -sin_phi*cos_th*sin_psi + cos_phi*cos_psi,  sin_th*sin_psi],
+		                     [cos_phi*sin_th,                             sin_th*sin_phi,                            cos_th]])
+ * 
+ * 
+ 	def set_z(self): #here the euler angles of rotation are claculated to set the Z axis in the direction of U
+		self.D=sqrt(pow(self.U[0],2)+pow(self.U[1],2)) #module of U
+		self.th=atan2(self.D,self.U[2]) #around the new y
+		self.phi=atan2(self.U[1],self.U[0]) #first around z 
+		self.psi=0 #second turn around z
+		del self.D
+		del self.U
+		
+		* */
+
+
+
 //Super determines the best rotation and translations to superimpose the atoms of molecule test, frame frametest,
 //listed in testlst on te atoms of molecule templa, frame frametempla, listed in templalst. 
 //It applies those rotation and translations to the whole frame frametest of molecule test, in palce. 
