@@ -75,27 +75,6 @@ func GetSwitchZ(mol, newz *matrix.DenseMatrix) (*matrix.DenseMatrix, error) {
 	
 	}
 
-/*
- * 		self.sin_phi=sin(self.phi)
-		self.cos_phi=cos(self.phi)
-		self.sin_th=sin(self.th)
-		self.cos_th=cos(self.th)
-		self.sin_psi=sin(self.psi)
-		self.cos_psi=cos(self.psi)
-		self.operador=array([[cos_phi*cos_th*cos_psi-sin_phi*sin_psi,     sin_phi*cos_th*cos_psi + cos_phi*sin_psi, -sin_th*cos_psi],
-		                     [-sin_phi*cos_psi - cos_phi*cos_th*sin_psi, -sin_phi*cos_th*sin_psi + cos_phi*cos_psi,  sin_th*sin_psi],
-		                     [cos_phi*sin_th,                             sin_th*sin_phi,                            cos_th]])
- * 
- * 
- 	def set_z(self): #here the euler angles of rotation are claculated to set the Z axis in the direction of U
-		self.D=sqrt(pow(self.U[0],2)+pow(self.U[1],2)) #module of U
-		self.th=atan2(self.D,self.U[2]) #around the new y
-		self.phi=atan2(self.U[1],self.U[0]) #first around z 
-		self.psi=0 #second turn around z
-		del self.D
-		del self.U
-		
-		* */
 
 
 
