@@ -42,6 +42,10 @@ Allows to get atoms and coordinates from a list, or manually.
 Allows to replace coordinates.
 Calculates moment tensor and elipsoid of inertia--related properties (not tested).
 Implements the sort.Interface interface, it can be sorted by b-factors.
+Axis manipulation:
+	Align a vector with the Z axis
+	Rotate around the Z axis until the xy proj. of a vector becomes the Y axis
+Simple geometrical calculations
 
 Sort of does:
 
