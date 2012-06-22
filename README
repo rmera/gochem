@@ -62,3 +62,7 @@ TODOS:
 *Read/Write Mopac2009 input/output files for quick optimizations.
 *Same for ORCA  (b-factors of 1 could mean fixed atoms).
 *Additional geometrical manipulation tools.
+
+
+Currently, gochem is licensed under LGPL2. This might change towards BSD in the future. Meanwhile, if you want to use 
+some of this for a BSD-licensed project, let me know.
