@@ -30,18 +30,57 @@ import  "github.com/skelterjohn/go.matrix"
 import "math"
 import "sort"
 
+//AngleInVectors takes 2 vectors and calculate the angle between them
+//It does not check for correctness or return errors!
+func AngleInVectors(v1,v2 *matrix.DenseMatrix) float64 {
+	//Maybe I'll also write a safer version of this function?
+	normproduct:=v1.TwoNorm()*v2.TwoNorm()
+	dotprod:=Dot(v1,v2) //Ignore the error
+	angle:=math.Acos(dotprod/normproduct)
+	if angle<=appzero{
+		return 0.00
+		}
+	return angle
+	}
 
+/*
+def angle_in_vectors(v1,v2): #calculates the angles between to vectors (Python Numeric arrays) in radians
+	normproduct=norm(v1)*norm(v2)
+	angle=np.arccos(np.dot(v1,v2)/normproduct)
+	if angle<=approxzero or not angle:
+		return 0
+	return angle
+
+ * */
+
+
+//GetRotateAroundZ takes a set of coordinates (mol) and a vector (y). It returns
+//a rotation matrix that, when applied to mol, will rotate it around the Z axis 
+//in such a way that the projection of newy in the XY plane will be aligned with
+//the Y axis.
+func GetRotateAroundZ(mol, newy *matrix.DenseMatrix) (*matrix.DenseMatrix, error){
+	if newy.Cols()!=3 || newy.Rows()!=1{
+		return nil, fmt.Errorf("Wrong newy vector")
+		}
+	if mol.Cols()!=3{
+		return nil, fmt.Errorf("Wrong mol vector")
+		}
+	gamma:=math.Atan2(newy.Get(0,0),newy.Get(0,1))
+	singamma:=math.Sin(gamma)
+	cosgamma:=math.Cos(gamma)
+	operator:=[]float64{ cosgamma, singamma, 0,
+	                    -singamma, cosgamma, 0,
+	                        0,        0,    1}
+	return matrix.MakeDenseMatrix(operator,3,3), nil
+	                        
 	
+	}	
 
 
-
-//Geometrical functions.
 
 //GetSwitchZ takes a matrix with cartesian coordinates in the rows (mol) and a row vector (newz).
 //It returns a linear operator such that, when applied to the matrix mol (the operator on the right side)
 //it will rotate mol such that the z axis is aligned with newz. Also returns error or nil.
-//It appears to be wrong by 0.0014 radians in the X axis. Very little but I dont understand why. Could
-//Just be numerical noise I guess.
 func GetSwitchZ(mol, newz *matrix.DenseMatrix) (*matrix.DenseMatrix, error) {
 	if newz.Cols()!=3 || newz.Rows()!=1{
 		return nil, fmt.Errorf("Wrong newz vector")
@@ -49,10 +88,10 @@ func GetSwitchZ(mol, newz *matrix.DenseMatrix) (*matrix.DenseMatrix, error) {
 	if mol.Cols()!=3{
 		return nil, fmt.Errorf("Wrong mol vector")
 		}
-	norm:=newz.TwoNorm()
-	theta:=math.Atan2(norm,newz.Get(0,2)) //Around the new y
-	phi:=math.Atan2(newz.Get(0,1),newz.Get(0,0))  //first around z
-	psi:=0.000000000000  //Second turn around z
+	normxy:=math.Sqrt(math.Pow(newz.Get(0,0),2)+math.Pow(newz.Get(0,1),2))
+	theta:=math.Atan2(normxy,newz.Get(0,2)) //Around the new y
+	phi:=math.Atan2(newz.Get(0,1),newz.Get(0,0))  //First around z
+	psi:=0.000000000000  // second around z
 	sinphi:=math.Sin(phi)
 	cosphi:=math.Cos(phi)
 	sintheta:=math.Sin(theta)
@@ -70,11 +109,16 @@ func GetSwitchZ(mol, newz *matrix.DenseMatrix) (*matrix.DenseMatrix, error) {
 				        sinphi*costheta*cospsi + cosphi*sinpsi,   -sinphi*costheta*sinpsi + cosphi*cospsi,   sintheta*sinphi,
 				        -sintheta*cospsi,                          sintheta*sinpsi,                          costheta } 
 	finalop:=matrix.MakeDenseMatrix(operator,3,3)
-	fmt.Println(operator, "\n\n",finalop)
+//	fmt.Println(operator, "\n\n",finalop)
 	return finalop, nil
 	
 	}
 
+/*
+		operador=array([[cosphi*costheta*cospsi-sinphi*sinpsi,   +sinphi*costheta*cospsi+cosphi*sinpsi,   -sintheta*cospsi],
+		                [-sinphi*cospsi-cosphi*costheta*sinpsi,  -sinphi*costheta*sinpsi+cosphi*cospsi,    sintheta*sinpsi],
+		                [cosphi*sintheta,                         sintheta*sinphi,                         costheta]])
+*/
 
 
 
