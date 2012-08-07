@@ -430,6 +430,17 @@ func MomentTensor(A, mass *matrix.DenseMatrix) (*matrix.DenseMatrix, error){
 //Be inserted in mathematical expressions and thus they need to return only one value.
 
 
+//Unitarize takes a vector and divides it by its norm
+//thus obtaining an unitary vector pointing in the same direction as 
+//vector.
+func Unitarize(vector *matrix.DenseMatrix) *matrix.DenseMatrix{
+	norm:=vector.TwoNorm()
+	norm=1.0/norm
+	F:=vector.Copy()
+	F.Scale(norm)
+	return F
+	}
+
 //AddRow adds the row vector row to each row of the matrix big, in place. Both need the same ammount of columns.
 func AddRow(big,row *matrix.DenseMatrix)(error){
 	bigrows:=big.Rows()
