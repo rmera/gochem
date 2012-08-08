@@ -421,7 +421,7 @@ func MomentTensor(A, mass *matrix.DenseMatrix) (*matrix.DenseMatrix, error){
 
 
 
-//Theses ones are basic math, belongs more to the go.matrix package
+//These ones are basic math, belonging more to the go.matrix package
 //If there is something similar already made
 //in go.matrix this functions will be deleted. Otherwise they could be
 //made methods for DenseMatrix and included in go.matrix

@@ -27,6 +27,8 @@ package chem
 //import "github.com/skelterjohn/go.matrix"
 //import "fmt"
 import "testing"
+import "strings"
+import "strconv"
 
 func TestGeo(Te *testing.T) {
 	pulled_atoms:=[7]int{43,41,42,40,85,86,87}
@@ -38,7 +40,7 @@ func TestGeo(Te *testing.T) {
 		}
 	mol.Atoms=a
 	mol.Coords=b
-	pulled,err:=mol.GetCoords(pulled_atoms[:], 0)
+	pulled_res,err:=mol.GetCoords(pulled_atoms[:], 0)
 	if err!=nil{
 		Te.Error(err)
 		}
@@ -50,17 +52,21 @@ func TestGeo(Te *testing.T) {
 		Te.Error(err)
 		}
 	vector=Unitarize(vector)
-	vector.Scale(3)
-	err=AddRow(pulled,vector)
-	if err!=nil{
-		Te.Error(err)
-		}
-	mol.SetCoords(pulled_atoms[:], 0, pulled)
-	err=mol.Corrupted()
-	if err!=nil{
-		Te.Error(err)
-		}
-	XyzWrite(&mol, 0, "test/sample_mod.xyz") 
-	
+	var scale_factors = [12]float64{-1.0, -2.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0}
+	for _,scaling:=range(scale_factors){
+		vec:=vector.Copy()
+		pulled:=pulled_res.Copy()
+		vec.Scale(scaling)
+		err=AddRow(pulled,vec)
+		if err!=nil{
+			Te.Error(err)
+			}
+		mol.SetCoords(pulled_atoms[:], 0, pulled)
+		err=mol.Corrupted()
+		if err!=nil{
+			Te.Error(err)
+			}
+		XyzWrite(&mol, 0, strings.Replace("test/sample_xxxx.xyz","xxxx",strconv.FormatFloat(scaling, 'f', 1, 64),1)) //There might be an easier way of creatingthe filenames
+	}
 	//fmt.Println(mol.Atoms,mol.Coords,err,pulled,vector,vector.TwoNorm())
 	}
