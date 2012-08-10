@@ -24,11 +24,55 @@
 
 
 package chem
-//import "github.com/skelterjohn/go.matrix"
-//import "fmt"
+import "github.com/skelterjohn/go.matrix"
+import "fmt"
 import "testing"
 import "strings"
 import "strconv"
+
+func TestChangeAxis(Te *testing.T){
+	var mol Molecule
+	ats,coords,bfac,err:=PdbRead("test/2c9v.pdb",true)
+	if err!=nil{
+		Te.Error(err)
+		}
+	mol.Atoms=ats
+	mol.Coords=coords
+	mol.Bfactors=bfac
+	orient_atoms:=[2]int{0,0}
+	for index, atom:= range(mol.Atoms){
+		if atom.Chain=='A' && atom.Molid==124{
+			if atom.Name=="CA"{
+				orient_atoms[1]=index
+				}else if atom.Name=="CB"{
+				orient_atoms[1]=index	
+				}
+			}
+		}
+	ov1:=mol.Coord(orient_atoms[0], 0)
+	ov2:=mol.Coord(orient_atoms[1], 0)
+	//now we center the thing in the beta carbon of D124
+	newcenter:=ov2.Copy()
+	newcenter.Scale(-1)
+	err=AddRow(mol.Coords[0],newcenter)
+	//Now the rotation
+	ov1=mol.Coord(orient_atoms[0], 0) //make sure we have the correct versions
+	ov2=mol.Coord(orient_atoms[1], 0)  //same
+	orient:=ov2.Copy()
+	orient.SubtractDense(ov1)
+	rotation,err:=GetSwitchZ(mol.Coords[0],orient)
+	if err!= nil {
+		Te.Error(err)
+		}
+	mol.Coords[0]=matrix.ParallelProduct(mol.Coords[0],rotation)
+	fmt.Println(orient_atoms[1], mol.Atoms[orient_atoms[1]])//, mol.Coords[0][orient_atoms[1]])
+	if err!=nil{
+		Te.Error(err)
+		}
+	PdbWrite(&mol,"test/2c9v-aligned.pdb")
+	}
+
+
 
 func TestGeo(Te *testing.T) {
 	pulled_atoms:=[7]int{43,41,42,40,85,86,87}
