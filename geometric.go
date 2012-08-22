@@ -454,6 +454,16 @@ func AddRow(big,row *matrix.DenseMatrix)(error){
 	return nil
 	}
 
+//SubRow substract the row bector row from each row of the matrix big, in place. Bothe ned the same ammount 
+//of coulmn. This is not an efficient function since it contains two function calls, one to the DenseMatrix
+//method Scale() and other to the function AddRow().
+func SubRow(big,row *matrix.DenseMatrix)(error){
+	row2:=row.Copy()
+	row2.Scale(-1)
+	err:=AddRow(big,row2)
+	return err  //nil if no error, something else otherwise
+	}
+
 //Cross3D Takes 2 3-len column or row vectors and returns a column or a row
 //vector, respectively, with the Cross product of them.
 func Cross3D(a,b *matrix.DenseMatrix)(*matrix.DenseMatrix,error){

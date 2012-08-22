@@ -43,7 +43,7 @@ func TestChangeAxis(Te *testing.T){
 	for index, atom:= range(mol.Atoms){
 		if atom.Chain=='A' && atom.Molid==124{
 			if atom.Name=="CA"{
-				orient_atoms[1]=index
+				orient_atoms[0]=index
 				}else if atom.Name=="CB"{
 				orient_atoms[1]=index	
 				}
@@ -52,20 +52,19 @@ func TestChangeAxis(Te *testing.T){
 	ov1:=mol.Coord(orient_atoms[0], 0)
 	ov2:=mol.Coord(orient_atoms[1], 0)
 	//now we center the thing in the beta carbon of D124
-	newcenter:=ov2.Copy()
-	newcenter.Scale(-1)
-	err=AddRow(mol.Coords[0],newcenter)
+	err=SubRow(mol.Coords[0],ov2)
 	//Now the rotation
 	ov1=mol.Coord(orient_atoms[0], 0) //make sure we have the correct versions
 	ov2=mol.Coord(orient_atoms[1], 0)  //same
-	orient:=ov2.Copy()
+	orient:=ov2.Copy()	
 	orient.SubtractDense(ov1)
 	rotation,err:=GetSwitchZ(mol.Coords[0],orient)
+	fmt.Println("rotation: ",rotation)
 	if err!= nil {
 		Te.Error(err)
 		}
 	mol.Coords[0]=matrix.ParallelProduct(mol.Coords[0],rotation)
-	fmt.Println(orient_atoms[1], mol.Atoms[orient_atoms[1]])//, mol.Coords[0][orient_atoms[1]])
+	fmt.Println(orient_atoms[1], mol.Atoms[orient_atoms[1]],mol.Atoms[orient_atoms[0]])//, mol.Coords[0][orient_atoms[1]])
 	if err!=nil{
 		Te.Error(err)
 		}
@@ -110,7 +109,7 @@ func TestGeo(Te *testing.T) {
 		if err!=nil{
 			Te.Error(err)
 			}
-		XyzWrite(&mol, 0, strings.Replace("test/sample_xxxx.xyz","xxxx",strconv.FormatFloat(scaling, 'f', 1, 64),1)) //There might be an easier way of creatingthe filenames
+		XyzWrite(&mol, 0, strings.Replace("test/sample_xxxx.xyz","xxxx",strconv.FormatFloat(scaling, 'f', 1, 64),1)) //There might be an easier way of creating the filenames
 	}
 	//fmt.Println(mol.Atoms,mol.Coords,err,pulled,vector,vector.TwoNorm())
 	}
