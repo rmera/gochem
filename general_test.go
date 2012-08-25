@@ -21,85 +21,22 @@
  * 
  */
 
+/*This provides some tests for the library, in the form of little functions 
+ * that have practical applications*/
 
-
-package chem
 import "github.com/skelterjohn/go.matrix"
 import "fmt"
 import "testing"
 import "strings"
 import "strconv"
 
-func Distance(first, second *matrix.DenseMatrix)(float64, error){
-	if first.Rows() != 1 || second.Rows() != 1 || first.Cols() != 3 || second.Cols()!=3{
-		return 0.0, fmt.Errorf("Ill-formated input matrices")
-		} 
-	distance:=second.Copy()
-	_=SubRow(distance,first) //We already checked the format so we shouldnt need to check errors here
-	dist:=ditance.TwoNorm()
-	return dist, nil
-	}
 
-func TestFilterWaters(Te *testing.T) {
-	var mol Molecule
-	ats,coords,bfac,err:=PdbRead("test/2c9v.pdb",true)
-	if err!=nil{
-		Te.Error(err)
-		}
-	mol.Atoms=ats
-	mol.Coords=coords
-	mol.Bfactors=bfac
- 	//Now comes the fun
-	frames:=len(mol.Coords)
-	err:=mol.Corrupted
-	if err!=nil{
-		Te.Error(err)
-		}
-	atoms_per_frame:=len(mol.Coords[0])
-	var coord_saved:= make([]int)
-	var oxygens:= make([]int,0,2)
-	d124:=false //if we had the molecule already
-	site:=false //this is the last molecule of the active site
-	for j,k := range(mol.Atoms){
-		if mol.Atoms[j].Molid==124 && d124==false{
-			coords_saved=append(coords_saved,j)
-			if mol.Atoms[j].Name="OD1" || mol.Atoms[j].Name="OD2"{
-				oxygen=append(oxygen,j)
-				}
-			}
-		if mol.Atoms[j].Molid==125 && d124==false{
-			d124=true
-			}
-		if (mol.Atoms[j].Molid==46 || mol.Atoms[j].Molid==48 || mol.Atoms[j].Molid==63 || mol.Atoms[j].Molid==71 || mol.Atoms[j].Molid==80 || mol.Atoms[j].Molid==83 || mol.Atoms[j].Molid==120 || mol.Atoms[j].Name=="ZN" || mol.Atoms[j].Name=="CU") && site==false{
-			coords_saved=append(coords_saved,j)
-			}
-		if mol.Atoms[j].Molid==156{ // I might need to change this number	
-			site=true //This mean that we have already collected the active site atoms
-			}	
-		}
-	//Now we look for the 8 waters closer to the ASP124 oxygens
-	var waters molecule
-	for i:=0;i<frames;i++{
-		waters.Coords=append(waters.Coords,matrix.MakeDenseMatrix) //Should work
-		waters.Bfactors=append(waters.Bfactors,make([]float64)) //Should work
-		latest:=len(waters.Coords)-1
-		od1:=mol.Coords.GetRowVecto(oxygen[0])
-		od2:=mol.Coords.GetRowVecto(oxygen[1])
-		toinclude:=8 //number of water molecules to be included
-		for j:=0,j<mol.Coords[i].Rows();j++{
-			if mol.Atoms[j].Molname=="SOL"{
-				if i==0{
-					waters.Atoms= append(water.Atoms,mol.Atoms[j])
-					}
-				waters.Coords[latest]=append(water.Coords[latest],mol.Coords[i][j])
-				waters.Bfactors[latest]=append(water.Bfactors[latest],mol.Bfactors[i][j])
-				}
-			}
-		}
-	
-	}
 
-//TestChangeAxis
+
+//TestChangeAxis reads the PDB 2c9v.pdb from the test directory, collects 
+//The CA and CB of residue D124, and rotates the whole molecule such as the vector
+//defined by these 2 atoms is aligned with the Z axis. The new molecule is written
+//as 2c9v_aligned.pdb to the test folder.
 func TestChangeAxis(Te *testing.T){
 	var mol Molecule
 	ats,coords,bfac,err:=PdbRead("test/2c9v.pdb",true)
