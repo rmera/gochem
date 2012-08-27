@@ -24,6 +24,9 @@
 /*This provides some tests for the library, in the form of little functions 
  * that have practical applications*/
 
+package chem
+
+
 import "github.com/skelterjohn/go.matrix"
 import "fmt"
 import "testing"
