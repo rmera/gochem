@@ -25,10 +25,7 @@
 
 package chem
 
-<<<<<<< HEAD
-=======
 
->>>>>>> 0f5d26fbc271dbb9c035488d19a7c1678435b309
 import "github.com/skelterjohn/go.matrix"
 import "fmt"
 import "testing"
