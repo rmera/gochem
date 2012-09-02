@@ -1,7 +1,8 @@
 
 Gochem is a libary for chemistry, especially computational biochemistry, in go.
 It provides structures for handling atoms and molecules, reading/writing some common formats 
-(currently xyz and PDB) and a few functions for geometrical manipulation of molecules.
+(currently xyz, PDB and Gromacs xtc trajectories) and a few functions for geometrical manipulation
+of molecules.
 
 In gochem the Atom container contains all information about an atom that is not expected to vary
 between states (mass, etc). Coordinates and b-factors (or temperature factors) are stored 
@@ -16,8 +17,8 @@ The Molecule structure implements the sort.Interface interface, so that the atom
 coordinates and b-factors, together, can be sorted with one function call. They are sorted 
 according to the b-factors of the first state of the molecule.
 
-The library allows to read Gromacs trajectory files (xtc) if the flag 'gromacs' is given during the build.
-This required the xdrfile from the Gromacs (www.gromacs.org).
+The library allows to read Gromacs trajectory files (xtc) if the flag 'gromacs' is given during the build 
+(go build -tags 'gromacs'). This required the xdrfile from the Gromacs (www.gromacs.org).
 
 
 Design goals:
