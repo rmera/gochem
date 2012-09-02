@@ -34,7 +34,7 @@ package chem
 import "fmt"
 import "testing"
 
-func TestXtc(Te *testing.T) {
+func TesTtXtc(Te *testing.T) {
 	fmt.Println("Fist test!")
 	name:="test/test.xtc"
 	gonatoms,_:=XtcCountAtoms(name)
