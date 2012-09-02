@@ -46,12 +46,11 @@ import "github.com/skelterjohn/go.matrix"
 
 func ReadXtcFrames(ini, end, skip int, filename string)([]*matrix.DenseMatrix,int, error) {
 	Coords:=make([]*matrix.DenseMatrix,0,1) // I might attempt to give the capacity later
-	name:="test/test.xtc"
-	natoms,err:=XtcCountAtoms(name)
+	natoms,err:=XtcCountAtoms(filename)
 	if err!=nil{
 		return nil, 0, err
 		}
-	fp,_:=XtcOpen(name) //We already tested that the name is ok, no need to catch this error
+	fp,_:=XtcOpen(filename) //We already tested that the name is ok, no need to catch this error
 	ccoords:=make([]C.float,natoms*3)
 	i:=0
 	for ;;i++{
