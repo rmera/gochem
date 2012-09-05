@@ -1,4 +1,4 @@
-// +build cgo gromacs
+// +build gromacs 
 
 /*
  * untitled.go
@@ -34,6 +34,11 @@ package chem
 import "fmt"
 import "testing"
 
+
+/*TestXtc reads the frames of the test xtc file using the
+ * "interactive" or "low level" functions, i.e. one frame at a time
+ * It prints the firs 2 coordinates of each frame and the number of 
+ * read frames at the end.*/
 func TestXtc(Te *testing.T) {
 	fmt.Println("Fist test!")
 	name:="test/test.xtc"
@@ -55,7 +60,11 @@ func TestXtc(Te *testing.T) {
 	
 	fmt.Println("Over! frames read:", i)
 	}
-	
+
+/*TestFrameXtc reads the frames of the test xtc file from the first to
+ * the forth frame skipping one frame for each read one. It uses the
+ * "high level" function. It prints the frames read twince, and the
+ * coordinates of the forth atom of the last read frame,*/	
 func TestFrameXtc(Te *testing.T) {
 	fmt.Println("Second test!")
 	name:="test/test.xtc"
