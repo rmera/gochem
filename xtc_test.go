@@ -1,4 +1,4 @@
-// +build gromacs
+// +build cgo gromacs
 
 /*
  * untitled.go
@@ -34,11 +34,12 @@ package chem
 import "fmt"
 import "testing"
 
-func TesTtXtc(Te *testing.T) {
+func TestXtc(Te *testing.T) {
 	fmt.Println("Fist test!")
 	name:="test/test.xtc"
 	gonatoms,_:=XtcCountAtoms(name)
 	fp,_:=XtcOpen(name)
+	defer XtcClose(fp)
 	i:=0
 	for ;;i++{
 		coords,err:=XtcGetFrame(fp,gonatoms)

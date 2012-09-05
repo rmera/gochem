@@ -1,4 +1,4 @@
-// +build gromacs
+// +build cgo gromacs
 
 /*
  * untitled.go
@@ -44,6 +44,12 @@ import "C"
 import "fmt"
 import "github.com/skelterjohn/go.matrix"
 
+//ReadXtcFrames opens the Gromacs trajectory xtc file with name filename
+//and reads the coordinates for frames starting from ini to end (or the 
+//last frame in the trajectory) and skipping skip frame between each 
+//read. The frames are returned as a slice of matrix.Densematrix.
+//It returns also the number of frames read, and
+// error/nil in failure/success.
 func ReadXtcFrames(ini, end, skip int, filename string)([]*matrix.DenseMatrix,int, error) {
 	Coords:=make([]*matrix.DenseMatrix,0,1) // I might attempt to give the capacity later
 	natoms,err:=XtcCountAtoms(filename)
@@ -51,6 +57,7 @@ func ReadXtcFrames(ini, end, skip int, filename string)([]*matrix.DenseMatrix,in
 		return nil, 0, err
 		}
 	fp,_:=XtcOpen(filename) //We already tested that the name is ok, no need to catch this error
+	defer XtcClose(fp)
 	ccoords:=make([]C.float,natoms*3)
 	i:=0
 	for ;;i++{
@@ -83,7 +90,8 @@ func ReadXtcFrames(ini, end, skip int, filename string)([]*matrix.DenseMatrix,in
 	
 
 
-
+//XtcCountAtoms takes the name of a Gromacs xtc trajectory file and returns the 
+//number of atoms per frame in the trajectory.
 func XtcCountAtoms(name string)(int, error){
 	Cfilename:=C.CString(name)
 	Cnatoms:=C.read_natoms(Cfilename)
@@ -91,6 +99,9 @@ func XtcCountAtoms(name string)(int, error){
 	return natoms, nil
 	}
 	
+/*Opens the Gromacs xtc trajectory file with the name name and
+ * returns a C pointer to it, which can passed to other functions of
+ * the package to  */
 func  XtcOpen(name string)(*C.XDRFILE, error){
 	Cfilename:=C.CString(name)
 	fp:=C.openfile(Cfilename)
