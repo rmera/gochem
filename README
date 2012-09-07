@@ -1,7 +1,7 @@
 
-Gochem is a libary for chemistry, especially computational biochemistry, in go.
+Gochem is a library for chemistry, especially computational biochemistry, in go.
 It provides structures for handling atoms and molecules, reading/writing some common formats 
-(currently xyz and PDB) and a few functions for geometrical manipulation of molecules.
+(currently xyz, PDB and xtc) and a few functions for geometrical manipulation of molecules.
 
 In gochem the Atom container contains all information about an atom that is not expected to vary
 between states (mass, etc). Coordinates and b-factors (or temperature factors) are stored 
@@ -17,7 +17,7 @@ coordinates and b-factors, together, can be sorted with one function call. They 
 according to the b-factors of the first state of the molecule.
 
 The library allows to read Gromacs trajectory files (xtc) if the flag 'gromacs' is given during the build.
-This required the xdrfile from the Gromacs (www.gromacs.org).
+This requires the xdrfile from the Gromacs team (www.gromacs.org).
 
 
 Design goals:
@@ -30,7 +30,7 @@ Design goals:
 	-Of course users wanting to code calculations will need gomatrix anyway.
 *Fast and light
 *Easy to extend
-*Useful for computational biochemistry at a classic and QM levels.
+*Useful for computational biochemistry at a classical and QM levels.
 
 
 
@@ -40,11 +40,15 @@ Currently Does:
 Reads/writes PDB
 Reads/writes XYZ files
 Superimpose molecules (adequate for small molecules since doesn't use sequence information).
+  -The user can specify what atoms to use for the supeimpose transformation calculation. 
+   Then all the atoms will be supperimposed according to that transformation (i.e. the mole
+   cules to superimpose don't need to be identical)
 Calculate RMSD between molecules.
 Allows to get atoms and coordinates from a list, or manually.
 Allows to replace coordinates.
 Calculates moment tensor and elipsoid of inertia--related properties (not tested).
-Implements the sort.Interface interface, it can be sorted by b-factors.
+The Molecule objeccts implements the sort.Interface interface, so atoms 
+can be sorted by b-factors.
 Axis manipulation:
 	Align a vector with the Z axis
 	Rotate around the Z axis until the xy proj. of a vector becomes the Y axis
@@ -57,7 +61,7 @@ TODOS:
 
 *Protein superimposer (Calign?).
 *Read/Write Mopac2009 input/output files for quick optimizations.
-*Same for ORCA  (b-factors of 1 could mean fixed atoms).
+*Same for ORCA  (b-factors of >=1 could mean fixed atoms).
 *Additional geometrical manipulation tools.
 
 
