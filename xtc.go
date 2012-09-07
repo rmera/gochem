@@ -1,4 +1,4 @@
-// +build gromacs
+// +build  gromacs 
 
 /*
  * untitled.go
@@ -7,7 +7,7 @@
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License  as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation; either version 2.1 of the License, or
  * (at your option) any later version.
  * 
  * This program is distributed in the hope that it will be useful,
@@ -15,7 +15,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  * 
- * You should have received a copy of the GNU General Public License
+ * You should have received a copy of the GNU Lesser General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA 02110-1301, USA.
@@ -44,14 +44,22 @@ import "C"
 import "fmt"
 import "github.com/skelterjohn/go.matrix"
 
+/*ReadXtcFrames opens the Gromacs trajectory xtc file with name filename
+and reads the coordinates for frames starting from ini to end (or the 
+last frame in the trajectory) and skipping skip frame between each 
+read. The frames are returned as a slice of matrix.Densematrix.
+ It returns also the number of frames read, and
+ error/nil in failure/success. Note that if there are less frames than
+ end, the function wont return error, just the read frames and
+ the number of them.*/
 func ReadXtcFrames(ini, end, skip int, filename string)([]*matrix.DenseMatrix,int, error) {
 	Coords:=make([]*matrix.DenseMatrix,0,1) // I might attempt to give the capacity later
-	name:="test/test.xtc"
-	natoms,err:=XtcCountAtoms(name)
+	natoms,err:=XtcCountAtoms(filename)
 	if err!=nil{
 		return nil, 0, err
 		}
-	fp,_:=XtcOpen(name) //We already tested that the name is ok, no need to catch this error
+	fp,_:=XtcOpen(filename) //We already tested that the name is ok, no need to catch this error
+	defer XtcClose(fp)
 	ccoords:=make([]C.float,natoms*3)
 	i:=0
 	for ;;i++{
@@ -84,7 +92,8 @@ func ReadXtcFrames(ini, end, skip int, filename string)([]*matrix.DenseMatrix,in
 	
 
 
-
+//XtcCountAtoms takes the name of a Gromacs xtc trajectory file and returns the 
+//number of atoms per frame in the trajectory.
 func XtcCountAtoms(name string)(int, error){
 	Cfilename:=C.CString(name)
 	Cnatoms:=C.read_natoms(Cfilename)
@@ -92,6 +101,9 @@ func XtcCountAtoms(name string)(int, error){
 	return natoms, nil
 	}
 	
+/*XtcOpen Opens the Gromacs xtc trajectory file with the name name and
+ * returns a C pointer to it, which can passed to other functions of
+ * the package to  */
 func  XtcOpen(name string)(*C.XDRFILE, error){
 	Cfilename:=C.CString(name)
 	fp:=C.openfile(Cfilename)
@@ -101,6 +113,10 @@ func  XtcOpen(name string)(*C.XDRFILE, error){
 	return fp, nil
 	}
 
+/*XtcGetFrame takes a C pointer to an open Gromacs xtc file and the 
+ * number of atoms per frame in the file. It reads the coordinates
+ * for the next frame of the file and returns  them as a slice of
+ * float64 */
 func XtcGetFrame(fp *C.XDRFILE,natoms int)([]float64,error){
 	totalcoords:=natoms*3
 	cnatoms:=C.int(natoms)
@@ -121,8 +137,14 @@ func XtcGetFrame(fp *C.XDRFILE,natoms int)([]float64,error){
 	return goCoords, nil		
 	}
 
-//Similar to XtcGetFrame but takes the buffer given to C as a parameter
-//This allows to use the same buffer everytime, simplifying the memory allocation
+/*XtcGetFrameEfficient takes a C pointer to an open Gromacs xtc file, 
+ * a slice of C float with enough size to contain all the coordinates
+ * to be read, and number of atoms per frame in the file. 
+ * It reads the coordinates for the next frame of the file and returns 
+ * them as a slice of float64. The fact that it takes the intermediate
+ * buffer as an argument means that one can save many memory allocations.
+ * It returns nill on success, a "No more frames" error if no more 
+ * frames, and other error in other case.*/
 func xtcGetFrameEfficient(fp *C.XDRFILE, Ccoords []C.float, natoms int)([]float64,error){
 	totalcoords:=natoms*3
 	cnatoms:=C.int(natoms)
@@ -142,7 +164,11 @@ func xtcGetFrameEfficient(fp *C.XDRFILE, Ccoords []C.float, natoms int)([]float6
 	return goCoords, nil		
 	}
 	
-
+/*XtcGetFrameDrop takes a C pointer to an open Gromacs xtc file and the 
+ * number of atoms per frame in the file. It reads the coordinates
+ * for the next frame of the file and discards them, returning only 
+ * error/nil in case of failure/success. The special case of no more
+ * frames to read causes it to return a "No more frames" error.*/
 func XtcGetFrameDrop(fp *C.XDRFILE,natoms int)(error){
 	totalcoords:=natoms*3
 	cnatoms:=C.int(natoms)
@@ -158,10 +184,13 @@ func XtcGetFrameDrop(fp *C.XDRFILE,natoms int)(error){
 	}
 
 
-
-//Similar to XtcGetFrame but takes the buffer given to C as a parameter
-//This allows to use the same buffer everytime, simplifying the memory allocation
-//In addition, this doesnt allocate float64 slice, but simply drops the read frame
+/*XtcGetFrameEfficientDrop takes a C pointer to an open Gromacs xtc file, 
+ * a slice of C float with enough size to contain all the coordinates
+ * to be read, and number of atoms per frame in the file. 
+ * It reads the coordinates for the next frame of the file and discart 
+ * them, returning error/nil in case of failure/success. 
+ * The fact that it takes the intermediate
+ * buffer as an argument means that one can save many memory allocations. */
 func xtcGetFrameEfficientDrop(fp *C.XDRFILE, Ccoords []C.float, natoms int)(error){
 	cnatoms:=C.int(natoms)
 	worked:=C.get_coords(fp,&Ccoords[0],cnatoms)
@@ -174,7 +203,8 @@ func xtcGetFrameEfficientDrop(fp *C.XDRFILE, Ccoords []C.float, natoms int)(erro
 	return nil		
 	}
 	
-
+/*XtcClose takes a pointer to an open Gromacs xtc trajectory file
+ * and closes the file pointed by the pointer.*/
 func XtcClose(fp *C.XDRFILE){
 	C.xtc_close(fp)
 	}

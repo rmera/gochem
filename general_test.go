@@ -1,3 +1,5 @@
+// +build !gromacs
+
 /*
  * general_test.go
  * 
@@ -5,7 +7,7 @@
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as 
- * published by the Free Software Foundation; either version 2 of the 
+ * published by the Free Software Foundation; either version 2.1 of the 
  * License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -25,6 +27,7 @@
 
 package chem
 
+
 import "github.com/skelterjohn/go.matrix"
 import "fmt"
 import "testing"
@@ -35,8 +38,9 @@ import "strconv"
 
 
 //TestChangeAxis reads the PDB 2c9v.pdb from the test directory, collects 
-//The CA and CB of residue D124, and rotates the whole molecule such as the vector
-//defined by these 2 atoms is aligned with the Z axis. The new molecule is written
+//The CA and CB of residue D124 of the chain A, and rotates the 
+//whole molecule such as the vector defined by these 2 atoms is 
+//aligned with the Z axis. The new molecule is written
 //as 2c9v_aligned.pdb to the test folder.
 func TestChangeAxis(Te *testing.T){
 	var mol Molecule
@@ -72,7 +76,7 @@ func TestChangeAxis(Te *testing.T){
 		Te.Error(err)
 		}
 	mol.Coords[0]=matrix.ParallelProduct(mol.Coords[0],rotation)
-	fmt.Println(orient_atoms[1], mol.Atoms[orient_atoms[1]],mol.Atoms[orient_atoms[0]])//, mol.Coords[0][orient_atoms[1]])
+	fmt.Println(orient_atoms[1], mol.Atoms[orient_atoms[1]],mol.Atoms[orient_atoms[0]])
 	if err!=nil{
 		Te.Error(err)
 		}
@@ -82,7 +86,7 @@ func TestChangeAxis(Te *testing.T){
 
 //TestGeo opens the sample.xyz file in the test directory, and pull a number of hardcoded atoms
 //In the direction of a hardcoded vectos. It builds 12 files with the pulled atoms  displaced by
-//different along the pulling vector
+//different ammounts along the pulling vector
 func TestGeo(Te *testing.T) {
 	pulled_atoms:=[7]int{43,41,42,40,85,86,87}
 	pulling_vector:=[2]int{40,88}
@@ -120,6 +124,5 @@ func TestGeo(Te *testing.T) {
 			Te.Error(err)
 			}
 		XyzWrite(&mol, 0, strings.Replace("test/sample_xxxx.xyz","xxxx",strconv.FormatFloat(scaling, 'f', 1, 64),1)) //There might be an easier way of creating the filenames
-	}
-	//fmt.Println(mol.Atoms,mol.Coords,err,pulled,vector,vector.TwoNorm())
+		}
 	}
