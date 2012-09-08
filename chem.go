@@ -93,10 +93,10 @@ func (M *Molecule) GetMassArray() ([]float64,error){
 // It checks that the number of coordinates matches the number of atoms.
 func (M *Molecule) AddFrame(newframe *matrix.DenseMatrix) error{
 	if M==nil{
-		return nil,fmt.Errorf("Molecule is nil") 
+		return fmt.Errorf("Molecule is nil") 
 		}
 	if M.Atoms==nil{
-		return nil, fmt.Errorf("Molecule is empty")
+		return fmt.Errorf("Molecule is empty")
 		}
 	if newframe == nil{
 		return fmt.Errorf("Attempted to add nil frame") 
@@ -119,10 +119,10 @@ func (M *Molecule) AddFrame(newframe *matrix.DenseMatrix) error{
 //the number of coordinates matches the number of atoms.
 func (M *Molecule) AddManyFrames(newframes []*matrix.DenseMatrix) error{
 	if M==nil{
-		return nil,fmt.Errorf("Molecule is nil") 
+		return fmt.Errorf("Molecule is nil") 
 		}
 	if M.Atoms==nil{
-		return nil, fmt.Errorf("Molecule is empty")
+		return fmt.Errorf("Molecule is empty")
 		}
 	if newframes == nil {
 		return fmt.Errorf("Attempted to add nil frames") 
@@ -160,17 +160,17 @@ func (M *Molecule) Coords(first int, last int, frame int) []float64{
 //Notice that this doesnt return errors at all, just nil if there is something wrong.
 //This is because this function is meant to be embebed in bigger expressions. Check before using!
 func (M *Molecule) Coord(atom, frame int) *matrix.DenseMatrix{
-	if frame>=len(M.Coords) || atom >= len(M.Coords[0].Rows()){
+	if frame>=len(M.Coords) || atom >= M.Coords[0].Rows(){
 		return nil
 		}
 	return M.Coords[frame].GetRowVector(atom)
 	}
 
-//GetCoordsArray, given a list of ints, and a frame, returns an slice of DenseMatrix where the nth
+//GetCoordsSlice, given a list of ints, and a frame, returns an slice of DenseMatrix where the nth
 //element contains the coordinates to the atom in the position clist[n] in M.Atoms.
 //Changes to these matrices affect the original M.Coords. It checks for correctness of the frame and the
 //Atoms requested.
-func (M *Molecule) GetCoordsArray(clist []int, frame int) ([]*matrix.DenseMatrix,error){
+func (M *Molecule) GetCoordsSlice(clist []int, frame int) ([]*matrix.DenseMatrix,error){
 	if M==nil{
 		return nil,fmt.Errorf("Molecule is nil") 
 		}
@@ -178,9 +178,6 @@ func (M *Molecule) GetCoordsArray(clist []int, frame int) ([]*matrix.DenseMatrix
 		return nil, fmt.Errorf("Molecule is empty")
 		}
 	var err error
-	if M == nil {
-		return nil, fmt.Errorf("The molecul)
-		}
 	var ret []*matrix.DenseMatrix
 	if frame>=len(M.Coords){
 		return ret,fmt.Errorf("Frame requested (%d) out of range!",frame)
@@ -196,7 +193,7 @@ func (M *Molecule) GetCoordsArray(clist []int, frame int) ([]*matrix.DenseMatrix
 	}
 	
 	
-//GetCoords, given a list of ints and the desired frame, returns an array of floats
+//GetCoords, given a list of ints and the desired frame, returns an slice matrix.DenseMatrix
 //containing the coordinates of the atoms with the corresponding index.
 //This function returns a copy, not a reference, so changes to the returned matrix
 //don't alter the original. It check for correctness of the frame and the
