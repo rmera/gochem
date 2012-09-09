@@ -1,0 +1,75 @@
+
+Gochem is a library for chemistry, especially computational biochemistry, in go.
+It provides structures for handling atoms and molecules, reading/writing some common formats 
+(currently xyz, PDB and xtc) and a few functions for geometrical manipulation of molecules.
+
+In gochem the Atom container contains all information about an atom that is not expected to vary
+between states (mass, etc). Coordinates and b-factors (or temperature factors) are stored 
+separately as Nx3 gomatrix dense matrices the firsts and as slices of N float64 the seconds 
+(N being the number of atoms).
+
+A Molecule container, then, contains a slice of Atoms, a slice of gomatrix dense matrices (one 
+matrix for each state of the molecule) for the coordinates, and a slice of slices of float64 
+for the b-factors.
+
+The Molecule structure implements the sort.Interface interface, so that the atoms, 
+coordinates and b-factors, together, can be sorted with one function call. They are sorted 
+according to the b-factors of the first state of the molecule.
+
+The library allows to read Gromacs trajectory files (xtc) if the flag 'gromacs' is given during the build.
+This requires the xdrfile from the Gromacs team (www.gromacs.org).
+
+Gochem uses the Gomatrix (https://github.com/skelterjohn/go.matrix) 
+and Plotinum (http://code.google.com/p/plotinum/) library.
+
+
+Design goals:
+
+*Simplicity (of the code).
+*Readability.
+*Assume that users can code (dont overcomplicate the code with zillion simplifying functions)
+*Try to avoid the need for users to know gomatrix as much as possible
+	-Supply convenience functions to deal with coordinates.
+	-Of course users wanting to code calculations will need gomatrix anyway.
+*Fast and light
+*Easy to extend
+*Useful for computational biochemistry at a classical and QM levels.
+
+
+
+
+Currently Does:
+
+Reads/writes PDB
+Reads/writes XYZ files
+Superimpose molecules (adequate for small molecules since doesn't use sequence information).
+   The user can specify what atoms to use for the supeimpose transformation calculation. 
+   Then all the atoms will be supperimposed according to that transformation (i.e. the mole-
+   cules to superimpose don't need to be identical)
+Calculate RMSD between molecules.
+Allows to get atoms and coordinates from a list, or manually.
+Allows to replace coordinates.
+Calculates moment tensor and elipsoid of inertia--related properties (not tested).
+The Molecule object implements the sort.Interface interface, so atoms 
+can be sorted by b-factors.
+Axis manipulation:
+	Align a vector with the Z axis
+	Rotate around the Z axis until the xy proj. of a vector becomes the Y axis
+Simple geometrical calculations
+Reads XTC files (see above)
+Calculates and draws Ramachandran plots (uses the Plotinum library).
+
+
+TODOS:
+
+
+*Protein superimposer (Calign?).
+*Read/Write Mopac2009 input/output files for quick optimizations.
+*Same for ORCA  (b-factors of >=1 could mean fixed atoms).
+*Additional geometrical manipulation tools.
+
+
+Currently, gochem is licensed under LGPL2. This might change towards BSD in the future. Meanwhile, if you want to use 
+some of this for a BSD-licensed project, let me know.
+
+
