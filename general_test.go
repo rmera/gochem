@@ -129,14 +129,27 @@ func TestGeo(Te *testing.T) {
 
 func TestRama(Te *testing.T){
 	var mol Molecule
-	ats,coords,bfac,err:=PdbRead("test/2C9V.pdb",true)
+	ats,coords,bfac,err:=PdbRead("test/2c9v.pdb",true)
 	if err!=nil{
 		Te.Error(err)
 		}
 	mol.Atoms=ats
 	mol.Coords=coords
 	mol.Bfactors=bfac
-	_=Ramachandran(&mol,'A',0) ////
+	ramalist, err:=RamachandranList(&mol,"A",[]int{0,-1}) ////
+	if err!=nil{
+		Te.Error(err)
+		}
+	rama,err := RamachandranCalc(&mol,ramalist,[]int{0})
+	if err!=nil{
+		Te.Error(err)
+		}
+	fmt.Println("Rama",rama,len(rama[0]),len(ramalist),len(mol.Atoms))
+	err=RamachandranPlot(rama)
+	if err!=nil{
+		Te.Error(err)
+		}
+	PdbWrite(&mol,"test/Used4Rama.pdb")
 	//for the 3 residue  I should get -131.99, 152.49.
 	}
 

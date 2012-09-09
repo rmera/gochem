@@ -189,9 +189,7 @@ func read_full_pdb_line(line string, read_additional bool, contlines int) (*Atom
 	return atom, coords, bfactor, nil
 	}
 	
-/*Parses a PDB line if only the coordinates and bfactors are to be read. right now the returned error
- * is always nil the funcion just cancels the execution of the program if there are trouble
- * This might change in the future */	
+/*Parses a PDB line if only the coordinates and bfactors are to be read*/	
 func read_onlycoords_pdb_line(line string, contlines int) ([]float64,float64, error) {
 	coords:=make([]float64,3,3)
 	err:=make([]error,4,4)
@@ -242,8 +240,8 @@ func PdbRead(pdbname string, read_additional bool) ([]*Atom, []*matrix.DenseMatr
 			continue
 			}
 		//here we start actually reading
-		/**There might be a bug for not copying the string (symbol, name, etc) but just assigning the slice
-		 * which is a reference. Check!**/
+		/*There might be a bug for not copying the string (symbol, name, etc) but just assigning the slice
+		 * which is a reference. Check!*/
 		var c=make([]float64,3,3)
 		var bfactemp float64 //temporary bfactor
 		var atomtmp *Atom
@@ -354,21 +352,20 @@ func XyzRead(xyzname string,) ([]*Atom, []*matrix.DenseMatrix, error){
 	line, err := xyz.ReadString('\n')
 //	fmt.Println("line: ", line) /////////////////////////////////7
 	if err != nil {
-		return nil, nil, fmt.Errorf("Ill formatted XYZ file!")
+		return nil, nil, fmt.Errorf("Ill formatted XYZ file")
 		}
 //	var natoms int
 	natoms,err:=strconv.Atoi(strings.TrimSpace(line))
 	if err != nil {
-		return nil, nil, fmt.Errorf("Ill formatted XYZ file!")
+		return nil, nil, fmt.Errorf("Ill formatted XYZ file")
 		}
 //	fmt.Println("natoms: ", natoms)///////////////////////////////7
 	molecule:=make([]*Atom,natoms,natoms)
 	coords:=make([]float64,natoms*3,natoms*3)
-	//THIS COULD BECOME A BUG IF TRY TO READ AN EMPTY FILE!!!!!!!!!!!!!!!!!!!
-	//MUST FIX!!!!!!!
-	_,_=xyz.ReadString('\n') //We dont care about this line
-//	var i int
-//	var line string
+	_,err=xyz.ReadString('\n') //We dont care about this line
+	if err != nil {
+		return nil, nil, fmt.Errorf("Ill formatted XYZ file")
+		}
 	errs:=make([]error,3,3)
 	for i:=0;i<natoms;i++{
 		line, errs[0] = xyz.ReadString('\n')

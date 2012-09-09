@@ -1,5 +1,5 @@
 /*
- * basic.go, part of gochem.
+ * chem.go, part of gochem.
  * 
  * Copyright 2012 Raul Mera <rmera{at}chemDOThelsinkiDOTfi>
  * 
