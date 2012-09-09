@@ -38,8 +38,6 @@ import  "github.com/skelterjohn/go.matrix"
 
 
 
-
-
 //Atom contains the atoms read except for the coordinates, which will be in a matrix
 //and the b-factors, which are in a separate slice of float64.
 type Atom struct{

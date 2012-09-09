@@ -126,3 +126,17 @@ func TestGeo(Te *testing.T) {
 		XyzWrite(&mol, 0, strings.Replace("test/sample_xxxx.xyz","xxxx",strconv.FormatFloat(scaling, 'f', 1, 64),1)) //There might be an easier way of creating the filenames
 		}
 	}
+
+func TestRama(Te *testing.T){
+	var mol Molecule
+	ats,coords,bfac,err:=PdbRead("test/2C9V.pdb",true)
+	if err!=nil{
+		Te.Error(err)
+		}
+	mol.Atoms=ats
+	mol.Coords=coords
+	mol.Bfactors=bfac
+	_=Ramachandran(&mol,'A',0) ////
+	//for the 3 residue  I should get -131.99, 152.49.
+	}
+

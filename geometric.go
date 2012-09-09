@@ -36,8 +36,16 @@ func AngleInVectors(v1,v2 *matrix.DenseMatrix) float64 {
 	//Maybe I'll also write a safer version of this function?
 	normproduct:=v1.TwoNorm()*v2.TwoNorm()
 	dotprod:=Dot(v1,v2) //Ignore the error
-	angle:=math.Acos(dotprod/normproduct)
-	if angle<=appzero{
+	argument:=dotprod/normproduct
+	//Take care of floating point math errors
+	if math.Abs(argument-1)<=appzero{
+		argument=1
+		}else if math.Abs(argument+1)<=appzero{
+		argument=-1	
+		}
+	fmt.Println(dotprod/normproduct,argument) //dotprod/normproduct, dotprod, normproduct,v1.TwoNorm(),v2.TwoNorm())
+	angle:=math.Acos(argument) 
+	if math.Abs(angle)<=appzero{
 		return 0.00
 		}
 	return angle
@@ -240,10 +248,99 @@ func RMSD(test, template *matrix.DenseMatrix) (float64, error){
 	return RMSD, nil
 	}
 
+//Ramachandran calculates (and will soon return) the psi and phi angles
+//for each residue of the protein in the molecule M. 
+//This is incomplete, does not return anything or check for errors.
+func Ramachandran(M *Molecule, chain byte,frame int) error{
+	C:=-1
+	N:=-1
+	Ca:=-1
+	Cprev:=-1
+	Npost:=-1
+	if err:=M.Corrupted(); err!=nil{
+		fmt.Errorf("Molecule corrupted") //Must change this
+		}
+	//This is NOT a good guess if we only analyze one chain!!!!!
+	residues:=M.Atoms[len(M.Atoms)-1].Molid //A good guess of the number of residues
+	Rama:=make([][]float64,0,residues-2) //the first and the second residue cant hace angles calculated
+	failed:=make([]int,0,1) //To keep track of atoms for which we couldnt get one or both dihedrals
+	for num,at:=range(M.Atoms){
+		//First get the indexes we need
+		if at.Chain==chain{
+			if at.Name=="C" && Cprev==-1{
+				Cprev=num
+				}
+			if at.Name=="N" && Cprev!=-1 && N==-1 && at.Molid>M.Atoms[Cprev].Molid{
+				N=num
+				}
+			if at.Name=="C" && Cprev!=-1 && at.Molid>M.Atoms[Cprev].Molid{
+				C=num
+				}
+			if at.Name=="CA" && Cprev!=-1 && at.Molid>M.Atoms[Cprev].Molid{
+				Ca=num
+				}
+			if at.Name=="N" && Ca!=-1 && at.Molid>M.Atoms[Ca].Molid{
+				Npost=num
+				}
+	//		fmt.Println("values", Cprev, N, C, Ca, Npost)
+			//when we have them all, calculate psi,phi
+			if Cprev!=-1 && Ca!=-1 && N!=-1 && C !=-1 && Npost!=-1{
+		//		fmt.Println("yes!")
+				psi,err1:=Dihedral(M.Coords[frame].GetRowVector(Cprev),M.Coords[frame].GetRowVector(N),M.Coords[frame].GetRowVector(Ca),M.Coords[frame].GetRowVector(C))
+				phi,err2:=Dihedral(M.Coords[frame].GetRowVector(N),M.Coords[frame].GetRowVector(Ca),M.Coords[frame].GetRowVector(C),M.Coords[frame].GetRowVector(Npost))
+				if err1!=nil || err2!=nil{
+					failed=append(failed,M.Atoms[Ca].Molid)
+					}else{
+					temp:=[]float64{psi*(180.0/math.Pi),phi*(180.0/math.Pi)}
+					//Debug things
+					if len(Rama)<3{
+						fmt.Println(M.Atoms[Ca],M.Atoms[Cprev].Molname,M.Atoms[N].Molname,M.Atoms[Ca].Molname,M.Atoms[C].Molname,M.Atoms[Npost].Molname)
+						}
+					Rama=append(Rama,temp)
+					}
+				N=Npost
+				Ca=-1
+				Cprev=C
+				C=-1
+				Npost=-1					
+				}
+			}
+		}
+	fmt.Println("Rama",Rama, "failed", failed)
+	return nil	
+	}
 
+/*Dihedral calculate the dihedral between the points a, b, c, d, where the first plane 
+ * is defined by abc and the second by bcd*/
+func Dihedral(a,b,c,d *matrix.DenseMatrix) (float64, error){
+	all:=[]*matrix.DenseMatrix{a,b,c,d}
+	for number,point:=range(all){
+		if point==nil{
+			return -1.0, fmt.Errorf("Vector %d is nil",number)
+			}
+		if point.Rows()!=1 || point.Cols()!=3{
+			return -1.0, fmt.Errorf("Vector %d has invalid shape",number)
+			}
+		}
+	b1:=b.Copy()
+	_=b1.Subtract(a)
+	b2:=c.Copy()
+	_=b2.Subtract(b)
+	b3:=d.Copy()
+	_=b3.Subtract(c)
+	b1scaled:=b1.Copy()
+	b1scaled.Scale(b2.TwoNorm())
+	first:=Dot(b1scaled,Cross3DRow(b2,b3))
+	second:=Dot(Cross3DRow(b1,b2),Cross3DRow(b2,b3))
+	dihedral:=math.Atan2(first,second)                  
+	return dihedral, nil
+	}
 
 /***Shape indicator functions***/
-const appzero float64 = 0.000001  //used at least in Eigenwrap to make floating
+const appzero float64 = 0.000001  //used to correct floating point 
+//errors. Everything equal or less than this is considered zero.
+
+
 //point comparisons
 
 //GetRhoShapeIndexes Get shape indices based on the axes of the elipsoid of inertia.
@@ -493,16 +590,18 @@ func Cross3DRow(a,b *matrix.DenseMatrix)*matrix.DenseMatrix{
 	vec:=make([]float64,3,3)
 	vec[0]=a.Get(0,1)*b.Get(0,2) - a.Get(0,2)*b.Get(0,1)
 	vec[1]=a.Get(0,2)*b.Get(0,0) - a.Get(0,0)*b.Get(0,2)
-	vec[1]=a.Get(0,0)*b.Get(0,1) - a.Get(0,1)*b.Get(0,0)
+	vec[2]=a.Get(0,0)*b.Get(0,1) - a.Get(0,1)*b.Get(0,0)
 	return matrix.MakeDenseMatrix(vec,1,3)
 	}
 
 
 //InvSqrt return the inverse of the square root of val, or zero if
-//val<appzero. It doesn't check for negative numbers! 
+//|val|<appzero. Returns -1 if val is negative 
 func InvSqrt(val float64) float64{
-	if val<=appzero{
+	if math.Abs(val)<=appzero{  //Not sure if need the 
 		return 0
+		}else if val<0{  //negative
+		return  -1  //might change
 		}
 	return 1.0/math.Sqrt(val)	
 	}
