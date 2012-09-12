@@ -29,7 +29,7 @@ import "fmt"
 import  "github.com/skelterjohn/go.matrix"
 import "math"
 import "sort"
-import "strings"
+
 
 //AngleInVectors takes 2 vectors and calculate the angle between them
 //It does not check for correctness or return errors!
@@ -250,131 +250,6 @@ func RMSD(test, template *matrix.DenseMatrix) (float64, error){
 	}
 
 
-
-func RamachandranCalc(M *Molecule, dihedrals [][]int, frames []int)([][][]float64,error){
-	if M == nil || dihedrals == nil || frames == nil{
-		return nil,  fmt.Errorf("Given nil data")
-		}
-	if err:=M.Corrupted(); err!=nil{
-		return nil, fmt.Errorf("Molecule corrupted") 
-		}
-	if len(M.Coords)<=frames[len(frames)-1]{
-		return nil,  fmt.Errorf("Frame out of range") 
-		} 	
-	Ramachandran:=make([][][]float64,0,len(frames))
-	for _,i:=range(frames){
-		Ramaframe:=make([][]float64,0,len(dihedrals))
-		for id,j:=range(dihedrals){
-			Cprev:=M.Coords[i].GetRowVector(j[0])
-			N:=M.Coords[i].GetRowVector(j[1])
-			Ca:=M.Coords[i].GetRowVector(j[2])
-			C:=M.Coords[i].GetRowVector(j[3])
-			Npost:=M.Coords[i].GetRowVector(j[4])
-			phi,err:=Dihedral(Cprev,N,Ca,C)
-			psi,err1:=Dihedral(N,Ca,C,Npost)
-			if err!=nil || err1!=nil{
-				return nil, fmt.Errorf("Dihedral calculation failed for residue %d",id+2) 
-				}
-			temp:=[]float64{phi*(180/math.Pi),psi*(180/math.Pi)}
-			Ramaframe=append(Ramaframe,temp)
-			}
-		Ramachandran=append(Ramachandran,Ramaframe)
-		}
-	return Ramachandran, nil
-	}
-
-//isIn is a helper for the RamachandranList function, 
-//returns true if test is in container, false otherwise.
-func isIn(container []int, test int) bool{
-	if container==nil{
-		return false
-		}
-	for _,i:=range(container){
-		if test==i{
-			return true
-			}
-		}
-	return false
-	}
-
-/*RamachandranList takes a molecule and obtains a list of lists of five int. Each element
- * contain the indexes needed for one dihedral of a Ramachandran plot. It gets the dihedral
- * indices for all atoms in the range resran, if resran has 2 elements defining the 
- * boundaries. Otherwise, returns dihedral lists for the residues included in 
- * resran. If resran has 2 elements and the last is -1, RamachandranList will
- * get all the dihedral for residues from resran[0] to the end of the chain.
- * It only obtain dihedral lists for residues belonging to a chain included in chains */
-func RamachandranList(M *Molecule, chains string,resran []int) ([][]int, error){
-	RamaList:=make([][]int,0,0)
-	if len(resran)==2{
-		if resran[1]==-1{
-			resran[1]=999999999 //should work!
-			}
-	}
-	if M == nil{
-		return nil, fmt.Errorf("nil Molecule")
-		}
-	if err:=M.Corrupted(); err!=nil{
-		return nil, fmt.Errorf("Molecule corrupted") //Must change this
-		} 
-	C:=-1
-	N:=-1
-	Ca:=-1
-	Cprev:=-1
-	Npost:=-1
-	chainprev:=byte('9') //any non-valid chain name
-	for num,at:=range(M.Atoms){
-		//First get the indexes we need
-		if strings.Contains(chains,string(at.Chain)){
-			if at.Chain!=chainprev{
-				chainprev=at.Chain
-				C=-1
-				N=-1
-				Ca=-1
-				Cprev=-1
-				Npost=-1
-				}
-			if at.Name=="C" && Cprev==-1{
-				Cprev=num
-				}
-			if at.Name=="N" && Cprev!=-1 && N==-1 && at.Molid>M.Atoms[Cprev].Molid{
-				N=num
-				}
-			if at.Name=="C" && Cprev!=-1 && at.Molid>M.Atoms[Cprev].Molid{
-				C=num
-				}
-			if at.Name=="CA" && Cprev!=-1 && at.Molid>M.Atoms[Cprev].Molid{
-				Ca=num
-				}
-			if at.Name=="N" && Ca!=-1 && at.Molid>M.Atoms[Ca].Molid{
-				Npost=num
-				}
-			//when we have them all, save an unit
-			if Cprev!=-1 && Ca!=-1 && N!=-1 && C !=-1 && Npost!=-1 {
-				//We check that the residue ids are what they are supposed to be
-				r1:=M.Atoms[Cprev].Molid
-				r2:=M.Atoms[N].Molid
-				r2a:=M.Atoms[Ca].Molid
-				r2b:=M.Atoms[C].Molid
-				r3:=M.Atoms[Npost].Molid
-				if r1!=r2-1 || r2!=r2a || r2a!=r2b || r2b != r3-1{
-					return  nil, fmt.Errorf("Incorrect backbone")
-					}
-				if (len(resran)==2 && (r2>=resran[0] && r2<=resran[1])) || isIn(resran,r2){
-					temp:=[]int{Cprev,N,Ca,C,Npost}
-					RamaList=append(RamaList,temp)
-					}
-				N=Npost
-				Ca=-1
-				Cprev=C
-				C=-1
-				Npost=-1					
-				}
-			}
-		}
-//	fmt.Println("Rama",Rama, "failed", failed)
-	return RamaList,nil	
-	}
 
 /*Dihedral calculate the dihedral between the points a, b, c, d, where the first plane 
  * is defined by abc and the second by bcd*/
