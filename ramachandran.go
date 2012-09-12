@@ -34,7 +34,7 @@ import (
         "image/color"
 )
 
-func RamachandranPlot(fulldata [][][]float64) error{
+func RamachandranPlot(fulldata [][][]float64, plotname string) error{
 	for number,data:=range(fulldata){
 		if data==nil{
 			return fmt.Errorf("Given nil data")
@@ -67,7 +67,7 @@ func RamachandranPlot(fulldata [][][]float64) error{
 		// Add the plotter 
 		p.Add(s)
 		// Save the plot to a PNG file.
-		filename:=fmt.Sprintf("test/Ramachandran%d.png",number)
+		filename:=fmt.Sprintf("%s%d.png",plotname,number)
 		if err := p.Save(4, 4, filename); err != nil {
 			return err
 		}
@@ -156,8 +156,8 @@ func RamachandranList(M *Molecule, chains string,resran []int) ([][]int, error){
 	chainprev:=byte('9') //any non-valid chain name
 	for num,at:=range(M.Atoms){
 		//First get the indexes we need
-		if strings.Contains(chains,string(at.Chain)){
-			if at.Chain!=chainprev{
+		if strings.Contains(chains,string(at.Chain)) || at.Chain==' '{
+			if at.Chain!=chainprev  {
 				chainprev=at.Chain
 				C=-1
 				N=-1

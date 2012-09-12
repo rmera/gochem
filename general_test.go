@@ -145,7 +145,7 @@ func TestRama(Te *testing.T){
 		Te.Error(err)
 		}
 	fmt.Println("Rama",rama,len(rama[0]),len(ramalist),len(mol.Atoms))
-	err=RamachandranPlot(rama)
+	err=RamachandranPlot(rama,"test/Ramachandran")
 	if err!=nil{
 		Te.Error(err)
 		}
