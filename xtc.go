@@ -1,7 +1,7 @@
 // +build  gromacs 
 
 /*
- * untitled.go
+ * xtc.go, part of gochem
  * 
  * Copyright 2012 Raul Mera Adasme <rmera_changeforat_chem-dot-helsinki-dot-fi>
  * 
