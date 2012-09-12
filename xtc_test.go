@@ -52,12 +52,11 @@ func TestXtc(Te *testing.T) {
 			Te.Error(err)
 			break
 			}else if err==nil{
-			fmt.Println(coords[0:2])
+			fmt.Println(coords.GetRowVector(2))
 			}else{
 			break	
 			}
 		}
-	
 	fmt.Println("Over! frames read:", i)
 	}
 

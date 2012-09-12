@@ -117,24 +117,22 @@ func  XtcOpen(name string)(*C.XDRFILE, error){
  * number of atoms per frame in the file. It reads the coordinates
  * for the next frame of the file and returns  them as a slice of
  * float64 */
-func XtcGetFrame(fp *C.XDRFILE,natoms int)([]float64,error){
+func XtcGetFrame(fp *C.XDRFILE,natoms int)(*matrix.DenseMatrix,error){
 	totalcoords:=natoms*3
 	cnatoms:=C.int(natoms)
 	Ccoords:= make([]C.float,totalcoords)
 	worked:=C.get_coords(fp,&Ccoords[0],cnatoms)
 	if worked==11{
-		goCoords:=make([]float64,1)
-		return goCoords, fmt.Errorf("No more frames")
+		return nil, fmt.Errorf("No more frames") //This is not really an error and should be catched in the calling function
 		}
 	if worked!=0{
-		goCoords:=make([]float64,1)
-		return goCoords, fmt.Errorf("Error reading frame")
+		return nil, fmt.Errorf("Error reading frame")
 			}
 	goCoords:=make([]float64,totalcoords)
 	for j:=0;j<totalcoords;j++{
-		goCoords[j]=float64(Ccoords[j])
+		goCoords[j]=10*(float64(Ccoords[j]))  //nm to Angstroms
 		}
-	return goCoords, nil		
+	return matrix.MakeDenseMatrix(goCoords,natoms,3), nil		
 	}
 
 /*XtcGetFrameEfficient takes a C pointer to an open Gromacs xtc file, 
@@ -159,7 +157,7 @@ func xtcGetFrameEfficient(fp *C.XDRFILE, Ccoords []C.float, natoms int)([]float6
 			}
 	goCoords:=make([]float64,totalcoords)
 	for j:=0;j<totalcoords;j++{
-		goCoords[j]=float64(Ccoords[j])
+		goCoords[j]=10*float64(Ccoords[j])  //nm to angstroms
 		}
 	return goCoords, nil		
 	}
