@@ -136,16 +136,16 @@ func TestRama(Te *testing.T){
 	mol.Atoms=ats
 	mol.Coords=coords
 	mol.Bfactors=bfac
-	ramalist, err:=RamachandranList(&mol,"A",[]int{0,-1}) ////
+	ramalist, err:=RamaList(&mol,"A",[]int{0,-1}) ////
 	if err!=nil{
 		Te.Error(err)
 		}
-	rama,err := RamachandranCalc(&mol,ramalist,[]int{0})
+	rama,err := RamaCalc(&mol,ramalist,[]int{0})
 	if err!=nil{
 		Te.Error(err)
 		}
 	fmt.Println("Rama",rama,len(rama[0]),len(ramalist),len(mol.Atoms))
-	err=RamachandranPlot(rama,"test/Ramachandran")
+	err=RamaPlot(rama,"test/Rama")
 	if err!=nil{
 		Te.Error(err)
 		}

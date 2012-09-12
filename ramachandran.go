@@ -1,5 +1,5 @@
 /*
- * ramachandran.go, part of gochem
+ * Rama.go, part of gochem
  * 
  * Copyright 2012 Raul Mera <rmera{at}chemDOThelsinkiDOTfi>
  * 
@@ -34,7 +34,7 @@ import (
         "image/color"
 )
 
-func RamachandranPlot(fulldata [][][]float64, plotname string) error{
+func RamaPlot(fulldata [][][]float64, plotname string) error{
 	for number,data:=range(fulldata){
 		if data==nil{
 			return fmt.Errorf("Given nil data")
@@ -51,7 +51,7 @@ func RamachandranPlot(fulldata [][][]float64, plotname string) error{
 			if err != nil {
 				return err
 				}
-		p.Title.Text = "Ramachandran plot"
+		p.Title.Text = "Rama plot"
 		p.X.Label.Text = "Phi"
 		p.Y.Label.Text = "Psi"
 		//Constant axes
@@ -82,7 +82,7 @@ func RamachandranPlot(fulldata [][][]float64, plotname string) error{
 
 
 
-func RamachandranCalc(M *Molecule, dihedrals [][]int, frames []int)([][][]float64,error){
+func RamaCalc(M *Molecule, dihedrals [][]int, frames []int)([][][]float64,error){
 	if M == nil || dihedrals == nil || frames == nil{
 		return nil,  fmt.Errorf("Given nil data")
 		}
@@ -92,7 +92,7 @@ func RamachandranCalc(M *Molecule, dihedrals [][]int, frames []int)([][][]float6
 	if len(M.Coords)<=frames[len(frames)-1]{
 		return nil,  fmt.Errorf("Frame out of range") 
 		} 	
-	Ramachandran:=make([][][]float64,0,len(frames))
+	Rama:=make([][][]float64,0,len(frames))
 	for _,i:=range(frames){
 		Ramaframe:=make([][]float64,0,len(dihedrals))
 		for id,j:=range(dihedrals){
@@ -109,12 +109,12 @@ func RamachandranCalc(M *Molecule, dihedrals [][]int, frames []int)([][][]float6
 			temp:=[]float64{phi*(180/math.Pi),psi*(180/math.Pi)}
 			Ramaframe=append(Ramaframe,temp)
 			}
-		Ramachandran=append(Ramachandran,Ramaframe)
+		Rama=append(Rama,Ramaframe)
 		}
-	return Ramachandran, nil
+	return Rama, nil
 	}
 
-//isIn is a helper for the RamachandranList function, 
+//isIn is a helper for the RamaList function, 
 //returns true if test is in container, false otherwise.
 func isIn(container []int, test int) bool{
 	if container==nil{
@@ -128,14 +128,14 @@ func isIn(container []int, test int) bool{
 	return false
 	}
 
-/*RamachandranList takes a molecule and obtains a list of lists of five int. Each element
- * contain the indexes needed for one dihedral of a Ramachandran plot. It gets the dihedral
+/*RamaList takes a molecule and obtains a list of lists of five int. Each element
+ * contain the indexes needed for one dihedral of a Rama plot. It gets the dihedral
  * indices for all atoms in the range resran, if resran has 2 elements defining the 
  * boundaries. Otherwise, returns dihedral lists for the residues included in 
- * resran. If resran has 2 elements and the last is -1, RamachandranList will
+ * resran. If resran has 2 elements and the last is -1, RamaList will
  * get all the dihedral for residues from resran[0] to the end of the chain.
  * It only obtain dihedral lists for residues belonging to a chain included in chains */
-func RamachandranList(M *Molecule, chains string,resran []int) ([][]int, error){
+func RamaList(M *Molecule, chains string,resran []int) ([][]int, error){
 	RamaList:=make([][]int,0,0)
 	if len(resran)==2{
 		if resran[1]==-1{
