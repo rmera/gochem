@@ -243,8 +243,9 @@ func RMSD(test, template *matrix.DenseMatrix) (float64, error){
 	var RMSD float64
 	for i:=0;i<ctempla.Rows();i++{
 		temp:=ctempla.GetRowVector(i)
-		RMSD+=temp.TwoNorm()
+		RMSD+=math.Pow(temp.TwoNorm(),2)
 		}
+	RMSD=RMSD/float64(ctempla.Rows())
 	RMSD=math.Sqrt(RMSD)
 	return RMSD, nil
 	}
@@ -284,18 +285,18 @@ const appzero float64 = 0.000001  //used to correct floating point
 
 //point comparisons
 
-//GetRhoShapeIndexes Get shape indices based on the axes of the elipsoid of inertia.
+//RhoShapeIndexes Get shape indices based on the axes of the elipsoid of inertia.
 //Based on the work of Taylor et al., .(1983), J Mol Graph, 1, 30
 //This function has NOT been tested.
-func GetRhoShapeIndexes(evals []float64)(float64, float64, error){
-	rhos,err:=GetRhos(evals)
+func RhoShapeIndexes(evals []float64)(float64, float64, error){
+	rhos,err:=Rhos(evals)
 	linear_distortion:=(1-(rhos[1]/rhos[0]))*100 //Prolate
 	circular_distortion:=(1-(rhos[2]/rhos[0]))*100 //Oblate
 	return linear_distortion,circular_distortion,err
 	}
 	
-//GetRhos returns the semiaxis of the elipoid of inertia given the eigenvectors of the moment tensor.
-func GetRhos(evals []float64) ([]float64, error){
+//Rhos returns the semiaxis of the elipoid of inertia given the eigenvectors of the moment tensor.
+func Rhos(evals []float64) ([]float64, error){
 	rhos:=sort.Float64Slice{InvSqrt(evals[0]),InvSqrt(evals[1]),InvSqrt(evals[2])}
 	if evals[2]<=appzero{
 		return rhos[:], fmt.Errorf("Molecule colapsed to a single point. Check for blackholes.")
@@ -312,11 +313,11 @@ func GetRhos(evals []float64) ([]float64, error){
 /**Other geometrical**/	
 
 
-//GetBestPlaneB takes sorted evecs, according to the eval,s and returns a row vector that is normal to the
+//BestPlaneB takes sorted evecs, according to the eval,s and returns a row vector that is normal to the
 //Plane that best contains the molecule. Note that the function can't possibly check
 //That the vectors are sorted!. The P at the end of the name is for Performance. If 
-//That is not an issue it is safer to use the GetBestPlane function that wraps this one.
-func GetBestPlaneP(evecs *matrix.DenseMatrix) (*matrix.DenseMatrix, error){
+//That is not an issue it is safer to use the BestPlane function that wraps this one.
+func BestPlaneP(evecs *matrix.DenseMatrix) (*matrix.DenseMatrix, error){
 	if evecs.Rows()!=3 || evecs.Cols()!=3{
 		return evecs, fmt.Errorf("Eigenvectors matrix must be 3x3")
 		}
@@ -328,8 +329,8 @@ func GetBestPlaneP(evecs *matrix.DenseMatrix) (*matrix.DenseMatrix, error){
 	return normal, nil
 	}
 
-//GetBestPlane returns a row vector that is normal to the plane that best contains the molecule
-func GetBestPlane(mol *Molecule, frame int,masses bool) (*matrix.DenseMatrix, error){
+//BestPlane returns a row vector that is normal to the plane that best contains the molecule
+func BestPlane(mol *Molecule, frame int,masses bool) (*matrix.DenseMatrix, error){
 	var Mmass *matrix.DenseMatrix
 	if len(mol.Atoms)!=mol.Coords[frame].Rows(){
 		return nil, fmt.Errorf("Inconsistent coordinates/atoms in frame %d", frame)
@@ -351,7 +352,7 @@ func GetBestPlane(mol *Molecule, frame int,masses bool) (*matrix.DenseMatrix, er
 	if err!=nil{
 		return nil, err
 		}
-	normal,err:= GetBestPlaneP(evecs)
+	normal,err:= BestPlaneP(evecs)
 	//MomentTensor(, mass) 
 	return normal, err
 	}
