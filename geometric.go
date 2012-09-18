@@ -239,7 +239,7 @@ func RMSD(test, template *matrix.DenseMatrix) (float64, error){
 	if err!=nil{
 		return 0, err
 		}	
-	DMPowInPlace(ctempla,2)
+//	DMPowInPlace(ctempla,2)
 	var RMSD float64
 	for i:=0;i<ctempla.Rows();i++{
 		temp:=ctempla.GetRowVector(i)
