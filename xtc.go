@@ -43,6 +43,28 @@ package chem
 import "C"
 import "fmt"
 import "github.com/skelterjohn/go.matrix"
+import "unsafe"
+
+
+/*The plan is equate PDBs XTCs and in the future DCDs. One needs to separate the molecule methods between actual molecule methods, that requires atoms and coordinates, []atom methods, and  DenseMatrix
+ * methods. Then one must implements objects for Xtc trajs that are more or less equivalent to molecules and set up an interface so many analyses can be carried out exactly the same from
+ * multiPDB or XTC or (eventually) DCD*/
+
+
+type XtcObj struct{
+	Ref *Molecule
+	filename string
+	fp unsafe.Pointer
+	}
+
+//XtcCountAtoms takes the name of a Gromacs xtc trajectory file and returns the 
+//number of atoms per frame in the trajectory.
+func (X *XtcObj) XtcCountAtoms(name string)(int, error){
+	Cfilename:=C.CString(name)
+	Cnatoms:=C.read_natoms(Cfilename)
+	natoms:=int(Cnatoms)
+	return natoms, nil
+	}
 
 /*ReadXtcFrames opens the Gromacs trajectory xtc file with name filename
 and reads the coordinates for frames starting from ini to end (or the 
@@ -92,14 +114,7 @@ func ReadXtcFrames(ini, end, skip int, filename string)([]*matrix.DenseMatrix,in
 	
 
 
-//XtcCountAtoms takes the name of a Gromacs xtc trajectory file and returns the 
-//number of atoms per frame in the trajectory.
-func XtcCountAtoms(name string)(int, error){
-	Cfilename:=C.CString(name)
-	Cnatoms:=C.read_natoms(Cfilename)
-	natoms:=int(Cnatoms)
-	return natoms, nil
-	}
+
 	
 /*XtcOpen Opens the Gromacs xtc trajectory file with the name name and
  * returns a C pointer to it, which can passed to other functions of
