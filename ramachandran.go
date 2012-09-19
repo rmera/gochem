@@ -116,7 +116,7 @@ func RamaCalc(M *Molecule, dihedrals [][]int, frames []int)([][][]float64,error)
 
 //isIn is a helper for the RamaList function, 
 //returns true if test is in container, false otherwise.
-func IsInInt(container []int, test int) bool{
+func isInInt(container []int, test int) bool{
 	if container==nil{
 		return false
 		}
@@ -191,7 +191,7 @@ func RamaList(M *Molecule, chains string,resran []int) ([][]int, error){
 				if r1!=r2-1 || r2!=r2a || r2a!=r2b || r2b != r3-1{
 					return  nil, fmt.Errorf("Incorrect backbone")
 					}
-				if (len(resran)==2 && (r2>=resran[0] && r2<=resran[1])) || IsInInt(resran,r2){
+				if (len(resran)==2 && (r2>=resran[0] && r2<=resran[1])) || isInInt(resran,r2){
 					temp:=[]int{Cprev,N,Ca,C,Npost}
 					RamaList=append(RamaList,temp)
 					}

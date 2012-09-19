@@ -42,12 +42,14 @@ import "testing"
 func TestXtc(Te *testing.T) {
 	fmt.Println("Fist test!")
 	name:="test/test.xtc"
-	gonatoms,_:=XtcCountAtoms(name)
-	fp,_:=XtcOpen(name)
-	defer XtcClose(fp)
+	traj:=new(XtcObj)
+	err:=traj.InitRead(name)
+	if err!=nil{
+		Te.Error(err)
+		}
 	i:=0
 	for ;;i++{
-		coords,err:=XtcGetFrame(fp,gonatoms)
+		coords,err:=traj.Next(true)
 		if err!=nil && err.Error()!="No more frames"{
 			Te.Error(err)
 			break
@@ -67,7 +69,12 @@ func TestXtc(Te *testing.T) {
 func TestFrameXtc(Te *testing.T) {
 	fmt.Println("Second test!")
 	name:="test/test.xtc"
-	Coords,read,err:=ReadXtcFrames(0, 5, 1,name)
+	traj:=new(XtcObj)
+	err:=traj.InitRead(name)
+	if err!=nil{
+		Te.Error(err)
+		}
+	Coords,read,err:=traj.ManyFrames(0, 5, 1,name)
 	if err!=nil{
 		Te.Error(err)
 		}
