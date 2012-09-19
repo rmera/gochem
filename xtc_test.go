@@ -33,7 +33,7 @@ package chem
 
 import "fmt"
 import "testing"
-
+import "github.com/skelterjohn/go.matrix"
 
 /*TestXtc reads the frames of the test xtc file using the
  * "interactive" or "low level" functions, i.e. one frame at a time
@@ -80,3 +80,50 @@ func TestFrameXtc(Te *testing.T) {
 		}
 	fmt.Println(len(Coords),read,Coords[read-1].GetRowVector(4))
 	}
+
+func TestFrameXtcConc(Te *testing.T){
+	fmt.Println("Third test!")
+	name:="test/test.xtc"
+	traj:=new(XtcObj)
+	err:=traj.InitRead(name)
+	if err!=nil{
+		Te.Error(err)
+		}
+	i:=0
+	for ;;i++{
+		frames:=[]bool{true,true,true,true}
+		coordchans,err:=traj.NextConc(frames)
+		if err!=nil && err.Error()!="No more frames"{
+			Te.Error(err)
+			break
+			}else if err==nil{
+			results:=make([]chan *matrix.DenseMatrix,len(coordchans))
+			for key,channel:=range(coordchans){
+				results=append(results,make(chan *matrix.DenseMatrix))
+				go func(channelin,channelout chan *matrix.DenseMatrix,current int){
+					if channelin!=nil{
+						matrix:=<-channelin
+						vector:=matrix.GetRowVector(3)
+						fmt.Println("This was not", current, vector)
+						}else{
+						fmt.Println("This frame was dropped",current)	
+						}
+					}(channel,results[key],i+key)
+				}
+			}else{
+			break	
+			}
+		}
+	fmt.Println("Over! frames read:", i)
+	}
+
+/*						channelout<-vector
+						}else{
+						channelout<-nil	
+						}
+					}(channel,results[key])
+				}
+			for _,j:=range(results){
+				fmt.Println(<-j)
+				}
+*/

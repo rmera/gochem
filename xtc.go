@@ -62,9 +62,9 @@ type Traj interface{
 	ManyFrames(ini, end, skip int)([]*matrix.DenseMatrix,int, error)
 	}
 
+//Container for an GROMACS XTC binary trajectory file.
 type XtcObj struct{
 	natoms int
-	Ref *Molecule
 	filename string
 	fp *C.XDRFILE //pointer to the XDRFILE
 	goCoords []float64
@@ -92,7 +92,7 @@ func (X *XtcObj) InitRead(name string) error{
 	return nil
 	}
 
-//Reads the next frame in a XtcObj that has been initialized for read
+//Next Reads the next frame in a XtcObj that has been initialized for read
 //With initread. If keep is true, returns a pointer to matrix.DenseMatrix
 //With the coordinates read, otherwiser, it discards the coordinates and
 //returns nil.
@@ -118,7 +118,49 @@ func (X *XtcObj)Next(keep bool)(*matrix.DenseMatrix, error){
 	return nil, nil //Just drop the frame
 	}
 
-
+/*NextConc takes a slice of bools and reads as many frames as elements the list has
+form the trajectory. The frames are discarted if the corresponding elemetn of the slice
+* is false. The function returns a slice of channels through each of each of which 
+* a *matrix.DenseMatrix will be transmited*/
+func (X *XtcObj)NextConc(frames []bool)([]chan *matrix.DenseMatrix, error){
+	//this function is rather ugly since its tuned to performance.
+	framechans:=make([]chan *matrix.DenseMatrix,0,len(frames))  //the slice of chans that will be returned
+	used:=false//whether we have actually read a frame (and not dropped them)
+	totalcoords:=X.natoms*3
+	cnatoms:=C.int(X.natoms)
+	for _,val:=range(frames){  //We use the buffers in the traj object when possible.
+		cCoords:=X.cCoords   
+		goCoords:=X.goCoords
+		if used==true{  //If we have the previous buffers in use we need to allocate new memory.
+			cCoords=make([]C.float,totalcoords,totalcoords) //the memory for goCoords is allocated later if the frame is not dropped, see MARK.
+			}
+		worked:=C.get_coords(X.fp,&X.cCoords[0],cnatoms)
+		if val==false{
+			framechans=append(framechans,nil)  //ignored frame
+			continue
+			}
+		framechans=append(framechans,make(chan *matrix.DenseMatrix))
+		if used==true{
+			goCoords=make([]float64,totalcoords,totalcoords)   //MARK
+			}
+		used=true //Marks that we have already read at least one frame.
+		//Error handling
+		if worked==11{
+			return nil, fmt.Errorf("No more frames") //This is not really an error and should be catched in the calling function
+			}
+		if worked!=0{
+			return nil, fmt.Errorf("Error reading frame")
+				}
+		//Now the parallel part
+		go func(natoms int,cCoords []C.float, goCoords []float64, pipe chan *matrix.DenseMatrix){
+			for j:=0;j<natoms*3;j++{
+				goCoords[j]=10*(float64(cCoords[j]))  //nm to Angstroms
+				}
+			pipe<-matrix.MakeDenseMatrix(goCoords,natoms,3)				
+			}(X.natoms,cCoords,goCoords,framechans[len(framechans)-1])
+		}
+	return framechans,nil
+	}
 
 
 //Read frames from Traj from ini to end skipping skip frames between read. Returns a slice with coords of each frame
@@ -155,7 +197,7 @@ func (X *XtcObj)ManyFrames(ini, end, skip int)([]*matrix.DenseMatrix,int, error)
 	}
 
 
-//func (X *XtcObj)Next(keep bool)(*matrix.DenseMatrix, error){
+
 
 
 

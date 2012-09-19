@@ -33,8 +33,87 @@ import "fmt"
 import "testing"
 import "strings"
 import "strconv"
+import "sort"
 
 
+<<<<<<< Updated upstream
+=======
+func TestFilterWaters(Te *testing.T) {
+	var mol Molecule
+	ats,coords,bfac,err:=PdbRead("test/2c9v.pdb",true)
+	if err!=nil{
+		Te.Error(err)
+		}
+	mol.Atoms=ats
+	mol.Coords=coords
+	mol.Bfactors=bfac
+ 	//Now comes the fun
+	frames:=len(mol.Coords)
+	err:=mol.Corrupted
+	if err!=nil{
+		Te.Error(err)
+		}
+	atoms_per_frame:=len(mol.Coords[0])
+	var coord_saved:= make([]int)
+	var oxygens:= make([]int,0,2)
+	d124:=false //if we had the molecule already
+	site:=false //this is the last molecule of the active site
+	for j,k := range(mol.Atoms){
+		if mol.Atoms[j].Molid==124 && d124==false{
+			coords_saved=append(coords_saved,j)
+			if mol.Atoms[j].Name="OD1" || mol.Atoms[j].Name="OD2"{
+				oxygen=append(oxygen,j)
+				}
+			}
+		if mol.Atoms[j].Molid==125 && d124==false{
+			d124=true
+			}
+		if (mol.Atoms[j].Molid==46 || mol.Atoms[j].Molid==48 || mol.Atoms[j].Molid==63 || mol.Atoms[j].Molid==71 || mol.Atoms[j].Molid==80 || mol.Atoms[j].Molid==83 || mol.Atoms[j].Molid==120 || mol.Atoms[j].Name=="ZN" || mol.Atoms[j].Name=="CU") && site==false{
+			coords_saved=append(coords_saved,j)
+			}
+		if mol.Atoms[j].Molid==156{ // I might need to change this number	
+			site=true //This mean that we have already collected the active site atoms
+			}	
+		}
+	//Now we look for the 8 waters closer to the ASP124 oxygens
+	var waters molecule
+	temp_coords := make([][]float64)
+	distances:=make([]int,6,6) //Distances from the 3 atoms of a water molecule to the 2 oxygens of D124 side chain.
+	toinclude:=10 //number of water molecules to be included
+	for i:=0;i<frames;i++{
+		temp_coords=append(waters.Coords,make([]float64)) //Must convert later into matrix.DenseMatrix
+		waters.Bfactors=append(waters.Bfactors,make([]float64)) //Should work
+		latest:=len(temp_coords)-1
+		od1:=mol.Coords.GetRowVector(oxygen[0])
+		od2:=mol.Coords.GetRowVector(oxygen[1])
+		molidprev:=0
+		for j:=0,j<mol.Coords[i].Rows();j++{
+			if mol.Atoms[j].Molname=="SOL" and mol.Atoms[j].Molid!=molidprev{
+				if i==0 && j<{
+					waters.Atoms= append(water.Atoms,mol.Atoms[j])
+					waters.Atoms= append(water.Atoms,mol.Atoms[j+1])
+					waters.Atoms= append(water.Atoms,mol.Atoms[j+2])
+					}
+				temp_coords[latest]=append(temp_coords[latest],mol.Coords[i].GetRowVector(j))
+				temp_coords[latest]=append(temp_coords[latest],mol.Coords[i].GetRowVector(j+1))
+				temp_coords[latest]=append(temp_coords[latest],mol.Coords[i].GetRowVector(j+2))
+				for at:=0;at<3;at++{
+					distances[at]=Distance(mol.Coords[i].GetRowVector(j+at),od1)
+					distances[at+3]=Distance(mol.Coords[i].GetRowVector(j+at),od2)
+					}
+				sort.Ints(distances)
+				waters.Bfactors[latest]=append(water.Bfactors[latest],distance[0])  //the 3 atoms in the water molecule get the same b-factor
+				waters.Bfactors[latest]=append(water.Bfactors[latest],distance[0])
+				waters.Bfactors[latest]=append(water.Bfactors[latest],distance[0])
+				}
+			}
+		//Now we select the closest toinclude waters
+		
+		}
+	}
+	
+
+>>>>>>> Stashed changes
 
 
 //TestChangeAxis reads the PDB 2c9v.pdb from the test directory, collects 
