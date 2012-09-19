@@ -98,15 +98,30 @@ func TestFrameXtcConc(Te *testing.T){
 			Te.Error(err)
 			break
 			}else if err==nil{
-			for _,pipe:=range(coordschans){
-				fmt.Println((<-pipe).GetRowVector(2))
+			results:=make([]chan *matrix.DenseMatrix,len(coordchans))
+			for key,channel:=range(coordchans){
+				results=append(results,make(chan *matrix.DenseMatrix,1))
+				go func(channelin,channelout chan *matrix.DenseMatrix,current int){
+					if channelin!=nil{
+						matrix:=<-channelin
+						vector:=matrix.GetRowVector(2)
+					//	fmt.Println(current, vector)
+						channelout<-vector
+						}else{
+			//			fmt.Println("This frame was dropped",current)	
+						channelout<-nil
+						}
+					}(channel,results[key],i+(2*i)+key)
 				}
-			
+			for _,j:=range(results){
+				fmt.Println(<-j)
+				}
 			}else{
 			break	
 			}
 		}
-	}	
+	fmt.Println("Over! frames read:", i)
+	}
 		/*
 			results:=make([]chan *matrix.DenseMatrix,len(coordchans))
 			for key,channel:=range(coordchans){
