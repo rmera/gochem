@@ -91,24 +91,40 @@ func TestFrameXtcConc(Te *testing.T){
 		}
 	i:=0
 	for ;;i++{
-		frames:=[]bool{true,true,true,true}
-		coordchans,err:=traj.NextConc(frames)
+		_=matrix.Zeros(3,3)
+		frames:=[]bool{true,true}
+		coordschans,err:=traj.NextConc(frames)
 		if err!=nil && err.Error()!="No more frames"{
 			Te.Error(err)
 			break
 			}else if err==nil{
+			for _,pipe:=range(coordschans){
+				fmt.Println((<-pipe).GetRowVector(2))
+				}
+			
+			}else{
+			break	
+			}
+		}
+	}	
+		/*
 			results:=make([]chan *matrix.DenseMatrix,len(coordchans))
 			for key,channel:=range(coordchans){
-				results=append(results,make(chan *matrix.DenseMatrix))
+				results=append(results,make(chan *matrix.DenseMatrix,1))
 				go func(channelin,channelout chan *matrix.DenseMatrix,current int){
 					if channelin!=nil{
 						matrix:=<-channelin
-						vector:=matrix.GetRowVector(3)
-						fmt.Println("This was not", current, vector)
+						vector:=matrix.GetRowVector(2)
+					//	fmt.Println(current, vector)
+						channelout<-vector
 						}else{
-						fmt.Println("This frame was dropped",current)	
+			//			fmt.Println("This frame was dropped",current)	
+						channelout<-nil
 						}
-					}(channel,results[key],i+key)
+					}(channel,results[key],i+(2*i)+key)
+				}
+			for _,j:=range(results){
+				fmt.Println(<-j)
 				}
 			}else{
 			break	

@@ -36,8 +36,6 @@ import "strconv"
 import "sort"
 
 
-<<<<<<< Updated upstream
-=======
 func TestFilterWaters(Te *testing.T) {
 	var mol Molecule
 	ats,coords,bfac,err:=PdbRead("test/2c9v.pdb",true)
@@ -113,7 +111,6 @@ func TestFilterWaters(Te *testing.T) {
 	}
 	
 
->>>>>>> Stashed changes
 
 
 //TestChangeAxis reads the PDB 2c9v.pdb from the test directory, collects 

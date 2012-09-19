@@ -125,25 +125,16 @@ form the trajectory. The frames are discarted if the corresponding elemetn of th
 func (X *XtcObj)NextConc(frames []bool)([]chan *matrix.DenseMatrix, error){
 	//this function is rather ugly since its tuned to performance.
 	framechans:=make([]chan *matrix.DenseMatrix,0,len(frames))  //the slice of chans that will be returned
-	used:=false//whether we have actually read a frame (and not dropped them)
 	totalcoords:=X.natoms*3
 	cnatoms:=C.int(X.natoms)
-	for _,val:=range(frames){  //We use the buffers in the traj object when possible.
-		cCoords:=X.cCoords   
+	used:=false
+	for _,val:=range(frames){
+		cCoords:=X.cCoords
 		goCoords:=X.goCoords
-		if used==true{  //If we have the previous buffers in use we need to allocate new memory.
-			cCoords=make([]C.float,totalcoords,totalcoords) //the memory for goCoords is allocated later if the frame is not dropped, see MARK.
-			}
-		worked:=C.get_coords(X.fp,&X.cCoords[0],cnatoms)
-		if val==false{
-			framechans=append(framechans,nil)  //ignored frame
-			continue
-			}
-		framechans=append(framechans,make(chan *matrix.DenseMatrix))
 		if used==true{
-			goCoords=make([]float64,totalcoords,totalcoords)   //MARK
+			cCoords=make([]C.float,totalcoords,totalcoords)
 			}
-		used=true //Marks that we have already read at least one frame.
+		worked:=C.get_coords(X.fp,&cCoords[0],cnatoms)
 		//Error handling
 		if worked==11{
 			return nil, fmt.Errorf("No more frames") //This is not really an error and should be catched in the calling function
@@ -151,12 +142,22 @@ func (X *XtcObj)NextConc(frames []bool)([]chan *matrix.DenseMatrix, error){
 		if worked!=0{
 			return nil, fmt.Errorf("Error reading frame")
 				}
+		if used==true{
+			goCoords=make([]float64,totalcoords,totalcoords) 
+			}
+		if val==false{
+			framechans=append(framechans,nil)  //ignored frame
+			continue
+			}
+		used=true
+		framechans=append(framechans,make(chan *matrix.DenseMatrix))  
 		//Now the parallel part
 		go func(natoms int,cCoords []C.float, goCoords []float64, pipe chan *matrix.DenseMatrix){
 			for j:=0;j<natoms*3;j++{
+//				fmt.Println(10*(float64(cCoords[j])))
 				goCoords[j]=10*(float64(cCoords[j]))  //nm to Angstroms
 				}
-			pipe<-matrix.MakeDenseMatrix(goCoords,natoms,3)				
+			pipe<-matrix.MakeDenseMatrix(goCoords,natoms,3)		
 			}(X.natoms,cCoords,goCoords,framechans[len(framechans)-1])
 		}
 	return framechans,nil
