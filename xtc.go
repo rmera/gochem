@@ -142,6 +142,8 @@ func (X *XtcObj)NextConc(frames []bool)([]chan *matrix.DenseMatrix, error){
 		if worked!=0{
 			return nil, fmt.Errorf("Error reading frame")
 				}
+		//We have to test for used twice to allow allocating for goCoords
+		//When the buffer is not going to be used.
 		if used==true{
 			goCoords=make([]float64,totalcoords,totalcoords) 
 			}
