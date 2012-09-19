@@ -74,7 +74,7 @@ func TestFrameXtc(Te *testing.T) {
 	if err!=nil{
 		Te.Error(err)
 		}
-	Coords,read,err:=traj.ManyFrames(0, 5, 1,name)
+	Coords,read,err:=traj.ManyFrames(0, 5, 1)
 	if err!=nil{
 		Te.Error(err)
 		}
