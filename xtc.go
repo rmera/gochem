@@ -123,34 +123,42 @@ form the trajectory. The frames are discarted if the corresponding elemetn of th
 * is false. The function returns a slice of channels through each of each of which 
 * a *matrix.DenseMatrix will be transmited*/
 func (X *XtcObj)NextConc(frames []bool)([]chan *matrix.DenseMatrix, error){
-	//this function is rather ugly since its tuned to performance.
 	framechans:=make([]chan *matrix.DenseMatrix,len(frames))  //the slice of chans that will be returned
 	totalcoords:=X.natoms*3
 	cnatoms:=C.int(X.natoms)
 	used:=false
 	for key,val:=range(frames){
 		cCoords:=X.cCoords
-		goCoords:=X.goCoords
+		/*There seems to be an issue with Go here, although I might of course be wrong
+		 if I try to used the buffer in X.goCoords, even if I check that its overwritten with the
+		 * values from this frame, and that is sent to the channel, somewhow the channel gets the
+		 * a matrix witht he values previously stored in the buffer. The solution here, just not use
+		 * the buffer, works but wastes the memory of the buffer*/
+		goCoords:=make([]float64,totalcoords,totalcoords)    //X.goCoords
 		if used==true{
 			cCoords=make([]C.float,totalcoords,totalcoords)
 			}
 		worked:=C.get_coords(X.fp,&cCoords[0],cnatoms)
 		//Error handling
 		if worked==11{
-			return framechans, fmt.Errorf("No more frames") //This is not really an error and should be catched in the calling function
+			if used==false{
+				return nil, fmt.Errorf("No more frames") //This is not really an error and 
+				}else{                                   //should be catched in the calling function
+				return framechans, fmt.Errorf("No more frames")	//same
+				}
 			}
 		if worked!=0{
 			return nil, fmt.Errorf("Error reading frame")
 				}
 		//We have to test for used twice to allow allocating for goCoords
 		//When the buffer is not going to be used.
-		if used==true{
-			goCoords=make([]float64,totalcoords,totalcoords) 
-			}
 		if val==false{
 			framechans[key]=nil  //ignored frame
 			continue
 			}
+//		if used==true{
+//			goCoords=make([]float64,totalcoords,totalcoords) 
+//			}
 		used=true
 		framechans[key]=make(chan *matrix.DenseMatrix)
 		//Now the parallel part
@@ -159,7 +167,9 @@ func (X *XtcObj)NextConc(frames []bool)([]chan *matrix.DenseMatrix, error){
 //				fmt.Println(10*(float64(cCoords[j])))
 				goCoords[j]=10*(float64(cCoords[j]))  //nm to Angstroms
 				}
-			pipe<-matrix.MakeDenseMatrix(goCoords,natoms,3)		
+			temp:=matrix.MakeDenseMatrix(goCoords,natoms,3)
+			fmt.Println("in gorutine!", temp.GetRowVector(2))
+			pipe<-temp		
 			}(X.natoms,cCoords,goCoords,framechans[key])
 		}
 	return framechans,nil

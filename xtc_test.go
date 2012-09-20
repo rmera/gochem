@@ -88,38 +88,31 @@ func TestFrameXtcConc(Te *testing.T){
 	name:="test/test.xtc"
 	traj:=new(XtcObj)
 	err:=traj.InitRead(name)
-	frames:=[]bool{true,true,true}
 	if err!=nil{
 		Te.Error(err)
 		}
+	frames:=[]bool{true,true,true}
 	results:=make([][]chan *matrix.DenseMatrix,0,0)
 	_=matrix.Zeros(3,3) //////////////
 	for i:=0;;i++{
 		results=append(results,make([]chan *matrix.DenseMatrix,0,len(frames)))
 		coordchans,err:=traj.NextConc(frames)
-		if err!=nil && err.Error()!="No more frames"{
+		if  err!=nil && err.Error()!="No more frames"{
 			Te.Error(err)
-			break
-			}else if coordchans[0]!=nil{
-			for key,channel:=range(coordchans){
-		//		if i==1 && key==0{
-		//			fmt.Println("muerete canal de mierda",<-coordchans[key])
-				//	close(coordchans[key])
-				//	coordchans[key]=nil
-		//			results[len(results)-1]=append(results[len(results)-1],nil)
-		//			continue
-		//			}
-				results[len(results)-1]=append(results[len(results)-1],make(chan *matrix.DenseMatrix))
-			//	fmt.Println("aca tamos ", key,len(results)-1)
-				go SecondRow(channel,results[len(results)-1][key],len(results)-1,key)
-			//	fmt.Println(len(results)-1)
-
+			}else if err!=nil{
+			if coordchans==nil{
+				break
 				}
-			}else{
-			break	
+			}
+		for key,channel:=range(coordchans){
+			results[len(results)-1]=append(results[len(results)-1],make(chan *matrix.DenseMatrix))
+			go SecondRow(channel,results[len(results)-1][key],len(results)-1,key)
 			}
 		}
 	for framebunch,j:=range(results){
+		if j==nil{
+			break
+			}
 		for frame,k:=range(j){
 			if k==nil{
 				fmt.Println(framebunch,frame)
