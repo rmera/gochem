@@ -81,79 +81,65 @@ func TestFrameXtc(Te *testing.T) {
 	fmt.Println(len(Coords),read,Coords[read-1].GetRowVector(4))
 	}
 
+
+
 func TestFrameXtcConc(Te *testing.T){
 	fmt.Println("Third test!")
 	name:="test/test.xtc"
 	traj:=new(XtcObj)
 	err:=traj.InitRead(name)
+	frames:=[]bool{true,true,true}
 	if err!=nil{
 		Te.Error(err)
 		}
-	i:=0
-	results:=make([]chan *matrix.DenseMatrix,0,0)
-	for ;;i++{
-		frames:=[]bool{true,true,true}
+	results:=make([][]chan *matrix.DenseMatrix,0,0)
+	_=matrix.Zeros(3,3) //////////////
+	for i:=0;;i++{
+		results=append(results,make([]chan *matrix.DenseMatrix,0,len(frames)))
 		coordchans,err:=traj.NextConc(frames)
 		if err!=nil && err.Error()!="No more frames"{
 			Te.Error(err)
 			break
-			}else if err==nil{
+			}else if coordchans[0]!=nil{
 			for key,channel:=range(coordchans){
-				fmt.Println("aca tamos ", key,i)
-				results=append(results,make(chan *matrix.DenseMatrix,0))
-				go func(channelin,channelout chan *matrix.DenseMatrix,current int){
-					if channelin!=nil{
-						matrix:=<-channelin
-						fmt.Println("YEY",matrix.GetRowVector(2),current)
-						channelout<-matrix.GetRowVector(2)
-						}else{
-						channelout<-nil
-						}
-					}(channel,results[len(results)-1],len(results)-1)
+		//		if i==1 && key==0{
+		//			fmt.Println("muerete canal de mierda",<-coordchans[key])
+				//	close(coordchans[key])
+				//	coordchans[key]=nil
+		//			results[len(results)-1]=append(results[len(results)-1],nil)
+		//			continue
+		//			}
+				results[len(results)-1]=append(results[len(results)-1],make(chan *matrix.DenseMatrix))
+			//	fmt.Println("aca tamos ", key,len(results)-1)
+				go SecondRow(channel,results[len(results)-1][key],len(results)-1,key)
 			//	fmt.Println(len(results)-1)
-				}
-			}else{
-			break	
-			}
-		}
-		for frame,j:=range(results){
-			fmt.Println(frame, <-j)
-			}
-	fmt.Println("Over! frames read:", i)
-	}
-		/*
-			results:=make([]chan *matrix.DenseMatrix,len(coordchans))
-			for key,channel:=range(coordchans){
-				results=append(results,make(chan *matrix.DenseMatrix,1))
-				go func(channelin,channelout chan *matrix.DenseMatrix,current int){
-					if channelin!=nil{
-						matrix:=<-channelin
-						vector:=matrix.GetRowVector(2)
-					//	fmt.Println(current, vector)
-						channelout<-vector
-						}else{
-			//			fmt.Println("This frame was dropped",current)	
-						channelout<-nil
-						}
-					}(channel,results[key],i+(2*i)+key)
-				}
-			for _,j:=range(results){
-				fmt.Println(<-j)
-				}
-			}else{
-			break	
-			}
-		}
-	fmt.Println("Over! frames read:", i)
-	}
 
-/*						channelout<-vector
-						}else{
-						channelout<-nil	
-						}
-					}(channel,results[key])
 				}
-			for _,j:=range(results){
-				fmt.Println(<-j)
+			}else{
+			break	
+			}
+		}
+	for framebunch,j:=range(results){
+		for frame,k:=range(j){
+			if k==nil{
+				fmt.Println(framebunch,frame)
+				continue
 				}
-*/
+			fmt.Println(framebunch,frame, <-k)
+			}
+		}
+	}
+	
+	
+func SecondRow(channelin, channelout chan *matrix.DenseMatrix,current,other int){
+	if channelin!=nil{
+		temp:=<-channelin
+		vector:=temp.GetRowVector(2)
+		fmt.Println("sending througt",channelin, channelout,vector,current,other)
+		channelout<-vector
+		}else{
+		channelout<-nil
+		}
+	return
+	}	
+

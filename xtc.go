@@ -124,11 +124,11 @@ form the trajectory. The frames are discarted if the corresponding elemetn of th
 * a *matrix.DenseMatrix will be transmited*/
 func (X *XtcObj)NextConc(frames []bool)([]chan *matrix.DenseMatrix, error){
 	//this function is rather ugly since its tuned to performance.
-	framechans:=make([]chan *matrix.DenseMatrix,0,len(frames))  //the slice of chans that will be returned
+	framechans:=make([]chan *matrix.DenseMatrix,len(frames))  //the slice of chans that will be returned
 	totalcoords:=X.natoms*3
 	cnatoms:=C.int(X.natoms)
 	used:=false
-	for _,val:=range(frames){
+	for key,val:=range(frames){
 		cCoords:=X.cCoords
 		goCoords:=X.goCoords
 		if used==true{
@@ -137,7 +137,7 @@ func (X *XtcObj)NextConc(frames []bool)([]chan *matrix.DenseMatrix, error){
 		worked:=C.get_coords(X.fp,&cCoords[0],cnatoms)
 		//Error handling
 		if worked==11{
-			return nil, fmt.Errorf("No more frames") //This is not really an error and should be catched in the calling function
+			return framechans, fmt.Errorf("No more frames") //This is not really an error and should be catched in the calling function
 			}
 		if worked!=0{
 			return nil, fmt.Errorf("Error reading frame")
@@ -148,11 +148,11 @@ func (X *XtcObj)NextConc(frames []bool)([]chan *matrix.DenseMatrix, error){
 			goCoords=make([]float64,totalcoords,totalcoords) 
 			}
 		if val==false{
-			framechans=append(framechans,nil)  //ignored frame
+			framechans[key]=nil  //ignored frame
 			continue
 			}
 		used=true
-		framechans=append(framechans,make(chan *matrix.DenseMatrix))  
+		framechans[key]=make(chan *matrix.DenseMatrix)
 		//Now the parallel part
 		go func(natoms int,cCoords []C.float, goCoords []float64, pipe chan *matrix.DenseMatrix){
 			for j:=0;j<natoms*3;j++{
@@ -160,7 +160,7 @@ func (X *XtcObj)NextConc(frames []bool)([]chan *matrix.DenseMatrix, error){
 				goCoords[j]=10*(float64(cCoords[j]))  //nm to Angstroms
 				}
 			pipe<-matrix.MakeDenseMatrix(goCoords,natoms,3)		
-			}(X.natoms,cCoords,goCoords,framechans[len(framechans)-1])
+			}(X.natoms,cCoords,goCoords,framechans[key])
 		}
 	return framechans,nil
 	}
