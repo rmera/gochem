@@ -33,9 +33,9 @@ import "fmt"
 import "testing"
 import "strings"
 import "strconv"
-import "sort"
+//import "sort"
 
-
+/*
 func TestFilterWaters(Te *testing.T) {
 	var mol Molecule
 	ats,coords,bfac,err:=PdbRead("test/2c9v.pdb",true)
@@ -51,9 +51,9 @@ func TestFilterWaters(Te *testing.T) {
 	if err!=nil{
 		Te.Error(err)
 		}
-	atoms_per_frame:=len(mol.Coords[0])
-	var coord_saved:= make([]int)
-	var oxygens:= make([]int,0,2)
+	atoms_per_frame:=mol.Len()
+	var coord_saved= make([]int)
+	var oxygens= make([]int,0,2)
 	d124:=false //if we had the molecule already
 	site:=false //this is the last molecule of the active site
 	for j,k := range(mol.Atoms){
@@ -109,7 +109,7 @@ func TestFilterWaters(Te *testing.T) {
 		
 		}
 	}
-	
+*/	
 
 
 

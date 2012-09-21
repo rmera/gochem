@@ -43,7 +43,6 @@ package chem
 import "C"
 import "fmt"
 import "github.com/skelterjohn/go.matrix"
-//import "unsafe"
 import "runtime"
 
 
@@ -98,7 +97,7 @@ func (X *XtcObj) InitRead(name string) error{
 //returns nil.
 func (X *XtcObj)Next(keep bool)(*matrix.DenseMatrix, error){
 	if X.natoms==0{
-		return nil, fmt.Errorf("Traj object uninitialized!")
+		return nil, fmt.Errorf("Traj object uninitialized to read")
 		}
 	totalcoords:=3*X.natoms
 	cnatoms:=C.int(X.natoms)
@@ -123,6 +122,9 @@ form the trajectory. The frames are discarted if the corresponding elemetn of th
 * is false. The function returns a slice of channels through each of each of which 
 * a *matrix.DenseMatrix will be transmited*/
 func (X *XtcObj)NextConc(frames []bool)([]chan *matrix.DenseMatrix, error){
+	if X.natoms==0{
+		return nil, fmt.Errorf("Traj object uninitialized to read")
+		}
 	framechans:=make([]chan *matrix.DenseMatrix,len(frames))  //the slice of chans that will be returned
 	totalcoords:=X.natoms*3
 	cnatoms:=C.int(X.natoms)
@@ -210,8 +212,11 @@ func (X *XtcObj)ManyFrames(ini, end, skip int)([]*matrix.DenseMatrix,int, error)
 	}
 
 
-
-
+//Natoms returns the number of atoms per frame in the XtcObj.
+//XtcObj must be initialized. 0 means an uninitialized object.
+func (X *XtcObj)Natoms()int{
+	return X.natoms
+	}
 
 
 
