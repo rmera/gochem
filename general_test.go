@@ -173,7 +173,7 @@ func TestGeo(Te *testing.T) {
 		}
 	mol.Atoms=a
 	mol.Coords=b
-	pulled_res,err:=mol.GetCoords(pulled_atoms[:], 0)
+	pulled_res,err:=mol.SomeCoords(pulled_atoms[:], 0)
 	if err!=nil{
 		Te.Error(err)
 		}

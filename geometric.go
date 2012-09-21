@@ -136,8 +136,8 @@ func GetSwitchZ(mol, newz *matrix.DenseMatrix) (*matrix.DenseMatrix, error) {
 //It applies those rotation and translations to the whole frame frametest of molecule test, in palce. 
 //testlst and templalst must have the same number of elements.
 func Super(test, templa *Molecule, testlst, templalst []int, frametest, frametempla int) error{
-	ctest,err1:=test.GetCoords(testlst,frametest)
-	ctempla,err2:=templa.GetCoords(templalst,frametempla)
+	ctest,err1:=test.SomeCoords(testlst,frametest)
+	ctempla,err2:=templa.SomeCoords(templalst,frametempla)
 	if err1!=nil || err2!=nil{
 		return fmt.Errorf("Frame numbers given for test or template out of range")
 		}
@@ -209,8 +209,11 @@ func GetSuper(test, templa *matrix.DenseMatrix)(*matrix.DenseMatrix, *matrix.Den
 	err2:=AddRow(transformed,Translation)
 	//end transformed
 	distest.Scale(-1)
-	if err1 != nil || err2!=nil{
-		return nil, nil, nil, nil, fmt.Errorf("Problem with the final translations in superposition procedure")
+	if err1 != nil {
+		return nil, nil, nil, nil, err1
+		}
+	if  err2!=nil{
+		return nil, nil, nil, nil, err2
 		}
 	return transformed, Rotation, distest, Translation, nil
 	}
@@ -335,7 +338,7 @@ func BestPlane(mol *Molecule, frame int,masses bool) (*matrix.DenseMatrix, error
 		return nil, fmt.Errorf("Inconsistent coordinates/atoms in frame %d", frame)
 		}
 	if masses {
-		mass,err:=mol.GetMassArray()
+		mass,err:=mol.MassArray()
 		if err!=nil{
 			return nil, err
 			}

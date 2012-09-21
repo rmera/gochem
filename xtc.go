@@ -46,20 +46,7 @@ import "github.com/skelterjohn/go.matrix"
 import "runtime"
 
 
-/*The plan is equate PDBs XTCs and in the future DCDs. One needs to separate the molecule methods between actual molecule methods, that requires atoms and coordinates, []atom methods, and  DenseMatrix
- * methods. Then one must implements objects for Xtc trajs that are more or less equivalent to molecules and set up an interface so many analyses can be carried out exactly the same from
- * multiPDB or XTC or (eventually) DCD*/
 
-//Traj is an interface for any trajectory object, including a Molecule Object
-type Traj interface{
-	//Opens the file and prepares for reading
-	InitRead(string) error
-	//reads the next frame and returns it as DenseMatrix if keep==true, or discards it if false
-	Next(keep bool) *matrix.DenseMatrix
-	//Read frames from Traj from ini to end skipping skip frames between read. Returns a slice with coords of each frame
-	//the number of frames read and error or nil.
-	ManyFrames(ini, end, skip int)([]*matrix.DenseMatrix,int, error)
-	}
 
 //Container for an GROMACS XTC binary trajectory file.
 type XtcObj struct{
@@ -68,6 +55,17 @@ type XtcObj struct{
 	fp *C.XDRFILE //pointer to the XDRFILE
 	goCoords []float64
 	cCoords []C.float
+	}
+
+
+//Returns true if the object is ready to be read from
+//false otherwise. IT doesnt guarantee that there is something
+//to read.
+func (X *XtcObj)Readable() bool{
+	if X.fp==nil{
+		return false
+		}
+	return true
 	}
 
 //InitRead initializes a XtcObj for reading.
@@ -214,12 +212,32 @@ func (X *XtcObj)ManyFrames(ini, end, skip int)([]*matrix.DenseMatrix,int, error)
 
 //Natoms returns the number of atoms per frame in the XtcObj.
 //XtcObj must be initialized. 0 means an uninitialized object.
-func (X *XtcObj)Natoms()int{
+func (X *XtcObj)Len()int{
 	return X.natoms
 	}
 
 
-
+//Selected, given a slice of ints, returns a matrix.DenseMatrix
+//containing the coordinates of the atoms with the corresponding index.
+func (X *XtcObj) Selected(clist []int) (*matrix.DenseMatrix,error){
+	var err error
+	var ret [][]float64
+	Coords,err:=X.Next()
+	if err!=nil{
+		return nil, err
+		}
+	lencoords:=Coords.Rows()
+	for k,j:=range(clist){
+		if j>lencoords-1{
+			return nil,fmt.Errorf("Coordinate requested (Number: %d, value: %d) out of range!",k,j)
+			}
+		if lencoords!=3{
+			return nil,fmt.Errorf("Coordinate %d has %d components instead of 3",k, len(tmp))
+			}
+		ret=append(ret,tmp)
+		}
+	return matrix.MakeDenseMatrixStacked(ret),err
+	}
 
 	
 
