@@ -97,11 +97,12 @@ var three2OneLetter = map[string] byte{
 //It only deals with some common bio-elements.
 func symbolFromName(name string) (string, error){
 	symbol:=""
-	if len(name)==4 || name[0]=='H'{  //I thiiink only Hs can have 4-char names in amber.
-		symbol="H"
-		}else if len(name)==1{
+	if len(name)==1{
 			symbol=name //should work
-		}else if name[0]=='C'{ //Ca is not considered here
+		}else if len(name)==4 || name[0]=='H'{  //I thiiink only Hs can have 4-char names in amber.
+		symbol="H"
+		//it name has more than one character but less than four.
+		}else if name[0]=='C'{
 		if name=="CU"{
 			symbol="Cu"
 			}else if name=="CO"{
@@ -217,7 +218,7 @@ func read_onlycoords_pdb_line(line string, contlines int) ([]float64,float64, er
 // and the coordinates in a separate array of arrays. If there is one frame in the PDB
 // the coordinates array will be of lenght 1. It also returns an error which is not 
 // really well set up right now.
-func PdbRead(pdbname string, read_additional bool) ([]*Atom, []*matrix.DenseMatrix,[][]float64, error){
+func PdbRead(pdbname string, read_additional bool) (*Molecule, error){
 	molecule:=make([]*Atom,0) //I thiiink is more efficient to have pointers here
 	coords:=make([][]float64,1,1)
 	coords[0]=make([]float64,0)
@@ -227,7 +228,7 @@ func PdbRead(pdbname string, read_additional bool) ([]*Atom, []*matrix.DenseMatr
 	pdbfile, err := os.Open(pdbname)
 	if err!= nil{
 		//fmt.Println("Unable to open file!!")
-		return molecule,nil,nil,err 
+		return nil,err 
 		}
 	defer pdbfile.Close()
 	pdb := bufio.NewReader(pdbfile)
@@ -256,7 +257,7 @@ func PdbRead(pdbname string, read_additional bool) ([]*Atom, []*matrix.DenseMatr
 				atomtmp=new(Atom)
 				atomtmp,c,bfactemp,err=read_full_pdb_line(line, read_additional, contlines)
 				if err!=nil{
-					return molecule,nil,nil,err 
+					return nil,err 
 					}
 				//atom data other than coords is the same in all models so just read for the first.
 				molecule=append(molecule,atomtmp)
@@ -279,13 +280,19 @@ func PdbRead(pdbname string, read_additional bool) ([]*Atom, []*matrix.DenseMatr
 	//Instead of having another loop just for them.
 	frames:=len(coords)
 	mcoords:=make([]*matrix.DenseMatrix,frames,frames) //Final thing to return
+	mbfactors:=make([]*matrix.DenseMatrix,frames,frames)
 	for i:=0;i<frames;i++{
 		mcoords[i]=matrix.MakeDenseMatrix(coords[i],len(coords[i])/3,3)
+		mbfactors[i]=matrix.MakeDenseMatrix(bfactors[i],len(bfactors[i]),1)
 		}
 	/**tests for debugging**/
-	fmt.Println("Coords read", mcoords[0].GetMatrix(0,0,3,3),"Atoms: ",len(molecule)," Coords: ",mcoords[0].Rows()) 
+//	fmt.Println("Coords read", mcoords[0].GetMatrix(0,0,3,3),"Atoms: ",len(molecule)," Coords: ",mcoords[0].Rows()) 
 	//We ensure an slice (not a copy!) is passed. should save memory and cpu
-	return molecule[:], mcoords[:],bfactors[:], err
+	returned:=new(Molecule)
+	returned.Atoms=molecule
+	returned.Coords=mcoords
+	returned.Bfactors=mbfactors
+	return returned, err
 	}
 //End Pdb_read family
 
@@ -322,12 +329,12 @@ func PdbWrite(mol *Molecule, pdbname string) error{
 			if len(mol.Atoms[i].Name)<4{
 		//		fmt.Println("chain", mol.Atoms[i])
 				_,err=fmt.Fprintf(out,"%-6s%5d  %-3s %3s %1c%4d    %8.3f%8.3f%8.3f%6.2f%6.2f          %2s  \n",first, mol.Atoms[i].Id, mol.Atoms[i].Name, mol.Atoms[i].Molname, mol.Atoms[i].Chain,
-							mol.Atoms[i].Molid, c[0],c[1],c[2], mol.Atoms[i].Occupancy, mol.Bfactors[j][i], mol.Atoms[i].Symbol)
+							mol.Atoms[i].Molid, c[0],c[1],c[2], mol.Atoms[i].Occupancy, mol.Bfactors[j].Get(i,0), mol.Atoms[i].Symbol)
 				//4 chars for the atom name are used when hydrogens are included.	
 				//This has not been tested
 				}else if len(mol.Atoms[i].Name)==4{
 				_,err=fmt.Fprintf(out,"%-6s%5d %4s %3s %1c%4d    %8.3f%8.3f%8.3f%6.2f%6.2f          %2s  \n",first, mol.Atoms[i].Id, mol.Atoms[i].Name, mol.Atoms[i].Molname, mol.Atoms[i].Chain,
-							mol.Atoms[i].Molid, c[0],c[1],c[2], mol.Atoms[i].Occupancy, mol.Bfactors[j][i], mol.Atoms[i].Symbol)			
+							mol.Atoms[i].Molid, c[0],c[1],c[2], mol.Atoms[i].Occupancy, mol.Bfactors[j].Get(i,0), mol.Atoms[i].Symbol)			
 				}else{
 				err=fmt.Errorf("Cant print PDB line")
 				}
@@ -344,30 +351,30 @@ func PdbWrite(mol *Molecule, pdbname string) error{
 	
 
 //XyzRead reads an xyz file, returns a slice of Atom objects, and slice of matrix.DenseMatrix and an error.
-func XyzRead(xyzname string,) ([]*Atom, []*matrix.DenseMatrix, error){
+func XyzRead(xyzname string,) (*Molecule, error){
 	xyzfile, err:= os.Open(xyzname)
 	if err!= nil{
 		//fmt.Println("Unable to open file!!")
-		return nil,nil,err 
+		return nil,err 
 		}
 	defer xyzfile.Close()
 	xyz := bufio.NewReader(xyzfile)	
 	line, err := xyz.ReadString('\n')
 //	fmt.Println("line: ", line) /////////////////////////////////7
 	if err != nil {
-		return nil, nil, fmt.Errorf("Ill formatted XYZ file")
+		return  nil, fmt.Errorf("Ill formatted XYZ file")
 		}
 //	var natoms int
 	natoms,err:=strconv.Atoi(strings.TrimSpace(line))
 	if err != nil {
-		return nil, nil, fmt.Errorf("Ill formatted XYZ file")
+		return nil, fmt.Errorf("Ill formatted XYZ file")
 		}
 //	fmt.Println("natoms: ", natoms)///////////////////////////////7
 	molecule:=make([]*Atom,natoms,natoms)
 	coords:=make([]float64,natoms*3,natoms*3)
 	_,err=xyz.ReadString('\n') //We dont care about this line
 	if err != nil {
-		return nil, nil, fmt.Errorf("Ill formatted XYZ file")
+		return nil, fmt.Errorf("Ill formatted XYZ file")
 		}
 	errs:=make([]error,3,3)
 	for i:=0;i<natoms;i++{
@@ -391,12 +398,17 @@ func XyzRead(xyzname string,) ([]*Atom, []*matrix.DenseMatrix, error){
 	//Instead of having another loop just for them.
 	for _,i:=range errs{
 		if i!=nil{
-			return nil, nil, i
+			return nil, i
 			}
 		}
 	mcoords:=make([]*matrix.DenseMatrix,1,1)
 	mcoords[0]=matrix.MakeDenseMatrix(coords,natoms,3)
-	return molecule[:], mcoords[:], errs[0]
+	returned:=new(Molecule)
+	returned.Atoms=molecule
+	returned.Coords=mcoords
+	returned.Bfactors=make([]*matrix.DenseMatrix,1,1)
+	returned.Bfactors[0]=matrix.Zeros(len(molecule),1)
+	return returned, err
 	}
 
 

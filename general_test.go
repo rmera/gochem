@@ -44,14 +44,10 @@ import "strconv"
 //aligned with the Z axis. The new molecule is written
 //as 2c9v_aligned.pdb to the test folder.
 func TestChangeAxis(Te *testing.T){
-	var mol Molecule
-	ats,coords,bfac,err:=PdbRead("test/2c9v.pdb",true)
+	mol,err:=PdbRead("test/2c9v.pdb",true)
 	if err!=nil{
 		Te.Error(err)
 		}
-	mol.Atoms=ats
-	mol.Coords=coords
-	mol.Bfactors=bfac
 	orient_atoms:=[2]int{0,0}
 	for index, atom:= range(mol.Atoms){
 		if atom.Chain=='A' && atom.Molid==124{
@@ -81,7 +77,7 @@ func TestChangeAxis(Te *testing.T){
 	if err!=nil{
 		Te.Error(err)
 		}
-	PdbWrite(&mol,"test/2c9v-aligned.pdb")
+	PdbWrite(mol,"test/2c9v-aligned.pdb")
 	}
 
 
@@ -91,13 +87,10 @@ func TestChangeAxis(Te *testing.T){
 func TestGeo(Te *testing.T) {
 	pulled_atoms:=[7]int{43,41,42,40,85,86,87}
 	pulling_vector:=[2]int{40,88}
-	var mol Molecule
-	a,b,err:=XyzRead("test/sample.xyz")
+	mol,err:=XyzRead("test/sample.xyz")
 	if err!=nil{
 		Te.Error(err)
 		}
-	mol.Atoms=a
-	mol.Coords=b
 	pulled_res,err:=mol.SomeCoords(pulled_atoms[:], 0)
 	if err!=nil{
 		Te.Error(err)
@@ -124,24 +117,20 @@ func TestGeo(Te *testing.T) {
 		if err!=nil{
 			Te.Error(err)
 			}
-		XyzWrite(&mol, 0, strings.Replace("test/sample_xxxx.xyz","xxxx",strconv.FormatFloat(scaling, 'f', 1, 64),1)) //There might be an easier way of creating the filenames
+		XyzWrite(mol, 0, strings.Replace("test/sample_xxxx.xyz","xxxx",strconv.FormatFloat(scaling, 'f', 1, 64),1)) //There might be an easier way of creating the filenames
 		}
 	}
 
 func TestRama(Te *testing.T){
-	var mol Molecule
-	ats,coords,bfac,err:=PdbRead("test/2c9v.pdb",true)
+	mol,err:=PdbRead("test/2c9v.pdb",true)
 	if err!=nil{
 		Te.Error(err)
 		}
-	mol.Atoms=ats
-	mol.Coords=coords
-	mol.Bfactors=bfac
-	ramalist, err:=RamaList(&mol,"A",[]int{0,-1}) ////
+	ramalist, err:=RamaList(mol,"A",[]int{0,-1}) ////
 	if err!=nil{
 		Te.Error(err)
 		}
-	rama,err := RamaCalc(&mol,ramalist,[]int{0})
+	rama,err := RamaCalc(mol,ramalist,[]int{0})
 	if err!=nil{
 		Te.Error(err)
 		}
@@ -150,7 +139,7 @@ func TestRama(Te *testing.T){
 	if err!=nil{
 		Te.Error(err)
 		}
-	PdbWrite(&mol,"test/Used4Rama.pdb")
+	PdbWrite(mol,"test/Used4Rama.pdb")
 	//for the 3 residue  I should get -131.99, 152.49.
 	}
 

@@ -78,13 +78,35 @@ type Atom struct{
 	Symbol string
 	Het bool  // is hetatm in the pdb file?
 	}
+	
+func (A *Atom)Copy()(*Atom,error){
+	if A==nil{
+		return nil,fmt.Errorf("Atom is nil")  
+		}
+	Newat:=new(Atom)
+	Newat.Name=A.Name
+	Newat.Id=A.Id
+	Newat.Tag=A.Tag
+	Newat.Molname=A.Molname
+	Newat.Molname1=A.Molname1
+	Newat.Molid=A.Molid
+	Newat.Chain=A.Chain
+	Newat.Mass=A.Mass
+	Newat.Occupancy=A.Occupancy
+	Newat.Vdw=A.Vdw
+	Newat.Charge=A.Charge
+	Newat.Symbol=A.Symbol
+	Newat.Het=A.Het
+	return Newat,nil
+	}	
+
 
 //Molecule contains all the info for a molecule in many states. The info that is expected to change between states,
 //Coordinates and b-factors are stored separately from other atomic info.
 type Molecule struct{
 	Atoms []*Atom
 	Coords []*matrix.DenseMatrix
-	Bfactors [][]float64
+	Bfactors []*matrix.DenseMatrix
 	total_charge int
 	unpaired_electrons int
 	current int
@@ -92,7 +114,23 @@ type Molecule struct{
 
 //The molecule methods:
 
-
+func (M *Molecule) Copy() (*Molecule,error){
+	if err:=M.Corrupted();err!=nil{
+		return nil, err
+		}
+	mol:=new(Molecule)
+	mol.Atoms=make([]*Atom,M.Len())
+	mol.Coords=make([]*matrix.DenseMatrix,len(M.Coords))
+	mol.Bfactors=make([]*matrix.DenseMatrix,len(M.Bfactors))
+	for key,val:=range(M.Atoms){
+		mol.Atoms[key],_=val.Copy()	 //we checked for these errors at the begining
+		}
+	for key,val:=range(M.Coords){ 
+		mol.Coords=append(mol.Coords,val.Copy())
+		mol.Bfactors=append(mol.Bfactors,M.Bfactors[key].Copy())
+		}
+	return mol, nil
+	}
 
 //MassCol returns a DenseMatrix 1-col matrix with masses of atoms and an error if they have not been calculated
 func (M *Molecule) MassCol() (*matrix.DenseMatrix,error){
@@ -330,21 +368,32 @@ func (M *Molecule) SetCoords(atomlist []int, frame int, newcoords *matrix.DenseM
 //That the coordinate matrices have 3 columns.
 func (M *Molecule) Corrupted() error{
 	var err error
+	if M==nil{
+		return fmt.Errorf("Molecule is nil") 
+		}
+	if M.Atoms==nil{
+		return fmt.Errorf("Molecule is empty")
+		}
+	if M.Coords==nil{
+		return fmt.Errorf("Molecule has no coordinates")
+		}
+	if M.Bfactors==nil{
+		M.Bfactors=make([]*matrix.DenseMatrix,0,len(M.Coords))
+		M.Bfactors=append(M.Bfactors,matrix.Zeros(M.Len(),1))
+		}
 	lastbfac:=len(M.Bfactors)-1
 	for i:=range M.Coords{
 		if len(M.Atoms)!=M.Coords[i].Rows() || M.Coords[i].Cols()!=3{
-			//Not tested.
 			err=fmt.Errorf("Inconsistent coordinates/atoms in frame %d", i) 
 			break
 			}
 		//Since bfactors are not as important as coordinates, we will just fill with 
 		//zeroes anything that is lacking or incomplete instead of returning an error.
 		if lastbfac<i{
-			bfacs:=make([]float64,len(M.Atoms),len(M.Atoms))
+			bfacs:=matrix.Zeros(len(M.Atoms),1)
 			M.Bfactors=append(M.Bfactors,bfacs)
-			}else if len(M.Bfactors[i])<len(M.Atoms){
-			bfacs:=make([]float64,len(M.Atoms),len(M.Atoms))
-			M.Bfactors[i]=bfacs
+			}else if M.Bfactors[i].Rows()<len(M.Atoms){
+			M.Bfactors[i]=matrix.Zeros(len(M.Atoms),1)
 			}
 		}
 	return err
@@ -360,13 +409,13 @@ func (M *Molecule) Swap(i,j int) {
 	M.Atoms[i],M.Atoms[j]=M.Atoms[j],M.Atoms[i]
 	for k:=0;k<len(M.Coords);k++{
 		M.Coords[k].SwapRows(i,j)
-		M.Bfactors[k][i],M.Bfactors[k][j]=M.Bfactors[k][j],M.Bfactors[k][i]
+		M.Bfactors[k].SwapRows(i,j)
 		}
 	}
 
 //Less: Should the atom i be sorted before atom j?
 func (M *Molecule) Less (i, j int) bool {
-	return M.Bfactors[0][i]<M.Bfactors[0][j]
+	return M.Bfactors[0].Get(i,0)<M.Bfactors[0].Get(j,0)
 	}
 
 //Len return the length of the molecule.
