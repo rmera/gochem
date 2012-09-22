@@ -384,7 +384,7 @@ func (M *Molecule) Corrupted() error{
 	lastbfac:=len(M.Bfactors)-1
 	for i:=range M.Coords{
 		if len(M.Atoms)!=M.Coords[i].Rows() || M.Coords[i].Cols()!=3{
-			err=fmt.Errorf("Inconsistent coordinates/atoms in frame %d", i) 
+			err=fmt.Errorf("Inconsistent coordinates/atoms in frame %d: Atoms %d, coords: %d", i,len(M.Atoms),M.Coords[i].Rows()) 
 			break
 			}
 		//Since bfactors are not as important as coordinates, we will just fill with 
