@@ -219,7 +219,8 @@ func read_onlycoords_pdb_line(line string, contlines int) ([]float64,float64, er
 // the coordinates array will be of lenght 1. It also returns an error which is not 
 // really well set up right now.
 func PdbRead(pdbname string, read_additional bool) (*Molecule, error){
-	molecule:=make([]*Atom,0) //I thiiink is more efficient to have pointers here
+	molecule:=make([]*Atom,0)
+	modelnumber:=0  //This is the number of frames read
 	coords:=make([][]float64,1,1)
 	coords[0]=make([]float64,0)
 	bfactors:=make([][]float64,1,1)
@@ -267,9 +268,8 @@ func PdbRead(pdbname string, read_additional bool) (*Molecule, error){
 			coords[len(coords)-1]=append(coords[len(coords)-1],c[0],c[1],c[2])
 			bfactors[len(bfactors)-1]=append(bfactors[len(bfactors)-1],bfactemp)
 			} else if strings.HasPrefix(line,"MODEL"){
-			modelnumber:=1  //apparently in PDBs the counts starts from 1 
-			modelnumber,_=strconv.Atoi(strings.TrimSpace(line[6:]))
-			if modelnumber > 1{
+			modelnumber++  //,_=strconv.Atoi(strings.TrimSpace(line[6:]))
+			if modelnumber > 1{ //will be one for the first model, 2 for the second.
 				first_model=false
 				coords=append(coords,make([]float64,0)) //new bunch of coords for a new frame
 				bfactors=append(bfactors,make([]float64,0))
@@ -312,7 +312,7 @@ func PdbWrite(mol *Molecule, pdbname string) error{
 	for j:= range mol.Coords{
 		towrite:=mol.Coords[j].Arrays()  //An array of array with the data in the matrix
 		chainprev:=mol.Atoms[0].Chain  //this is to know when the chain changes.
-		fmt.Fprintf(out, "MODEL %d\n",j)
+		fmt.Fprintf(out, "MODEL %d\n",j+1) //The model number starts with one
 //		fmt.Println("chain", mol.Atoms[0])		
 		for i:=range mol.Atoms{
 			if mol.Atoms[i].Chain!=chainprev{

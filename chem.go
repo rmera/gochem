@@ -114,20 +114,25 @@ type Molecule struct{
 
 //The molecule methods:
 
+
+//Copy returns a copy of the molecule.
 func (M *Molecule) Copy() (*Molecule,error){
 	if err:=M.Corrupted();err!=nil{
 		return nil, err
 		}
 	mol:=new(Molecule)
 	mol.Atoms=make([]*Atom,M.Len())
-	mol.Coords=make([]*matrix.DenseMatrix,len(M.Coords))
-	mol.Bfactors=make([]*matrix.DenseMatrix,len(M.Bfactors))
+	mol.Coords=make([]*matrix.DenseMatrix,0,len(M.Coords))
+	mol.Bfactors=make([]*matrix.DenseMatrix,0,len(M.Bfactors))
 	for key,val:=range(M.Atoms){
 		mol.Atoms[key],_=val.Copy()	 //we checked for these errors at the begining
 		}
 	for key,val:=range(M.Coords){ 
 		mol.Coords=append(mol.Coords,val.Copy())
 		mol.Bfactors=append(mol.Bfactors,M.Bfactors[key].Copy())
+		}
+	if err:=mol.Corrupted();err!=nil{
+		return nil, err
 		}
 	return mol, nil
 	}
