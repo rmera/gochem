@@ -34,6 +34,10 @@ import (
         "image/color"
 )
 
+/*Produce plots, in png format for the ramachandran data (psi and phi dihedrals) 
+ * contained in fulldata, which can contain data for various different snapshopts.
+ *In the latter case, many png files are produced. The file names are plotnameXX.png
+ * where XX is the frame number (not limited to digits). Returns an error*/
 func RamaPlot(fulldata [][][]float64, plotname string) error{
 	for number,data:=range(fulldata){
 		if data==nil{
@@ -81,7 +85,9 @@ func RamaPlot(fulldata [][][]float64, plotname string) error{
 
 
 
-
+/*Obtain psi and phi angles for the molecule M, considerint the dihedrals in [][]int
+ * for all the frames in frames. It returns a slice of slices (one per frame) of slices 
+ * (with 2 elemtns), for psi and phi angles, and an error*/
 func RamaCalc(M *Molecule, dihedrals [][]int, frames []int)([][][]float64,error){
 	if M == nil || dihedrals == nil || frames == nil{
 		return nil,  fmt.Errorf("Given nil data")

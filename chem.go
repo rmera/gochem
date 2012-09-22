@@ -53,7 +53,7 @@ type Traj interface{
 	//Selected, given a slice of ints, returns a matrix.DenseMatrix
 	//containing the coordinates of the atoms with the corresponding index.
 	Selected(clist []int) (*matrix.DenseMatrix,error)
-	//Returns the number of atoms in a frame
+	//Returns the number of atoms per frame
 	Len() int
 	}
 
@@ -212,7 +212,7 @@ func (M *Molecule) AddManyFrames(newframes []*matrix.DenseMatrix) error{
 	return nil
 	}
 
-
+//Coord returns the coords for the atom atom in the frame frame.
 func (M *Molecule)Coord(atom, frame int)*matrix.DenseMatrix{
 	if M==nil{
 		return nil //,fmt.Errorf("Molecule is nil") 
@@ -235,7 +235,7 @@ func (M *Molecule) Current() int{
 	return M.current
 	}
 	
-//SetCurrent sets the value of the frame nexto be read
+//SetCurrent sets the value of the frame nex to be read
 //to i.
 func (M *Molecule) SetCurrent(i int) error{
 	if M==nil{
