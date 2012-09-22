@@ -107,6 +107,10 @@ func (X *XtcObj)Next(keep bool)(*matrix.DenseMatrix, error){
 		return nil, fmt.Errorf("Error reading frame")
 			}
 	if keep==true{ //collect the trame
+		//make sure the buffer is there.
+		if X.goCoords==nil{
+			X.goCoords=make([]float64,totalcoords,totalcoords)
+			}
 		for j:=0;j<totalcoords;j++{
 			X.goCoords[j]=10*(float64(X.cCoords[j]))  //nm to Angstroms
 			}
@@ -120,6 +124,10 @@ form the trajectory. The frames are discarted if the corresponding elemetn of th
 * is false. The function returns a slice of channels through each of each of which 
 * a *matrix.DenseMatrix will be transmited*/
 func (X *XtcObj)NextConc(frames []bool)([]chan *matrix.DenseMatrix, error){
+	//For this we dont need this memory
+	if X.goCoords!=nil{
+		X.goCoords=nil
+		}
 	if X.natoms==0{
 		return nil, fmt.Errorf("Traj object uninitialized to read")
 		}
@@ -180,6 +188,9 @@ func (X *XtcObj)NextConc(frames []bool)([]chan *matrix.DenseMatrix, error){
 //the number of frames read and error or nil.
 func (X *XtcObj)ManyFrames(ini, end, skip int)([]*matrix.DenseMatrix,int, error) {
 	Coords:=make([]*matrix.DenseMatrix,0,1) // I might attempt to give the capacity later
+	if X.goCoords==nil{
+		X.goCoords=make([]float64,totalcoords,totalcoords)
+		}
 	i:=0
 	for ;;i++{
 		if i>end {

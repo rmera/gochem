@@ -78,7 +78,10 @@ type Atom struct{
 	Symbol string
 	Het bool  // is hetatm in the pdb file?
 	}
-	
+
+//Atom methods
+
+//Copy returns a copy of the Atom object.
 func (A *Atom)Copy()(*Atom,error){
 	if A==nil{
 		return nil,fmt.Errorf("Atom is nil")  
