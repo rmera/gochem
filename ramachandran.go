@@ -51,7 +51,7 @@ func RamaPlot(fulldata [][][]float64, plotname string) error{
 			if err != nil {
 				return err
 				}
-		p.Title.Text = "Rama plot"
+		p.Title.Text = "Ramachandran plot"
 		p.X.Label.Text = "Phi"
 		p.Y.Label.Text = "Psi"
 		//Constant axes

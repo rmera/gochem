@@ -62,7 +62,8 @@ var symbolMass = map[string] float64 {
     "Zn":  65.38,
     "Co": 58.93,
     "Fe": 55.84,
-    "Mn": 54.94,   
+    "Mn": 54.94,
+    "Si": 28.08,   
 	}
 
 //A map between 3-letters name for aminoacidic residues to the corresponding 1-letter names.
@@ -98,6 +99,8 @@ func symbolFromName(name string) (string, error){
 	symbol:=""
 	if len(name)==4 || name[0]=='H'{  //I thiiink only Hs can have 4-char names in amber.
 		symbol="H"
+		}else if len(name)==1{
+			symbol=name //should work
 		}else if name[0]=='C'{ //Ca is not considered here
 		if name=="CU"{
 			symbol="Cu"

@@ -171,11 +171,11 @@ func GetSuper(test, templa *matrix.DenseMatrix)(*matrix.DenseMatrix, *matrix.Den
 	p:=templa.Rows()
 	Scal=float64(1.0)/float64(p)
 	j:=matrix.Ones(p,1) //Mass is not important for this matter so we'll just use this.
-	ctest,distest,err:=CenterMass(test,test,j)
+	ctest,distest,err:=MassCentrate(test,test,j)
 	if err!=nil{
 		return nil, nil, nil, nil, err
 		}
-	ctempla,distempla,err:=CenterMass(templa,templa,j)
+	ctempla,distempla,err:=MassCentrate(templa,templa,j)
 	if err!=nil{
 		return nil, nil, nil, nil, err
 		}
@@ -333,16 +333,16 @@ func BestPlaneP(evecs *matrix.DenseMatrix) (*matrix.DenseMatrix, error){
 
 //BestPlane returns a row vector that is normal to the plane that best contains the molecule
 func BestPlane(mol *Molecule, frame int,masses bool) (*matrix.DenseMatrix, error){
+	var err error
 	var Mmass *matrix.DenseMatrix
 	if len(mol.Atoms)!=mol.Coords[frame].Rows(){
 		return nil, fmt.Errorf("Inconsistent coordinates/atoms in frame %d", frame)
 		}
 	if masses {
-		mass,err:=mol.MassArray()
+		Mmass,err=mol.MassCol()
 		if err!=nil{
 			return nil, err
 			}
-		Mmass=matrix.MakeDenseMatrix(mass[:],1,len(mass))
 		}else{
 		Mmass=matrix.Ones(1,len(mol.Atoms))	
 		}
@@ -422,12 +422,31 @@ func Eigenwrap(in *matrix.DenseMatrix) (*matrix.DenseMatrix, []float64, error){
 	return eig.evecs,evals[:], nil  //Returns a slice of evals
 	}
 
+/*CenterOfMass returns the center of mass the atoms represented by the coordinates in geometry
+and the masses in mass, and an error. If mass is nil, it calculates the geometric center*/
+func CenterOfMass(geometry, mass *matrix.DenseMatrix)(*matrix.DenseMatrix,error){
+	if geometry==nil{
+		return nil, fmt.Errorf("nil matrix to get the center of mass")
+		}
+
+	if mass==nil{ //just obtain the geometric center
+		mass=matrix.Ones(geometry.Rows(),1)
+		}
+	onesvector:=matrix.Ones(1,geometry.Rows())
+	ref:=geometry.Copy()
+	err:=DMScaleByCol(ref,mass)
+	if err!=nil{
+		return nil, err
+		}
+	ref2:=matrix.ParallelProduct(onesvector,ref)
+	ref2.Scale(1.0/DMSummation(mass))
+	return ref2,nil
+	}
 
 
-
-//CenterMass centers in in the center of mass of ref. Mass must be
+//MassCentrate centers in in the center of mass of ref. Mass must be
 //A column vector. Returns the centered matrix and the displacement matrix.
-func CenterMass(in, oref, mass *matrix.DenseMatrix) (*matrix.DenseMatrix,*matrix.DenseMatrix, error){
+func MassCentrate(in, oref, mass *matrix.DenseMatrix) (*matrix.DenseMatrix,*matrix.DenseMatrix, error){
 	ref:=oref.Copy()
 	onesvector:=matrix.Ones(1,in.Rows())
 	err:=DMScaleByCol(ref,mass)
@@ -450,7 +469,7 @@ func CenterMass(in, oref, mass *matrix.DenseMatrix) (*matrix.DenseMatrix,*matrix
 //MomentTensor returns the moment tensor for a matrix A of coordinates and a column
 //vector mass with the respective massess.
 func MomentTensor(A, mass *matrix.DenseMatrix) (*matrix.DenseMatrix, error){
-	center,_,err:=CenterMass(A,A.Copy(),mass)
+	center,_,err:=MassCentrate(A,A.Copy(),mass)
 	if err!=nil{
 		return nil, err
 		}

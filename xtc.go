@@ -221,8 +221,8 @@ func (X *XtcObj)Len()int{
 //containing the coordinates of the atoms with the corresponding index.
 func (X *XtcObj) Selected(clist []int) (*matrix.DenseMatrix,error){
 	var err error
-	var ret [][]float64
-	Coords,err:=X.Next()
+	var ret *matrix.DenseMatrix
+	Coords,err:=X.Next(true)
 	if err!=nil{
 		return nil, err
 		}
@@ -231,12 +231,17 @@ func (X *XtcObj) Selected(clist []int) (*matrix.DenseMatrix,error){
 		if j>lencoords-1{
 			return nil,fmt.Errorf("Coordinate requested (Number: %d, value: %d) out of range!",k,j)
 			}
-		if lencoords!=3{
-			return nil,fmt.Errorf("Coordinate %d has %d components instead of 3",k, len(tmp))
+		tmp:=Coords.GetRowVector(j)
+		if ret==nil{
+			ret=tmp
+			}else{
+			ret,err=ret.Stack(tmp)
+			if err!=nil{
+				return nil, err
+				}
 			}
-		ret=append(ret,tmp)
 		}
-	return matrix.MakeDenseMatrixStacked(ret),err
+	return ret,err
 	}
 
 	

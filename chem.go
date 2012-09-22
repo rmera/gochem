@@ -31,7 +31,7 @@ package chem
 
 import "fmt"
 import  "github.com/skelterjohn/go.matrix"
-
+import "strings"
 
 
 
@@ -92,18 +92,10 @@ type Molecule struct{
 
 //The molecule methods:
 
-//returns a pointer to the atom with index index, or nil if the molecule
-//doesnt exist, or the index is invalid
-func (M *Molecule) Atom(index int) (*Atom){
-	if Molecule==nil || index>=len(M.Atoms) || index<0{
-		return nil
-		}
-	return M.Atoms[index]
-	}
 
 
-//MassArray returns an array with massess of atoms and an error if they have not been calculated
-func (M *Molecule) MassArray() ([]float64,error){
+//MassCol returns a DenseMatrix 1-col matrix with masses of atoms and an error if they have not been calculated
+func (M *Molecule) MassCol() (*matrix.DenseMatrix,error){
 	if M==nil{
 		return nil,fmt.Errorf("Molecule is nil") 
 		}
@@ -117,8 +109,8 @@ func (M *Molecule) MassArray() ([]float64,error){
 			}
 		mass[i]=M.Atoms[i].Mass
 		}
-	
-	return mass, nil
+	massmat:=matrix.MakeDenseMatrix(mass,len(mass),1)
+	return massmat, nil
 	}
 	
 //AddFrame akes a matrix of coordinates and appends them at the end of the Coords.
@@ -178,7 +170,18 @@ func (M *Molecule) AddManyFrames(newframes []*matrix.DenseMatrix) error{
 	}
 
 
-
+func (M *Molecule)Coord(atom, frame int)*matrix.DenseMatrix{
+	if M==nil{
+		return nil //,fmt.Errorf("Molecule is nil") 
+		}
+	if M.Atoms==nil{
+		return nil //, fmt.Errorf("Molecule is empty")
+		}
+	if frame>=len(M.Coords){
+		return nil //,fmt.Errorf("Frame requested (%d) out of range!",frame)
+		}
+	return M.Coords[frame].GetRowVector(atom)	
+	}
 
 
 //Current returns the number of the next readed frame
@@ -199,6 +202,7 @@ func (M *Molecule) SetCurrent(i int) error{
 		return fmt.Errorf("Invalid new value for current")
 		}
 	M.current=i
+	return nil
 	}
 
 
@@ -395,15 +399,15 @@ func (M *Molecule) Readable() bool{
 
 
 //Returns the  next frame and an error
-func (M *Molecule) Next(a bool) *matrix.DenseMatrix, error{
-	if M.current>=len(mol.coords){
+func (M *Molecule) Next(a bool) (*matrix.DenseMatrix, error){
+	if M.current>=len(M.Coords){
 		return nil, fmt.Errorf("No more frames")
 		}
 	if a==false {
-		return nil nil
+		return nil, nil
 		}
 	M.current++
-	return mol.coords[M.current-1], nil
+	return M.Coords[M.current-1], nil
 	}
 	
 /*NextConc takes a slice of bools and reads as many frames as elements the list has
@@ -414,14 +418,15 @@ func (M *Molecule)NextConc(frames []bool)([]chan *matrix.DenseMatrix, error){
 	if M==nil{
 		return nil, fmt.Errorf("Molecule is nil")
 		}
-	toreturn:=make([]chan *matrix.DenseMatrix)
+	toreturn:=make([]chan *matrix.DenseMatrix,0,len(frames))
 	used:=false
-	for key,val:=range(frames){
-		if val:=false{
+	for _,val:=range(frames){
+		if val==false{
 			M.current++
-			toreturn:=append(toreturn,nil)
+			toreturn=append(toreturn,nil)
+			continue
 			}
-		if M.current>=len(mol.coords){
+		if M.current>=len(M.Coords){
 			if used==false{
 				return nil, fmt.Errorf("No more frames")
 				}else{
@@ -432,27 +437,27 @@ func (M *Molecule)NextConc(frames []bool)([]chan *matrix.DenseMatrix, error){
 		toreturn=append(toreturn,make(chan *matrix.DenseMatrix))
 		go func(a *matrix.DenseMatrix, pipe chan *matrix.DenseMatrix){
 			pipe<-a
-			}(M.Coords[current],toreturn[len(toreturn)-1])
+			}(M.Coords[M.current],toreturn[len(toreturn)-1])
 		M.current++
 		}
-	return toreturn
+	return toreturn, nil
 	}
 
 //Selected, given a slice of ints, returns a matrix.DenseMatrix
 //containing the coordinates of the atoms with the corresponding index.
 //This function returns a copy, not a reference, so changes to the returned matrix
 //don't alter the original. It check for correctness of the Atoms requested.
-func (M *Molecule) Selected(clist []int) (*matrix.DenseMatrix,error){
+func (M *Molecule)Selected(clist []int) (*matrix.DenseMatrix,error){
 	toreturn,err:=M.SomeCoords(clist,M.current)
 	if err!=nil{
-		if strings.HasPrefix(err.Err(),"Frame requested"){
+		if strings.HasPrefix(err.Error(),"Frame requested"){
 			return nil, fmt.Errorf("No more frames")
 			}else{
 			return nil, err	
 			}
 		}
-	return toreturn
 	M.current++
+	return toreturn, nil
 	}
 
 /**End Traj interface implementation***********/
