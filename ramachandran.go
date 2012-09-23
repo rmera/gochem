@@ -160,7 +160,8 @@ func RamaList(M *Molecule, chains string,resran []int) ([][]int, error){
 	Cprev:=-1
 	Npost:=-1
 	chainprev:=byte('9') //any non-valid chain name
-	for num,at:=range(M.Atoms){
+	for num:=0;num<M.Len();num++{
+		at:=M.Atom(num)
 		//First get the indexes we need
 		if strings.Contains(chains,string(at.Chain)) || at.Chain==' '{
 			if at.Chain!=chainprev  {
@@ -174,26 +175,26 @@ func RamaList(M *Molecule, chains string,resran []int) ([][]int, error){
 			if at.Name=="C" && Cprev==-1{
 				Cprev=num
 				}
-			if at.Name=="N" && Cprev!=-1 && N==-1 && at.Molid>M.Atoms[Cprev].Molid{
+			if at.Name=="N" && Cprev!=-1 && N==-1 && at.Molid>M.Atom(Cprev).Molid{
 				N=num
 				}
-			if at.Name=="C" && Cprev!=-1 && at.Molid>M.Atoms[Cprev].Molid{
+			if at.Name=="C" && Cprev!=-1 && at.Molid>M.Atom(Cprev).Molid{
 				C=num
 				}
-			if at.Name=="CA" && Cprev!=-1 && at.Molid>M.Atoms[Cprev].Molid{
+			if at.Name=="CA" && Cprev!=-1 && at.Molid>M.Atom(Cprev).Molid{
 				Ca=num
 				}
-			if at.Name=="N" && Ca!=-1 && at.Molid>M.Atoms[Ca].Molid{
+			if at.Name=="N" && Ca!=-1 && at.Molid>M.Atom(Ca).Molid{
 				Npost=num
 				}
 			//when we have them all, save an unit
 			if Cprev!=-1 && Ca!=-1 && N!=-1 && C !=-1 && Npost!=-1 {
 				//We check that the residue ids are what they are supposed to be
-				r1:=M.Atoms[Cprev].Molid
-				r2:=M.Atoms[N].Molid
-				r2a:=M.Atoms[Ca].Molid
-				r2b:=M.Atoms[C].Molid
-				r3:=M.Atoms[Npost].Molid
+				r1:=M.Atom(Cprev).Molid
+				r2:=M.Atom(N).Molid
+				r2a:=M.Atom(Ca).Molid
+				r2b:=M.Atom(C).Molid
+				r3:=M.Atom(Npost).Molid
 				if r1!=r2-1 || r2!=r2a || r2a!=r2b || r2b != r3-1{
 					return  nil, fmt.Errorf("Incorrect backbone")
 					}

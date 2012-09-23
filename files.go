@@ -285,13 +285,11 @@ func PdbRead(pdbname string, read_additional bool) (*Molecule, error){
 		mcoords[i]=matrix.MakeDenseMatrix(coords[i],len(coords[i])/3,3)
 		mbfactors[i]=matrix.MakeDenseMatrix(bfactors[i],len(bfactors[i]),1)
 		}
-	/**tests for debugging**/
-//	fmt.Println("Coords read", mcoords[0].GetMatrix(0,0,3,3),"Atoms: ",len(molecule)," Coords: ",mcoords[0].Rows()) 
-	//We ensure an slice (not a copy!) is passed. should save memory and cpu
-	returned:=new(Molecule)
-	returned.Atoms=molecule
-	returned.Coords=mcoords
-	returned.Bfactors=mbfactors
+	//if something happened during the process
+	if err!=nil{
+		return nil, err
+		}
+	returned,err:=MakeMolecule(molecule,mcoords,mbfactors,0,0)
 	return returned, err
 	}
 //End Pdb_read family
@@ -311,30 +309,31 @@ func PdbWrite(mol *Molecule, pdbname string) error{
 	fmt.Fprint(out,"REMARK     WRITTEN WITH GOCHEM :-)\n")
 	for j:= range mol.Coords{
 		towrite:=mol.Coords[j].Arrays()  //An array of array with the data in the matrix
-		chainprev:=mol.Atoms[0].Chain  //this is to know when the chain changes.
+		chainprev:=mol.Atom(0).Chain  //this is to know when the chain changes.
 		fmt.Fprintf(out, "MODEL %d\n",j+1) //The model number starts with one
 //		fmt.Println("chain", mol.Atoms[0])		
-		for i:=range mol.Atoms{
-			if mol.Atoms[i].Chain!=chainprev{
+		for i:=0;i<mol.Len();i++{
+			ThisAtom:=mol.Atom(i)
+			if ThisAtom.Chain!=chainprev{
 				fmt.Fprintln(out,"TER")
-				chainprev=mol.Atoms[i].Chain
+				chainprev=ThisAtom.Chain
 				}
 			first:="ATOM"
-			if mol.Atoms[i].Het{
+			if ThisAtom.Het{
 				first="HETATM"
 				}
 			//Corrupted will check for broken bfactors and complete with zeroes
 			//So no need to check here.
 			c:=towrite[i] //coordinates for the corresponding atoms
-			if len(mol.Atoms[i].Name)<4{
-		//		fmt.Println("chain", mol.Atoms[i])
-				_,err=fmt.Fprintf(out,"%-6s%5d  %-3s %3s %1c%4d    %8.3f%8.3f%8.3f%6.2f%6.2f          %2s  \n",first, mol.Atoms[i].Id, mol.Atoms[i].Name, mol.Atoms[i].Molname, mol.Atoms[i].Chain,
-							mol.Atoms[i].Molid, c[0],c[1],c[2], mol.Atoms[i].Occupancy, mol.Bfactors[j].Get(i,0), mol.Atoms[i].Symbol)
+			if len(ThisAtom.Name)<4{
+		//		fmt.Println("chain", ThisAtom)
+				_,err=fmt.Fprintf(out,"%-6s%5d  %-3s %3s %1c%4d    %8.3f%8.3f%8.3f%6.2f%6.2f          %2s  \n",first, ThisAtom.Id, ThisAtom.Name, ThisAtom.Molname, ThisAtom.Chain,
+							ThisAtom.Molid, c[0],c[1],c[2], ThisAtom.Occupancy, mol.Bfactors[j].Get(i,0), ThisAtom.Symbol)
 				//4 chars for the atom name are used when hydrogens are included.	
 				//This has not been tested
-				}else if len(mol.Atoms[i].Name)==4{
-				_,err=fmt.Fprintf(out,"%-6s%5d %4s %3s %1c%4d    %8.3f%8.3f%8.3f%6.2f%6.2f          %2s  \n",first, mol.Atoms[i].Id, mol.Atoms[i].Name, mol.Atoms[i].Molname, mol.Atoms[i].Chain,
-							mol.Atoms[i].Molid, c[0],c[1],c[2], mol.Atoms[i].Occupancy, mol.Bfactors[j].Get(i,0), mol.Atoms[i].Symbol)			
+				}else if len(ThisAtom.Name)==4{
+				_,err=fmt.Fprintf(out,"%-6s%5d %4s %3s %1c%4d    %8.3f%8.3f%8.3f%6.2f%6.2f          %2s  \n",first, ThisAtom.Id, ThisAtom.Name, ThisAtom.Molname, ThisAtom.Chain,
+							ThisAtom.Molid, c[0],c[1],c[2], ThisAtom.Occupancy, mol.Bfactors[j].Get(i,0), ThisAtom.Symbol)			
 				}else{
 				err=fmt.Errorf("Cant print PDB line")
 				}
@@ -403,11 +402,9 @@ func XyzRead(xyzname string,) (*Molecule, error){
 		}
 	mcoords:=make([]*matrix.DenseMatrix,1,1)
 	mcoords[0]=matrix.MakeDenseMatrix(coords,natoms,3)
-	returned:=new(Molecule)
-	returned.Atoms=molecule
-	returned.Coords=mcoords
-	returned.Bfactors=make([]*matrix.DenseMatrix,1,1)
-	returned.Bfactors[0]=matrix.Zeros(len(molecule),1)
+	bfactors:=make([]*matrix.DenseMatrix,1,1)
+	bfactors[0]=matrix.Zeros(len(molecule),1)
+	returned,err:=MakeMolecule(molecule,mcoords,bfactors,0,0)
 	return returned, err
 	}
 
@@ -429,9 +426,9 @@ func XyzWrite(mol *Molecule, frame int, xyzname string) error{
 	fmt.Fprintf(out,"%-4d\n",len(mol.Atoms))
 	fmt.Fprintf(out,"\n")
 	towrite:=mol.Coords[frame].Arrays()  //An array of array with the data in the matrix	
-	for i:=range mol.Atoms{
+	for i:=0;i<mol.Len();i++{
 		c:=towrite[i] //coordinates for the corresponding atoms
-		_,err=fmt.Fprintf(out,"%-2s  %8.3f%8.3f%8.3f \n",mol.Atoms[i].Symbol, c[0],c[1],c[2])
+		_,err=fmt.Fprintf(out,"%-2s  %8.3f%8.3f%8.3f \n",mol.Atom(i).Symbol, c[0],c[1],c[2])
 		if err!=nil{
 			return err
 			}

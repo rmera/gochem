@@ -136,8 +136,8 @@ func GetSwitchZ(mol, newz *matrix.DenseMatrix) (*matrix.DenseMatrix, error) {
 //It applies those rotation and translations to the whole frame frametest of molecule test, in palce. 
 //testlst and templalst must have the same number of elements.
 func Super(test, templa *Molecule, testlst, templalst []int, frametest, frametempla int) error{
-	ctest,err1:=test.SomeCoords(testlst,frametest)
-	ctempla,err2:=templa.SomeCoords(templalst,frametempla)
+	ctest,err1:=test.SomeCoordsF(testlst,frametest)
+	ctempla,err2:=templa.SomeCoordsF(templalst,frametempla)
 	if err1!=nil || err2!=nil{
 		return fmt.Errorf("Frame numbers given for test or template out of range")
 		}
@@ -335,7 +335,7 @@ func BestPlaneP(evecs *matrix.DenseMatrix) (*matrix.DenseMatrix, error){
 func BestPlane(mol *Molecule, frame int,masses bool) (*matrix.DenseMatrix, error){
 	var err error
 	var Mmass *matrix.DenseMatrix
-	if len(mol.Atoms)!=mol.Coords[frame].Rows(){
+	if mol.Len()!=mol.Coords[frame].Rows(){
 		return nil, fmt.Errorf("Inconsistent coordinates/atoms in frame %d", frame)
 		}
 	if masses {
@@ -344,7 +344,7 @@ func BestPlane(mol *Molecule, frame int,masses bool) (*matrix.DenseMatrix, error
 			return nil, err
 			}
 		}else{
-		Mmass=matrix.Ones(1,len(mol.Atoms))	
+		Mmass=matrix.Ones(1,mol.Len())	
 		}
 	moment,err:=MomentTensor(mol.Coords[frame],Mmass)
 	if err!=nil{

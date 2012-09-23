@@ -49,7 +49,8 @@ func TestChangeAxis(Te *testing.T){
 		Te.Error(err)
 		}
 	orient_atoms:=[2]int{0,0}
-	for index, atom:= range(mol.Atoms){
+	for index:=0;index<mol.Len();index++{
+		atom:=mol.Atom(index)
 		if atom.Chain=='A' && atom.Molid==124{
 			if atom.Name=="CA"{
 				orient_atoms[0]=index
@@ -58,13 +59,13 @@ func TestChangeAxis(Te *testing.T){
 				}
 			}
 		}
-	ov1:=mol.Coord(orient_atoms[0], 0)
-	ov2:=mol.Coord(orient_atoms[1], 0)
+	ov1,_:=mol.Coord(orient_atoms[0], 0)
+	ov2,_:=mol.Coord(orient_atoms[1], 0)
 	//now we center the thing in the beta carbon of D124
 	err=SubRow(mol.Coords[0],ov2)
 	//Now the rotation
-	ov1=mol.Coord(orient_atoms[0], 0) //make sure we have the correct versions
-	ov2=mol.Coord(orient_atoms[1], 0)  //same
+	ov1,_=mol.Coord(orient_atoms[0], 0) //make sure we have the correct versions
+	ov2,_=mol.Coord(orient_atoms[1], 0)  //same
 	orient:=ov2.Copy()	
 	orient.SubtractDense(ov1)
 	rotation,err:=GetSwitchZ(mol.Coords[0],orient)
@@ -73,7 +74,7 @@ func TestChangeAxis(Te *testing.T){
 		Te.Error(err)
 		}
 	mol.Coords[0]=matrix.ParallelProduct(mol.Coords[0],rotation)
-	fmt.Println(orient_atoms[1], mol.Atoms[orient_atoms[1]],mol.Atoms[orient_atoms[0]])
+	fmt.Println(orient_atoms[1], mol.Atom(orient_atoms[1]),mol.Atom(orient_atoms[0]))
 	if err!=nil{
 		Te.Error(err)
 		}
@@ -91,12 +92,12 @@ func TestGeo(Te *testing.T) {
 	if err!=nil{
 		Te.Error(err)
 		}
-	pulled_res,err:=mol.SomeCoords(pulled_atoms[:], 0)
+	pulled_res,err:=mol.SomeCoordsF(pulled_atoms[:], 0)
 	if err!=nil{
 		Te.Error(err)
 		}
-	at1:=mol.Coord(pulling_vector[0],0)
-	vector:=mol.Coord(pulling_vector[1],0)
+	at1,_:=mol.Coord(pulling_vector[0],0)
+	vector,_:=mol.Coord(pulling_vector[1],0)
 	vector=vector.Copy()
 	err=vector.SubtractDense(at1)
 	if err!=nil{
@@ -134,7 +135,7 @@ func TestRama(Te *testing.T){
 	if err!=nil{
 		Te.Error(err)
 		}
-	fmt.Println("Rama",rama,len(rama[0]),len(ramalist),len(mol.Atoms))
+	fmt.Println("Rama",rama,len(rama[0]),len(ramalist),mol.Len())
 	err=RamaPlot(rama,"test/Rama")
 	if err!=nil{
 		Te.Error(err)

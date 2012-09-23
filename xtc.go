@@ -189,7 +189,7 @@ func (X *XtcObj)NextConc(frames []bool)([]chan *matrix.DenseMatrix, error){
 func (X *XtcObj)ManyFrames(ini, end, skip int)([]*matrix.DenseMatrix,int, error) {
 	Coords:=make([]*matrix.DenseMatrix,0,1) // I might attempt to give the capacity later
 	if X.goCoords==nil{
-		X.goCoords=make([]float64,totalcoords,totalcoords)
+		X.goCoords=make([]float64,X.natoms*3)
 		}
 	i:=0
 	for ;;i++{
@@ -230,7 +230,7 @@ func (X *XtcObj)Len()int{
 
 //Selected, given a slice of ints, returns a matrix.DenseMatrix
 //containing the coordinates of the atoms with the corresponding index.
-func (X *XtcObj) Selected(clist []int) (*matrix.DenseMatrix,error){
+func (X *XtcObj) SomeCoords(clist []int) (*matrix.DenseMatrix,error){
 	var err error
 	var ret *matrix.DenseMatrix
 	Coords,err:=X.Next(true)
