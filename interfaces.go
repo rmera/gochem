@@ -1,28 +1,32 @@
 /*
- * interfaces.go
+ * interfaces.go, part of gochem.
+ * 
  * 
  * Copyright 2012 Raul Mera <rmera{at}chemDOThelsinkiDOTfi>
  * 
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- * 
+ * it under the terms of the GNU Lesser General Public License as 
+ * published by the Free Software Foundation; either version 2.1 of the 
+ * License, or (at your option) any later version.
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General 
+ * Public License along with this program.  If not, see 
+ * <http://www.gnu.org/licenses/>.
  * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
- * MA 02110-1301, USA.
+ * 
+ * Gochem is developed at the laboratory for instruction in Swedish, Department of Chemistry,
+ * University of Helsinki, Finland.  
  * 
  * 
  */
+/***Dedicated to the long life of the Ven. Khenpo Phuntzok Tenzin Rinpoche***/
 
 
-/The molecule methods:
 
 
 
@@ -53,7 +57,8 @@ type Traj interface{
 	}
 
 
-
+//Reference is an interface for any description of the type of atoms in a molecule,
+//i.e. every characteristic of them, except for the coordinates and b-factors.
 type Reference interface{
 
 	//Charge gets the total charge of the topology

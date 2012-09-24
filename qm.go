@@ -29,6 +29,9 @@
 	
 package chem
 
+import 
+
+
 type IntConstraint struct{
 	Kind byte
 	Atoms []int
@@ -42,6 +45,8 @@ type PointCharge{
 type QMCalc struct {
 	Method string
 	Basis string
+	AuxBasis string //for RI calculations
+	AuxColBasis string //for RICOSX or similar calculations
 	HighBasis string  //a bigger basis for certain atoms
 	Lowbasis string  //lower basis for certain atoms
 	HBatoms []int
@@ -54,11 +59,45 @@ type QMCalc struct {
 	Others string //analysis methods, etc
 	PCharges []PointCharge
 	Optimize bool
+	NCPU int
+	Execute bool //Execute (true), or just produce the inputs (false)?
+	Command string //this is the whole command to execute
+	Guess string //initial guess
+	OldMO bool //Try to look for a file with MO. The 
+	
 	}
 
 
-func OrcaOptimizer(Reference, )
-
+func BuildOrcaInput(atoms Reference, coords matrix.DenseMatrix, C QMCalc, path string) error{
+	if c.Method=="" || basis==""{
+		return fmt.Errorf("Not enough options for the optimization")
+		}
+	disp=""
+	switch C.Disperssion{
+		case "":
+		case "D2":
+		disp="VDW"
+		case "D3":
+		disp="VDW3"
+		default:
+		disp="VDW3"
+		}
+	if atoms==nil || coords == nil {
+		return fmt.Errorf("Missing charges or coordinates")
+		}
+	opt:=""
+	if C.Optimise==true{
+		opt=="Opt"
+		}
+	if C.OldMO==true{
+		//set something to look for a *.gbw in the path
+		C.Guess="MORead"
+		//set some variable to 
+		}
+	MainOptions:=[]string{"!",C.Method,C.basis,C.AuxBasis,C.AuxColBasis,C.Guess,opt,C.Others}
+	mainline:=strings.Join(MainOptions," ")
+	}
+	
 
 
 

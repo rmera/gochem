@@ -35,30 +35,6 @@ import "strings"
 
 
 
-/*The plan is equate PDBs XTCs and in the future DCDs. One needs to separate the molecule methods between actual molecule methods, that requires atoms and coordinates, []atom methods, and  DenseMatrix
- * methods. Then one must implements objects for Xtc trajs that are more or less equivalent to molecules and set up an interface so many analyses can be carried out exactly the same from
- * multiPDB or XTC or (eventually) DCD*/
-
-//Traj is an interface for any trajectory object, including a Molecule Object
-type Traj interface{
-	//Opens the file and prepares for reading, should also take care of the closing.
-	Readable() bool
-	//reads the next frame and returns it as DenseMatrix if keep==true, or discards it if false
-	Next(keep bool) *matrix.DenseMatrix
-	/*NextConc takes a slice of bools and reads as many frames as elements the list has
-	form the trajectory. The frames are discarted if the corresponding elemetn of the slice
-	is false. The function returns a slice of channels through each of each of which 
-	a *matrix.DenseMatrix will be transmited*/
-	NextConc(frames []bool)([]chan *matrix.DenseMatrix, error)
-	//Selected, given a slice of ints, returns a matrix.DenseMatrix
-	//containing the coordinates of the atoms with the corresponding index.
-	SomeCoords(clist []int) (*matrix.DenseMatrix,error)
-	//Returns the number of atoms per frame
-	Len() int
-	}
-
-
-
 
 
 //Atom contains the atoms read except for the coordinates, which will be in a matrix
