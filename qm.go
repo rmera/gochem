@@ -107,18 +107,3 @@ func BuildOrcaInput(atoms Reference, coords matrix.DenseMatrix, C QMCalc, path s
 
 
 
-
-
-
-
-
-
-
-
-
-
-import "fmt"
-
-func main() {
-
-}
