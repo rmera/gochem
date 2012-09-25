@@ -144,3 +144,12 @@ func TestRama(Te *testing.T){
 	//for the 3 residue  I should get -131.99, 152.49.
 	}
 
+func TestQM(Te *testing.T) {
+	mol,err:=XyzRead("test/sample.xyz")
+	if err!=nil{
+		Te.Error(err)
+		}
+	calc:=new(QMCalc)
+	orca:=MakeOrcaRunner()
+	orca.BuildInput(mol,mol.Next(),calc)
+	}

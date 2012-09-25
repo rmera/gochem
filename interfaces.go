@@ -27,7 +27,11 @@
 /***Dedicated to the long life of the Ven. Khenpo Phuntzok Tenzin Rinpoche***/
 
 
+package chem
 
+
+
+import  "github.com/skelterjohn/go.matrix"
 
 
 /*The plan is equate PDBs XTCs and in the future DCDs. One needs to separate the molecule methods between actual molecule methods, that requires atoms and coordinates, []atom methods, and  DenseMatrix
@@ -62,40 +66,40 @@ type Traj interface{
 type Reference interface{
 
 	//Charge gets the total charge of the topology
-	func Charge()int{
+	 Charge()int
 	
 	//Unpaired gets the number of unpaired electrons in the topology
-	func Unpaired()int{
+	 Unpaired()int
 	
 	//SetCharge sets the total charge of the topology to i
-	func SetCharge(i int){
+	 SetCharge(i int)
 	
 	//SetUnpaired sets the number of unpaired electrons in the topology to i
-	func SetUnpaired(i int){
+	 SetUnpaired(i int)
 	
 	//Atom returns the Atom corresponding to the index i
 	//of the Atom slice in the Topology. Panics if 
 	//out of range.
-	func Atom(i int) (*Atom){
+	 Atom(i int) (*Atom)
 		
 	//SetAtom sets the (i+1)th Atom of the topology to aM.
 	//Panics if out of range
-	func SetAtom(i int,at *Atom){
+	 SetAtom(i int,at *Atom)
 	
 	//AddAtom appends an atom at the end of the topology
-	func AddAtom(at *Atom){
+	 AddAtom(at *Atom)
 	
 	//SelectAtoms, given a list of ints,  returns an array of the atoms with the
 	//corresponding position in the molecule
 	//Changes to these atoms affect the original molecule.
-	func SomeAtoms(atomlist []int) ([]*Atom, error)
+	 SomeAtoms(atomlist []int) ([]*Atom, error)
 	
 	//Returns a column vector with the massess of all atoms
-	//this will be changed to a function that takes a Reference interface.
-	func MassCol() (*matrix.DenseMatrix,error)
+	//this will be changed to a tion that takes a Reference interface.
+	 MassCol() (*matrix.DenseMatrix,error)
 	
 	//Returns the number of atoms in the reference
-	func Len() int
+	 Len() int
 	
 	}
 

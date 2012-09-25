@@ -17,7 +17,10 @@ coordinates and b-factors, together, can be sorted with one function call. They 
 according to the b-factors of the first state of the molecule.
 
 The library allows to read Gromacs trajectory files (xtc) if the flag 'gromacs' is given during the build.
-This requires the xdrfile from the Gromacs team (www.gromacs.org).
+This requires the xdrfile from the Gromacs team (www.gromacs.org). Trajectories can be read "in one go",
+saving each frame in memory (optionally skipping frames), sequentially, where one frame is saved in 
+memory at a time, or concurrently, where several frames are read at each time and returned as go channels
+to be processed in parallel.
 
 Gochem uses the Gomatrix (https://github.com/skelterjohn/go.matrix) 
 and Plotinum (http://code.google.com/p/plotinum/) library.
