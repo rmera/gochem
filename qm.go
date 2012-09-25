@@ -50,13 +50,13 @@ type QMCalc struct {
 	AuxBasis string //for RI calculations
 	AuxColBasis string //for RICOSX or similar calculations
 	HighBasis string  //a bigger basis for certain atoms
-	Lowbasis string  //lower basis for certain atoms
+	LowBasis string  //lower basis for certain atoms
 	HBatoms []int
 	LBatoms []int
 	HBelements []string
 	LBelements []string
-	CConstraint []int //cartesian contraints
-	IConstraints []IntCostraint //internal constraints
+	CConstraints []int //cartesian contraints
+	IConstraints []IntConstraint //internal constraints
 	Dielectric float64
 	Solventmethod string
 	Disperssion string  //D, D2, D3
@@ -64,20 +64,20 @@ type QMCalc struct {
 	PCharges []PointCharge
 	Guess string //initial guess
 	OldMO bool //Try to look for a file with MO. The 
-	
+	Optimize bool
 	}
 
 
 type OrcaRunner struct{
 	defmethod string
 	defbasis string
+	defauxbasis string
 	tightness string
 	slowconv string
 	previousMO string
 	command string
 	inputname string
 	nCPU int
-	optimize bool
 	}
 
 func MakeOrcaRunner() *OrcaRunner{
@@ -94,38 +94,40 @@ func (O *OrcaRunner)SetDefaults(){
 	if O.command=="/orca"{ //if ORCA_PATH was not defined
 		O.command="./orca"
 		}
+	//here I can ask for the CPU in the system and set nCPU to that with a max of 8
 	}
 
 //BuildInput builds an input for ORCA based int the data in atoms, coords and C.
 //returns only error.
-func (O *OrcaRunner) BuildInput(atoms Reference, coords *matrix.DenseMatrix, C *QMCalc) error{
+func (O *OrcaRunner) BuildInput(atoms Reference, coords *matrix.DenseMatrix, Q *QMCalc) error{
 	//set defaults
 	if Q.Basis==""{
-		fmt.Fprintf(os.Stderr,"no basis set assigned for ORCA calculation, will used the default %s, \n",O.defmethod)
+		fmt.Fprintf(os.Stderr,"no basis set assigned for ORCA calculation, will used the default %s, \n",O.defbasis)
 		Q.Basis=O.defbasis	
+		}
 	if Q.Method==""{
 		fmt.Fprintf(os.Stderr,"no method assigned for ORCA calculation, will used the default %s, \n",O.defmethod)
 		Q.Method=O.defmethod
 		Q.AuxColBasis="" //makes no sense for pure functional
-		Q.AuxBasis=Sprintf("%s/J",Q.Basis)
+		Q.AuxBasis=fmt.Sprintf("%s/J",Q.Basis)
 		}
 	//The usage of RI/RICOSX is given by the presence of AuxBasis/AuxColBasis. Its the user responsability 
 	//not to set AuxColBasis for non-hybrid functionals and not to set AuxBasis and not AuxColBasis for
 	//hybrid functionals.
-	if Q.AuxColBasis!=""{
+	fmt.Println(Q.AuxColBasis,Q.AuxBasis, "HEY") /////////////////////7
+/*	if Q.AuxColBasis!=""{
 		//this will fail if someone wrote RI in the Other variable.
 		if !(strings.Contains("RICOSX",Q.Others)){
-			Q.Others=Sprintf("%s %s",Q.Others,"RICOSX")
+			Q.Others=fmt.Sprintf("%s %s",Q.Others,"RICOSX")
 			}
-		}else if Q.AuxBasis!=""{
-		if !(strings.Contains("RI",Q.Others)){
-			Q.Others=Sprintf("%s %s",Q.Others,"RI")
+*/
+	 if Q.AuxBasis!=""{
+			Q.Others=fmt.Sprintf("%s %s",Q.Others,"RI")
 			}
-		}
-	if Q.Method=="" || basis==""{
+	if Q.Method=="" || Q.Basis==""{
 		return fmt.Errorf("Not enough options for the optimization")
 		}
-	disp=""
+	disp:=""
 	switch Q.Disperssion{
 		case "":
 		case "D2":
@@ -139,17 +141,19 @@ func (O *OrcaRunner) BuildInput(atoms Reference, coords *matrix.DenseMatrix, C *
 		return fmt.Errorf("Missing charges or coordinates")
 		}
 	opt:=""
-	if O.optimise==true{
-		opt=="Opt"
+	if Q.Optimize==true{
+		opt="Opt"
 		}
 	//If this flag is set we'll look for a suitable MO file.
 	//If not found, we'll just use the default ORCA guess
-	hfuhf="RHF"
+	hfuhf:="RHF"
 	if atoms.Unpaired()!=0{
-		hfufh="UHF"
+		hfuhf="UHF"
 		}
-	if O.OldMO==true{
-		files:=os.ReadDir(-1) //Get all the files
+	moinp:=""
+	if Q.OldMO==true{
+		dir,_:=os.Open("./") //This should always work, hence ignoring the error
+		files,_:=dir.Readdir(-1) //Get all the files. 
 		moname:=O.previousMO
 		O.previousMO=""
 		for _,val:= range(files){
@@ -162,28 +166,27 @@ func (O *OrcaRunner) BuildInput(atoms Reference, coords *matrix.DenseMatrix, C *
 					O.previousMO=name
 					break
 					}
-				}else if string.Contains(".gbw",name){
+				}else if strings.Contains(".gbw",name){
 				O.previousMO=name
 				break
 				}
 			}
 		if O.previousMO!=""{	
 			Q.Guess="MORead"
-			moinp:=fmt.Sprintf('\%moinp "%s\n"',O.previousMO)
+			moinp=fmt.Sprintf("%%moinp \"%s\n\"",O.previousMO)
 			}else{
-			moinp:=""
+			moinp=""
 			Q.Guess=""	//The default guess
 			}
 		}
-	if O.tightness==""{
-		tight="TightSCF"
-		}else{
+	tight:="TightSCF"
+	if O.tightness!=""{
 		tight=O.tightness	
 		}
-	if slowconv==""{
+	if O.slowconv==""{
 		//The default for this is nothing for RHF and SlowConv for UHF
-		if atoms.Unpaired>0{
-			slowconv="SlowConv"
+		if atoms.Unpaired()>0{
+			O.slowconv="SlowConv"
 			}
 		}
 	pal:=""
@@ -191,30 +194,30 @@ func (O *OrcaRunner) BuildInput(atoms Reference, coords *matrix.DenseMatrix, C *
 		if O.nCPU>8{
 			return fmt.Errorf("CPU number of %d for ORCA calculations currently not supported, maximun 8", O.nCPU)
 			}
-		pal:=fmt.Sprintf("PAL%d",O.nCPU)
+		pal=fmt.Sprintf("PAL%d",O.nCPU)
 		}
-	MainOptions:=[]string{"!",hfuhf,Q.Method,Q.basis,Q.AuxBasis,Q.AuxColBasis,tight,disp,Q.Guess,opt,Q.Others,pal,"\n"}
+	MainOptions:=[]string{"!",hfuhf,Q.Method,Q.Basis,Q.AuxBasis,Q.AuxColBasis,tight,disp,O.slowconv,Q.Guess,opt,Q.Others,pal,"\n"}
 	mainline:=strings.Join(MainOptions," ")
-	constraints:=O.buildCCconstraints(Q.CConstraints)
-	cosmo=""
-	if C.Dielectric>=0{
-		cosmo:=fmt.Sprintf("\%cosmo epsilon %d\n        refrac 1.30\n        end\n",C.Dielectric)
+	constraints:=O.buildCConstraints(Q.CConstraints)
+	cosmo:=""
+	if Q.Dielectric>0{
+		cosmo=fmt.Sprintf("%%cosmo epsilon %f\n        refrac 1.30\n        end\n",Q.Dielectric)
 		}
 	ElementBasis:=""
-	if C.HBelements!=nil || C.LBelements!=nil{
-		elementbasis:=make([]string,0,len(C.HBelements)+len(C.LBelements)+2)
-		elementbasis:=append(elementbasis," \%basis \n")		
-		for _,val:=range(C.HBelements){
-			elementbasis:=append(elementbasis,fmt.Sprintf('  newgto %s "%s" end\n',val,HighBasis))
+	if Q.HBelements!=nil || Q.LBelements!=nil{
+		elementbasis:=make([]string,0,len(Q.HBelements)+len(Q.LBelements)+2)
+		elementbasis=append(elementbasis," %%basis \n")		
+		for _,val:=range(Q.HBelements){
+			elementbasis=append(elementbasis,fmt.Sprintf("  newgto %s \"%s\" end\n",val,Q.HighBasis))
 			}
-		for _,val:= range(C.LBelements){
-			elementbasis:=append(elementbasis,fmt.Sprintf('  newgto %s "%s" end\n',val,LowBasis))
+		for _,val:= range(Q.LBelements){
+			elementbasis=append(elementbasis,fmt.Sprintf("  newgto %s \"%s\" end\n",val,Q.LowBasis))
 			}
-		elementbasis:=append(elementbasis,"         end\n")
+		elementbasis=append(elementbasis,"         end\n")
 		ElementBasis=strings.Join(elementbasis,"")
 		}
 	//Now lets write the thing
-	if O.inputname==nil{
+	if O.inputname==""{
 		O.inputname="Gochem.inp"
 		}
 	file,err:=os.Create(O.inputname)
@@ -222,7 +225,7 @@ func (O *OrcaRunner) BuildInput(atoms Reference, coords *matrix.DenseMatrix, C *
 		return err
 		}
 	defer file.Close()
-	_,err:=fmt.Fprint(file,mainline)
+	_,err=fmt.Fprint(file,mainline)
 	//With this check its assumed that the file is ok.
 	if err!=nil{
 		return err
@@ -233,30 +236,31 @@ func (O *OrcaRunner) BuildInput(atoms Reference, coords *matrix.DenseMatrix, C *
 	fmt.Fprint(file,cosmo)
 	fmt.Fprint(file,"\n")
 	//Now the type of coords, charge and multiplicity
-	fmt.Fprint(file,"* xyz %d %d\n",atoms.Charge(),atoms.Unpaired()+1)
+	fmt.Fprintf(file,"* xyz %d %d\n",atoms.Charge(),atoms.Unpaired()+1)
 	//now the coordinates
-	for i:=i<atoms.Len();i++{
-		fmt.Fprintf(file,"%-2s  %8.3f%8.3f%8.3f \n",mol.Atom(i).Symbol, coords.Get(i,0), coords.Get(i,2), coords.Get(i,2))	
+	for i:=0;i<atoms.Len();i++{
+		
+		fmt.Fprintf(file,"%-2s  %8.3f%8.3f%8.3f \n",atoms.Atom(i).Symbol, coords.Get(i,0), coords.Get(i,2), coords.Get(i,2))	
 		}
 	fmt.Fprintf(file,"*\n")
-	
+	return nil
 	}
 	
 //buildCConstraints transforms the list of cartesian constrains in the QMCalc structre
 //into a string with ORCA-formatted cartesian constraints
-(O *OrcaRunner) buildCConstraints(C []int) string{
+func (O *OrcaRunner) buildCConstraints(C []int) string{
 	if C==nil{
 		return "\n" //no constraints
 		}
 	constraints:=make([]string,len(C)+3)
-	constraints[0]="\%geom Constraints\n"
-	for key,val:=C{
+	constraints[0]="%%geom Constraints\n"
+	for key,val:=range(C){
 		constraints[key+1]=fmt.Sprintf("         {C %d C}\n",val)
 		}
 	last:=len(constraints)-1
 	constraints[last-1]="         end\n"
 	constraints[last]=" end\n"
-	final:=strings.join(constraints,"")
+	final:=strings.Join(constraints,"")
 	return final
 	}
 

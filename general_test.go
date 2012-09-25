@@ -151,5 +151,6 @@ func TestQM(Te *testing.T) {
 		}
 	calc:=new(QMCalc)
 	orca:=MakeOrcaRunner()
-	orca.BuildInput(mol,mol.Next(),calc)
+	atoms,_:=mol.Next(true)
+	orca.BuildInput(mol,atoms,calc)
 	}

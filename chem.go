@@ -441,7 +441,7 @@ func (M *Molecule) Readable() bool{
 
 
 //Returns the  next frame and an error
-func (M *Molecule) Next(a bool) (*matrix.DenseMatrix, error){
+func (M *Molecule) Next(a bool) (*matrix.DenseMatrix,error){
 	if M.current>=len(M.Coords){
 		return nil, fmt.Errorf("No more frames")
 		}

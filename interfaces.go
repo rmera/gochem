@@ -44,7 +44,7 @@ type Traj interface{
 	Readable() bool
 	
 	//reads the next frame and returns it as DenseMatrix if keep==true, or discards it if false
-	Next(keep bool) *matrix.DenseMatrix
+	Next(keep bool) (*matrix.DenseMatrix,error)
 	
 	/*NextConc takes a slice of bools and reads as many frames as elements the list has
 	form the trajectory. The frames are discarted if the corresponding elemetn of the slice
