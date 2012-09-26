@@ -33,6 +33,7 @@ import "os"
 import "strings"
 import "fmt"
 import  "github.com/skelterjohn/go.matrix"
+import "runtime"
 
 type IntConstraint struct{
 	Kind byte
@@ -53,18 +54,20 @@ type QMCalc struct {
 	LowBasis string  //lower basis for certain atoms
 	HBatoms []int
 	LBatoms []int
-	HBelements []string
-	LBelements []string
+	HBElements []string
+	LBElements []string
 	CConstraints []int //cartesian contraints
 	IConstraints []IntConstraint //internal constraints
 	Dielectric float64
-	Solventmethod string
+//	Solventmethod string
 	Disperssion string  //D, D2, D3
 	Others string //analysis methods, etc
-	PCharges []PointCharge
+//	PCharges []PointCharge
 	Guess string //initial guess
 	OldMO bool //Try to look for a file with MO. The 
 	Optimize bool
+	SCFTightness int
+	SCFConvHelp int
 	}
 
 
@@ -72,19 +75,35 @@ type OrcaRunner struct{
 	defmethod string
 	defbasis string
 	defauxbasis string
-	tightness string
-	slowconv string
 	previousMO string
 	command string
 	inputname string
 	nCPU int
 	}
 
+
+
 func MakeOrcaRunner() *OrcaRunner{
 	run:=new(OrcaRunner)
 	run.SetDefaults()
 	return run 
 	}
+
+
+func (O *OrcaRunner)SetnCPU(cpu int){
+	O.nCPU=cpu
+	}
+
+
+func (O *OrcaRunner)SetInputName(name string){
+	O.inputname=name
+	}
+
+func (O *OrcaRunner)SetCommand(name string){
+	O.command=name
+	}
+
+
 
 func (O *OrcaRunner)SetDefaults(){
 	O.defmethod="revPBE"
@@ -94,13 +113,21 @@ func (O *OrcaRunner)SetDefaults(){
 	if O.command=="/orca"{ //if ORCA_PATH was not defined
 		O.command="./orca"
 		}
-	//here I can ask for the CPU in the system and set nCPU to that with a max of 8
+	cpu:=runtime.NumCPU()
+	if cpu>8{
+		O.nCPU=8
+		}
+	O.nCPU=cpu
+	
 	}
 
 //BuildInput builds an input for ORCA based int the data in atoms, coords and C.
 //returns only error.
 func (O *OrcaRunner) BuildInput(atoms Reference, coords *matrix.DenseMatrix, Q *QMCalc) error{
-	//set defaults
+	//Only error so far
+	if atoms==nil || coords == nil {
+		return fmt.Errorf("Missing charges or coordinates")
+		}
 	if Q.Basis==""{
 		fmt.Fprintf(os.Stderr,"no basis set assigned for ORCA calculation, will used the default %s, \n",O.defbasis)
 		Q.Basis=O.defbasis	
@@ -114,31 +141,18 @@ func (O *OrcaRunner) BuildInput(atoms Reference, coords *matrix.DenseMatrix, Q *
 	//The usage of RI/RICOSX is given by the presence of AuxBasis/AuxColBasis. Its the user responsability 
 	//not to set AuxColBasis for non-hybrid functionals and not to set AuxBasis and not AuxColBasis for
 	//hybrid functionals.
-	fmt.Println(Q.AuxColBasis,Q.AuxBasis, "HEY") /////////////////////7
-/*	if Q.AuxColBasis!=""{
+	if Q.AuxColBasis!=""{
 		//this will fail if someone wrote RI in the Other variable.
 		if !(strings.Contains("RICOSX",Q.Others)){
 			Q.Others=fmt.Sprintf("%s %s",Q.Others,"RICOSX")
 			}
-*/
-	 if Q.AuxBasis!=""{
+	
+		}else if Q.AuxBasis!=""{
 			Q.Others=fmt.Sprintf("%s %s",Q.Others,"RI")
 			}
-	if Q.Method=="" || Q.Basis==""{
-		return fmt.Errorf("Not enough options for the optimization")
-		}
-	disp:=""
-	switch Q.Disperssion{
-		case "":
-		case "D2":
-		disp="VDW"
-		case "D3":
-		disp="VDW3"
-		default:
-		disp="VDW3"
-		}
-	if atoms==nil || coords == nil {
-		return fmt.Errorf("Missing charges or coordinates")
+	disp:="VDW3"
+	if Q.Disperssion!=""{
+		disp=orcaDisp[Q.Disperssion]	
 		}
 	opt:=""
 	if Q.Optimize==true{
@@ -173,44 +187,48 @@ func (O *OrcaRunner) BuildInput(atoms Reference, coords *matrix.DenseMatrix, Q *
 			}
 		if O.previousMO!=""{	
 			Q.Guess="MORead"
-			moinp=fmt.Sprintf("%%moinp \"%s\n\"",O.previousMO)
+			moinp=fmt.Sprintf("%moinp \"%s\n\"",O.previousMO)
 			}else{
 			moinp=""
 			Q.Guess=""	//The default guess
 			}
 		}
 	tight:="TightSCF"
-	if O.tightness!=""{
-		tight=O.tightness	
+	if Q.SCFTightness!=0{
+		tight=orcaSCFTight[Q.SCFTightness]
 		}
-	if O.slowconv==""{
+	conv:=""
+	if Q.SCFConvHelp==0{
 		//The default for this is nothing for RHF and SlowConv for UHF
 		if atoms.Unpaired()>0{
-			O.slowconv="SlowConv"
+			conv="SlowConv"
 			}
+		}else{
+		conv=orcaSCFConv[Q.SCFConvHelp]
 		}
 	pal:=""
 	if O.nCPU>1{
 		if O.nCPU>8{
-			return fmt.Errorf("CPU number of %d for ORCA calculations currently not supported, maximun 8", O.nCPU)
+			fmt.Fprintf(os.Stderr,"CPU number of %d for ORCA calculations currently not supported, maximun 8", O.nCPU)
+			O.nCPU=8
 			}
 		pal=fmt.Sprintf("PAL%d",O.nCPU)
 		}
-	MainOptions:=[]string{"!",hfuhf,Q.Method,Q.Basis,Q.AuxBasis,Q.AuxColBasis,tight,disp,O.slowconv,Q.Guess,opt,Q.Others,pal,"\n"}
+	MainOptions:=[]string{"!",hfuhf,Q.Method,Q.Basis,Q.AuxBasis,Q.AuxColBasis,tight,disp,conv,Q.Guess,opt,Q.Others,pal,"\n"}
 	mainline:=strings.Join(MainOptions," ")
 	constraints:=O.buildCConstraints(Q.CConstraints)
 	cosmo:=""
 	if Q.Dielectric>0{
-		cosmo=fmt.Sprintf("%%cosmo epsilon %f\n        refrac 1.30\n        end\n",Q.Dielectric)
+		cosmo=fmt.Sprintf("%%cosmo epsilon %1.0f\n        refrac 1.30\n        end\n",Q.Dielectric)
 		}
 	ElementBasis:=""
-	if Q.HBelements!=nil || Q.LBelements!=nil{
-		elementbasis:=make([]string,0,len(Q.HBelements)+len(Q.LBelements)+2)
-		elementbasis=append(elementbasis," %%basis \n")		
-		for _,val:=range(Q.HBelements){
+	if Q.HBElements!=nil || Q.LBElements!=nil{
+		elementbasis:=make([]string,0,len(Q.HBElements)+len(Q.LBElements)+2)
+		elementbasis=append(elementbasis," %basis \n")		
+		for _,val:=range(Q.HBElements){
 			elementbasis=append(elementbasis,fmt.Sprintf("  newgto %s \"%s\" end\n",val,Q.HighBasis))
 			}
-		for _,val:= range(Q.LBelements){
+		for _,val:= range(Q.LBElements){
 			elementbasis=append(elementbasis,fmt.Sprintf("  newgto %s \"%s\" end\n",val,Q.LowBasis))
 			}
 		elementbasis=append(elementbasis,"         end\n")
@@ -253,7 +271,7 @@ func (O *OrcaRunner) buildCConstraints(C []int) string{
 		return "\n" //no constraints
 		}
 	constraints:=make([]string,len(C)+3)
-	constraints[0]="%%geom Constraints\n"
+	constraints[0]="%geom Constraints\n"
 	for key,val:=range(C){
 		constraints[key+1]=fmt.Sprintf("         {C %d C}\n",val)
 		}
@@ -265,8 +283,25 @@ func (O *OrcaRunner) buildCConstraints(C []int) string{
 	}
 
 
+var orcaSCFTight = map[int] string {
+      1: "",
+	  2: "TightSCF",
+      3: "VeryTightSCF",
+}
+
+var orcaSCFConv = map[int] string {
+      1: "",
+	  2: "SlowConv",
+      3: "VerySlowConv",
+}
 
 
+var orcaDisp = map[string] string {
+	 "nodisp":"",
+      "D":  "VDW2",
+	  "D2": "VDW2",
+      "D3": "VDW3",
+}
 
 
 

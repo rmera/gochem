@@ -150,6 +150,16 @@ func TestQM(Te *testing.T) {
 		Te.Error(err)
 		}
 	calc:=new(QMCalc)
+	calc.SCFTightness=3 //very demanding
+	calc.Optimize=true
+	calc.Method="BLYP"
+	calc.Dielectric=4
+	calc.Basis="def2-TZVPP"
+	calc.HighBasis="def2-QZVPP"
+	calc.HBElements=[]string{"Cu","Zn"}
+	calc.AuxBasis="def2-TZVPP"
+	calc.Disperssion="D2"
+	calc.CConstraints=[]int{0,10,20}
 	orca:=MakeOrcaRunner()
 	atoms,_:=mol.Next(true)
 	orca.BuildInput(mol,atoms,calc)
