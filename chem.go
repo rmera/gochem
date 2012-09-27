@@ -181,9 +181,43 @@ func (M *Molecule) SomeAtoms(atomlist []int) ([]*Atom, error){
 	}
 
 
+//Deletes an atom by reslicing the M.Atoms slice. Notice that the 
+//memory it was using is NOT released.
+func (M *Molecule) DelAtom(i int){
+	if i>=M.Len(){
+		panic("Reference: Tried to delete Atom out of bounds")
+		}
+	if i==M.Len()-1{
+		M.Atoms=M.Atoms[:i]
+		}else{
+		M.Atoms=append(M.Atoms[:i],M.Atoms[i+1:]...)
+		}	
+	}
+
+//Deletes the coodinate i from every frame of the molecule.
+func (M *Molecule) DelCoord(i int)error{
+	if i>=M.Coords[0].Rows(){
+		panic("Reference: Tried to delete Coord out of bounds")
+		}
+	for j:=0;j<len(M.Coords);j++{
+		err:=DMDelCol(M.Coords[j],i)
+		if err!=nil{
+			return err
+			}
+		}
+	return nil
+	}
+
+//Deletes atom i and its coordinates from the molecule.
+func (M *Molecule)Del(i int)error{
+	M.DelAtom(i)
+	err:=M.DelCoord(i)
+	return err
+	}
 
 
-
+//AddCoord appends an atom at the end of the topology
+/***PENDING**/
 
 
 //Copy returns a copy of the molecule.

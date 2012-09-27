@@ -33,7 +33,7 @@ import "fmt"
 import "testing"
 import "strings"
 import "strconv"
-//import "sort"
+import "os"
 
 
 
@@ -149,6 +149,9 @@ func TestQM(Te *testing.T) {
 	if err!=nil{
 		Te.Error(err)
 		}
+	mol.Del(mol.Len()-1)
+	mol.SetCharge(1)
+	mol.SetUnpaired(0)
 	calc:=new(QMCalc)
 	calc.SCFTightness=3 //very demanding
 	calc.Optimize=true
@@ -156,11 +159,24 @@ func TestQM(Te *testing.T) {
 	calc.Dielectric=4
 	calc.Basis="def2-TZVPP"
 	calc.HighBasis="def2-QZVPP"
+	calc.HBAtoms=[]int{3,10,12}
 	calc.HBElements=[]string{"Cu","Zn"}
-	calc.AuxBasis="def2-TZVPP"
+	calc.AuxBasis="def2-TZVPP/J"
 	calc.Disperssion="D2"
 	calc.CConstraints=[]int{0,10,20}
 	orca:=MakeOrcaRunner()
 	atoms,_:=mol.Next(true)
-	orca.BuildInput(mol,atoms,calc)
+	original_dir,_:=os.Getwd() //will check in a few lines
+	if err=os.Chdir("./test"); err!=nil{
+		Te.Error(err)
+		}
+	_=orca.BuildInput(mol,atoms,calc)
+	path,_:=os.Getwd()
+	fmt.Println(path)
+	if err=orca.Run(true); err!=nil{
+		Te.Error(err)
+		}
+	if err=os.Chdir(original_dir);err!=nil{
+		Te.Error(err)
+		}
 	}

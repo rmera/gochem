@@ -34,6 +34,7 @@ import "strings"
 import "fmt"
 import  "github.com/skelterjohn/go.matrix"
 import "runtime"
+import "os/exec"
 
 type IntConstraint struct{
 	Kind byte
@@ -52,12 +53,12 @@ type QMCalc struct {
 	AuxColBasis string //for RICOSX or similar calculations
 	HighBasis string  //a bigger basis for certain atoms
 	LowBasis string  //lower basis for certain atoms
-	HBatoms []int
-	LBatoms []int
+	HBAtoms []int
+	LBAtoms []int
 	HBElements []string
 	LBElements []string
 	CConstraints []int //cartesian contraints
-	IConstraints []IntConstraint //internal constraints
+//	IConstraints []IntConstraint //internal constraints
 	Dielectric float64
 //	Solventmethod string
 	Disperssion string  //D, D2, D3
@@ -236,9 +237,10 @@ func (O *OrcaRunner) BuildInput(atoms Reference, coords *matrix.DenseMatrix, Q *
 		}
 	//Now lets write the thing
 	if O.inputname==""{
-		O.inputname="Gochem.inp"
+		O.inputname="Gochem"
 		}
-	file,err:=os.Create(O.inputname)
+	
+	file,err:=os.Create(fmt.Sprintf("%s.inp",O.inputname))
 	if err!=nil{
 		return err
 		}
@@ -257,12 +259,32 @@ func (O *OrcaRunner) BuildInput(atoms Reference, coords *matrix.DenseMatrix, Q *
 	fmt.Fprintf(file,"* xyz %d %d\n",atoms.Charge(),atoms.Unpaired()+1)
 	//now the coordinates
 	for i:=0;i<atoms.Len();i++{
-		
-		fmt.Fprintf(file,"%-2s  %8.3f%8.3f%8.3f \n",atoms.Atom(i).Symbol, coords.Get(i,0), coords.Get(i,2), coords.Get(i,2))	
+		newbasis:=""
+		if isInInt(Q.HBAtoms,i)==true{
+			newbasis=fmt.Sprintf("newgto \"%s\" end",Q.HighBasis)
+			}else if isInInt(Q.LBAtoms,i)==true{
+			newbasis=fmt.Sprintf("newgto \"%s\" end",Q.LowBasis)
+			}
+		fmt.Fprintf(file,"%-2s  %8.3f%8.3f%8.3f %s\n",atoms.Atom(i).Symbol, coords.Get(i,0), coords.Get(i,2), coords.Get(i,2),newbasis)	
 		}
 	fmt.Fprintf(file,"*\n")
 	return nil
 	}
+	
+//Run runs the command given by the string O.command
+//it waits or not for the result depending of 
+func (O *OrcaRunner) Run(wait bool) (err error){
+	command:=exec.Command("nohup",O.command,fmt.Sprintf("%s.inp",O.inputname))
+	if wait==true{
+		err=command.Run()
+		}else{
+		err=command.Start()	
+		}
+	return err
+	}	
+	
+	
+	
 	
 //buildCConstraints transforms the list of cartesian constrains in the QMCalc structre
 //into a string with ORCA-formatted cartesian constraints
@@ -283,6 +305,8 @@ func (O *OrcaRunner) buildCConstraints(C []int) string{
 	}
 
 
+
+
 var orcaSCFTight = map[int] string {
       1: "",
 	  2: "TightSCF",
@@ -298,9 +322,9 @@ var orcaSCFConv = map[int] string {
 
 var orcaDisp = map[string] string {
 	 "nodisp":"",
-      "D":  "VDW2",
-	  "D2": "VDW2",
-      "D3": "VDW3",
+      "D":  "VDW04",
+	  "D2": "VDW06",
+      "D3": "VDW10",
 }
 
 

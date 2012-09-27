@@ -668,6 +668,15 @@ func DMaddfloat(A *matrix.DenseMatrix, B float64)*matrix.DenseMatrix{
 	}
 
 
+//DMDelCol removes column i from matrix A. 
+func DMDelCol(A *matrix.DenseMatrix,i int)error{
+		//Im not sure if copying takes place.
+		lenght:=A.Rows()
+		upper:=A.GetMatrix(0,0,i,3)
+		lower:=A.GetMatrix(i+1,0,lenght-i-1,3)
+		A,err:=upper.Stack(lower)
+		return err
+	}
 
 
 
