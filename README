@@ -61,14 +61,15 @@ Axis manipulation:
 Simple geometrical calculations
 Reads XTC files (see above)
 Calculates and draws Ramachandran plots (uses the Plotinum library).
-
+Allows to set up and run QM calculations
+with Orca (which must be downloaded independently from 
+http://www.mpibac.mpg.de/bac/logins/neese/description.php)
 
 TODOS:
 
 
 *Protein superimposer (Calign?).
 *Read/Write Mopac2009 input/output files for quick optimizations.
-*Same for ORCA  (b-factors of >=1 could mean fixed atoms).
 *Additional geometrical manipulation tools.
 
 
