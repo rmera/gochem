@@ -63,11 +63,11 @@ def angle_in_vectors(v1,v2): #calculates the angles between to vectors (Python N
  * */
 
 
-//GetRotateAroundZ takes a set of coordinates (mol) and a vector (y). It returns
+//GetRotateToNewY takes a set of coordinates (mol) and a vector (y). It returns
 //a rotation matrix that, when applied to mol, will rotate it around the Z axis 
 //in such a way that the projection of newy in the XY plane will be aligned with
 //the Y axis.
-func GetRotateAroundZ(mol, newy *matrix.DenseMatrix) (*matrix.DenseMatrix, error){
+func GetRotateToNewY(mol, newy *matrix.DenseMatrix) (*matrix.DenseMatrix, error){
 	if newy.Cols()!=3 || newy.Rows()!=1{
 		return nil, fmt.Errorf("Wrong newy vector")
 		}
@@ -75,6 +75,25 @@ func GetRotateAroundZ(mol, newy *matrix.DenseMatrix) (*matrix.DenseMatrix, error
 		return nil, fmt.Errorf("Wrong mol vector")
 		}
 	gamma:=math.Atan2(newy.Get(0,0),newy.Get(0,1))
+	singamma:=math.Sin(gamma)
+	cosgamma:=math.Cos(gamma)
+	operator:=[]float64{ cosgamma, singamma, 0,
+	                    -singamma, cosgamma, 0,
+	                        0,        0,    1}
+	return matrix.MakeDenseMatrix(operator,3,3), nil
+	                        
+	
+	}	
+
+
+//GetRotateAroundZ takes a set of coordinates (mol) and a vector (y). It returns
+//a rotation matrix that, when applied to mol, will rotate it around the Z axis 
+//in such a way that the projection of newy in the XY plane will be aligned with
+//the Y axis.
+func GetRotateAroundZ(gamma) (*matrix.DenseMatrix, error){
+	if mol.Cols()!=3{
+		return nil, fmt.Errorf("Wrong mol vector")
+		}
 	singamma:=math.Sin(gamma)
 	cosgamma:=math.Cos(gamma)
 	operator:=[]float64{ cosgamma, singamma, 0,
