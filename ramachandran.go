@@ -38,10 +38,10 @@ import (
  * contained in fulldata, which can contain data for various different snapshopts.
  *In the latter case, many png files are produced. The file names are plotnameXX.png
  * where XX is the frame number (not limited to digits). Returns an error*/
-func RamaPlot(fulldata [][][]float64, plotname string) error{
+func RamaPlot(fulldata [][][]float64, plotname string)error{
 	for number,data:=range(fulldata){
 		if data==nil{
-			return fmt.Errorf("Given nil data")
+			panic("Given nil data")
 			}
 			pts := make(plotter.XYs, len(data)) //just first frame for now
 			//this might not be too efficient
@@ -101,17 +101,14 @@ func RamaCalc(M *Molecule, dihedrals [][]int, frames []int)([][][]float64,error)
 	Rama:=make([][][]float64,0,len(frames))
 	for _,i:=range(frames){
 		Ramaframe:=make([][]float64,0,len(dihedrals))
-		for id,j:=range(dihedrals){
+		for _,j:=range(dihedrals){
 			Cprev:=M.Coords[i].GetRowVector(j[0])
 			N:=M.Coords[i].GetRowVector(j[1])
 			Ca:=M.Coords[i].GetRowVector(j[2])
 			C:=M.Coords[i].GetRowVector(j[3])
 			Npost:=M.Coords[i].GetRowVector(j[4])
-			phi,err:=Dihedral(Cprev,N,Ca,C)
-			psi,err1:=Dihedral(N,Ca,C,Npost)
-			if err!=nil || err1!=nil{
-				return nil, fmt.Errorf("Dihedral calculation failed for residue %d",id+2) 
-				}
+			phi:=Dihedral(Cprev,N,Ca,C)
+			psi:=Dihedral(N,Ca,C,Npost)
 			temp:=[]float64{phi*(180/math.Pi),psi*(180/math.Pi)}
 			Ramaframe=append(Ramaframe,temp)
 			}

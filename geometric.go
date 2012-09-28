@@ -90,10 +90,7 @@ func GetRotateToNewY(mol, newy *matrix.DenseMatrix) (*matrix.DenseMatrix, error)
 //a rotation matrix that, when applied to mol, will rotate it around the Z axis 
 //in such a way that the projection of newy in the XY plane will be aligned with
 //the Y axis.
-func GetRotateAroundZ(gamma) (*matrix.DenseMatrix, error){
-	if mol.Cols()!=3{
-		return nil, fmt.Errorf("Wrong mol vector")
-		}
+func GetRotateAroundZ(gamma float64) (*matrix.DenseMatrix, error){
 	singamma:=math.Sin(gamma)
 	cosgamma:=math.Cos(gamma)
 	operator:=[]float64{ cosgamma, singamma, 0,
@@ -106,15 +103,12 @@ func GetRotateAroundZ(gamma) (*matrix.DenseMatrix, error){
 
 
 
-//GetSwitchZ takes a matrix with cartesian coordinates in the rows (mol) and a row vector (newz).
-//It returns a linear operator such that, when applied to the matrix mol (the operator on the right side)
-//it will rotate mol such that the z axis is aligned with newz. Also returns error or nil.
-func GetSwitchZ(mol, newz *matrix.DenseMatrix) (*matrix.DenseMatrix, error) {
+//GetSwitchZ takes a matrix a row vector (newz).
+//It returns a linear operator such that, when applied to a matrix mol ( with the operator on the right side)
+//it will rotate mol such that the z axis is aligned with newz.
+func GetSwitchZ(newz *matrix.DenseMatrix) (*matrix.DenseMatrix) {
 	if newz.Cols()!=3 || newz.Rows()!=1{
-		return nil, fmt.Errorf("Wrong newz vector")
-		}
-	if mol.Cols()!=3{
-		return nil, fmt.Errorf("Wrong mol vector")
+		panic("Wrong newz vector")
 		}
 	normxy:=math.Sqrt(math.Pow(newz.Get(0,0),2)+math.Pow(newz.Get(0,1),2))
 	theta:=math.Atan2(normxy,newz.Get(0,2)) //Around the new y
@@ -126,27 +120,13 @@ func GetSwitchZ(mol, newz *matrix.DenseMatrix) (*matrix.DenseMatrix, error) {
 	costheta:=math.Cos(theta)
 	sinpsi:=math.Sin(psi)
 	cospsi:=math.Cos(psi)
-/*The operator used now is the transpose of this one
- * 	operator:=[]float64{cosphi*costheta*cospsi - sinphi*sinpsi,   sinphi*costheta*cospsi + cosphi*sinpsi, -sintheta*cospsi,
-						-sinphi*cospsi - cosphi*costheta*sinpsi, -sinphi*costheta*sinpsi + cosphi*cospsi,  sintheta*sinpsi,
-						cosphi*sintheta,                          sintheta*sinphi,                         costheta}
-*/	
-	//This one is the transpose of the other operator (commented). It is meant to be multiplied from the left by a row
-	//vector.
 	operator:=[]float64{cosphi*costheta*cospsi - sinphi*sinpsi,   -sinphi*cospsi - cosphi*costheta*sinpsi,   cosphi*sintheta,
 				        sinphi*costheta*cospsi + cosphi*sinpsi,   -sinphi*costheta*sinpsi + cosphi*cospsi,   sintheta*sinphi,
 				        -sintheta*cospsi,                          sintheta*sinpsi,                          costheta } 
 	finalop:=matrix.MakeDenseMatrix(operator,3,3)
-//	fmt.Println(operator, "\n\n",finalop)
-	return finalop, nil
+	return finalop
 	
 	}
-
-/*
-		operador=array([[cosphi*costheta*cospsi-sinphi*sinpsi,   +sinphi*costheta*cospsi+cosphi*sinpsi,   -sintheta*cospsi],
-		                [-sinphi*cospsi-cosphi*costheta*sinpsi,  -sinphi*costheta*sinpsi+cosphi*cospsi,    sintheta*sinpsi],
-		                [cosphi*sintheta,                         sintheta*sinphi,                         costheta]])
-*/
 
 
 
@@ -155,18 +135,15 @@ func GetSwitchZ(mol, newz *matrix.DenseMatrix) (*matrix.DenseMatrix, error) {
 //It applies those rotation and translations to the whole frame frametest of molecule test, in palce. 
 //testlst and templalst must have the same number of elements.
 func Super(test, templa *Molecule, testlst, templalst []int, frametest, frametempla int) error{
-	ctest,err1:=test.SomeCoordsF(testlst,frametest)
-	ctempla,err2:=templa.SomeCoordsF(templalst,frametempla)
-	if err1!=nil || err2!=nil{
-		return fmt.Errorf("Frame numbers given for test or template out of range")
-		}
+	ctest:=test.SomeCoordsF(testlst,frametest)
+	ctempla:=templa.SomeCoordsF(templalst,frametempla)
 	_,rotation,trans1,trans2,err1:=GetSuper(ctest,ctempla)
 	if err1!=nil{
 		return err1
 		}
 	err1=AddRow(test.Coords[frametest],trans1)
 	test.Coords[frametest]=matrix.ParallelProduct(test.Coords[frametest],rotation)
-	err2=AddRow(test.Coords[frametest],trans2)
+	err2:=AddRow(test.Coords[frametest],trans2)
 	if err1 != nil || err2!=nil{
 		return fmt.Errorf("Unexpected error when aplying superposition")
 		}
@@ -275,14 +252,14 @@ func RMSD(test, template *matrix.DenseMatrix) (float64, error){
 
 /*Dihedral calculate the dihedral between the points a, b, c, d, where the first plane 
  * is defined by abc and the second by bcd*/
-func Dihedral(a,b,c,d *matrix.DenseMatrix) (float64, error){
+func Dihedral(a,b,c,d *matrix.DenseMatrix) (float64){
 	all:=[]*matrix.DenseMatrix{a,b,c,d}
 	for number,point:=range(all){
 		if point==nil{
-			return -1.0, fmt.Errorf("Vector %d is nil",number)
+			panic(fmt.Sprintf("Vector %d is nil",number))
 			}
 		if point.Rows()!=1 || point.Cols()!=3{
-			return -1.0, fmt.Errorf("Vector %d has invalid shape",number)
+			panic(fmt.Sprintf("Vector %d has invalid shape",number))
 			}
 		}
 	b1:=b.Copy()
@@ -296,7 +273,7 @@ func Dihedral(a,b,c,d *matrix.DenseMatrix) (float64, error){
 	first:=Dot(b1scaled,Cross3DRow(b2,b3))
 	second:=Dot(Cross3DRow(b1,b2),Cross3DRow(b2,b3))
 	dihedral:=math.Atan2(first,second)                  
-	return dihedral, nil
+	return dihedral
 	}
 
 /***Shape indicator functions***/

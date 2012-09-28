@@ -31,7 +31,7 @@ package chem
 
 import "fmt"
 import  "github.com/skelterjohn/go.matrix"
-import "strings"
+//import "strings"
 
 
 
@@ -322,21 +322,20 @@ func (M *Molecule) SetCurrent(i int){
 	}
 
 	
-//SomeCoords, given a list of ints and the desired frame, returns an slice matrix.DenseMatrix
+//SomeCoordsF, given a list of ints and the desired frame, returns an slice matrix.DenseMatrix
 //containing the coordinates of the atoms with the corresponding index.
 //This function returns a copy, not a reference, so changes to the returned matrix
 //don't alter the original. It check for correctness of the frame and the
 //Atoms requested.
-func (M *Molecule) SomeCoordsF(clist []int, frame int) (*matrix.DenseMatrix,error){
-	var err error
+func (M *Molecule) SomeCoordsF(clist []int, frame int) (*matrix.DenseMatrix){
 	var ret [][]float64
 	if frame>=len(M.Coords){
-		return nil,fmt.Errorf("Frame requested (%d) out of range!",frame)
+		panic(fmt.Sprintf("Frame requested (%d) out of range!",frame))
 		}
 	lencoords:=M.Coords[frame].Rows()
 	for k,j:=range(clist){
 		if j>lencoords-1{
-			return nil,fmt.Errorf("Coordinate requested (Number: %d, value: %d) out of range!",k,j)
+			panic(fmt.Sprintf("Coordinate requested (Number: %d, value: %d) out of range!",k,j))
 			}
 		tmp:=M.Coords[frame].GetRowVector(j).Array()
 		if len(tmp)!=3{
@@ -344,7 +343,7 @@ func (M *Molecule) SomeCoordsF(clist []int, frame int) (*matrix.DenseMatrix,erro
 			}
 		ret=append(ret,tmp)
 		}
-	return matrix.MakeDenseMatrixStacked(ret),err
+	return matrix.MakeDenseMatrixStacked(ret)
 /*
  * OLD IMPLEMENTATION, STILL NOT SURE OF WHICH IS BETTER:
  * 	//I have to treat the first element separately in order to start with a filled ret to stack
@@ -368,28 +367,27 @@ func (M *Molecule) SomeCoordsF(clist []int, frame int) (*matrix.DenseMatrix,erro
 //If atomlist contains a single element, it replaces as many coordinates as given in newcoords, starting 
 //at the element in atomlist. In the latter case, the function checks that there are enough coordinates to
 //replace and returns an error if not.
-func (M *Molecule) SetCoords(atomlist []int, frame int, newcoords *matrix.DenseMatrix) (error){
+func (M *Molecule) SetCoords(atomlist []int, frame int, newcoords *matrix.DenseMatrix) {
 	if frame>=len(M.Coords){
-		return fmt.Errorf("Frame (%d) out of range!",frame)
+		panic(fmt.Sprintf("Frame (%d) out of range!",frame))
 		}
 	//If supplies a list with one number, the newcoords will replace the old coords
 	//Starting that number. We do check that you don't put more coords than spaces we have.
 	if len(atomlist)==1{
 		if newcoords.Rows()>M.Coords[frame].Rows()-atomlist[0]-1{
-			return fmt.Errorf("Cant replace starting from position %d: Not enough atoms in molecule", atomlist[0])
+			panic(fmt.Sprintf("Cant replace starting from position %d: Not enough atoms in molecule", atomlist[0]))
 			} 
 		M.Coords[frame].SetMatrix(atomlist[0],0,newcoords)
-		return nil
+		return
 		}
 	//If the list has more than one atom
 	lenatoms:=M.Len()	
 	for k,j:=range(atomlist){
 		if j>lenatoms-1{
-			return fmt.Errorf("Requested position number: %d (%d) out of range",k,j)
+			panic(fmt.Sprintf("Requested position number: %d (%d) out of range",k,j))
 			}
 		M.Coords[frame].SetMatrix(j,0,newcoords.GetRowVector(k))
 		}
-	return nil
 	}
 	
 //Corrupted checks whether the molecule is corrupted, i.e. the
@@ -521,14 +519,10 @@ func (M *Molecule)NextConc(frames []bool)([]chan *matrix.DenseMatrix, error){
 //This function returns a copy, not a reference, so changes to the returned matrix
 //don't alter the original. It check for correctness of the Atoms requested.
 func (M *Molecule)SomeCoords(clist []int) (*matrix.DenseMatrix,error){
-	toreturn,err:=M.SomeCoordsF(clist,M.current)
-	if err!=nil{
-		if strings.HasPrefix(err.Error(),"Frame requested"){
-			return nil, fmt.Errorf("No more frames")
-			}else{
-			return nil, err	
-			}
+	if M.current>=len(M.Coords){
+		return nil, fmt.Errorf("No more frames")
 		}
+	toreturn:=M.SomeCoordsF(clist,M.current)
 	M.current++
 	return toreturn, nil
 	}
