@@ -44,6 +44,27 @@ import "fmt"
 //Be inserted in mathematical expressions and thus they need to return only one value.
 
 
+//SomeCoordsF, given a list of ints and the desired frame, returns an slice matrix.DenseMatrix
+//containing the coordinates of the atoms with the corresponding index.
+//This function returns a copy, not a reference, so changes to the returned matrix
+//don't alter the original. It check for correctness of the frame and the
+//Atoms requested.
+func SomeRows(M *matrix.DenseMatrix, clist []int) (*matrix.DenseMatrix){
+	rows:=M.Rows()
+	ret:=make([][]float64,0,len(clist))
+	for k,j:=range(clist){
+		if j>rows-1{
+			panic(fmt.Sprintf("Coordinate requested (Number: %d, value: %d) out of range!",k,j))
+			}
+		tmp:=M.GetRowVector(j).Array()
+		if len(tmp)!=3{
+			panic(fmt.Sprintf("Coordinate %d has %d components instead of 3",k, len(tmp)))
+			}
+		ret=append(ret,tmp)
+		}
+	return matrix.MakeDenseMatrixStacked(ret)
+	}
+
 //Unitarize takes a vector and divides it by its norm
 //thus obtaining an unitary vector pointing in the same direction as 
 //vector.

@@ -29,6 +29,7 @@ import (
 		"fmt"
 		"strings"
 		"math"
+		"github.com/skelterjohn/go.matrix"
         "code.google.com/p/plotinum/plot"
         "code.google.com/p/plotinum/plotter"
         "image/color"
@@ -38,44 +39,42 @@ import (
  * contained in fulldata, which can contain data for various different snapshopts.
  *In the latter case, many png files are produced. The file names are plotnameXX.png
  * where XX is the frame number (not limited to digits). Returns an error*/
-func RamaPlot(fulldata [][][]float64, plotname string)error{
-	for number,data:=range(fulldata){
-		if data==nil{
-			panic("Given nil data")
-			}
-			pts := make(plotter.XYs, len(data)) //just first frame for now
-			//this might not be too efficient
-		for key,val:=range(data){ 
-			pts[key].X=val[0]
-			pts[key].Y=val[1]
-			}
-		// Create a new plot, set its title and
-		// axis labels.
-		p, err := plot.New()
-			if err != nil {
-				return err
-				}
-		p.Title.Text = "Ramachandran plot"
-		p.X.Label.Text = "Phi"
-		p.Y.Label.Text = "Psi"
-		//Constant axes
-		p.X.Min=-180
-		p.X.Max=180
-		p.Y.Min=-180
-		p.Y.Max=180
-		// Draw the grid 
-		p.Add(plotter.NewGrid())
-		// Make a scatter plotter and set its style.
-		s := plotter.NewScatter(pts)
-		s.GlyphStyle.Color = color.RGBA{R: 255, A: 255}
-		// Add the plotter 
-		p.Add(s)
-		// Save the plot to a PNG file.
-		filename:=fmt.Sprintf("%s%d.png",plotname,number)
-		if err := p.Save(4, 4, filename); err != nil {
-			return err
+func RamaPlot(data [][]float64, plotname string)error{
+	if data==nil{
+		panic("Given nil data")
 		}
-	}
+		pts := make(plotter.XYs, len(data)) //just first frame for now
+		//this might not be too efficient
+	for key,val:=range(data){ 
+		pts[key].X=val[0]
+		pts[key].Y=val[1]
+		}
+	// Create a new plot, set its title and
+	// axis labels.
+	p, err := plot.New()
+		if err != nil {
+			return err
+			}
+	p.Title.Text = "Ramachandran plot"
+	p.X.Label.Text = "Phi"
+	p.Y.Label.Text = "Psi"
+	//Constant axes
+	p.X.Min=-180
+	p.X.Max=180
+	p.Y.Min=-180
+	p.Y.Max=180
+	// Draw the grid 
+	p.Add(plotter.NewGrid())
+	// Make a scatter plotter and set its style.
+	s := plotter.NewScatter(pts)
+	s.GlyphStyle.Color = color.RGBA{R: 255, A: 255}
+	// Add the plotter 
+	p.Add(s)
+	// Save the plot to a PNG file.
+	filename:=fmt.Sprintf("%s.png",plotname)
+	if err := p.Save(4, 4, filename); err != nil {
+		return err
+		}
 	return nil
 }
 
@@ -88,31 +87,21 @@ func RamaPlot(fulldata [][][]float64, plotname string)error{
 /*Obtain psi and phi angles for the molecule M, considerint the dihedrals in [][]int
  * for all the frames in frames. It returns a slice of slices (one per frame) of slices 
  * (with 2 elemtns), for psi and phi angles, and an error*/
-func RamaCalc(M *Molecule, dihedrals [][]int, frames []int)([][][]float64,error){
-	if M == nil || dihedrals == nil || frames == nil{
+func RamaCalc(M *matrix.DenseMatrix, dihedrals [][]int)([][]float64,error){
+	if M == nil || dihedrals == nil {
 		return nil,  fmt.Errorf("Given nil data")
 		}
-	if err:=M.Corrupted(); err!=nil{
-		return nil, fmt.Errorf("Molecule corrupted") 
-		}
-	if len(M.Coords)<=frames[len(frames)-1]{
-		return nil,  fmt.Errorf("Frame out of range") 
-		} 	
-	Rama:=make([][][]float64,0,len(frames))
-	for _,i:=range(frames){
-		Ramaframe:=make([][]float64,0,len(dihedrals))
-		for _,j:=range(dihedrals){
-			Cprev:=M.Coords[i].GetRowVector(j[0])
-			N:=M.Coords[i].GetRowVector(j[1])
-			Ca:=M.Coords[i].GetRowVector(j[2])
-			C:=M.Coords[i].GetRowVector(j[3])
-			Npost:=M.Coords[i].GetRowVector(j[4])
-			phi:=Dihedral(Cprev,N,Ca,C)
-			psi:=Dihedral(N,Ca,C,Npost)
-			temp:=[]float64{phi*(180/math.Pi),psi*(180/math.Pi)}
-			Ramaframe=append(Ramaframe,temp)
-			}
-		Rama=append(Rama,Ramaframe)
+	Rama:=make([][]float64,0,len(dihedrals))
+	for _,j:=range(dihedrals){
+		Cprev:=M.GetRowVector(j[0])
+		N:=M.GetRowVector(j[1])
+		Ca:=M.GetRowVector(j[2])
+		C:=M.GetRowVector(j[3])
+		Npost:=M.GetRowVector(j[4])
+		phi:=Dihedral(Cprev,N,Ca,C)
+		psi:=Dihedral(N,Ca,C,Npost)
+		temp:=[]float64{phi*(180/math.Pi),psi*(180/math.Pi)}
+		Rama=append(Rama,temp)
 		}
 	return Rama, nil
 	}

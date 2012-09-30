@@ -31,8 +31,6 @@ package chem
 import "github.com/skelterjohn/go.matrix"
 import "fmt"
 import "testing"
-import "strings"
-import "strconv"
 import "os"
 
 
@@ -43,7 +41,7 @@ import "os"
 //whole molecule such as the vector defined by these 2 atoms is 
 //aligned with the Z axis. The new molecule is written
 //as 2c9v_aligned.pdb to the test folder.
-func TestChangeAxis(Te *testing.T){
+func TesaChangeAxis(Te *testing.T){
 	mol,err:=PdbRead("test/2c9v.pdb",true)
 	if err!=nil{
 		Te.Error(err)
@@ -112,7 +110,7 @@ func TestGeo(Te *testing.T) {
 		if err!=nil{
 			Te.Error(err)
 			}
-		XyzWrite(mol, 0, strings.Replace("test/sample_xxxx.xyz","xxxx",strconv.FormatFloat(scaling, 'f', 1, 64),1)) //There might be an easier way of creating the filenames
+		XyzWrite(mol, 0, fmt.Sprintf("test/sample_%03.1f.xyz",scaling))
 		}
 	}
 
@@ -125,11 +123,11 @@ func TestRama(Te *testing.T){
 	if err!=nil{
 		Te.Error(err)
 		}
-	rama,err := RamaCalc(mol,ramalist,[]int{0})
+	rama,err := RamaCalc(mol.Coords[0],ramalist)
 	if err!=nil{
 		Te.Error(err)
 		}
-	fmt.Println("Rama",rama,len(rama[0]),len(ramalist),mol.Len())
+	fmt.Println("Rama",rama,len(rama),len(ramalist),mol.Len())
 	err=RamaPlot(rama,"test/Rama")
 	if err!=nil{
 		Te.Error(err)

@@ -33,7 +33,7 @@ package chem
 
 import "reflect"
 import "github.com/skelterjohn/go.matrix"
-
+import "fmt"
 
 
 
@@ -51,7 +51,6 @@ func Rad2Deg(f float64)float64{
 func IsIn(test interface{}, set interface{}) (int){
 	vset:=reflect.ValueOf(set)
 	if reflect.TypeOf(set).Kind().String()!="slice"{
-	//	fmt.Println(reflect.TypeOf(set).Kind().String())
 		panic("IsIn function needs a slice as second argument!")
 		}
 	if vset.Len()<0{
@@ -68,9 +67,44 @@ func IsIn(test interface{}, set interface{}) (int){
 	}
 	
 	
+
+
+
+
 	
-	
-	
+//Super determines the best rotation and translations to superimpose the coords in test
+//listed in testlst on te atoms of molecule templa, frame frametempla, listed in templalst. 
+//It applies those rotation and translations to the whole frame frametest of molecule test, in palce. 
+//testlst and templalst must have the same number of elements.
+func Super(test, templa *matrix.DenseMatrix, testlst, templalst []int) error{
+	ctest:=test
+	if len(testlst)!=0{
+		ctest=SomeRows(test,testlst)
+		}
+	ctempla:=templa
+	if len(templalst)!=0{
+		ctempla=SomeRows(templa,templalst,)
+		}
+	if ctempla.Rows()!=ctest.Rows(){
+		return fmt.Errorf("Template and test selections dont match")
+		}
+	_,rotation,trans1,trans2,err1:=GetSuper(ctest,ctempla)
+	if err1!=nil{
+		return err1
+		}
+	err1=AddRow(test,trans1)
+	test=matrix.ParallelProduct(test,rotation)
+	err2:=AddRow(test,trans2)
+	if err1 != nil || err2!=nil{
+		return fmt.Errorf("Unexpected error when aplying superposition")
+		}
+	return nil
+	}
+
+
+
+//Rotate about rotates the coordinates in coordsorig around by angle radians around the axis 
+//given by the vector axis. It returns the rotated coordsorig, since the original is not affected.
 func RotateAbout(angle float64,axis, coordsorig *matrix.DenseMatrix) (*matrix.DenseMatrix,error){
 	coords:=coordsorig.Copy()
 	translation:=coords.GetRowVector(0).Copy()
@@ -97,3 +131,6 @@ func RotateAbout(angle float64,axis, coordsorig *matrix.DenseMatrix) (*matrix.De
 		}
 	return coords, err
 	}
+
+
+

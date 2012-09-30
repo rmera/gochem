@@ -130,25 +130,6 @@ func GetSwitchZ(newz *matrix.DenseMatrix) (*matrix.DenseMatrix) {
 
 
 
-//Super determines the best rotation and translations to superimpose the atoms of molecule test, frame frametest,
-//listed in testlst on te atoms of molecule templa, frame frametempla, listed in templalst. 
-//It applies those rotation and translations to the whole frame frametest of molecule test, in palce. 
-//testlst and templalst must have the same number of elements.
-func Super(test, templa *Molecule, testlst, templalst []int, frametest, frametempla int) error{
-	ctest:=test.SomeCoordsF(testlst,frametest)
-	ctempla:=templa.SomeCoordsF(templalst,frametempla)
-	_,rotation,trans1,trans2,err1:=GetSuper(ctest,ctempla)
-	if err1!=nil{
-		return err1
-		}
-	err1=AddRow(test.Coords[frametest],trans1)
-	test.Coords[frametest]=matrix.ParallelProduct(test.Coords[frametest],rotation)
-	err2:=AddRow(test.Coords[frametest],trans2)
-	if err1 != nil || err2!=nil{
-		return fmt.Errorf("Unexpected error when aplying superposition")
-		}
-	return nil
-	}
 
 
 //GetSuper superimposes the set of cartesian coordinates given as the rows of the matrix test on the ones of the rows
