@@ -86,7 +86,7 @@ func Super(test, templa *matrix.DenseMatrix, testlst, templalst []int) error{
 		ctempla=SomeRows(templa,templalst,)
 		}
 	if ctempla.Rows()!=ctest.Rows(){
-		return fmt.Errorf("Template and test selections dont match")
+		return fmt.Errorf("Mismatched template and test atom numbers")
 		}
 	_,rotation,trans1,trans2,err1:=GetSuper(ctest,ctempla)
 	if err1!=nil{
@@ -133,4 +133,11 @@ func RotateAbout(angle float64,axis, coordsorig *matrix.DenseMatrix) (*matrix.De
 	}
 
 
+//Corrupted is a convenience function to check that a reference and a trajectory have the same number of atoms
+func Corrupted(R Ref,X Traj)error{
+	if X.Len()!=R.Len(){
+		return fmt.Errorf("Mismatched number of atoms/coordinates")
+		}
+	return nil
+	}
 

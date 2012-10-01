@@ -81,18 +81,124 @@ func (A *Atom)Copy()(*Atom){
 
 
 
+/*****Topology type***/
+
+//Topology contains information about a molecule which is not expected to change in time (i.e. everything except for coordinates and b-factors)
+type Topology struct{
+	Atoms []*Atom
+	charge int
+	unpaired int
+	} 
 
 
+//MakeTopology makes a molecule with ats atoms, coords coordinates, bfactors b-factors 
+//charge charge and unpaired unpaired electrons, and returns it. It returns error if 
+//one of the slices is nil. It doesnt check for consitensy across slices or correct charge
+//or unpaired electrons.
+func MakeTopology(ats []*Atom,charge,unpaired int)(*Topology,error){
+	if ats==nil{
+		return nil,fmt.Errorf("Supplied a nil Topology")
+		}
+	top:=new(Topology)
+	top.Atoms=ats
+	top.charge=charge
+	top.unpaired=unpaired
+	return top, nil
+	}
+
+
+/*Topology methods*/
+
+//Charge gets the total charge of the topology
+func (T *Topology)Charge()int{
+	return T.charge
+	}
+//Unpaired gets the number of unpaired electrons in the topology
+func (T *Topology)Unpaired()int{
+	return T.unpaired
+	}
+//SetCharge sets the total charge of the topology to i
+func (T *Topology)SetCharge(i int){
+	T.charge=i
+	}
+//SetUnpaired sets the number of unpaired electrons in the topology to i
+func (T *Topology)SetUnpaired(i int){
+	T.unpaired=i
+	}
+
+
+//Atom returns the Atom corresponding to the index i
+//of the Atom slice in the Topology. Panics if 
+//out of range.
+func (T *Topology)Atom(i int) (*Atom){
+	if i>=T.Len(){
+		panic("Topology: Requested Atom out of bounds")
+		}
+	return T.Atoms[i]
+	}
+	
+//SetAtom sets the (i+1)th Atom of the topology to aT.
+//Panics if out of range
+func (T *Topology)SetAtom(i int,at *Atom){
+	if i>=T.Len(){
+		panic("Topology: Tried to set Atom out of bounds")
+		}
+	T.Atoms[i]=at
+	}
+
+//AddAtom appends an atom at the end of the reference
+func (T *Topology)AddAtom(at *Atom){
+	T.Atoms=append(T.Atoms,at)
+	}
+	
+
+//SelectAtoms, given a list of ints,  returns an array of the atoms with the
+//corresponding position in the molecule
+//Changes to these atoms affect the original reference
+func (T *Topology) SomeAtoms(atomlist []int) ([]*Atom, error){
+	var err error
+	var ret []*Atom
+	lenatoms:=len(T.Atoms)
+	for k,j:=range(atomlist){
+		if j>lenatoms-1{
+			return nil,fmt.Errorf("Atom requested (Number: %d, value: %d) out of range!",k,j)
+			}
+		ret=append(ret,T.Atoms[j])
+		}
+	return ret,err
+	}
+
+
+//Deletes an atom by reslicing the T.Atoms slice. Notice that the 
+//memory it was using is NOT released.
+func (T *Topology) DelAtom(i int){
+	if i>=T.Len(){
+		panic("Topology: Tried to delete Atom out of bounds")
+		}
+	if i==T.Len()-1{
+		T.Atoms=T.Atoms[:i]
+		}else{
+		T.Atoms=append(T.Atoms[:i],T.Atoms[i+1:]...)
+		}	
+	}
+
+
+//Len return the length of the molecule.
+func (T *Topology) Len() int{
+	return len(T.Atoms) //This shouldnt be needed
+	}
+
+
+
+/**Type Molecule**/
 
 //Molecule contains all the info for a molecule in many states. The info that is expected to change between states,
 //Coordinates and b-factors are stored separately from other atomic info.
 type Molecule struct{
-	Atoms []*Atom
+	*Topology
 	Coords []*matrix.DenseMatrix
 	Bfactors []*matrix.DenseMatrix
 	current int
-	charge int
-	unpaired int
 	}
 
 //MakeMolecule makes a molecule with ats atoms, coords coordinates, bfactors b-factors 
@@ -110,6 +216,7 @@ func MakeMolecule(ats []*Atom,coords,bfactors []*matrix.DenseMatrix,charge,unpai
 		return nil, fmt.Errorf("Supplied a nil Bfactors slice")
 		}
 	mol:=new(Molecule)
+	mol.Topology=new(Topology)
 	mol.Atoms=ats
 	mol.Coords=coords
 	mol.Bfactors=bfactors
@@ -121,78 +228,7 @@ func MakeMolecule(ats []*Atom,coords,bfactors []*matrix.DenseMatrix,charge,unpai
 
 //The molecule methods:
 
-//Charge gets the total charge of the topology
-func (M *Molecule)Charge()int{
-	return M.charge
-	}
-//Unpaired gets the number of unpaired electrons in the topology
-func (M *Molecule)Unpaired()int{
-	return M.unpaired
-	}
-//SetCharge sets the total charge of the topology to i
-func (M *Molecule)SetCharge(i int){
-	M.charge=i
-	}
-//SetUnpaired sets the number of unpaired electrons in the topology to i
-func (M *Molecule)SetUnpaired(i int){
-	M.unpaired=i
-	}
 
-
-//Atom returns the Atom corresponding to the index i
-//of the Atom slice in the Topology. Panics if 
-//out of range.
-func (M *Molecule)Atom(i int) (*Atom){
-	if i>=M.Len(){
-		panic("Topology: Requested Atom out of bounds")
-		}
-	return M.Atoms[i]
-	}
-	
-//SetAtom sets the (i+1)th Atom of the topology to aM.
-//Panics if out of range
-func (M *Molecule)SetAtom(i int,at *Atom){
-	if i>=M.Len(){
-		panic("Topology: Tried to set Atom out of bounds")
-		}
-	M.Atoms[i]=at
-	}
-
-//AddAtom appends an atom at the end of the topology
-func (M *Molecule)AddAtom(at *Atom){
-	M.Atoms=append(M.Atoms,at)
-	}
-	
-
-//SelectAtoms, given a list of ints,  returns an array of the atoms with the
-//corresponding position in the molecule
-//Changes to these atoms affect the original molecule.
-func (M *Molecule) SomeAtoms(atomlist []int) ([]*Atom, error){
-	var err error
-	var ret []*Atom
-	lenatoms:=len(M.Atoms)
-	for k,j:=range(atomlist){
-		if j>lenatoms-1{
-			return nil,fmt.Errorf("Atom requested (Number: %d, value: %d) out of range!",k,j)
-			}
-		ret=append(ret,M.Atoms[j])
-		}
-	return ret,err
-	}
-
-
-//Deletes an atom by reslicing the M.Atoms slice. Notice that the 
-//memory it was using is NOT released.
-func (M *Molecule) DelAtom(i int){
-	if i>=M.Len(){
-		panic("Reference: Tried to delete Atom out of bounds")
-		}
-	if i==M.Len()-1{
-		M.Atoms=M.Atoms[:i]
-		}else{
-		M.Atoms=append(M.Atoms[:i],M.Atoms[i+1:]...)
-		}	
-	}
 
 //Deletes the coodinate i from every frame of the molecule.
 func (M *Molecule) DelCoord(i int)error{
@@ -237,7 +273,7 @@ func (M *Molecule) Copy() (*Molecule){
 		mol.Bfactors=append(mol.Bfactors,M.Bfactors[key].Copy())
 		}
 	if err:=mol.Corrupted();err!=nil{
-		panic(fmt.Sprintf("Molecule creation error: %s",err.Error())) //This definitely shouldnt happen
+		panic(fmt.Sprintf("Molecule creation error: %s",err.Error())) //copying a corrupted molecule means that the program is wrong.
 		}
 	return mol
 	}
@@ -266,7 +302,7 @@ func (M *Molecule) AddFrame(newframe *matrix.DenseMatrix){
 		panic("Malformed coord matrix!") 
 		}
 	if M.Len()!=newframe.Rows(){
-		panic("Wrong number of coordinates in frame!")  //change this for something that prints the number of atoms and coords
+		panic(fmt.Sprintf("Wrong number of coordinates (%d)",newframe.Rows())) 
 		}
 	if M.Coords==nil{
 		M.Coords=make([]*matrix.DenseMatrix,1,1)
@@ -287,7 +323,7 @@ func (M *Molecule) AddManyFrames(newframes []*matrix.DenseMatrix){
 	//Must add something here to change
 	for i:=range newframes{
 		if atomslen!=newframes[i].Rows(){
-			panic(fmt.Sprintf("Wrong number of coordinates (%d)  in frame %d!",i,newframes[i].Rows())) 
+			panic(fmt.Sprintf("Wrong number of coordinates (%d)  in frame %d",newframes[i].Rows(),i)) 
 			}
 		M.Coords=append(M.Coords,newframes[i]) //At the end there shouldnt be so much copying since
 	   //only pointers are copied.
@@ -296,11 +332,14 @@ func (M *Molecule) AddManyFrames(newframes []*matrix.DenseMatrix){
 
 //Coord returns the coords for the atom atom in the frame frame.
 //panics if frame or coords are out of range.
-func (M *Molecule)Coord(atom, frame int)(*matrix.DenseMatrix,error){
+func (M *Molecule)Coord(atom, frame int)(*matrix.DenseMatrix){
 	if frame>=len(M.Coords){
-		return nil, fmt.Errorf("Frame requested (%d) out of range!",frame)
+		panic(fmt.Sprintf("Frame requested (%d) out of range",frame))
 		}
-	return M.Coords[frame].GetRowVector(atom),nil
+	if atom>=M.Coords[frame].Rows(){
+		panic(fmt.Sprintf("Requested coordinate (%d) out of bounds (%d)",atom, M.Coords[frame].Rows()))
+		}
+	return M.Coords[frame].GetRowVector(atom)
 	}
 
 
@@ -322,46 +361,6 @@ func (M *Molecule) SetCurrent(i int){
 	}
 
 	
-//SomeCoordsF, given a list of ints and the desired frame, returns an slice matrix.DenseMatrix
-//containing the coordinates of the atoms with the corresponding index.
-//This function returns a copy, not a reference, so changes to the returned matrix
-//don't alter the original. It check for correctness of the frame and the
-//Atoms requested.
-func (M *Molecule) SomeCoordsF(clist []int, frame int) (*matrix.DenseMatrix){
-	var ret [][]float64
-	if frame>=len(M.Coords){
-		panic(fmt.Sprintf("Frame requested (%d) out of range!",frame))
-		}
-	lencoords:=M.Coords[frame].Rows()
-	for k,j:=range(clist){
-		if j>lencoords-1{
-			panic(fmt.Sprintf("Coordinate requested (Number: %d, value: %d) out of range!",k,j))
-			}
-		tmp:=M.Coords[frame].GetRowVector(j).Array()
-		if len(tmp)!=3{
-			panic(fmt.Sprintf("Coordinate %d has %d components instead of 3",k, len(tmp)))
-			}
-		ret=append(ret,tmp)
-		}
-	return matrix.MakeDenseMatrixStacked(ret)
-/*
- * OLD IMPLEMENTATION, STILL NOT SURE OF WHICH IS BETTER:
- * 	//I have to treat the first element separately in order to start with a filled ret to stack
-	if clist[0]>lencoords-1{
-		return nil,fmt.Errorf("Coordinate requested (Number: 0, value: %d) out of range!",clist[0])
-		}
-	ret:=M.Coords[frame].GetRowVector(clist[0])
-	for k,j:=range(clist[1:]){
-		if j>lencoords-1{
-			return ret,fmt.Errorf("Coordinate requested (Number: %d, value: %d) out of range!",k,j) //This could say which element gave the problem
-			}
-		ret,err=ret.Stack(M.Coords[frame].GetRowVector(j))
-		}
-	return ret,err
-	*/
-	}
-
-
 
 //SetCoords replaces the coordinates of atoms in the positions given by atomlist with the ones in newcoords (in order)
 //If atomlist contains a single element, it replaces as many coordinates as given in newcoords, starting 
@@ -445,10 +444,7 @@ func (M *Molecule) Less (i, j int) bool {
 
 //Len is implemented in Topology
 
-//Len return the length of the molecule.
-func (M *Molecule) Len() int{
-	return len(M.Atoms) //This shouldnt be needed
-	}
+
 
 
 //End sort.Interface
@@ -522,7 +518,7 @@ func (M *Molecule)SomeCoords(clist []int) (*matrix.DenseMatrix,error){
 	if M.current>=len(M.Coords){
 		return nil, fmt.Errorf("No more frames")
 		}
-	toreturn:=M.SomeCoordsF(clist,M.current)
+	toreturn:=SomeRows(M.Coords[M.current],clist)
 	M.current++
 	return toreturn, nil
 	}

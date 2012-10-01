@@ -61,9 +61,9 @@ type Traj interface{
 	}
 
 
-//Reference is an interface for any description of the type of atoms in a molecule,
+//Ref (reference) is an interface for any description of the type of atoms in a molecule,
 //i.e. every characteristic of them, except for the coordinates and b-factors.
-type Reference interface{
+type Ref interface{
 
 	//Charge gets the total charge of the topology
 	 Charge()int
@@ -97,6 +97,9 @@ type Reference interface{
 	//Returns a column vector with the massess of all atoms
 	//this will be changed to a tion that takes a Reference interface.
 	 MassCol() (*matrix.DenseMatrix,error)
+	 
+	//Deletes the atom i
+	DelAtom(i int) 
 	
 	//Returns the number of atoms in the reference
 	 Len() int

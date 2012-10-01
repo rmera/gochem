@@ -57,13 +57,13 @@ func TesaChangeAxis(Te *testing.T){
 				}
 			}
 		}
-	ov1,_:=mol.Coord(orient_atoms[0], 0)
-	ov2,_:=mol.Coord(orient_atoms[1], 0)
+	ov1:=mol.Coord(orient_atoms[0], 0)
+	ov2:=mol.Coord(orient_atoms[1], 0)
 	//now we center the thing in the beta carbon of D124
 	err=SubRow(mol.Coords[0],ov2)
 	//Now the rotation
-	ov1,_=mol.Coord(orient_atoms[0], 0) //make sure we have the correct versions
-	ov2,_=mol.Coord(orient_atoms[1], 0)  //same
+	ov1=mol.Coord(orient_atoms[0], 0) //make sure we have the correct versions
+	ov2=mol.Coord(orient_atoms[1], 0)  //same
 	orient:=ov2.Copy()	
 	orient.SubtractDense(ov1)
 	rotation:=GetSwitchZ(orient)
@@ -87,9 +87,9 @@ func TestGeo(Te *testing.T) {
 	if err!=nil{
 		Te.Error(err)
 		}
-	pulled_res:=mol.SomeCoordsF(pulled_atoms[:], 0)
-	at1,_:=mol.Coord(pulling_vector[0],0)
-	vector,_:=mol.Coord(pulling_vector[1],0)
+	pulled_res:=SomeRows(mol.Coords[0],pulled_atoms[:])
+	at1:=mol.Coord(pulling_vector[0],0)
+	vector:=mol.Coord(pulling_vector[1],0)
 	vector=vector.Copy()
 	err=vector.SubtractDense(at1)
 	if err!=nil{

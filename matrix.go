@@ -44,7 +44,7 @@ import "fmt"
 //Be inserted in mathematical expressions and thus they need to return only one value.
 
 
-//SomeCoordsF, given a list of ints and the desired frame, returns an slice matrix.DenseMatrix
+//Somerows, given a list of ints and the desired frame, returns an slice matrix.DenseMatrix
 //containing the coordinates of the atoms with the corresponding index.
 //This function returns a copy, not a reference, so changes to the returned matrix
 //don't alter the original. It check for correctness of the frame and the
@@ -107,7 +107,7 @@ func Cross3D(a,b *matrix.DenseMatrix)(*matrix.DenseMatrix,error){
 	bc:=b.Cols()
 	br:=b.Rows()
 	if ac != bc || ar != br {
-		return nil, fmt.Errorf("ill-formed vectors for cross product")
+		return nil, fmt.Errorf("Malformed vectors for cross product")
 		}
 	if ac!=3 {
 		//Ok, Im sure one can do this better.
