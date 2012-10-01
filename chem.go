@@ -33,7 +33,10 @@ import "fmt"
 import  "github.com/skelterjohn/go.matrix"
 //import "strings"
 
-
+/**Note: Many funcitons here panic instead of returning errors. This is because they are "fundamental" 
+ * functions. I considered that if something goes wrong here, the program is way-most likely wrong and should
+ * crash. Most panics are related to using the funciton on a nil object or trying to access out-of bounds 
+ * fields**/
 
 
 

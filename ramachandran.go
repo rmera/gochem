@@ -127,7 +127,7 @@ func isInInt(container []int, test int) bool{
  * resran. If resran has 2 elements and the last is -1, RamaList will
  * get all the dihedral for residues from resran[0] to the end of the chain.
  * It only obtain dihedral lists for residues belonging to a chain included in chains */
-func RamaList(M *Molecule, chains string,resran []int) ([][]int, error){
+func RamaList(M Ref, chains string,resran []int) ([][]int, error){
 	RamaList:=make([][]int,0,0)
 	if len(resran)==2{
 		if resran[1]==-1{
@@ -137,9 +137,6 @@ func RamaList(M *Molecule, chains string,resran []int) ([][]int, error){
 	if M == nil{
 		return nil, fmt.Errorf("nil Molecule")
 		}
-	if err:=M.Corrupted(); err!=nil{
-		return nil, fmt.Errorf("Molecule corrupted") //Must change this
-		} 
 	C:=-1
 	N:=-1
 	Ca:=-1

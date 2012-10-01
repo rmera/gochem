@@ -309,13 +309,14 @@ func BestPlaneP(evecs *matrix.DenseMatrix) (*matrix.DenseMatrix, error){
 	}
 
 //BestPlane returns a row vector that is normal to the plane that best contains the molecule
-func BestPlane(mol *Molecule, frame int,masses bool) (*matrix.DenseMatrix, error){
+//if passed a nil Ref, it will simply set all masses to 1.
+func BestPlane(mol Ref, coords *matrix.DenseMatrix) (*matrix.DenseMatrix, error){
 	var err error
 	var Mmass *matrix.DenseMatrix
-	if mol.Len()!=mol.Coords[frame].Rows(){
-		return nil, fmt.Errorf("Inconsistent coordinates/atoms in frame %d", frame)
+	if mol.Len()!=coords.Rows(){
+		return nil, fmt.Errorf("Inconsistent coordinates(%d)/atoms(%d)",mol.Len(),coords.Rows())
 		}
-	if masses {
+	if mol!=nil {
 		Mmass,err=mol.MassCol()
 		if err!=nil{
 			return nil, err
@@ -323,7 +324,7 @@ func BestPlane(mol *Molecule, frame int,masses bool) (*matrix.DenseMatrix, error
 		}else{
 		Mmass=matrix.Ones(1,mol.Len())	
 		}
-	moment,err:=MomentTensor(mol.Coords[frame],Mmass)
+	moment,err:=MomentTensor(coords,Mmass)
 	if err!=nil{
 		return nil, err
 		}
