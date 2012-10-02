@@ -44,7 +44,7 @@ func AngleInVectors(v1,v2 *matrix.DenseMatrix) float64 {
 		}else if math.Abs(argument+1)<=appzero{
 		argument=-1	
 		}
-	fmt.Println(dotprod/normproduct,argument) //dotprod/normproduct, dotprod, normproduct,v1.TwoNorm(),v2.TwoNorm())
+	//fmt.Println(dotprod/normproduct,argument) //dotprod/normproduct, dotprod, normproduct,v1.TwoNorm(),v2.TwoNorm())
 	angle:=math.Acos(argument) 
 	if math.Abs(angle)<=appzero{
 		return 0.00
@@ -308,6 +308,7 @@ func BestPlaneP(evecs *matrix.DenseMatrix) (*matrix.DenseMatrix, error){
 	return normal, nil
 	}
 
+
 //BestPlane returns a row vector that is normal to the plane that best contains the molecule
 //if passed a nil Ref, it will simply set all masses to 1.
 func BestPlane(mol Ref, coords *matrix.DenseMatrix) (*matrix.DenseMatrix, error){
@@ -336,9 +337,54 @@ func BestPlane(mol Ref, coords *matrix.DenseMatrix) (*matrix.DenseMatrix, error)
 	//MomentTensor(, mass) 
 	return normal, err
 	}
-	 
 
 
+
+
+
+/*
+//Eigenapir wraps the matrix.DenseMatrix.Eigen() function in order to guarantee 
+//That the eigenvectors and eigenvalues are sorted according to the eigenvalues
+//and also orthonormality and Handness I don't know how many of these are already 
+//guaranteed by Eig(). Will delete the unneeded parts when sure.
+func Eigenwrap2(in *matrix.DenseMatrix) ([]*matrix.DenseMatrix, []float64, error){
+	vecs,vals,_:=in.Eigen()
+	evecs:= [3]*matrix.DenseMatrix{vecs.GetColVector(0),vecs.GetColVector(1),vecs.GetColVector(2)}
+	evals:= [3]float64{vals.Get(0,0),vals.Get(1,1),vals.Get(2,2)}
+	eig:=eigenpair{evecs[:],evals[:]}
+	sort.Sort(eig)
+	//Here I should orthonormalize vectors if needed instead of just complaining. 
+	//I think orthonormality is guaranteed by  DenseMatrix.Eig() If it is, Ill delete all this
+	//If not I'll add ortonormalization routines.
+	for i:=0;i<len(eig.evecs);i++{
+		vectori:=eig.evecs[i]
+		for j:=i+1;j<len(eig.evecs);j++{
+			if i==j{
+				continue
+				}
+			if math.Abs(Dot(vectori,eig.evecs[j]))>appzero{
+				return eig.evecs,evals[:],fmt.Errorf("Vectors not ortogonal!")
+				}
+			}
+		if math.Abs(vectori.TwoNorm()-1)>appzero{
+			return eig.evecs,evals[:],fmt.Errorf("Vectors not normalized")
+			}
+		}
+	//Checking and fixing the handness of the matrix.This if-else is Jannes idea, 
+	//I don't really know whether it works.
+
+	if vecs.Det()<0{
+		vecs.Scale(-1)
+		} else {
+		vecs.TransposeInPlace()
+		vecs.ScaleRow(0,-1)
+		vecs.ScaleRow(2,-1)
+		vecs.TransposeInPlace()
+		}	
+	return eig.evecs,eig.evals, nil  //Returns a slice of evals
+	}
+
+*/
 
 
 //This is a facility to sort Eigenvectors/Eigenvalues pairs
@@ -353,6 +399,7 @@ func (E eigenpair)Less(i,j int) bool {
 	}
 func (E eigenpair)Swap(i,j int) {
 	E.evals.Swap(i,j)
+//	E.evecs[i],E.evecs[j]=E.evecs[j],E.evecs[i]
 	E.evecs.SwapRows(i,j)
 	}
 func (E eigenpair)Len() int {
@@ -368,6 +415,9 @@ func Eigenwrap(in *matrix.DenseMatrix) (*matrix.DenseMatrix, []float64, error){
 	evecs,vals,_:=in.Eigen()
 //	evecs:= [3]*matrix.DenseMatrix{vecs.GetRowVector(0),vecs.GetRowVector(1),vecs.GetRowVector(2)}
 	evals:= [3]float64{vals.Get(0,0),vals.Get(1,1),vals.Get(2,2)}
+	if err:=evecs.TransposeInPlace();err!=nil{
+		return nil,nil,err
+		}
 	eig:=eigenpair{evecs,evals[:]}
 	sort.Sort(eig)
 	//Here I should orthonormalize vectors if needed instead of just complaining. 
@@ -397,8 +447,10 @@ func Eigenwrap(in *matrix.DenseMatrix) (*matrix.DenseMatrix, []float64, error){
 		eig.evecs.ScaleRow(2,-1)
 		eig.evecs.TransposeInPlace()
 		}	
-	return eig.evecs,evals[:], nil  //Returns a slice of evals
+	return eig.evecs,eig.evals, nil  //Returns a slice of evals
 	}
+
+
 
 /*CenterOfMass returns the center of mass the atoms represented by the coordinates in geometry
 and the masses in mass, and an error. If mass is nil, it calculates the geometric center*/
@@ -425,6 +477,9 @@ func CenterOfMass(geometry, mass *matrix.DenseMatrix)(*matrix.DenseMatrix,error)
 //MassCentrate centers in in the center of mass of ref. Mass must be
 //A column vector. Returns the centered matrix and the displacement matrix.
 func MassCentrate(in, oref, mass *matrix.DenseMatrix) (*matrix.DenseMatrix,*matrix.DenseMatrix, error){
+	if mass==nil{ //just obtain the geometric center
+		mass=matrix.Ones(in.Rows(),1)
+		}
 	ref:=oref.Copy()
 	onesvector:=matrix.Ones(1,in.Rows())
 	err:=DMScaleByCol(ref,mass)
@@ -447,13 +502,17 @@ func MassCentrate(in, oref, mass *matrix.DenseMatrix) (*matrix.DenseMatrix,*matr
 //MomentTensor returns the moment tensor for a matrix A of coordinates and a column
 //vector mass with the respective massess.
 func MomentTensor(A, mass *matrix.DenseMatrix) (*matrix.DenseMatrix, error){
+	if mass==nil{
+		}
 	center,_,err:=MassCentrate(A,A.Copy(),mass)
 	if err!=nil{
 		return nil, err
 		}
 	sqrmass:=DMPow(mass,0.5)
 	DMScaleByCol(center,sqrmass)
-	moment:=matrix.ParallelProduct(center.Transpose(),center)
+//	fmt.Println(center,"scaled center")
+	centerT:=center.Transpose().Copy()
+	moment:=matrix.ParallelProduct(centerT,center)
 	return moment, err
 	}
 

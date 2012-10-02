@@ -67,8 +67,12 @@ func IsIn(test interface{}, set interface{}) (int){
 	}
 	
 	
-
-
+//Ones mass returns a column matrix with lenght rosw. 
+//This matrix can be used as a dummy mass matrix
+//for geometric calculations.
+func OnesMass(lenght int)*matrix.DenseMatrix{
+	return matrix.Ones(lenght,1)
+	}
 
 
 	

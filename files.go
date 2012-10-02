@@ -103,7 +103,7 @@ func symbolFromName(name string) (string, error){
 		symbol="H"
 		//it name has more than one character but less than four.
 		}else if name[0]=='C'{
-		if name=="CU"{
+		if name[0:2]=="CU"{
 			symbol="Cu"
 			}else if name=="CO"{
 			symbol="Co"
@@ -167,7 +167,10 @@ func read_full_pdb_line(line string, read_additional bool, contlines int) (*Atom
 	// In this part we don't catch errors. If something is missing we 
 	// just ommit it
 	if read_additional && len(line)>=80{
-		atom.Symbol=(strings.TrimSpace(line[76:78]))
+		fmt.Println("SYMBOL!", atom.Name)
+		atom.Symbol=strings.TrimSpace(line[76:78])
+		atom.Symbol=strings.Title(strings.ToLower(atom.Symbol)) //Not too efficient I guess
+		fmt.Println("SYMBOL2!", atom.Name,atom.Symbol)
 		atom.Charge=float64(line[78]) //strconv.ParseFloat(strings.TrimSpace(line[78:78]),64)
 		if strings.Contains(line[79:79],"-"){
 			atom.Charge=-1.0*atom.Charge 
@@ -359,16 +362,13 @@ func XyzRead(xyzname string,) (*Molecule, error){
 	defer xyzfile.Close()
 	xyz := bufio.NewReader(xyzfile)	
 	line, err := xyz.ReadString('\n')
-//	fmt.Println("line: ", line) /////////////////////////////////7
 	if err != nil {
 		return  nil, fmt.Errorf("Ill formatted XYZ file")
 		}
-//	var natoms int
 	natoms,err:=strconv.Atoi(strings.TrimSpace(line))
 	if err != nil {
 		return nil, fmt.Errorf("Ill formatted XYZ file")
 		}
-//	fmt.Println("natoms: ", natoms)///////////////////////////////7
 	molecule:=make([]*Atom,natoms,natoms)
 	coords:=make([]float64,natoms*3,natoms*3)
 	_,err=xyz.ReadString('\n') //We dont care about this line
@@ -387,7 +387,7 @@ func XyzRead(xyzname string,) (*Molecule, error){
 			break
 			}
 		molecule[i]=new(Atom)
-		molecule[i].Symbol=fields[0]
+		molecule[i].Symbol=strings.ToTitle(strings.ToLower(fields[0]))
 		molecule[i].Mass=symbolMass[molecule[i].Symbol]
 		coords[i*3],errs[0]=strconv.ParseFloat(fields[1],64)
 		coords[i*3+1],errs[1]=strconv.ParseFloat(fields[2],64)

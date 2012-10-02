@@ -255,9 +255,6 @@ func (M *Molecule)Del(i int)error{
 	}
 
 
-//AddCoord appends an atom at the end of the topology
-/***PENDING**/
-
 
 //Copy returns a copy of the molecule.
 func (M *Molecule) Copy() (*Molecule){
@@ -265,6 +262,7 @@ func (M *Molecule) Copy() (*Molecule){
 		panic(err.Error())
 		}
 	mol:=new(Molecule)
+	mol.Topology=new(Topology)
 	mol.Atoms=make([]*Atom,M.Len())
 	for key,val:=range(M.Atoms){
 		mol.Atoms[key]=val
@@ -287,7 +285,7 @@ func (M *Molecule) MassCol() (*matrix.DenseMatrix,error){
 	for i:=0;i<M.Len();i++{
 		thisatom:=M.Atom(i)
 		if thisatom.Mass==0{
-			return nil, fmt.Errorf("Not all the masses have been obtained")
+			return nil, fmt.Errorf("Not all the masses have been obtained: %d %v",i,thisatom)
 			}
 		mass[i]=thisatom.Mass
 		}

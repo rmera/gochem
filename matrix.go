@@ -183,7 +183,7 @@ func DMPowInPlace(A *matrix.DenseMatrix, n float64){
 		}
 	}
 
-//DMPow returns A^n. It does not modify A.
+//DMPow returns B^n. It does not modify B.
 func DMPow(B *matrix.DenseMatrix, n float64) *matrix.DenseMatrix{
 	A:=B.Copy()
 	for i:=0;i<A.Rows();i++{
@@ -192,7 +192,7 @@ func DMPow(B *matrix.DenseMatrix, n float64) *matrix.DenseMatrix{
 			A.Set(i,j,math.Pow(A.Get(i,j),n))
 			}
 		}
-	return B
+	return A
 	}
 
 //DMScaleByCol scales each column of matrix A by Col.
