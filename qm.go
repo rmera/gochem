@@ -90,13 +90,18 @@ func MakeOrcaRunner() *OrcaRunner{
 	return run 
 	}
 
+//OrcaRunner methods
 
 func (O *OrcaRunner)SetnCPU(cpu int){
 	O.nCPU=cpu
 	}
 
-
+//This is just a dummy function
 func (O *OrcaRunner)SetInputName(name string){
+	O.inputname=name
+	}
+
+func (O *OrcaRunner)SetName(name string){
 	O.inputname=name
 	}
 
@@ -265,7 +270,7 @@ func (O *OrcaRunner) BuildInput(atoms Ref, coords *matrix.DenseMatrix, Q *QMCalc
 			}else if isInInt(Q.LBAtoms,i)==true{
 			newbasis=fmt.Sprintf("newgto \"%s\" end",Q.LowBasis)
 			}
-		fmt.Fprintf(file,"%-2s  %8.3f%8.3f%8.3f %s\n",atoms.Atom(i).Symbol, coords.Get(i,0), coords.Get(i,2), coords.Get(i,2),newbasis)	
+		fmt.Fprintf(file,"%-2s  %8.3f%8.3f%8.3f %s\n",atoms.Atom(i).Symbol, coords.Get(i,0), coords.Get(i,1), coords.Get(i,2),newbasis)	
 		}
 	fmt.Fprintf(file,"*\n")
 	return nil

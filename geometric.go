@@ -413,7 +413,6 @@ func (E eigenpair)Len() int {
 //guaranteed by Eig(). Will delete the unneeded parts when sure.
 func Eigenwrap(in *matrix.DenseMatrix) (*matrix.DenseMatrix, []float64, error){
 	evecs,vals,_:=in.Eigen()
-//	evecs:= [3]*matrix.DenseMatrix{vecs.GetRowVector(0),vecs.GetRowVector(1),vecs.GetRowVector(2)}
 	evals:= [3]float64{vals.Get(0,0),vals.Get(1,1),vals.Get(2,2)}
 	if err:=evecs.TransposeInPlace();err!=nil{
 		return nil,nil,err
@@ -439,14 +438,19 @@ func Eigenwrap(in *matrix.DenseMatrix) (*matrix.DenseMatrix, []float64, error){
 		}
 	//Checking and fixing the handness of the matrix.This if-else is Jannes idea, 
 	//I don't really know whether it works.
+	eig.evecs.TransposeInPlace()
 	if eig.evecs.Det()<0{
 		eig.evecs.Scale(-1)
 		} else {
+		/*	
 		eig.evecs.TransposeInPlace()
 		eig.evecs.ScaleRow(0,-1)
 		eig.evecs.ScaleRow(2,-1)
 		eig.evecs.TransposeInPlace()
+		*/
+		fmt.Println("all good, I guess")
 		}	
+		eig.evecs.TransposeInPlace()
 	return eig.evecs,eig.evals, nil  //Returns a slice of evals
 	}
 
@@ -511,7 +515,7 @@ func MomentTensor(A, mass *matrix.DenseMatrix) (*matrix.DenseMatrix, error){
 	sqrmass:=DMPow(mass,0.5)
 	DMScaleByCol(center,sqrmass)
 //	fmt.Println(center,"scaled center")
-	centerT:=center.Transpose().Copy()
+	centerT:=center.Transpose()
 	moment:=matrix.ParallelProduct(centerT,center)
 	return moment, err
 	}

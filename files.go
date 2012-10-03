@@ -167,10 +167,8 @@ func read_full_pdb_line(line string, read_additional bool, contlines int) (*Atom
 	// In this part we don't catch errors. If something is missing we 
 	// just ommit it
 	if read_additional && len(line)>=80{
-		fmt.Println("SYMBOL!", atom.Name)
 		atom.Symbol=strings.TrimSpace(line[76:78])
 		atom.Symbol=strings.Title(strings.ToLower(atom.Symbol)) //Not too efficient I guess
-		fmt.Println("SYMBOL2!", atom.Name,atom.Symbol)
 		atom.Charge=float64(line[78]) //strconv.ParseFloat(strings.TrimSpace(line[78:78]),64)
 		if strings.Contains(line[79:79],"-"){
 			atom.Charge=-1.0*atom.Charge 
