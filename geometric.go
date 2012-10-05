@@ -342,49 +342,7 @@ func BestPlane(mol Ref, coords *matrix.DenseMatrix) (*matrix.DenseMatrix, error)
 
 
 
-/*
-//Eigenapir wraps the matrix.DenseMatrix.Eigen() function in order to guarantee 
-//That the eigenvectors and eigenvalues are sorted according to the eigenvalues
-//and also orthonormality and Handness I don't know how many of these are already 
-//guaranteed by Eig(). Will delete the unneeded parts when sure.
-func Eigenwrap2(in *matrix.DenseMatrix) ([]*matrix.DenseMatrix, []float64, error){
-	vecs,vals,_:=in.Eigen()
-	evecs:= [3]*matrix.DenseMatrix{vecs.GetColVector(0),vecs.GetColVector(1),vecs.GetColVector(2)}
-	evals:= [3]float64{vals.Get(0,0),vals.Get(1,1),vals.Get(2,2)}
-	eig:=eigenpair{evecs[:],evals[:]}
-	sort.Sort(eig)
-	//Here I should orthonormalize vectors if needed instead of just complaining. 
-	//I think orthonormality is guaranteed by  DenseMatrix.Eig() If it is, Ill delete all this
-	//If not I'll add ortonormalization routines.
-	for i:=0;i<len(eig.evecs);i++{
-		vectori:=eig.evecs[i]
-		for j:=i+1;j<len(eig.evecs);j++{
-			if i==j{
-				continue
-				}
-			if math.Abs(Dot(vectori,eig.evecs[j]))>appzero{
-				return eig.evecs,evals[:],fmt.Errorf("Vectors not ortogonal!")
-				}
-			}
-		if math.Abs(vectori.TwoNorm()-1)>appzero{
-			return eig.evecs,evals[:],fmt.Errorf("Vectors not normalized")
-			}
-		}
-	//Checking and fixing the handness of the matrix.This if-else is Jannes idea, 
-	//I don't really know whether it works.
 
-	if vecs.Det()<0{
-		vecs.Scale(-1)
-		} else {
-		vecs.TransposeInPlace()
-		vecs.ScaleRow(0,-1)
-		vecs.ScaleRow(2,-1)
-		vecs.TransposeInPlace()
-		}	
-	return eig.evecs,eig.evals, nil  //Returns a slice of evals
-	}
-
-*/
 
 
 //This is a facility to sort Eigenvectors/Eigenvalues pairs
@@ -407,7 +365,7 @@ func (E eigenpair)Len() int {
 	}
 
 
-//Eigenapir wraps the matrix.DenseMatrix.Eigen() function in order to guarantee 
+//Eigenwrap wraps the matrix.DenseMatrix.Eigen() function in order to guarantee 
 //That the eigenvectors and eigenvalues are sorted according to the eigenvalues
 //and also orthonormality and Handness I don't know how many of these are already 
 //guaranteed by Eig(). Will delete the unneeded parts when sure.
@@ -425,14 +383,16 @@ func Eigenwrap(in *matrix.DenseMatrix) (*matrix.DenseMatrix, []float64, error){
 	for i:=0;i<eig.evecs.Rows();i++{
 		vectori:=eig.evecs.GetRowVector(i)
 		for j:=i+1;j<eig.evecs.Rows();j++{
-			if i==j{
-				continue
-				}
+
+	//		if i==j{
+	//			continue //actually this cant happen, I could take this away.
+	//			}
 			if math.Abs(Dot(vectori,eig.evecs.GetRowVector(j)))>appzero{
 				return eig.evecs,evals[:],fmt.Errorf("Vectors not ortogonal!")
 				}
 			}
 		if math.Abs(vectori.TwoNorm()-1)>appzero{
+			//Of course I could just normalize the vectors instead of complaining.
 			return eig.evecs,evals[:],fmt.Errorf("Vectors not normalized")
 			}
 		}
@@ -448,7 +408,7 @@ func Eigenwrap(in *matrix.DenseMatrix) (*matrix.DenseMatrix, []float64, error){
 		eig.evecs.ScaleRow(2,-1)
 		eig.evecs.TransposeInPlace()
 		*/
-		fmt.Println("all good, I guess")
+	//	fmt.Println("all good, I guess")
 		}	
 		eig.evecs.TransposeInPlace()
 	return eig.evecs,eig.evals, nil  //Returns a slice of evals
