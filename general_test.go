@@ -175,3 +175,16 @@ func TestQM(Te *testing.T) {
 		Te.Error(err)
 		}
 	}
+
+
+func TestMatrix(Te *testing.T){
+	a:=[]float64{1,1,4,2,2,5,3,3,6}
+	A:=matrix.MakeDenseMatrix(a,3,3)
+	fmt.Println("before:\n",A)
+	A,err:=DMDelRow(A,1)
+	if err!=nil{
+		Te.Error(err)
+		}
+	fmt.Println("after:\n",A)
+	}
+

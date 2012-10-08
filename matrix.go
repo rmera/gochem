@@ -161,14 +161,14 @@ func KronekerDelta(a,b float64) float64{
 func Dot(A, B *matrix.DenseMatrix) float64{
 	var err error
 	if A.Cols()!=B.Cols() || A.Rows()!=B.Rows(){
-		return -1
+		panic("Matrices must have the same dimmension to obtain dot product")
 		}
 	//For some crazy reason if the F variable is called C, I get a
 	//"ScaleMatrixDense undeclared" error at compile time :S
 	F := A.Copy()
 	err=F.ScaleMatrixDense(B)
 	if err!=nil{
-		return -1
+		panic(err.Error())
 		}
 	return DMSummation(F)
 	}
@@ -207,13 +207,19 @@ func DMScaleByCol(A, Col *matrix.DenseMatrix) error{
 	return nil
 	}
 
-//DMScaleByRow each row of matrix A by Row. Only for square matrices.
+//DMScaleByRow each row of matrix A by Row.
 func DMScaleByRow(A, Row *matrix.DenseMatrix) error{
-	A.TransposeInPlace()  //I guess this is not SUPER efficient
-	Col:=Row.Transpose()
-	err:=DMScaleByCol(A, Col)
-	A.TransposeInPlace()
-	return err
+	Cols:=A.Cols()
+	if Cols != Row.Cols() || Row.Rows()>1{
+		return fmt.Errorf("Malformed matrices for scaling")
+		}
+	for i:=0;i<Cols;i++{
+		mult:=Row.Get(0,i)
+		for j:=0;j<A.Rows();j++{
+			A.Set(j,i,mult*A.Get(j,i))
+			}
+		}
+	return nil
 	}
 
 //DMSummation returns the sum of all elements in matrix A.
@@ -243,15 +249,18 @@ func DMaddfloat(A *matrix.DenseMatrix, B float64)*matrix.DenseMatrix{
 	}
 
 
-//DMDelCol removes column i from matrix A. 
-func DMDelCol(A *matrix.DenseMatrix,i int)error{
+//DMDelRow removes Row i from matrix A. 
+func DMDelRow(A *matrix.DenseMatrix,i int)(*matrix.DenseMatrix, error){
 		//Im not sure if copying takes place.
+		var err error
 		lenght:=A.Rows()
 		upper:=A.GetMatrix(0,0,i,3)
 		lower:=A.GetMatrix(i+1,0,lenght-i-1,3)
-		A,err:=upper.Stack(lower)
-		return err
+		A,err=upper.Stack(lower)
+		return A, err
 	}
+
+
 
 
 

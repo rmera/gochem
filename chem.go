@@ -235,11 +235,12 @@ func MakeMolecule(ats []*Atom,coords,bfactors []*matrix.DenseMatrix,charge,unpai
 
 //Deletes the coodinate i from every frame of the molecule.
 func (M *Molecule) DelCoord(i int)error{
+	var err error
 	if i>=M.Coords[0].Rows(){
 		panic("Reference: Tried to delete Coord out of bounds")
 		}
 	for j:=0;j<len(M.Coords);j++{
-		err:=DMDelCol(M.Coords[j],i)
+		M.Coords[j],err=DMDelRow(M.Coords[j],i)
 		if err!=nil{
 			return err
 			}
