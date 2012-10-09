@@ -1,35 +1,42 @@
 To the long life of the Ven. Khenpo Phuntzok Tenzin Rinpoche.
 
 
-Gochem is a library for chemistry, especially computational biochemistry, in go.
-It provides structures for handling atoms and molecules, reading/writing some common formats 
-(currently xyz, PDB and xtc) and a few functions for geometrical manipulation of molecules.
+Gochem is a library for chemistry, especially computational 
+biochemistry, in go. It provides structures for handling atoms and 
+molecules, reading/writing some common formats (currently xyz, PDB
+and xtc) and a few functions for geometrical manipulation of molecules.
 
-In gochem the Atom container contains all information about an atom that is not expected to vary
-between states (mass, etc). Coordinates and b-factors (or temperature factors) are stored 
-separately as Nx3 gomatrix dense matrices the firsts and as slices of N float64 the seconds 
+In gochem the Atom container contains all information about an atom that
+is not expected to vary between states (mass, etc). Coordinates and 
+b-factors (or temperature factors) are stored separately as Nx3 
+gomatrix dense matrices the firsts and as slices of N float64 the seconds 
 (N being the number of atoms).
 
-A Molecule container, then, contains a slice of Atoms, a slice of gomatrix dense matrices (one 
-matrix for each state of the molecule) for the coordinates, and a slice of slices of float64 
-for the b-factors.
+A Molecule container, then, contains a slice of Atoms, a slice of
+gomatrix dense matrices (one matrix for each state of the molecule) for
+the coordinates, and a slice of slices of float64 for the b-factors.
 
-The Molecule structure implements the sort.Interface interface, so that the atoms, 
-coordinates and b-factors, together, can be sorted with one function call. They are sorted 
+The Molecule structure implements the sort.Interface interface, so that
+the atoms, coordinates and b-factors, together, can be sorted with one 
+function call. They are sorted 
 according to the b-factors of the first state of the molecule.
 
-Since coordinates can be obtained separated from the rest of the atomic info, as in trajectories
-and the non-coordinate atomic information can be obtained separately from coordinates (from 
-topology files, although these are not currently supported), interfaces for trajectories (Traj)
-and topologies or references (Ref) are provided, so general functions that works with PDB files or
-trajectories can be easily written. The type *Molecule implements both the Traj and Ref interfaces.
+Since coordinates can be obtained separated from the rest of the atomic
+info, as in trajectories and the non-coordinate atomic information can 
+be obtained separately from coordinates (from topology files, although
+these are not currently supported), interfaces for trajectories (Traj)
+and topologies or references (Ref) are provided, so general functions 
+that works with PDB files or trajectories can be easily written. The 
+type *Molecule implements both the Traj and Ref interfaces.
 
 
-The library allows to read Gromacs trajectory files (xtc) if the flag 'gromacs' is given during the build.
-This requires the xdrfile from the Gromacs team (www.gromacs.org). Trajectories can be read "in one go",
-saving each frame in memory (optionally skipping frames), sequentially, where one frame is saved in 
-memory at a time, or concurrently, where several frames are read at each time and returned as go channels
-to be processed in parallel.
+The library allows to read Gromacs trajectory files (xtc) if the flag
+'gromacs' is given during the build. This requires the xdrfile from the
+Gromacs team (www.gromacs.org). Trajectories can be read "in one go", 
+saving each frame in memory (optionally skipping frames), sequentially, 
+where one frame is saved in memory at a time, or concurrently, where 
+several frames are read at each time and returned as go channels to be
+processed in parallel.
 
 The library includes a few tests that can also used as examples. 
 
@@ -42,11 +49,13 @@ Design goals:
 
 *Simplicity (of the code).
 *Readability.
-*Assume that users can code (dont overcomplicate the code with zillion simplifying functions. 
-	When some of these are provided they should be separated from the rest.)
+*Assume that users can code (dont overcomplicate the code with 
+	zillion simplifying functions. When some of these are provided 
+	they should be separated from the rest.)
 *Try to avoid the need for users to know gomatrix as much as possible
 	-Supply convenience functions to deal with coordinates.
-	-Of course users wanting to code calculations will need gomatrix anyway.
+	-Of course users wanting to code calculations will need gomatrix 
+	anyway.
 *Fast and light
 *Easy to extend
 *Useful for computational biochemistry at a classical and QM levels.
@@ -58,19 +67,22 @@ Currently Does:
 
 Reads/writes PDB
 Reads/writes XYZ files
-Superimpose molecules (adequate for small molecules since doesn't use sequence information).
-	The user can specify what atoms to use for the supeimpose transformation calculation. 
-	Then all the atoms will be supperimposed according to that transformation (i.e. the mole-
-	cules to superimpose don't need to be identical)
+Superimpose molecules (adequate for small molecules since doesn't use 
+	sequence information).The user can specify what atoms to use for 
+	the supeimpose transformation calculation. Then all the atoms 
+	will be supperimposed according to that transformation (i.e. the 
+	molecules to superimpose don't need to be identical)
 Calculate RMSD between molecules.
 Allows to get atoms and coordinates from a list, or manually.
 Allows to replace coordinates.
-Calculates moment tensor and elipsoid of inertia--related properties (some not tested).
-The Molecule object implements the sort.Interface interface, so atoms 
-can be sorted by b-factors.
+Calculates moment tensor and elipsoid of inertia--related properties 
+	(some not tested).
+The Molecule object implements the sort.Interface interface, 
+	so atoms can be sorted by b-factors.
 Axis manipulation:
 	Align a vector with the Z axis
-	Rotate around the Z axis until the xy proj. of a vector becomes the Y axis
+	Rotate around the Z axis until the xy proj. of a vector becomes 
+	the Y axis
 Simple geometrical calculations
 Reads XTC files (see above)
 Calculates and draws Ramachandran plots (uses the Plotinum library).
@@ -87,8 +99,9 @@ TODOS:
 *Read DCD trajectories.
 *Add more tests.
 
-Currently, gochem is licensed under LGPL2. This might change towards BSD in the future. Meanwhile, if you want to use 
-some of this for a BSD-licensed project, let me know.
+Currently, gochem is licensed under LGPL2. This might change towards BSD 
+in the future. Meanwhile, if you want to use some of this for a 
+BSD-licensed project, let me know.
 
 
 
