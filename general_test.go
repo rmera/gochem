@@ -106,7 +106,7 @@ func TestGeo(Te *testing.T) {
 		if err!=nil{
 			Te.Error(err)
 			}
-		mol.SetCoords(pulled_atoms[:], 0, pulled)
+		mol.SetCoords(pulled,pulled_atoms[:], 0)
 		err=mol.Corrupted()
 		if err!=nil{
 			Te.Error(err)

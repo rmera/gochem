@@ -413,7 +413,7 @@ func (M *Molecule) SetCurrent(i int){
 //If atomlist contains a single element, it replaces as many coordinates as given in newcoords, starting 
 //at the element in atomlist. In the latter case, the function checks that there are enough coordinates to
 //replace and returns an error if not.
-func (M *Molecule) SetCoords(atomlist []int, frame int, newcoords *matrix.DenseMatrix) {
+func (M *Molecule) SetCoords(newcoords *matrix.DenseMatrix,atomlist []int, frame int) {
 	if frame>=len(M.Coords){
 		panic(fmt.Sprintf("Frame (%d) out of range!",frame))
 		}
