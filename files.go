@@ -410,12 +410,7 @@ func XyzRead(xyzname string,) (*Molecule, error){
 	mcoords[0]=matrix.MakeDenseMatrix(coords,natoms,3)
 	bfactors:=make([]*matrix.DenseMatrix,1,1)
 	bfactors[0]=matrix.Zeros(len(molecule),1)
-	fmt.Println("FILE",top.Len(),mcoords[0].Rows()) ///////////77
-
 	returned,err:=MakeMolecule(top,mcoords,bfactors)
-
-	fmt.Println("FILE",returned.Len(),returned.Corrupted(),returned.Coords[0].Rows()) ///////////77
-
 	return returned, err
 	}
 
