@@ -142,6 +142,9 @@ func TestQM(Te *testing.T) {
 	if err!=nil{
 		Te.Error(err)
 		}
+	if err:=mol.Corrupted();err!=nil{
+		Te.Error(err)
+		}
 	mol.Del(mol.Len()-1)
 	mol.SetCharge(1)
 	mol.SetUnpaired(0)

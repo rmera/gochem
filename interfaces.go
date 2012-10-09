@@ -78,7 +78,7 @@ type Ref interface{
 	 SetUnpaired(i int)
 	
 	//Atom returns the Atom corresponding to the index i
-	//of the Atom slice in the Topology. Panics if 
+	//of the Atom slice in the Topology. Should panic if 
 	//out of range.
 	 Atom(i int) (*Atom)
 		
@@ -86,8 +86,8 @@ type Ref interface{
 	//Panics if out of range
 	 SetAtom(i int,at *Atom)
 	
-	//AddAtom appends an atom at the end of the topology
-	 AddAtom(at *Atom)
+	//AddAtom returms a new Ref with an atom added at the end of the topology
+	 AddAtom(at *Atom) Ref
 	
 	//SelectAtoms, given a list of ints,  returns an array of the atoms with the
 	//corresponding position in the molecule
@@ -98,8 +98,8 @@ type Ref interface{
 	//this will be changed to a tion that takes a Reference interface.
 	 MassCol() (*matrix.DenseMatrix,error)
 	 
-	//Deletes the atom i
-	DelAtom(i int) 
+	//Returns a copy of the Ref with the atom i deleted
+	DelAtom(i int) Ref
 	
 	//Returns the number of atoms in the reference
 	 Len() int

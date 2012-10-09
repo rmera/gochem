@@ -244,7 +244,6 @@ func (O *OrcaRunner) BuildInput(atoms Ref, coords *matrix.DenseMatrix, Q *QMCalc
 	if O.inputname==""{
 		O.inputname="Gochem"
 		}
-	
 	file,err:=os.Create(fmt.Sprintf("%s.inp",O.inputname))
 	if err!=nil{
 		return err
@@ -263,6 +262,7 @@ func (O *OrcaRunner) BuildInput(atoms Ref, coords *matrix.DenseMatrix, Q *QMCalc
 	//Now the type of coords, charge and multiplicity
 	fmt.Fprintf(file,"* xyz %d %d\n",atoms.Charge(),atoms.Unpaired()+1)
 	//now the coordinates
+	fmt.Println(atoms.Len(),coords.Rows())///////////////
 	for i:=0;i<atoms.Len();i++{
 		newbasis:=""
 		if isInInt(Q.HBAtoms,i)==true{
@@ -270,12 +270,13 @@ func (O *OrcaRunner) BuildInput(atoms Ref, coords *matrix.DenseMatrix, Q *QMCalc
 			}else if isInInt(Q.LBAtoms,i)==true{
 			newbasis=fmt.Sprintf("newgto \"%s\" end",Q.LowBasis)
 			}
-		fmt.Fprintf(file,"%-2s  %8.3f%8.3f%8.3f %s\n",atoms.Atom(i).Symbol, coords.Get(i,0), coords.Get(i,1), coords.Get(i,2),newbasis)	
+	//	fmt.Println(atoms.Atom(i).Symbol)
+		fmt.Fprintf(file,"%-2s  %8.3f%8.3f%8.3f %s\n",atoms.Atom(i).Symbol, coords.Get(i,0), coords.Get(i,1), coords.Get(i,2),newbasis)
 		}
 	fmt.Fprintf(file,"*\n")
 	return nil
 	}
-	
+
 //Run runs the command given by the string O.command
 //it waits or not for the result depending of 
 func (O *OrcaRunner) Run(wait bool) (err error){

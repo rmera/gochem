@@ -130,6 +130,19 @@ func (T *Topology)SetUnpaired(i int){
 	}
 
 
+//Copy returns a copy of the molecule including coordinates
+func (T *Topology) CopyAtoms() Ref{
+	Top:=new(Topology)
+	Top.Atoms=make([]*Atom,T.Len())
+	for key,val:=range(T.Atoms){
+		Top.Atoms[key]=val.Copy()
+		}
+	Top.charge=T.charge
+	Top.unpaired=T.unpaired
+	return  Top
+	}
+
+
 //Atom returns the Atom corresponding to the index i
 //of the Atom slice in the Topology. Panics if 
 //out of range.
@@ -150,8 +163,13 @@ func (T *Topology)SetAtom(i int,at *Atom){
 	}
 
 //AddAtom appends an atom at the end of the reference
-func (T *Topology)AddAtom(at *Atom){
-	T.Atoms=append(T.Atoms,at)
+func (T *Topology)AddAtom(at *Atom) Ref{
+	newmol,ok:=T.CopyAtoms().(*Topology)
+	if ok==false{
+		panic("cant happen")
+		}
+	newmol.Atoms=append(newmol.Atoms,at)
+	return newmol
 	}
 	
 
@@ -172,24 +190,46 @@ func (T *Topology) SomeAtoms(atomlist []int) ([]*Atom, error){
 	}
 
 
-//Deletes an atom by reslicing the T.Atoms slice. Notice that the 
-//memory it was using is NOT released.
-func (T *Topology) DelAtom(i int){
+//Returns a copy of T with the i atom deleted by reslicing
+//this means that the copy still uses as much memory as the original T!
+func (T *Topology) DelAtom(i int) Ref{
 	if i>=T.Len(){
 		panic("Topology: Tried to delete Atom out of bounds")
 		}
-	if i==T.Len()-1{
-		T.Atoms=T.Atoms[:i]
+	N,ok:=T.CopyAtoms().(*Topology)
+	if ok==false{
+		panic("cant happen!")
+		}
+	if i==N.Len()-1{
+		N.Atoms=N.Atoms[:i]
 		}else{
-		T.Atoms=append(T.Atoms[:i],T.Atoms[i+1:]...)
+		N.Atoms=append(N.Atoms[:i],N.Atoms[i+1:]...)
 		}	
+	return N
 	}
 
 
-//Len return the length of the molecule.
+//Len returns the length of the molecule.
 func (T *Topology) Len() int{
 	return len(T.Atoms) //This shouldnt be needed
 	}
+
+
+//MassCol returns a DenseMatrix 1-col matrix with masses of atoms and an error if they have not been calculated
+func (T *Topology) MassCol() (*matrix.DenseMatrix,error){
+	mass:=make([]float64,T.Len())
+	for i:=0;i<T.Len();i++{
+		thisatom:=T.Atom(i)
+		if thisatom.Mass==0{
+			return nil, fmt.Errorf("Not all the masses have been obtained: %d %v",i,thisatom)
+			}
+		mass[i]=thisatom.Mass
+		}
+	massmat:=matrix.MakeDenseMatrix(mass,len(mass),1)
+	return massmat, nil
+	}
+	
+
 
 
 
@@ -208,9 +248,9 @@ type Molecule struct{
 //charge charge and unpaired unpaired electrons, and returns it. It returns error if 
 //one of the slices is nil. It doesnt check for consitensy across slices or correct charge
 //or unpaired electrons.
-func MakeMolecule(ats []*Atom,coords,bfactors []*matrix.DenseMatrix,charge,unpaired int)(*Molecule,error){
+func MakeMolecule(ats Ref,coords,bfactors []*matrix.DenseMatrix)(*Molecule,error){
 	if ats==nil{
-		return nil,fmt.Errorf("Supplied a nil Topology")
+		return nil,fmt.Errorf("Supplied a nil Reference")
 		}
 	if coords==nil{
 		return nil, fmt.Errorf("Supplied a nil Coords slice")
@@ -219,12 +259,18 @@ func MakeMolecule(ats []*Atom,coords,bfactors []*matrix.DenseMatrix,charge,unpai
 		return nil, fmt.Errorf("Supplied a nil Bfactors slice")
 		}
 	mol:=new(Molecule)
-	mol.Topology=new(Topology)
-	mol.Atoms=ats
+	top,ok:=ats.(*Topology)
+	if ok==true{
+		mol.Topology=top
+		}else{
+		mol.Topology=new(Topology)
+		mol.Atoms=make([]*Atom,ats.Len())
+		for i:=0;i<ats.Len();i++{
+			mol.Atoms[i]=ats.Atom(i)
+			}
+		}
 	mol.Coords=coords
 	mol.Bfactors=bfactors
-	mol.charge=charge
-	mol.unpaired=unpaired
 	return mol, nil
 	}
 
@@ -250,24 +296,36 @@ func (M *Molecule) DelCoord(i int)error{
 
 //Deletes atom i and its coordinates from the molecule.
 func (M *Molecule)Del(i int)error{
-	M.DelAtom(i)
+	if i>=M.Len(){
+		panic("Tried to delete Atom out of bounds")
+		}
+	if i==M.Len()-1{
+		M.Atoms=M.Atoms[:i]
+		}else{
+		M.Atoms=append(M.Atoms[:i],M.Atoms[i+1:]...)
+		}
 	err:=M.DelCoord(i)
 	return err
 	}
 
 
 
-//Copy returns a copy of the molecule.
+//Copy returns a copy of the molecule including coordinates
 func (M *Molecule) Copy() (*Molecule){
 	if err:=M.Corrupted();err!=nil{
 		panic(err.Error())
 		}
 	mol:=new(Molecule)
+	/*The foll. code is from Topology.CopyAtoms, I wrote it again just not to deal with the type assersion 
+	since CopyAtoms returns a Ref interface. This should change at some point*/
 	mol.Topology=new(Topology)
 	mol.Atoms=make([]*Atom,M.Len())
 	for key,val:=range(M.Atoms){
-		mol.Atoms[key]=val
+		mol.Atoms[key]=val.Copy()
 		}
+	mol.charge=M.charge
+	mol.unpaired=M.unpaired
+	//Up to previous line
 	mol.Coords=make([]*matrix.DenseMatrix,0,len(M.Coords))
 	mol.Bfactors=make([]*matrix.DenseMatrix,0,len(M.Bfactors))
 	for key,val:=range(M.Coords){ 
@@ -280,20 +338,7 @@ func (M *Molecule) Copy() (*Molecule){
 	return mol
 	}
 
-//MassCol returns a DenseMatrix 1-col matrix with masses of atoms and an error if they have not been calculated
-func (M *Molecule) MassCol() (*matrix.DenseMatrix,error){
-	mass:=make([]float64,M.Len())
-	for i:=0;i<M.Len();i++{
-		thisatom:=M.Atom(i)
-		if thisatom.Mass==0{
-			return nil, fmt.Errorf("Not all the masses have been obtained: %d %v",i,thisatom)
-			}
-		mass[i]=thisatom.Mass
-		}
-	massmat:=matrix.MakeDenseMatrix(mass,len(mass),1)
-	return massmat, nil
-	}
-	
+
 //AddFrame akes a matrix of coordinates and appends them at the end of the Coords.
 // It checks that the number of coordinates matches the number of atoms.
 func (M *Molecule) AddFrame(newframe *matrix.DenseMatrix){

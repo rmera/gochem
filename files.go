@@ -279,6 +279,10 @@ func PdbRead(pdbname string, read_additional bool) (*Molecule, error){
 		}	
 	//This could be done faster if done in the same loop where the coords are read
 	//Instead of having another loop just for them.
+	top,err:=MakeTopology(molecule,0,0)
+	if err!=nil{
+		return nil, err
+		}
 	frames:=len(coords)
 	mcoords:=make([]*matrix.DenseMatrix,frames,frames) //Final thing to return
 	mbfactors:=make([]*matrix.DenseMatrix,frames,frames)
@@ -290,7 +294,7 @@ func PdbRead(pdbname string, read_additional bool) (*Molecule, error){
 	if err!=nil{
 		return nil, err
 		}
-	returned,err:=MakeMolecule(molecule,mcoords,mbfactors,0,0)
+	returned,err:=MakeMolecule(top,mcoords,mbfactors)
 	return returned, err
 	}
 //End Pdb_read family
@@ -398,11 +402,20 @@ func XyzRead(xyzname string,) (*Molecule, error){
 			return nil, i
 			}
 		}
+	top,err:=MakeTopology(molecule,0,0)
+	if err!=nil{
+		return nil, err
+		}
 	mcoords:=make([]*matrix.DenseMatrix,1,1)
 	mcoords[0]=matrix.MakeDenseMatrix(coords,natoms,3)
 	bfactors:=make([]*matrix.DenseMatrix,1,1)
 	bfactors[0]=matrix.Zeros(len(molecule),1)
-	returned,err:=MakeMolecule(molecule,mcoords,bfactors,0,0)
+	fmt.Println("FILE",top.Len(),mcoords[0].Rows()) ///////////77
+
+	returned,err:=MakeMolecule(top,mcoords,bfactors)
+
+	fmt.Println("FILE",returned.Len(),returned.Corrupted(),returned.Coords[0].Rows()) ///////////77
+
 	return returned, err
 	}
 
