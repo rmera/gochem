@@ -1,3 +1,6 @@
+To the long life of the Ven. Khenpo Phuntzok Tenzin Rinpoche.
+
+
 Gochem is a library for chemistry, especially computational biochemistry, in go.
 It provides structures for handling atoms and molecules, reading/writing some common formats 
 (currently xyz, PDB and xtc) and a few functions for geometrical manipulation of molecules.
@@ -107,3 +110,8 @@ PURPOSE.  See the GNU General Public License for more details.
 You should have received a copy of the GNU Lesser General 
 Public License along with this program.  If not, see 
 <http://www.gnu.org/licenses/>. 
+
+
+
+
+
