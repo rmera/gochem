@@ -142,14 +142,15 @@ func (O *OrcaRunner) BuildInput(atoms Ref, coords *matrix.DenseMatrix, Q *QMCalc
 	//The usage of RI/RICOSX is given by the presence of AuxBasis/AuxColBasis. Its the user responsability 
 	//not to set AuxColBasis for non-hybrid functionals and not to set AuxBasis and not AuxColBasis for
 	//hybrid functionals.
-	if Q.AuxColBasis!=""{
-		//this will fail if someone wrote RI in the Other variable.
-		if !(strings.Contains("RICOSX",Q.Others)){
-			Q.Others=fmt.Sprintf("%s %s",Q.Others,"RICOSX")
-			}
-	
-		}else if Q.AuxBasis!=""{
-			Q.Others=fmt.Sprintf("%s %s",Q.Others,"RI")
+	if !strings.Contains(Q.Others,"RI"){
+		if Q.AuxColBasis!="" {
+			//this will fail if someone wrote RI in the Other variable.
+			if !(strings.Contains("RICOSX",Q.Others)){
+				Q.Others=fmt.Sprintf("%s %s",Q.Others,"RICOSX")
+				}
+			}else if Q.AuxBasis!=""{
+				Q.Others=fmt.Sprintf("%s %s",Q.Others,"RI")
+				}
 			}
 	disp:="VDW3"
 	if Q.Disperssion!=""{

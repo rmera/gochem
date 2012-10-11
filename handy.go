@@ -109,10 +109,11 @@ func Super(test, templa *matrix.DenseMatrix, testlst, templalst []int) (*matrix.
 
 //Rotate about rotates the coordinates in coordsorig around by angle radians around the axis 
 //given by the vector axis. It returns the rotated coordsorig, since the original is not affected.
-func RotateAbout(angle float64,axis, coordsorig *matrix.DenseMatrix) (*matrix.DenseMatrix,error){
+func RotateAbout(coordsorig, ax1, ax2 *matrix.DenseMatrix,angle float64) (*matrix.DenseMatrix,error){
 	coords:=coordsorig.Copy()
-	translation:=coords.GetRowVector(0).Copy()
-	_=translation
+	translation:=ax1.Copy()
+	axis:=ax1.Copy()
+	axis.Subtract(ax2)//now it became the rotation axis
 	err:=SubRow(coords,translation)
 	if err!=nil{
 		return nil, err

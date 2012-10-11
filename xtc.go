@@ -176,7 +176,7 @@ func (X *XtcObj)NextConc(frames []bool)([]chan *matrix.DenseMatrix, error){
 				goCoords[j]=10*(float64(cCoords[j]))  //nm to Angstroms
 				}
 			temp:=matrix.MakeDenseMatrix(goCoords,natoms,3)
-			fmt.Println("in gorutine!", temp.GetRowVector(2))
+//			fmt.Println("in gorutine!", temp.GetRowVector(2))
 			pipe<-temp		
 			}(X.natoms,cCoords,goCoords,framechans[key])
 		}
