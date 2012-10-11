@@ -80,7 +80,7 @@ func OnesMass(lenght int)*matrix.DenseMatrix{
 //listed in testlst on te atoms of molecule templa, frame frametempla, listed in templalst. 
 //It applies those rotation and translations to the whole frame frametest of molecule test, in palce. 
 //testlst and templalst must have the same number of elements.
-func Super(test, templa *matrix.DenseMatrix, testlst, templalst []int) error{
+func Super(test, templa *matrix.DenseMatrix, testlst, templalst []int) (*matrix.DenseMatrix, error){
 	ctest:=test
 	if len(testlst)!=0{
 		ctest=SomeRows(test,testlst)
@@ -90,19 +90,19 @@ func Super(test, templa *matrix.DenseMatrix, testlst, templalst []int) error{
 		ctempla=SomeRows(templa,templalst,)
 		}
 	if ctempla.Rows()!=ctest.Rows(){
-		return fmt.Errorf("Mismatched template and test atom numbers")
+		return nil, fmt.Errorf("Mismatched template and test atom numbers: %d, %d", ctempla.Rows(),ctest.Rows())
 		}
 	_,rotation,trans1,trans2,err1:=GetSuper(ctest,ctempla)
 	if err1!=nil{
-		return err1
+		return nil,err1
 		}
 	err1=AddRow(test,trans1)
 	test=matrix.ParallelProduct(test,rotation)
 	err2:=AddRow(test,trans2)
 	if err1 != nil || err2!=nil{
-		return fmt.Errorf("Unexpected error when aplying superposition")
+		return nil,fmt.Errorf("Unexpected error when aplying superposition")
 		}
-	return nil
+	return test,nil
 	}
 
 
