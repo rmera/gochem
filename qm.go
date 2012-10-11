@@ -96,11 +96,6 @@ func (O *OrcaRunner)SetnCPU(cpu int){
 	O.nCPU=cpu
 	}
 
-//This is just a dummy function
-func (O *OrcaRunner)SetInputName(name string){
-	O.inputname=name
-	}
-
 func (O *OrcaRunner)SetName(name string){
 	O.inputname=name
 	}
