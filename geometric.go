@@ -36,13 +36,13 @@ import "sort"
 func AngleInVectors(v1,v2 *matrix.DenseMatrix) float64 {
 	//Maybe I'll also write a safer version of this function?
 	normproduct:=v1.TwoNorm()*v2.TwoNorm()
-	dotprod:=Dot(v1,v2) //Ignore the error
+	dotprod:=Dot(v1,v2)
 	argument:=dotprod/normproduct
 	//Take care of floating point math errors
 	if math.Abs(argument-1)<=appzero{
 		argument=1
 		}else if math.Abs(argument+1)<=appzero{
-		argument=-1	
+		argument=-1
 		}
 	//fmt.Println(dotprod/normproduct,argument) //dotprod/normproduct, dotprod, normproduct,v1.TwoNorm(),v2.TwoNorm())
 	angle:=math.Acos(argument) 
@@ -258,7 +258,7 @@ func Dihedral(a,b,c,d *matrix.DenseMatrix) (float64){
 	}
 
 /***Shape indicator functions***/
-const appzero float64 = 0.000001  //used to correct floating point 
+const appzero float64 = 0.0000001  //used to correct floating point 
 //errors. Everything equal or less than this is considered zero.
 
 
