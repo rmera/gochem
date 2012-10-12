@@ -231,8 +231,8 @@ func RMSD(test, template *matrix.DenseMatrix) (float64, error){
 
 
 
-/*Dihedral calculate the dihedral between the points a, b, c, d, where the first plane 
- * is defined by abc and the second by bcd*/
+//Dihedral calculate the dihedral between the points a, b, c, d, where the first plane 
+//is defined by abc and the second by bcd.
 func Dihedral(a,b,c,d *matrix.DenseMatrix) (float64){
 	all:=[]*matrix.DenseMatrix{a,b,c,d}
 	for number,point:=range(all){
