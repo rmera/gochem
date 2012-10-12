@@ -43,6 +43,35 @@ import "fmt"
 //Some of this functions don't return error messages because they are meant to
 //Be inserted in mathematical expressions and thus they need to return only one value.
 
+/*SetRows replaces the coordinates of atoms in the positions given by atomlist with the coordinates
+in newcoords (in order) If atomlist contains a single element, it replaces as many coordinates
+as given in newcoords, starting 
+at the element in atomlist. In the latter case, the function checks that there are enough coordinates to
+replace and panics if not. */
+func SetRows(target, newcoords *matrix.DenseMatrix, atomlist []int) *matrix.DenseMatrix{
+	//If supplies a list with one number, the newcoords will replace the old coords
+	//Starting that number. We do check that you don't put more coords than spaces we have.
+	returned:=target.Copy()
+	if len(atomlist)==1{
+		if newcoords.Rows()>target.Rows()-atomlist[0]-1{
+			panic(fmt.Sprintf("Cant replace starting from position %d: Not enough atoms in molecule", atomlist[0]))
+			} 
+		returned.SetMatrix(atomlist[0],0,newcoords)
+		return returned
+		}
+	//If the list has more than one atom
+	lenatoms:=target.Len()	
+	for k,j:=range(atomlist){
+		if j>lenatoms-1{
+			panic(fmt.Sprintf("Requested position number: %d (%d) out of range",k,j))
+			}
+		returned.SetMatrix(j,0,newcoords.GetRowVector(k))
+		}
+	return returned
+	}
+	
+
+
 
 //Somerows, given a list of ints and the desired frame, returns an slice matrix.DenseMatrix
 //containing the coordinates of the atoms with the corresponding index.
