@@ -434,7 +434,7 @@ func XyzWrite(mol *Molecule, frame int, xyzname string) error{
 	towrite:=mol.Coords[frame].Arrays()  //An array of array with the data in the matrix	
 	for i:=0;i<mol.Len();i++{
 		c:=towrite[i] //coordinates for the corresponding atoms
-		_,err=fmt.Fprintf(out,"%-2s  %8.3f%8.3f%8.3f \n",mol.Atom(i).Symbol, c[0],c[1],c[2])
+		_,err=fmt.Fprintf(out,"%-2s  %12.6f%12.6f%12.6f \n",mol.Atom(i).Symbol, c[0],c[1],c[2])
 		if err!=nil{
 			return err
 			}
