@@ -60,7 +60,7 @@ func SetRows(target, newcoords *matrix.DenseMatrix, atomlist []int) *matrix.Dens
 		return returned
 		}
 	//If the list has more than one atom
-	lenatoms:=target.Len()	
+	lenatoms:=target.Rows()	
 	for k,j:=range(atomlist){
 		if j>lenatoms-1{
 			panic(fmt.Sprintf("Requested position number: %d (%d) out of range",k,j))
