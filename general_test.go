@@ -169,6 +169,13 @@ func TestQM(Te *testing.T) {
 	_=orca.BuildInput(mol,atoms,calc)
 	path,_:=os.Getwd()
 	fmt.Println(path)
+	//Now a MOPAC optimization with the same configuration.
+	mopac:=MakeMopacRunner()
+	mopac.BuildInput(mol,atoms,calc)
+	mopac.SetCommand("/home/rmera/ciencia/programas/mopac2/MOPAC2012.exe")
+	if err:=mopac.Run(true); err!=nil{
+		Te.Error(err)
+		}
 //Took away this because it takes too long to run :-)
 /*	if err=orca.Run(true); err!=nil{
 		Te.Error(err)
