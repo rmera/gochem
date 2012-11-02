@@ -159,4 +159,11 @@ var mopacMultiplicity = map[int] string {
 }
 
 
-
+func (O *MopacRunner) GetEnergy() (float64, error){
+	file,err:=os.Create(fmt.Sprintf("%s.out",O.inputname))
+	if err!=nil{
+		return err
+		}
+	defer file.Close()
+	file=
+	}
