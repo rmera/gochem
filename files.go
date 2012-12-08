@@ -391,7 +391,7 @@ func XyzRead(xyzname string,) (*Molecule, error){
 		molecule[i]=new(Atom)
 		molecule[i].Symbol=strings.ToTitle(strings.ToLower(fields[0]))
 		molecule[i].Mass=symbolMass[molecule[i].Symbol]
-		coords[i*3],errs[0]=strconv.ParseFloat(fields[1],64)
+		coords[i*3],errs[0]=  strconv.ParseFloat(fields[1],64)
 		coords[i*3+1],errs[1]=strconv.ParseFloat(fields[2],64)
 		coords[i*3+2],errs[2]=strconv.ParseFloat(fields[3],64)
 	}	

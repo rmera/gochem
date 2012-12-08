@@ -31,10 +31,13 @@ package chem
 
 import "os"  
 import "strings"
+import "strconv"
+import "bufio"
 import "fmt"
 import  "github.com/skelterjohn/go.matrix"
 import "os/exec"
 
+const eV2Kcalmol float64 = 23.061
 
 type MopacRunner struct{
 	defmethod string
@@ -131,21 +134,8 @@ func (O *MopacRunner) BuildInput(atoms Ref, coords *matrix.DenseMatrix, Q *QMCal
 	fmt.Fprintf(file,"\n")
 	return nil
 	}
-
-//Run runs the command given by the string O.command
-//it waits or not for the result depending of 
-func (O *MopacRunner) Run(wait bool) (err error){
-	command:=exec.Command("nohup",O.command,fmt.Sprintf("%s.inp",O.inputname))
-	if wait==true{
-		err=command.Run()
-		}else{
-		err=command.Start()	
-		}
-	return err
-	}
-
-
-
+	
+	
 var mopacMultiplicity = map[int] string {
       1: "Singlet",
 	  2: "Doublet",
@@ -157,13 +147,128 @@ var mopacMultiplicity = map[int] string {
 	  8: "Octet",
 	  9: "Nonet",
 }
+	
+	
+
+//Run runs the command given by the string O.command
+//it waits or not for the result depending of 
+func (O *MopacRunner) Run(wait bool) (err error){
+	command:=exec.Command("nohup",O.command,fmt.Sprintf("%s.mop",O.inputname))
+	if wait==true{
+		err=command.Run()
+		}else{
+		err=command.Start()	
+		}
+	return err
+	}
 
 
+
+//GetEnergy gets the last energy for a MOPAC2009/2012 calculation by
+//parsing the mopac output file.
 func (O *MopacRunner) GetEnergy() (float64, error){
-	file,err:=os.Create(fmt.Sprintf("%s.out",O.inputname))
+	var err error
+	var energy float64
+	file,err:=os.Open(fmt.Sprintf("%s.out",O.inputname))
 	if err!=nil{
-		return err
+		return 0, err
 		}
 	defer file.Close()
-	file=
+	out := bufio.NewReader(file)	
+	err=fmt.Errorf("Mopac Energy not found in %s", O.inputname)
+	for{
+		var line string
+		line, err = out.ReadString('\n')
+		if err != nil {
+			break
+		}
+		if strings.Contains(line, "TOTAL ENERGY"){
+			splitted:=strings.Fields(line)
+			if len(splitted)<4{
+				err=fmt.Errorf("Error reading energy from MOPAC output file!")
+				break
+				}
+			energy,err=strconv.ParseFloat(splitted[3],64)
+			if err!=nil{
+				break
+				}
+			energy=energy*eV2Kcalmol
+			err=nil
+			break
+		}
 	}
+	if err!=nil{
+		return 0, err
+		}
+	return energy, err
+}
+
+//Get Geometry reads the optimized geometry from a MOPAC2009/2012 output
+func (O *MopacRunner) GetGeometry(atoms Ref) (*matrix.DenseMatrix, error){
+	var err error
+	natoms:=atoms.Len()
+	coords:=make([]float64,natoms*3,natoms*3) //will be used for return
+	file,err:=os.Open(fmt.Sprintf("%s.out",O.inputname))
+	if err!=nil{
+		return nil, err
+		}
+	defer file.Close()
+	out := bufio.NewReader(file)	
+	err=fmt.Errorf("Mopac Energy not found in %s", O.inputname)
+	//some variables that will be changed/increased during the next for loop
+	final_point:=false //to see if we got to the right part of the file
+	reading:=false//start reading
+	i:=0
+	errsl:=make([]error,3,3)
+	for{
+		var line string
+		line, err = out.ReadString('\n')
+		if err != nil {
+			break
+		}
+		if strings.Contains(line,"FINAL  POINT  AND  DERIVATIVES"){
+			final_point=true
+			continue
+			}
+		if  strings.Contains(line,"(ANGSTROMS)     (ANGSTROMS)     (ANGSTROMS)") && final_point{
+			_, err = out.ReadString('\n')
+			if err != nil {
+				break
+			}
+			reading=true
+			continue
+		}
+		if reading {
+			//So far we dont check that there are not too many atoms in the mopac output.
+			if i*3+2>natoms*3{
+				err=nil
+				break
+				}	
+			coords[i*3],errsl[0]=strconv.ParseFloat(strings.TrimSpace(line[22:35]),64)
+			coords[i*3+1],errsl[1]=strconv.ParseFloat(strings.TrimSpace(line[38:51]),64)
+			coords[i*3+2],errsl[2]=strconv.ParseFloat(strings.TrimSpace(line[54:67]),64)
+			i++		
+			err=parseErrorSlice(errsl)
+			if err!=nil{
+				break
+			}
+		}
+	}
+	if err!=nil{
+		return nil, err
+		}
+	mcoords:=matrix.MakeDenseMatrix(coords,natoms,3)
+	return mcoords, nil
+}
+
+func parseErrorSlice(errorsl []error) error{
+	for _, val:=range(errorsl){
+		if val!=nil{
+			return val
+			}
+	}
+	return nil
+}
+
+
+

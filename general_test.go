@@ -172,8 +172,22 @@ func TestQM(Te *testing.T) {
 	//Now a MOPAC optimization with the same configuration.
 	mopac:=MakeMopacRunner()
 	mopac.BuildInput(mol,atoms,calc)
-	mopac.SetCommand("/home/rmera/ciencia/programas/mopac2/MOPAC2012.exe")
-	if err:=mopac.Run(true); err!=nil{
+	mopaccommand := os.Getenv("MOPAC_PATH")
+	mopac.SetCommand(mopaccommand)
+//	if err:=mopac.Run(true); err!=nil{
+//		Te.Error(err)
+//	}
+	energy,err:=mopac.GetEnergy()
+	if err!=nil{
+		Te.Error(err)
+	}
+	geometry,err:=mopac.GetGeometry(mol)
+	if err!=nil{
+		Te.Error(err)
+	}
+	mol.Coords[0]=geometry
+	fmt.Println(energy)
+	if err:=XyzWrite(mol,0,"mopac.xyz"); err!=nil{
 		Te.Error(err)
 		}
 //Took away this because it takes too long to run :-)
