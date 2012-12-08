@@ -113,7 +113,7 @@ func SafeSomeRows(M *matrix.DenseMatrix, clist []int) (*matrix.DenseMatrix, erro
 			}
 		ret=append(ret,tmp)
 		}
-	return matrix.MakeDenseMatrixStacked(ret)
+	return matrix.MakeDenseMatrixStacked(ret), nil
 	}	
 	
 //Unitarize takes a vector and divides it by its norm
