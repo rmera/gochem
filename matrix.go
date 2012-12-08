@@ -93,7 +93,29 @@ func SomeRows(M *matrix.DenseMatrix, clist []int) (*matrix.DenseMatrix){
 		}
 	return matrix.MakeDenseMatrixStacked(ret)
 	}
-
+	
+//SafeSomeRows, given a list of ints and the desired frame, returns an slice matrix.DenseMatrix
+//containing the coordinates of the atoms with the corresponding index.
+//This function returns a copy, not a reference, so changes to the returned matrix
+//don't alter the original. It check for correctness of the frame and the
+//Atoms requested. Unlike SomeRow, which panics in these cases, SafeSomeRows returns an error. if problems,
+//or nil.
+func SafeSomeRows(M *matrix.DenseMatrix, clist []int) (*matrix.DenseMatrix, error){
+	rows:=M.Rows()
+	ret:=make([][]float64,0,len(clist))
+	for k,j:=range(clist){
+		if j>rows-1{
+			return nil, fmt.Errorf("Coordinate requested (Number: %d, value: %d) out of range!",k,j)
+			}
+		tmp:=M.GetRowVector(j).Array()
+		if len(tmp)!=3{
+			return nil, fmt.Errorf("Coordinate %d has %d components instead of 3",k, len(tmp))
+			}
+		ret=append(ret,tmp)
+		}
+	return matrix.MakeDenseMatrixStacked(ret)
+	}	
+	
 //Unitarize takes a vector and divides it by its norm
 //thus obtaining an unitary vector pointing in the same direction as 
 //vector.
