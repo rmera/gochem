@@ -176,11 +176,16 @@ func (O *MopacRunner) GetEnergy() (float64, error){
 	defer file.Close()
 	out := bufio.NewReader(file)	
 	err=fmt.Errorf("Mopac Energy not found in %s", O.inputname)
+	trust_radius_warning:=false
 	for{
 		var line string
 		line, err = out.ReadString('\n')
 		if err != nil {
 			break
+		}
+		if strings.Contains(line,"TRUST RADIUS NOW LESS THAN 0.00010 OPTIMIZATION TERMINATING"){
+			trust_radius_warning=true
+			continue
 		}
 		if strings.Contains(line, "TOTAL ENERGY"){
 			splitted:=strings.Fields(line)
@@ -199,6 +204,9 @@ func (O *MopacRunner) GetEnergy() (float64, error){
 	}
 	if err!=nil{
 		return 0, err
+		}
+	if trust_radius_warning{
+		err=fmt.Errorf("Probable problem in calculation")
 		}
 	return energy, err
 }
@@ -220,13 +228,20 @@ func (O *MopacRunner) GetGeometry(atoms Ref) (*matrix.DenseMatrix, error){
 	reading:=false//start reading
 	i:=0
 	errsl:=make([]error,3,3)
+	trust_radius_warning:=false
 	for{
 		var line string
 		line, err = out.ReadString('\n')
 		if err != nil {
 			break
 		}
-		if strings.Contains(line,"FINAL  POINT  AND  DERIVATIVES"){
+		
+		if (!reading) && strings.Contains(line,"TRUST RADIUS NOW LESS THAN 0.00010 OPTIMIZATION TERMINATING"){
+			trust_radius_warning=true
+			continue
+		}
+		
+		if !reading && strings.Contains(line,"FINAL  POINT  AND  DERIVATIVES"){
 			final_point=true
 			continue
 			}
@@ -258,6 +273,9 @@ func (O *MopacRunner) GetGeometry(atoms Ref) (*matrix.DenseMatrix, error){
 		return nil, err
 		}
 	mcoords:=matrix.MakeDenseMatrix(coords,natoms,3)
+	if trust_radius_warning{
+		return mcoords, fmt.Errorf("Probable problem in calculation")
+		}
 	return mcoords, nil
 }
 

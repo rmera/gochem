@@ -179,11 +179,19 @@ func TestQM(Te *testing.T) {
 //	}
 	energy,err:=mopac.GetEnergy()
 	if err!=nil{
+		if err.Error()=="Probable problem in calculation"{
+			fmt.Println(err.Error())
+			}else{
 		Te.Error(err)
+		}
 	}
 	geometry,err:=mopac.GetGeometry(mol)
 	if err!=nil{
+		if err.Error()=="Probable problem in calculation"{
+			fmt.Println(err.Error())
+			}else{
 		Te.Error(err)
+		}
 	}
 	mol.Coords[0]=geometry
 	fmt.Println(energy)
