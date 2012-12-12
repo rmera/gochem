@@ -35,6 +35,7 @@ import "fmt"
 import  "github.com/skelterjohn/go.matrix"
 import "runtime"
 import "os/exec"
+import "strconv"
 
 type IntConstraint struct{
 	Kind byte
@@ -331,3 +332,122 @@ var orcaDisp = map[string] string {
 
 
 
+func (O *OrcaRunner) GetGeometry(atoms Ref) (*matrix.DenseMatrix, error){
+	var err error
+	geofile:=fmt.Sprintf("%s.xyz",O.inputname)
+	//Here any error of orcaNormal... or false means the same, so the error can be ignored.
+	if trust:=O.orcaNormalTermination();!trust{
+		err=fmt.Errorf("Probable problem in calculation")
+	}
+	//This might not be super efficient but oh well.
+	mol,err1:=XyzRead(geofile)
+	if err1!=nil{
+		return nil, err1
+	}
+	return mol.Coords[0], err //returns the coords, the error indicates whether the structure is trusty (normal calculation) or not
+}
+
+
+//Gets the energy of a previous Orca calculations.
+func (O *OrcaRunner) GetEnergy() (float64, error){
+	err:=fmt.Errorf("Probable problem in calculation")
+	f,err1:=os.Open(fmt.Sprintf("%s.xyz",O.inputname))
+	if err1!=nil{
+		return 0, err1
+		}
+	defer f.Close()
+	f.Seek(0,2) //We start at the end of the file
+	energy:=0.0
+	var found bool
+	for i:=0;;i++{
+		line,err1:=getTailLine(f)
+		if err1!=nil{
+			return 0.0, err1
+			}
+		if strings.Contains(line,"**ORCA TERMINATED NORMALLY**"){
+			err=nil
+			}
+		if strings.Contains(line,"FINAL SINGLE POINT ENERGY"){
+			splitted:=strings.Fields(line)
+			energy,err1=strconv.ParseFloat(splitted[4],64)
+			if err1!=nil{
+				return 0.0, err1
+				}
+			found=true
+			break
+		}
+	}
+	if !found{
+		return 0.0, fmt.Errorf("Output does not contain energy")
+		}
+	return energy, err
+}
+
+
+//Gets previous line of the file f
+func getTailLine(f *os.File)(line string, err error){
+	var i int64 = 1
+	buf:=make([]byte,1)
+	var ini int64 = 0
+	var end int64 = 0
+	for ;;i++{
+		//move the pointer back one byte per cycle
+		if _,err:=f.Seek(-1,1);err!=nil{
+			return "", err
+			}
+		if _,err:=f.Read(buf);err!=nil{
+			return "",err
+			}
+		if buf[0]==byte('\n') && end==0{
+			end=i
+			}else if buf[0]==byte('\n') && ini==0{
+			ini=i
+			break
+		}
+	}
+	if _,err:=f.Seek(-1*ini,2);err!=nil{
+		return "", err
+		}
+	bufF:=make([]byte,ini-end)
+	f.Read(bufF)
+	return string(bufF),nil	
+}
+
+//This checks that an ORCA calculation has terminated normally
+//I know this duplicates code, I wrote this one first and then the other one.
+func (O *OrcaRunner) orcaNormalTermination()(bool){
+	var ini int64 = 0
+	var end int64 = 0
+	var first bool
+	buf:=make([]byte,1)
+	f, err:= os.Open(fmt.Sprintf("%s.out",O.inputname))
+	if err!=nil{
+		return false
+		}
+	defer f.Close()
+	var i int64 = 1
+	for ;;i++{
+		if _,err:=f.Seek(-1*i,2);err!=nil{
+			return false
+			}
+		if _,err:=f.Read(buf);err!=nil{
+			return false
+			}
+		if buf[0]==byte('\n') && first==false{
+			first=true
+		}else if buf[0]==byte('\n') && end==0{
+			end=i
+			}else if buf[0]==byte('\n') && ini==0{
+			ini=i
+			break
+		}
+
+	}
+	f.Seek(-1*ini,2)
+	bufF:=make([]byte,ini-end)
+	f.Read(bufF)
+	if strings.Contains(string(bufF),"**ORCA TERMINATED NORMALLY**"){
+		return true
+		}
+	return false
+}
