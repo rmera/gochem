@@ -42,7 +42,7 @@ The library includes a few tests that can also used as examples.
 
 
 Gochem uses the Gomatrix (https://github.com/skelterjohn/go.matrix) 
-and Plotinum (http://code.google.com/p/plotinum/) library.
+and Plotinum (http://code.google.com/p/plotinum/) libraries.
 
 
 Design goals:
@@ -67,14 +67,16 @@ Currently Does:
 
 Reads/writes PDB
 Reads/writes XYZ files
-Superimpose molecules (adequate for small molecules since doesn't use 
-	sequence information).The user can specify what atoms to use for 
-	the supeimpose transformation calculation. Then all the atoms 
-	will be supperimposed according to that transformation (i.e. the 
-	molecules to superimpose don't need to be identical)
+Superimpose molecules (especially adequate for non-proteins since  
+	doesn't use sequence information).The user can specify what 
+	atoms to use for the supeimpose transformation calculation. 
+	Then all the atoms will be supperimposed according to that
+	transformation (i.e. the molecules to superimpose don't need 
+	to be identical)
 Calculate RMSD between molecules.
-Allows to get atoms and coordinates from a list, or manually.
-Allows to replace coordinates.
+Allows to select atoms and coordinates by using a go slice 
+	of indexes.
+Allows to replace selected coordinates.
 Calculates moment tensor and elipsoid of inertia--related properties 
 	(some not tested).
 The Molecule object implements the sort.Interface interface, 
@@ -83,18 +85,22 @@ Axis manipulation:
 	Align a vector with the Z axis
 	Rotate around the Z axis until the xy proj. of a vector becomes 
 	the Y axis
+	Rotate a sub-group of atoms in a molecule using any given vector
+	as rotation axis.
 Simple geometrical calculations
-Reads XTC files (see above)
+Reads XTC files, sequencially and concurrently.
 Calculates and draws Ramachandran plots (uses the Plotinum library).
-Allows to set up and run QM calculations
+Allows to set up, run and recover results from QM calculations
 	with Orca (which must be downloaded independently from 
 	http://www.mpibac.mpg.de/bac/logins/neese/description.php)
+Allows to set up, run and recover results for semiempirical
+	calculations with MOPAC (which must be obtained from 
+	http://openmopac.net/)
 
 TODOS:
 
 
 *Protein superimposer (Calign?).
-*Read/Write Mopac2009 input/output files for quick optimizations.
 *Additional geometrical manipulation tools.
 *Read DCD trajectories.
 *Add more tests.
