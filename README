@@ -33,8 +33,8 @@ type *Molecule implements both the Traj and Ref interfaces.
 The library allows to read Gromacs trajectory files (xtc) if the flag
 'gromacs' is given during the build. This requires the xdrfile from the
 Gromacs team (www.gromacs.org). Trajectories can be read "in one go", 
-saving each frame in memory (optionally skipping frames), sequentially, 
-where one frame is saved in memory at a time, or concurrently, where 
+saving each frame in memory (optionally skipping frames); sequentially, 
+where one frame is saved in memory at a time; or concurrently, where 
 several frames are read at each time and returned as go channels to be
 processed in parallel.
 
