@@ -93,9 +93,11 @@ func MakeOrcaRunner() *OrcaRunner{
 
 //OrcaRunner methods
 
+//Sets the number of CPU to be used
 func (O *OrcaRunner)SetnCPU(cpu int){
 	O.nCPU=cpu
 	}
+
 
 func (O *OrcaRunner)SetName(name string){
 	O.inputname=name
@@ -106,7 +108,10 @@ func (O *OrcaRunner)SetCommand(name string){
 	}
 
 
-
+/*Sets defaults for ORCA calculation. Default is a single-point at 
+ revPBE/def2-SVP with RI, and all the available CPU with a max of
+ 8. The ORCA command is set to $ORCA_PATH/orca, at least in
+ unix.*/
 func (O *OrcaRunner)SetDefaults(){
 	O.defmethod="revPBE"
 	O.defbasis="def2-SVP"
@@ -331,7 +336,10 @@ var orcaDisp = map[string] string {
 }
 
 
-
+/*Reads the latest geometry from an ORCA optimization. Returns the 
+  geometry or error. Returns the geometry AND error if the geometry read
+  is not the product of a correctly ended ORCA calculation. In this case
+  the error is "probable problem in calculation"*/
 func (O *OrcaRunner) GetGeometry(atoms Ref) (*matrix.DenseMatrix, error){
 	var err error
 	geofile:=fmt.Sprintf("%s.xyz",O.inputname)
@@ -349,6 +357,9 @@ func (O *OrcaRunner) GetGeometry(atoms Ref) (*matrix.DenseMatrix, error){
 
 
 //Gets the energy of a previous Orca calculations.
+//Returns error if problem, and also if the energy returned that is product of an
+//abnormally-terminated ORCA calculation. (in this case error is "Probable problem
+//in calculation")
 func (O *OrcaRunner) GetEnergy() (float64, error){
 	err:=fmt.Errorf("Probable problem in calculation")
 	f,err1:=os.Open(fmt.Sprintf("%s.xyz",O.inputname))

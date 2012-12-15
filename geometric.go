@@ -367,8 +367,9 @@ func (E eigenpair)Len() int {
 
 //Eigenwrap wraps the matrix.DenseMatrix.Eigen() function in order to guarantee 
 //That the eigenvectors and eigenvalues are sorted according to the eigenvalues
-//and also orthonormality and Handness I don't know how many of these are already 
-//guaranteed by Eig(). Will delete the unneeded parts when sure.
+//It also guarantees orthonormality and handness. I don't know how many of 
+//these are already guaranteed by Eig(). Will delete the unneeded parts 
+//And even this whole function when sure.
 func Eigenwrap(in *matrix.DenseMatrix) (*matrix.DenseMatrix, []float64, error){
 	evecs,vals,_:=in.Eigen()
 	evals:= [3]float64{vals.Get(0,0),vals.Get(1,1),vals.Get(2,2)}

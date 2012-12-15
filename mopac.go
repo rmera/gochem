@@ -46,7 +46,8 @@ type MopacRunner struct{
 	}
 
 
-
+//Creates and initialized a new instance of MopacRuner, with values set
+//to its defaults.
 func MakeMopacRunner() *MopacRunner{
 	run:=new(MopacRunner)
 	run.SetDefaults()
@@ -55,20 +56,27 @@ func MakeMopacRunner() *MopacRunner{
 
 //MopacRunner methods
 
+//Just to satisfy the interface. It does nothing
 func (O *MopacRunner)SetnCPU(cpu int){
 	//It does nothing! :-D
 	}
-
+//Sets the name for the job, used for input
+//and output files (ex. input will be name.inp).
 func (O *MopacRunner)SetName(name string){
 	O.inputname=name
 	}
 
+//Sets the command to run the MOPAC program.
 func (O *MopacRunner)SetCommand(name string){
 	O.command=name
 	}
 
 
-
+/*Sets some defaults for MopacRunner. default is an optimization at
+  PM6-DH2X It tries to locate mopac2009 according to the
+  $MOPAC_LICENSE environment variable, which might only work in UNIX. 
+  If other system or using MOPAC2012 the command Must be set with the
+  SetCommand function. */
 func (O *MopacRunner)SetDefaults(){
 	O.defmethod="PM6-DH2X"
 	O.command=os.ExpandEnv("${MOPAC_LICENSE}/MOPAC2009.exe")
@@ -164,8 +172,10 @@ func (O *MopacRunner) Run(wait bool) (err error){
 
 
 
-//GetEnergy gets the last energy for a MOPAC2009/2012 calculation by
-//parsing the mopac output file.
+/*GetEnergy gets the last energy for a MOPAC2009/2012 calculation by
+  parsing the mopac output file. Return error if fail. Also returns
+  Error ("Probable problem in calculation")
+  if there is a energy but the calculation didnt end properly*/
 func (O *MopacRunner) GetEnergy() (float64, error){
 	var err error
 	var energy float64
@@ -211,7 +221,9 @@ func (O *MopacRunner) GetEnergy() (float64, error){
 	return energy, err
 }
 
-//Get Geometry reads the optimized geometry from a MOPAC2009/2012 output
+/*Get Geometry reads the optimized geometry from a MOPAC2009/2012 output. 
+  Return error if fail. Returns Error ("Probable problem in calculation")
+  if there is a geometry but the calculation didnt end properly*/
 func (O *MopacRunner) GetGeometry(atoms Ref) (*matrix.DenseMatrix, error){
 	var err error
 	natoms:=atoms.Len()
@@ -279,6 +291,8 @@ func (O *MopacRunner) GetGeometry(atoms Ref) (*matrix.DenseMatrix, error){
 	return mcoords, nil
 }
 
+//Support function, gets a slice of errors and returns the first
+//non-nil error found, or nil if all errors are nil.
 func parseErrorSlice(errorsl []error) error{
 	for _, val:=range(errorsl){
 		if val!=nil{
