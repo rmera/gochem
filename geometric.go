@@ -481,5 +481,17 @@ func MomentTensor(A, mass *matrix.DenseMatrix) (*matrix.DenseMatrix, error){
 	return moment, err
 	}
 
+func SelCone(A *matrix.DenseMatrix, sellist []int, radius, distance, thickness float64){
+	selection:=SomeRows(A,sellist)
+	ref2,_:=R.SomeAtom()
+	ref,_:=MakeTopology(ref2,0,1)
+	plane,_:=BestPlane(ref,selection)
+	rotation:=GetSwitchZ(plane)
+	rot:=matrix.ParallelProduct(A,rotation)
+	for i:=thickness/2;i<=distance;i+=(1.5*thickness){
+		
+		}
+	}
+
 
 
