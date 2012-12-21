@@ -439,7 +439,7 @@ func CenterOfMass(geometry, mass *matrix.DenseMatrix)(*matrix.DenseMatrix,error)
 	}
 
 
-//MassCentrate centers in in the center of mass of ref. Mass must be
+//MassCentrate centers in in the center of mass of oref. Mass must be
 //A column vector. Returns the centered matrix and the displacement matrix.
 func MassCentrate(in, oref, mass *matrix.DenseMatrix) (*matrix.DenseMatrix,*matrix.DenseMatrix, error){
 	if mass==nil{ //just obtain the geometric center
@@ -481,15 +481,50 @@ func MomentTensor(A, mass *matrix.DenseMatrix) (*matrix.DenseMatrix, error){
 	return moment, err
 	}
 
-func SelCone(A *matrix.DenseMatrix, sellist []int, radius, distance, thickness float64){
+
+func Projection(test, ref *matrix.DenseMatrix){
+	Uref:=unitarize(ref)
+//	angle:=AngleInVectors(test,ref)
+//	la:=test.TwoNorm()
+	scalar:=Dot(test,Uref) //math.Abs(la)*math.Cos(angle)
+	Uref.Scale(scalar)
+	return Uref
+	}
+
+//Given a set of cartesian points in sellist, obtains a vector "plane" normal to the best plane passing through the points.
+//It selects atoms from the set A that are inside a cone in the direction of "plane" that starts from the geometric center of the cartesian points,
+//and has an angle of angle (radians), up to a distance distance. The cone is approximated by a set of radius-increasing cilinders with height thickness.
+//THIS HAS NOT BEEN TESTED OR EVEN COMPILED YET. IM SURE IT DOESNT WORK IN ITS CURRENT FORM.
+func SelCone(B *matrix.DenseMatrix, sellist []int, angle, distance, thickness float64){
+	A:=B.Copy() //We will be altering the input so its better to work with a copy.
+	selected:=make([]int,0,3)
+	neverselected:=make([]int,0,300000) //waters that are too far to ever be selected
+	nevercutoff:=distance/math.Cos(angle) //cutoff to be added to neverselected
 	selection:=SomeRows(A,sellist)
-	ref2,_:=R.SomeAtom()
-	ref,_:=MakeTopology(ref2,0,1)
-	plane,_:=BestPlane(ref,selection)
-	rotation:=GetSwitchZ(plane)
-	rot:=matrix.ParallelProduct(A,rotation)
+	A=MassCentrate(A,selection,nil)  //Centrate A in the geometric center of the selection, Its easier for the following calculations
+	selection=MassCentrate(selection,selection,nil) //Centrate the selection as well
+	plane,_:=BestPlane(ref,selection)  //I have NO idea which direction will this vector point. We might need its negative.
 	for i:=thickness/2;i<=distance;i+=(1.5*thickness){
-		
+		maxdist:=math.Tan(angle)*i  //this should give me the radius of the cone at this point
+		for j:=0;j<=A.Rows();j++{
+			if isInInt(selected,j) || isInInt(neverselected,j){ //we dont scan things that we have already selected, or are too far
+				continue
+				}
+			atom:=A.GetRowVector()
+			proj:=Projection(atom,plane)
+			norm:=proj.TwoNorm()
+			if norm > i+(thickness/2.0) && norm < (i-thickness/2.0){
+				continue
+				}
+			proj.Subtract(atom)
+			projnorm:=proj.TwoNorm()
+			if projnorm<=maxdist{
+				selected=append(selected,j)
+				}
+			if projnorm>=nevercutoff{
+				neverselected=append(neverselected,j)
+				}
+			}
 		}
 	}
 
