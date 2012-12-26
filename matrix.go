@@ -212,7 +212,7 @@ func KronekerDelta(a,b float64) float64{
 func Dot(A, B *matrix.DenseMatrix) float64{
 	var err error
 	if A.Cols()!=B.Cols() || A.Rows()!=B.Rows(){
-		panic("Matrices must have the same dimmension to obtain dot product")
+		panic("Dot: Matrices must have the same dimmension to obtain dot product")
 		}
 	//For some crazy reason if the F variable is called C, I get a
 	//"ScaleMatrixDense undeclared" error at compile time :S
@@ -250,7 +250,7 @@ func DMPow(B *matrix.DenseMatrix, n float64) *matrix.DenseMatrix{
 func DMScaleByCol(A, Col *matrix.DenseMatrix) error{
 	Rows:=A.Rows()
 	if Rows != Col.Rows() || Col.Cols()>1{
-		return fmt.Errorf("Malformed matrices for scaling")
+		return fmt.Errorf("DMScaleByCol: Malformed matrices for scaling")
 		}
 	for i:=0;i<Rows;i++{
 		A.ScaleRow(i,Col.Get(i,0))
@@ -262,7 +262,7 @@ func DMScaleByCol(A, Col *matrix.DenseMatrix) error{
 func DMScaleByRow(A, Row *matrix.DenseMatrix) error{
 	Cols:=A.Cols()
 	if Cols != Row.Cols() || Row.Rows()>1{
-		return fmt.Errorf("Malformed matrices for scaling")
+		return fmt.Errorf("DMScaleByRow: Malformed matrices for scaling")
 		}
 	for i:=0;i<Cols;i++{
 		mult:=Row.Get(0,i)

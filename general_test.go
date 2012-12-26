@@ -220,3 +220,40 @@ func TestMatrix(Te *testing.T){
 	fmt.Println("after:\n",A)
 	}
 
+func TestSelectCone(Te *testing.T){
+	mol,err:=PdbRead("test/2c9v.pdb",true)
+	if err!=nil{
+		Te.Error(err)
+		}
+	res:=[]int{116,146,147}
+	allowed_chains:=[]string{"A","F"}
+	sele:=AtomsFromMolecules(mol,res,allowed_chains)
+	fmt.Println(sele)
+	selection:=SomeRows(mol.Coords[0],sele)
+	test,_:=mol.SomeAtoms(sele) /////////////
+	fmt.Println(test[2],test[3])  ///////////////77
+	cone:=SelCone(mol.Coords[0],selection,0.75,20,1,0) //0.524 approx pi/6 approx 30deg. 
+	/*residues:=make([]int,0,int(len(cone)/6))
+	for _,val:=range(cone){
+		if mol.Atoms[val].Molname!="HOH"{
+			residues=append(residues,mol.Atoms[val].Molid)
+		}
+	}
+	finalindex:=make([]int,0,len(cone))
+	for num,at:=range(mol.Atoms){
+		if isInInt(residues,at.Molid){
+			finalindex=append(finalindex,num)
+		}
+	}
+	_=finalindex //dummy
+	*/
+	top,_:=mol.SomeAtoms(cone)
+	ref,_:=MakeTopology(top,0,1)
+	coordst:=SomeRows(mol.Coords[0],cone)
+	coords:=make([]*matrix.DenseMatrix,1,1)
+	coords[0]=coordst
+	newmol,_:=MakeMolecule(ref,coords,mol.Bfactors)
+	PdbWrite(newmol,"test/mylittlecone.pdb")
+	
+		
+}		

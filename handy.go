@@ -46,6 +46,24 @@ func Rad2Deg(f float64)float64{
 	}
 
 
+//AtomsFromMolecules gets a selection list from a list of residues.
+//It select all the atoms that form part of the residues in the list.
+//It doesnt return errors, if a residue is out of range, no atom will
+//be returned for it. Atoms are also required to be part of one of the chains
+//specified in chains.
+func AtomsFromMolecules(mol Ref, residues []int,chains []string)([]int){
+	atlist:=make([]int,0,len(residues)*3)
+	for key:=0;key<mol.Len();key++{
+		at:=mol.Atom(key)
+		if isInInt(residues,at.Molid) && isInString(chains,string(at.Chain)){
+			atlist=append(atlist,key)
+		}
+	}
+	return atlist
+	
+}
+
+
 /*IsIn returns the position of test in the slice set, or
  * -1 if test is not present in set. Panics if set is not a slice*/
 func IsIn(test interface{}, set interface{}) (int){

@@ -142,7 +142,7 @@ func GetSwitchZ(newz *matrix.DenseMatrix) (*matrix.DenseMatrix) {
 func GetSuper(test, templa *matrix.DenseMatrix)(*matrix.DenseMatrix, *matrix.DenseMatrix, *matrix.DenseMatrix, *matrix.DenseMatrix, error){
 	dot:=matrix.ParallelProduct
 	if templa.Rows() != test.Rows() || templa.Cols()!= 3 || test.Cols()!=3{
-		return nil, nil, nil, nil, fmt.Errorf("Ill-formed matrices") 
+		return nil, nil, nil, nil, fmt.Errorf("GetSuper: Ill-formed matrices") 
 		}
 	var Scal float64
 	p:=templa.Rows()
@@ -292,7 +292,7 @@ func Rhos(evals []float64) ([]float64, error){
 /**Other geometrical**/	
 
 
-//BestPlaneB takes sorted evecs, according to the eval,s and returns a row vector that is normal to the
+//BestPlaneP takes sorted evecs, according to the eval,s and returns a row vector that is normal to the
 //Plane that best contains the molecule. Note that the function can't possibly check
 //That the vectors are sorted!. The P at the end of the name is for Performance. If 
 //That is not an issue it is safer to use the BestPlane function that wraps this one.
@@ -314,16 +314,16 @@ func BestPlaneP(evecs *matrix.DenseMatrix) (*matrix.DenseMatrix, error){
 func BestPlane(mol Ref, coords *matrix.DenseMatrix) (*matrix.DenseMatrix, error){
 	var err error
 	var Mmass *matrix.DenseMatrix
-	if mol.Len()!=coords.Rows(){
-		return nil, fmt.Errorf("Inconsistent coordinates(%d)/atoms(%d)",mol.Len(),coords.Rows())
-		}
 	if mol!=nil {
+		if mol.Len()!=coords.Rows(){
+			return nil, fmt.Errorf("Inconsistent coordinates(%d)/atoms(%d)",mol.Len(),coords.Rows())
+			}
 		Mmass,err=mol.MassCol()
 		if err!=nil{
 			return nil, err
 			}
 		}else{
-		Mmass=matrix.Ones(1,mol.Len())	
+		//Mmass=matrix.Ones(coords.Rows(),1)	
 		}
 	moment,err:=MomentTensor(coords,Mmass)
 	if err!=nil{
@@ -337,9 +337,6 @@ func BestPlane(mol Ref, coords *matrix.DenseMatrix) (*matrix.DenseMatrix, error)
 	//MomentTensor(, mass) 
 	return normal, err
 	}
-
-
-
 
 
 
@@ -443,24 +440,22 @@ func CenterOfMass(geometry, mass *matrix.DenseMatrix)(*matrix.DenseMatrix,error)
 //A column vector. Returns the centered matrix and the displacement matrix.
 func MassCentrate(in, oref, mass *matrix.DenseMatrix) (*matrix.DenseMatrix,*matrix.DenseMatrix, error){
 	if mass==nil{ //just obtain the geometric center
-		mass=matrix.Ones(in.Rows(),1)
+		mass=matrix.Ones(oref.Rows(),1)
 		}
 	ref:=oref.Copy()
-	onesvector:=matrix.Ones(1,in.Rows())
-	err:=DMScaleByCol(ref,mass)
-	if err!=nil{
+	onesvector:=matrix.Ones(1,ref.Rows())
+	if err:=DMScaleByCol(ref,mass); err!=nil{
 		return nil, nil, err
 		}
 	ref2:=matrix.ParallelProduct(onesvector,ref)
 	ref2.Scale(1.0/DMSummation(mass))
 	returned:=in.Copy()
 	for i:=0;i<returned.Rows();i++{
-		err=returned.GetRowVector(i).Subtract(ref2)
-		if err!=nil{
+		if err:=returned.GetRowVector(i).Subtract(ref2); err!=nil{
 			return nil, nil, err
 			}
 		}
-	return returned,ref2,err
+	return returned,ref2,nil
 	}
 
 
@@ -468,12 +463,14 @@ func MassCentrate(in, oref, mass *matrix.DenseMatrix) (*matrix.DenseMatrix,*matr
 //vector mass with the respective massess.
 func MomentTensor(A, mass *matrix.DenseMatrix) (*matrix.DenseMatrix, error){
 	if mass==nil{
+		mass=matrix.Ones(A.Rows(),1)
 		}
 	center,_,err:=MassCentrate(A,A.Copy(),mass)
 	if err!=nil{
 		return nil, err
 		}
 	sqrmass:=DMPow(mass,0.5)
+//	fmt.Println(center,sqrmass) ////////////////////////
 	DMScaleByCol(center,sqrmass)
 //	fmt.Println(center,"scaled center")
 	centerT:=center.Transpose()
@@ -482,8 +479,8 @@ func MomentTensor(A, mass *matrix.DenseMatrix) (*matrix.DenseMatrix, error){
 	}
 
 
-func Projection(test, ref *matrix.DenseMatrix){
-	Uref:=unitarize(ref)
+func Projection(test, ref *matrix.DenseMatrix) *matrix.DenseMatrix{
+	Uref:=Unitarize(ref)
 //	angle:=AngleInVectors(test,ref)
 //	la:=test.TwoNorm()
 	scalar:=Dot(test,Uref) //math.Abs(la)*math.Cos(angle)
@@ -494,39 +491,57 @@ func Projection(test, ref *matrix.DenseMatrix){
 //Given a set of cartesian points in sellist, obtains a vector "plane" normal to the best plane passing through the points.
 //It selects atoms from the set A that are inside a cone in the direction of "plane" that starts from the geometric center of the cartesian points,
 //and has an angle of angle (radians), up to a distance distance. The cone is approximated by a set of radius-increasing cilinders with height thickness.
-//THIS HAS NOT BEEN TESTED OR EVEN COMPILED YET. IM SURE IT DOESNT WORK IN ITS CURRENT FORM.
-func SelCone(B *matrix.DenseMatrix, sellist []int, angle, distance, thickness float64){
+//If one starts from one given point, 2 cones, one in each direction, are possible. If whatcone is 0, both cones are considered.
+//if whatcone<0, only the cone opposite to the plane vector direction. If whatcone>0, only the cone in the plane vector direction.
+func SelCone(B, selection *matrix.DenseMatrix, angle, distance, thickness float64, whatcone int) []int{
 	A:=B.Copy() //We will be altering the input so its better to work with a copy.
 	selected:=make([]int,0,3)
 	neverselected:=make([]int,0,300000) //waters that are too far to ever be selected
 	nevercutoff:=distance/math.Cos(angle) //cutoff to be added to neverselected
-	selection:=SomeRows(A,sellist)
-	A=MassCentrate(A,selection,nil)  //Centrate A in the geometric center of the selection, Its easier for the following calculations
-	selection=MassCentrate(selection,selection,nil) //Centrate the selection as well
-	plane,_:=BestPlane(ref,selection)  //I have NO idea which direction will this vector point. We might need its negative.
-	for i:=thickness/2;i<=distance;i+=(1.5*thickness){
+	A,_,err:=MassCentrate(A,selection,nil)  //Centrate A in the geometric center of the selection, Its easier for the following calculations
+	if err!=nil{
+		panic(err.Error())
+		}
+	selection,_,_=MassCentrate(selection,selection,nil) //Centrate the selection as well
+	plane,err:=BestPlane(nil,selection)  //I have NO idea which direction will this vector point. We might need its negative.
+	if err!=nil{
+		panic(err.Error())
+	}
+	for i:=thickness/2;i<=distance;i+=thickness{
 		maxdist:=math.Tan(angle)*i  //this should give me the radius of the cone at this point
-		for j:=0;j<=A.Rows();j++{
-			if isInInt(selected,j) || isInInt(neverselected,j){ //we dont scan things that we have already selected, or are too far
+		for j:=0;j<A.Rows();j++{
+			if isInInt(selected,j)  || isInInt(neverselected,j){ //we dont scan things that we have already selected, or are too far
 				continue
-				}
-			atom:=A.GetRowVector()
+			}
+			atom:=A.GetRowVector(j)
 			proj:=Projection(atom,plane)
 			norm:=proj.TwoNorm()
-			if norm > i+(thickness/2.0) && norm < (i-thickness/2.0){
-				continue
+			//Now at what side of the plane is the atom?
+			angle:=AngleInVectors(atom,plane)
+			if whatcone>0{
+				if angle>math.Pi/2{
+					continue
 				}
+			}else if whatcone<0{
+				if angle<math.Pi/2{
+					continue
+				}	
+			}
+			if norm > i+(thickness/2.0) || norm < (i-thickness/2.0){
+				continue
+			}
 			proj.Subtract(atom)
 			projnorm:=proj.TwoNorm()
 			if projnorm<=maxdist{
 				selected=append(selected,j)
-				}
+			}
 			if projnorm>=nevercutoff{
 				neverselected=append(neverselected,j)
-				}
 			}
 		}
 	}
+	return selected
+}
 
 
 

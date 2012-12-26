@@ -119,6 +119,18 @@ func isInInt(container []int, test int) bool{
 		}
 	return false
 	}
+	
+func isInString(container []string, test string) bool{
+	if container==nil{
+		return false
+		}
+	for _,i:=range(container){
+		if test==i{
+			return true
+			}
+		}
+	return false
+	}
 
 /*RamaList takes a molecule and obtains a list of lists of five int. Each element
   contain the indexes needed for one dihedral of a Rama plot. It gets the dihedral
