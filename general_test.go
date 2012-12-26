@@ -137,6 +137,7 @@ func TestRama(Te *testing.T){
 	//for the 3 residue  I should get -131.99, 152.49.
 	}
 
+
 func TestQM(Te *testing.T) {
 	mol,err:=XyzRead("test/sample.xyz")
 	if err!=nil{
@@ -220,6 +221,9 @@ func TestMatrix(Te *testing.T){
 	fmt.Println("after:\n",A)
 	}
 
+//This function tests the SelCone function.
+//it selects a 2-way cone from 3 residues on the interface of SOD1 (PDB: 2c9v)
+//and makes a new PDB with them.
 func TestSelectCone(Te *testing.T){
 	mol,err:=PdbRead("test/2c9v.pdb",true)
 	if err!=nil{
@@ -230,23 +234,9 @@ func TestSelectCone(Te *testing.T){
 	sele:=AtomsFromMolecules(mol,res,allowed_chains)
 	fmt.Println(sele)
 	selection:=SomeRows(mol.Coords[0],sele)
-	test,_:=mol.SomeAtoms(sele) /////////////
-	fmt.Println(test[2],test[3])  ///////////////77
+	test,_:=mol.SomeAtoms(sele) //Debug info.
+	fmt.Println(test[2],test[3]) 
 	cone:=SelCone(mol.Coords[0],selection,0.75,20,1,0) //0.524 approx pi/6 approx 30deg. 
-	/*residues:=make([]int,0,int(len(cone)/6))
-	for _,val:=range(cone){
-		if mol.Atoms[val].Molname!="HOH"{
-			residues=append(residues,mol.Atoms[val].Molid)
-		}
-	}
-	finalindex:=make([]int,0,len(cone))
-	for num,at:=range(mol.Atoms){
-		if isInInt(residues,at.Molid){
-			finalindex=append(finalindex,num)
-		}
-	}
-	_=finalindex //dummy
-	*/
 	top,_:=mol.SomeAtoms(cone)
 	ref,_:=MakeTopology(top,0,1)
 	coordst:=SomeRows(mol.Coords[0],cone)
