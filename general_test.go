@@ -115,6 +115,8 @@ func TestGeo(Te *testing.T) {
 		}
 	}
 
+//TestRama tests the Ramachandran plot functionality.
+//it generates a Ramachandran plot for the chain A of the PDB 2c9v.
 func TestRama(Te *testing.T){
 	mol,err:=PdbRead("test/2c9v.pdb",true)
 	if err!=nil{
@@ -133,11 +135,12 @@ func TestRama(Te *testing.T){
 	if err!=nil{
 		Te.Error(err)
 		}
-	PdbWrite(mol,"test/Used4Rama.pdb")
+	//PdbWrite(mol,"test/Used4Rama.pdb")
 	//for the 3 residue  I should get -131.99, 152.49.
 	}
 
-
+//TestQM tests the QM functionality. It prepares input for ORCA and MOPAC
+//In the case of MOPAC it reads a previously prepared output and gets the energy.
 func TestQM(Te *testing.T) {
 	mol,err:=XyzRead("test/sample.xyz")
 	if err!=nil{
