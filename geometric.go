@@ -496,7 +496,7 @@ func Projection(test, ref *matrix.DenseMatrix) *matrix.DenseMatrix{
 func SelCone(B, selection *matrix.DenseMatrix, angle, distance, thickness float64, whatcone int) []int{
 	A:=B.Copy() //We will be altering the input so its better to work with a copy.
 	selected:=make([]int,0,3)
-	neverselected:=make([]int,0,300000) //waters that are too far to ever be selected
+	neverselected:=make([]int,0,30000) //waters that are too far to ever be selected
 	nevercutoff:=distance/math.Cos(angle) //cutoff to be added to neverselected
 	A,_,err:=MassCentrate(A,selection,nil)  //Centrate A in the geometric center of the selection, Its easier for the following calculations
 	if err!=nil{
