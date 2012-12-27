@@ -42,7 +42,7 @@ import "os"
 //whole molecule such as the vector defined by these 2 atoms is 
 //aligned with the Z axis. The new molecule is written
 //as 2c9v_aligned.pdb to the test folder.
-func TesaChangeAxis(Te *testing.T){
+func TestChangeAxis(Te *testing.T){
 	mol,err:=PdbRead("test/2c9v.pdb",true)
 	if err!=nil{
 		Te.Error(err)
@@ -250,3 +250,51 @@ func TestSelectCone(Te *testing.T){
 	
 		
 }		
+
+
+
+//TestChangeAxis reads the PDB 2c9v.pdb from the test directory, collects 
+//The CA and CB of residue D124 of the chain A, and uses Clifford algebra to rotate the 
+//whole molecule such as the vector defined by these 2 atoms is 
+//aligned with the Z axis. The new molecule is written
+//as 2c9v_aligned.pdb to the test folder.
+func TestCliChangeAxis(Te *testing.T){
+	mol,err:=PdbRead("test/2c9v.pdb",true)
+	if err!=nil{
+		Te.Error(err)
+		}
+/*	orient_atoms:=[2]int{0,0}
+	for index:=0;index<mol.Len();index++{
+		atom:=mol.Atom(index)
+		if atom.Chain=='A' && atom.Molid==124{
+			if atom.Name=="CA"{
+				orient_atoms[0]=index
+				}else if atom.Name=="CB"{
+				orient_atoms[1]=index	
+				}
+			}
+		}
+	ov1:=mol.Coord(orient_atoms[0], 0)
+	ov2:=mol.Coord(orient_atoms[1], 0)
+	//now we center the thing in the beta carbon of D124
+	err=SubRow(mol.Coords[0],ov2)
+	//Now the rotation
+	ov1=mol.Coord(orient_atoms[0], 0) //make sure we have the correct versions
+	ov2=mol.Coord(orient_atoms[1], 0)  //same
+	orient:=ov2.Copy()	
+	orient.SubtractDense(ov1)
+	Z:=matrix.MakeDenseMatrix([]float64{0,0,1},1,3)
+	fmt.Println("orient and z:", orient,Z)
+	axis:=Cross3DRow(orient,Z)
+	angle:=AngleInVectors(orient,Z)
+	*/
+	axis:=matrix.MakeDenseMatrix([]float64{1,1,1},1,3)
+	angle:=60.0
+	mol.Coords[0]=CliRotate(mol.Coords[0],axis,angle)
+//	fmt.Println(orient_atoms[1], mol.Atom(orient_atoms[1]),mol.Atom(orient_atoms[0]))
+	if err!=nil{
+		Te.Error(err)
+		}
+	PdbWrite(mol,"test/2c9v-clialigned.pdb")
+	}
+
