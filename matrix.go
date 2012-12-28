@@ -152,6 +152,7 @@ func SubRow(big,row *matrix.DenseMatrix)(error){
 
 //Cross3D Takes 2 3-len column or row vectors and returns a column or a row
 //vector, respectively, with the Cross product of them.
+//should panic
 func Cross3D(a,b *matrix.DenseMatrix)(*matrix.DenseMatrix,error){
 	ac:=a.Cols()
 	ar:=a.Rows()
@@ -169,9 +170,9 @@ func Cross3D(a,b *matrix.DenseMatrix)(*matrix.DenseMatrix,error){
 		return f, nil
 		}
 	if ar!=3 {
-		return nil, fmt.Errorf("Malformed vectors for cross product")
+		return Cross3DRow(a,b), nil
 		}
-	return Cross3DRow(a,b), nil
+	panic("Unreachable")
 	}
 
 //Cross3DRow returns the cross product of 2 row vectors. No error checking!

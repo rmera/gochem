@@ -263,7 +263,7 @@ func TestCliChangeAxis(Te *testing.T){
 	if err!=nil{
 		Te.Error(err)
 		}
-/*	orient_atoms:=[2]int{0,0}
+	orient_atoms:=[2]int{0,0}
 	for index:=0;index<mol.Len();index++{
 		atom:=mol.Atom(index)
 		if atom.Chain=='A' && atom.Molid==124{
@@ -285,12 +285,11 @@ func TestCliChangeAxis(Te *testing.T){
 	orient.SubtractDense(ov1)
 	Z:=matrix.MakeDenseMatrix([]float64{0,0,1},1,3)
 	fmt.Println("orient and z:", orient,Z)
-	axis:=Cross3DRow(orient,Z)
-	angle:=AngleInVectors(orient,Z)
-	*/
+//	axis,_:=Cross3D(orient,Z)
+//	angle:=AngleInVectors(orient,Z)	
 	axis:=matrix.MakeDenseMatrix([]float64{1,1,1},1,3)
 	angle:=60.0
-	mol.Coords[0]=CliRotate(mol.Coords[0],axis,angle)
+	mol.Coords[0]=CliRotate(mol.Coords[0],axis,-angle)
 //	fmt.Println(orient_atoms[1], mol.Atom(orient_atoms[1]),mol.Atom(orient_atoms[0]))
 	if err!=nil{
 		Te.Error(err)
