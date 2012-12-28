@@ -91,12 +91,14 @@ func (P *paravector)Normalize() *paravector{
 	for i:=0;i<3;i++{
 		norm+=math.Pow(P.Vreal.Get(0,i),2)+math.Pow(P.Vimag.Get(0,i),2)
 		}
+	//fmt.Println("norm", norm)
 	R.Real=P.Real/math.Sqrt(norm)
 	R.Imag=P.Imag/math.Sqrt(norm)
 	for i:=0;i<3;i++{
-		R.Vreal.Set(0,i,P.Vreal.Get(0,1)/math.Sqrt(norm))
-		R.Vimag.Set(0,i,P.Vimag.Get(0,1)/math.Sqrt(norm))
+		R.Vreal.Set(0,i,P.Vreal.Get(0,i)/math.Sqrt(norm))
+		R.Vimag.Set(0,i,P.Vimag.Get(0,i)/math.Sqrt(norm))
 		}
+	//fmt.Println("normalized", R)
 	return R
 }
 
@@ -146,27 +148,29 @@ func cliProduct(A,B *paravector) *paravector{
 	return R
 	}
 	
-//CliRotate uses Clifford algebra to rotate a paravector Aby angle radians around axis. Returns the rotated paravector.	
+//cliRotation uses Clifford algebra to rotate a paravector Aby angle radians around axis. Returns the rotated 
+//paravector. axis must be normalized.	
 func cliRotation(A, axis *paravector, angle float64) *paravector{
 	R:=makeParavector()
-	axis=axis.Normalize()
+//	fmt.Println("Norm axis", axis) ////////////7
 	R.Real=math.Cos(angle/2.0)
 	for i:=0;i<3;i++{
 		R.Vimag.Set(0,i,math.Sin(angle/2.0)*axis.Vreal.Get(0,i))
 	}
-	fmt.Println("R", R)  ///////////////////////
+	//fmt.Println("R", R)  ///////////////////////
 	tmp:=cliProduct(R.Reverse(),A)
 	Rotated:=cliProduct(tmp,R)
-	fmt.Println("rotated",Rotated) ////////////
+	//fmt.Println("rotated",Rotated) ////////////
 	return Rotated
 }
 
 //CliRotate takes the matrix Target and uses Clifford algebra to rotate each of its rows 
-//by angle degrees around axis. Axis must be a 3D row vector. Target must be an N,3 matrix.
+//by angle radians around axis. Axis must be a 3D row vector. Target must be an N,3 matrix.
 func CliRotate(Target, axis *matrix.DenseMatrix, angle float64) *matrix.DenseMatrix{
-	angle=angle*0.0174533  //Angle in radians
 	fmt.Println("ax", axis)
 	paxis:=paravectorFromVector(axis)
+	fmt.Println("paxis:", paxis)
+	paxis=paxis.Normalize()
 	R:=matrix.Zeros(Target.Rows(),3)
 	for i:=0;i<Target.Rows();i++{
 	//	fmt.Println(i)
@@ -175,6 +179,36 @@ func CliRotate(Target, axis *matrix.DenseMatrix, angle float64) *matrix.DenseMat
 		}
 	return R
 	}
+
+//CliRotate takes the matrix Target and uses Clifford algebra to _concurrently_ rotate each
+//of its rows by angle radians around axis. Axis must be a 3D row vector. 
+//Target must be an N,3 matrix.
+func CliRotateConc(Target, axis *matrix.DenseMatrix, angle float64) *matrix.DenseMatrix{
+	rows:=Target.Rows()
+	fmt.Println("ax", axis)
+	paxis:=paravectorFromVector(axis)
+	fmt.Println("paxis:", paxis)
+	paxis=paxis.Normalize()
+	R:=matrix.Zeros(rows,3)
+	ended:=make(chan bool,rows)
+	for i:=0;i<rows;i++{
+		go func(i int){
+		tmp:=cliRotation(paravectorFromVector(Target.GetRowVector(i)),paxis,angle)
+	//	fmt.Println("I from goruntine!", i)
+		R.SetMatrix(i,0,tmp.Vreal) 
+	//	R.Set(i,0,tmp.Vreal.Get(0,0))
+	//	R.Set(i,1,tmp.Vreal.Get(0,1))
+	//	R.Set(i,2,tmp.Vreal.Get(0,2))
+		ended<-true
+		return
+		}(i)
+	}
+	for i:=0;i<rows;i++{
+		<-ended
+		}
+	return R
+}
+
 
 
 

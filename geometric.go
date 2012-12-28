@@ -31,7 +31,7 @@ import "math"
 import "sort"
 
 
-//AngleInVectors takes 2 vectors and calculate the angle between them
+//AngleInVectors takes 2 vectors and calculate the angle in radians between them
 //It does not check for correctness or return errors!
 func AngleInVectors(v1,v2 *matrix.DenseMatrix) float64 {
 	//Maybe I'll also write a safer version of this function?
