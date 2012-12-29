@@ -51,12 +51,15 @@ Design goals:
 *Readability.
 *Assume that users can code (dont overcomplicate the code with 
 	zillion simplifying functions. When some of these are provided 
-	they should be separated from the rest.)
+	they should be separated from the rest.) The helper functions 
+	provided are to be clearly identified and isolated from the core
+	of the library.
 *Try to avoid the need for users to know gomatrix as much as possible
 	-Supply convenience functions to deal with coordinates.
 	-Of course users wanting to code calculations will need gomatrix 
 	anyway.
 *Fast and light
+*Concurrent when possible and necessary
 *Easy to extend
 *Useful for computational biochemistry at a classical and QM levels.
 
@@ -87,6 +90,13 @@ Axis manipulation:
 	the Y axis
 	Rotate a sub-group of atoms in a molecule using any given vector
 	as rotation axis.
+	**The previous are implemented using Clifford algebra and, as a 
+	legacy version, Euler angles and rotation matrices (math for the 
+	Cliffor algebra implementation by Doc. Dr. Janne Pesonen). 
+	The Clifford algebra implementation is concurrent. In general, 
+	Clifford algebra is mathematically better behaving than Euler 
+	angles, which are not defined for certain rotations.***
+	 
 Simple geometrical calculations
 Reads XTC files, sequencially and concurrently.
 Calculates and draws Ramachandran plots (uses the Plotinum library).
@@ -114,6 +124,7 @@ BSD-licensed project, let me know.
 LICENSE
 
 Copyright 2012 Raul Mera <rmera{at}chemDOThelsinkiDOTfi> 
+
 
 This program, including its documentation, 
 is free software; you can redistribute it and/or modify
