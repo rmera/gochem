@@ -52,6 +52,7 @@ func AngleInVectors(v1,v2 *matrix.DenseMatrix) float64 {
 	return angle
 	}
 
+
 /*
 def angle_in_vectors(v1,v2): #calculates the angles between to vectors (Python Numeric arrays) in radians
 	normproduct=norm(v1)*norm(v2)

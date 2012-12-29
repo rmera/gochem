@@ -124,10 +124,31 @@ func Super(test, templa *matrix.DenseMatrix, testlst, templalst []int) (*matrix.
 	}
 
 
-
 //Rotate about rotates the coordinates in coordsorig around by angle radians around the axis 
 //given by the vector axis. It returns the rotated coordsorig, since the original is not affected.
+//Uses Clifford algebra.
 func RotateAbout(coordsorig, ax1, ax2 *matrix.DenseMatrix,angle float64) (*matrix.DenseMatrix,error){
+	coords:=coordsorig.Copy()
+	translation:=ax1.Copy()
+	axis:=ax2.Copy()
+	axis.Subtract(ax1)//now it became the rotation axis
+	err:=SubRow(coords,translation)
+	if err!=nil{
+		return nil, err
+		}
+	Rot:=Rotate(coords,axis,angle)
+	err=AddRow(Rot,translation)
+	if err!=nil{
+		return nil, err
+		}
+	return Rot,nil
+}
+
+//EulerRotateAbout uses Euler angles to rotate the coordinates in coordsorig around by angle
+//radians around the axis given by the vector axis. It returns the rotated coordsorig, 
+//since the original is not affected. It seems more clunky than the RotateAbout, which uses Clifford algebra.
+//I leave it for benchmark, mostly, and might remove it later.
+func EulerRotateAbout(coordsorig, ax1, ax2 *matrix.DenseMatrix,angle float64) (*matrix.DenseMatrix,error){
 	coords:=coordsorig.Copy()
 	translation:=ax1.Copy()
 	axis:=ax1.Copy()

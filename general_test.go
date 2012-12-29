@@ -35,14 +35,57 @@ import "testing"
 import "os"
 
 
-
-
 //TestChangeAxis reads the PDB 2c9v.pdb from the test directory, collects 
-//The CA and CB of residue D124 of the chain A, and rotates the 
+//The CA and CB of residue D124 of the chain A, and uses Clifford algebra to rotate the 
 //whole molecule such as the vector defined by these 2 atoms is 
 //aligned with the Z axis. The new molecule is written
 //as 2c9v_aligned.pdb to the test folder.
 func TestChangeAxis(Te *testing.T){
+	mol,err:=PdbRead("test/2c9v.pdb",true)
+	if err!=nil{
+		Te.Error(err)
+		}
+	//The selection thing
+	orient_atoms:=[2]int{0,0}
+	for index:=0;index<mol.Len();index++{
+		atom:=mol.Atom(index)
+		if atom.Chain=='A' && atom.Molid==124{
+			if atom.Name=="CA"{
+				orient_atoms[0]=index
+				}else if atom.Name=="CB"{
+				orient_atoms[1]=index	
+				}
+			}
+		}
+	//Get the axis of rotation
+	//ov1:=mol.Coord(orient_atoms[0], 0)
+	ov2:=mol.Coord(orient_atoms[1], 0)
+	//now we center the thing in the beta carbon of D124
+	err=SubRow(mol.Coords[0],ov2)
+	//Now the rotation
+	ov1:=mol.Coord(orient_atoms[0], 0) //make sure we have the correct versions
+	ov2=mol.Coord(orient_atoms[1], 0)  //same
+	orient:=ov2.Copy()	
+	orient.SubtractDense(ov1)
+//	PdbWrite(mol,"test/2c9v-124centered.pdb")
+	Z:=matrix.MakeDenseMatrix([]float64{0,0,1},1,3)
+	axis,_:=Cross3D(orient,Z)
+	angle:=AngleInVectors(orient,Z)
+	mol.Coords[0]=Rotate(mol.Coords[0],axis,angle)
+	if err!=nil{
+		Te.Error(err)
+		}
+	PdbWrite(mol,"test/2c9v-aligned.pdb")
+	fmt.Println("bench1")
+	}
+
+
+//TestOldChangeAxis reads the PDB 2c9v.pdb from the test directory, collects 
+//The CA and CB of residue D124 of the chain A, and rotates the 
+//whole molecule such as the vector defined by these 2 atoms is 
+//aligned with the Z axis. The new molecule is written
+//as 2c9v_aligned.pdb to the test folder.
+func TestOldChangeAxis(Te *testing.T){
 	mol,err:=PdbRead("test/2c9v.pdb",true)
 	if err!=nil{
 		Te.Error(err)
@@ -68,13 +111,14 @@ func TestChangeAxis(Te *testing.T){
 	orient:=ov2.Copy()	
 	orient.SubtractDense(ov1)
 	rotation:=GetSwitchZ(orient)
-	fmt.Println("rotation: ",rotation)
+//	fmt.Println("rotation: ",rotation)
 	mol.Coords[0]=matrix.ParallelProduct(mol.Coords[0],rotation)
-	fmt.Println(orient_atoms[1], mol.Atom(orient_atoms[1]),mol.Atom(orient_atoms[0]))
+//	fmt.Println(orient_atoms[1], mol.Atom(orient_atoms[1]),mol.Atom(orient_atoms[0]))
 	if err!=nil{
 		Te.Error(err)
 		}
-	PdbWrite(mol,"test/2c9v-aligned.pdb")
+	PdbWrite(mol,"test/2c9v-old-aligned.pdb")
+	fmt.Println("bench2")
 	}
 
 
@@ -178,9 +222,9 @@ func TestQM(Te *testing.T) {
 	mopac.BuildInput(mol,atoms,calc)
 	mopaccommand := os.Getenv("MOPAC_PATH")
 	mopac.SetCommand(mopaccommand)
-//	if err:=mopac.Run(true); err!=nil{
-//		Te.Error(err)
-//	}
+	if err:=mopac.Run(true); err!=nil{
+		Te.Error(err.Error())
+	}
 	energy,err:=mopac.GetEnergy()
 	if err!=nil{
 		if err.Error()=="Probable problem in calculation"{
@@ -253,48 +297,9 @@ func TestSelectCone(Te *testing.T){
 
 
 
-//TestChangeAxis reads the PDB 2c9v.pdb from the test directory, collects 
-//The CA and CB of residue D124 of the chain A, and uses Clifford algebra to rotate the 
-//whole molecule such as the vector defined by these 2 atoms is 
-//aligned with the Z axis. The new molecule is written
-//as 2c9v_aligned.pdb to the test folder.
-func TestCliChangeAxis(Te *testing.T){
-	mol,err:=PdbRead("test/2c9v.pdb",true)
-	if err!=nil{
-		Te.Error(err)
-		}
-	orient_atoms:=[2]int{0,0}
-	for index:=0;index<mol.Len();index++{
-		atom:=mol.Atom(index)
-		if atom.Chain=='A' && atom.Molid==124{
-			if atom.Name=="CA"{
-				orient_atoms[0]=index
-				}else if atom.Name=="CB"{
-				orient_atoms[1]=index	
-				}
-			}
-		}
-	ov1:=mol.Coord(orient_atoms[0], 0)
-	ov2:=mol.Coord(orient_atoms[1], 0)
-	//now we center the thing in the beta carbon of D124
-	err=SubRow(mol.Coords[0],ov2)
-	//Now the rotation
-	ov1=mol.Coord(orient_atoms[0], 0) //make sure we have the correct versions
-	ov2=mol.Coord(orient_atoms[1], 0)  //same
-	orient:=ov2.Copy()	
-	orient.SubtractDense(ov1)
-	PdbWrite(mol,"test/2c9v-124centered.pdb")
-	Z:=matrix.MakeDenseMatrix([]float64{0,0,1},1,3)
-	axis,_:=Cross3D(orient,Z)
-	angle:=AngleInVectors(orient,Z)
-	fmt.Println("orient, z, axis, angle:", orient,Z, axis, angle)	
-//	axis:=matrix.MakeDenseMatrix([]float64{1,0,0},1,3)
-//	angle:=60.0
-	mol.Coords[0]=CliRotateConc(mol.Coords[0],axis,angle)
-//	fmt.Println(orient_atoms[1], mol.Atom(orient_atoms[1]),mol.Atom(orient_atoms[0]))
-	if err!=nil{
-		Te.Error(err)
-		}
-	PdbWrite(mol,"test/2c9v-clialigned.pdb")
-	}
+
+
+
+
+
 

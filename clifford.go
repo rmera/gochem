@@ -31,7 +31,6 @@
 	
 package chem
 
-import "fmt"
 import  "github.com/skelterjohn/go.matrix"
 import "math"
 
@@ -57,7 +56,7 @@ func paravectorFromVector(A *matrix.DenseMatrix) *paravector{
 	R:=new(paravector)
 	R.Real=0 //I shouldnt need this
 	R.Imag=0
-	R.Vreal=A.Copy()
+	R.Vreal=A
 	R.Vimag=matrix.Zeros(1,3)
 	return R
 }
@@ -152,61 +151,66 @@ func cliProduct(A,B *paravector) *paravector{
 //paravector. axis must be normalized.	
 func cliRotation(A, axis *paravector, angle float64) *paravector{
 	R:=makeParavector()
-//	fmt.Println("Norm axis", axis) ////////////7
 	R.Real=math.Cos(angle/2.0)
 	for i:=0;i<3;i++{
 		R.Vimag.Set(0,i,math.Sin(angle/2.0)*axis.Vreal.Get(0,i))
 	}
-	//fmt.Println("R", R)  ///////////////////////
 	tmp:=cliProduct(R.Reverse(),A)
 	Rotated:=cliProduct(tmp,R)
-	//fmt.Println("rotated",Rotated) ////////////
 	return Rotated
 }
 
 //CliRotate takes the matrix Target and uses Clifford algebra to rotate each of its rows 
 //by angle radians around axis. Axis must be a 3D row vector. Target must be an N,3 matrix.
-func CliRotate(Target, axis *matrix.DenseMatrix, angle float64) *matrix.DenseMatrix{
-	fmt.Println("ax", axis)
+//The Ser in the name is from "serial". The CliRotate is concurrent.
+func RotateSer(Target, axis *matrix.DenseMatrix, angle float64) *matrix.DenseMatrix{
 	paxis:=paravectorFromVector(axis)
-	fmt.Println("paxis:", paxis)
 	paxis=paxis.Normalize()
-	R:=matrix.Zeros(Target.Rows(),3)
+	R:=makeParavector()
+	R.Real=math.Cos(angle/2.0)
+	for i:=0;i<3;i++{
+		R.Vimag.Set(0,i,math.Sin(angle/2.0)*paxis.Vreal.Get(0,i))
+	}
+	Rrev:=R.Reverse()
+	Res:=matrix.Zeros(Target.Rows(),3)
 	for i:=0;i<Target.Rows();i++{
-	//	fmt.Println(i)
-		tmp:=cliRotation(paravectorFromVector(Target.GetRowVector(i)),paxis,angle)
-		R.SetMatrix(i,0,tmp.Vreal)
+		tmp:=cliProduct(Rrev,paravectorFromVector(Target.GetRowVector(i)))
+		Rotated:=cliProduct(tmp,R)
+		Res.SetMatrix(i,0,Rotated.Vreal)
 		}
-	return R
+	return Res
 	}
 
-//CliRotate takes the matrix Target and uses Clifford algebra to _concurrently_ rotate each
+//Rotate takes the matrix Target and uses Clifford algebra to _concurrently_ rotate each
 //of its rows by angle radians around axis. Axis must be a 3D row vector. 
 //Target must be an N,3 matrix.
-func CliRotateConc(Target, axis *matrix.DenseMatrix, angle float64) *matrix.DenseMatrix{
+func Rotate(Target, axis *matrix.DenseMatrix, angle float64) *matrix.DenseMatrix{
 	rows:=Target.Rows()
-	fmt.Println("ax", axis)
 	paxis:=paravectorFromVector(axis)
-	fmt.Println("paxis:", paxis)
 	paxis=paxis.Normalize()
-	R:=matrix.Zeros(rows,3)
+	R:=makeParavector()  //build the rotor (R)
+	R.Real=math.Cos(angle/2.0)
+	for i:=0;i<3;i++{
+		R.Vimag.Set(0,i,math.Sin(angle/2.0)*paxis.Vreal.Get(0,i))
+	}
+	Rrev:=R.Reverse() // R-dagger
+	Res:=matrix.Zeros(rows,3)
 	ended:=make(chan bool,rows)
 	for i:=0;i<rows;i++{
 		go func(i int){
-		tmp:=cliRotation(paravectorFromVector(Target.GetRowVector(i)),paxis,angle)
-	//	fmt.Println("I from goruntine!", i)
-		R.SetMatrix(i,0,tmp.Vreal) 
-	//	R.Set(i,0,tmp.Vreal.Get(0,0))
-	//	R.Set(i,1,tmp.Vreal.Get(0,1))
-	//	R.Set(i,2,tmp.Vreal.Get(0,2))
-		ended<-true
-		return
+			//Here we simply do R^dagger A R, and assign to the corresponding row.
+			tmp:=cliProduct(Rrev,paravectorFromVector(Target.GetRowVector(i)))
+			Rotated:=cliProduct(tmp,R)
+			Res.SetMatrix(i,0,Rotated.Vreal)
+			ended<-true
+			return
 		}(i)
 	}
+	//Takes care of the concurrency
 	for i:=0;i<rows;i++{
 		<-ended
 		}
-	return R
+	return Res
 }
 
 
