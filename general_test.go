@@ -40,7 +40,7 @@ import "os"
 //whole molecule such as the vector defined by these 2 atoms is 
 //aligned with the Z axis. The new molecule is written
 //as 2c9v_aligned.pdb to the test folder.
-func TestChangeAxis(Te *testing.T){
+func BenchmarkChangeAxis(Te *testing.B){
 	mol,err:=PdbRead("test/2c9v.pdb",true)
 	if err!=nil{
 		Te.Error(err)
@@ -85,7 +85,7 @@ func TestChangeAxis(Te *testing.T){
 //whole molecule such as the vector defined by these 2 atoms is 
 //aligned with the Z axis. The new molecule is written
 //as 2c9v_aligned.pdb to the test folder.
-func TestOldChangeAxis(Te *testing.T){
+func BenchmarkOldChangeAxis(Te *testing.B){
 	mol,err:=PdbRead("test/2c9v.pdb",true)
 	if err!=nil{
 		Te.Error(err)
@@ -220,11 +220,12 @@ func TestQM(Te *testing.T) {
 	//Now a MOPAC optimization with the same configuration.
 	mopac:=MakeMopacRunner()
 	mopac.BuildInput(mol,atoms,calc)
-	mopaccommand := os.Getenv("MOPAC_PATH")
+	mopaccommand := os.Getenv("MOPAC_LICENSE")+"/MOPAC2009.exe"
 	mopac.SetCommand(mopaccommand)
-	if err:=mopac.Run(true); err!=nil{
-		Te.Error(err.Error())
-	}
+	fmt.Println("command", mopaccommand)
+//	if err:=mopac.Run(true); err!=nil{
+//		Te.Error(err.Error())
+//	}
 	energy,err:=mopac.GetEnergy()
 	if err!=nil{
 		if err.Error()=="Probable problem in calculation"{
@@ -283,7 +284,7 @@ func TestSelectCone(Te *testing.T){
 	selection:=SomeRows(mol.Coords[0],sele)
 	test,_:=mol.SomeAtoms(sele) //Debug info.
 	fmt.Println(test[2],test[3]) 
-	cone:=SelCone(mol.Coords[0],selection,0.75,20,1,0) //0.524 approx pi/6 approx 30deg. 
+	cone:=SelCone(mol.Coords[0],selection,0.75,20,1,0,0) //0.524 approx pi/6 approx 30deg. 
 	top,_:=mol.SomeAtoms(cone)
 	ref,_:=MakeTopology(top,0,1)
 	coordst:=SomeRows(mol.Coords[0],cone)

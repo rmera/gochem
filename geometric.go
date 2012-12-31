@@ -415,8 +415,8 @@ func Eigenwrap(in *matrix.DenseMatrix) (*matrix.DenseMatrix, []float64, error){
 
 
 
-/*CenterOfMass returns the center of mass the atoms represented by the coordinates in geometry
-and the masses in mass, and an error. If mass is nil, it calculates the geometric center*/
+//CenterOfMass returns the center of mass the atoms represented by the coordinates in geometry
+//and the masses in mass, and an error. If mass is nil, it calculates the geometric center
 func CenterOfMass(geometry, mass *matrix.DenseMatrix)(*matrix.DenseMatrix,error){
 	if geometry==nil{
 		return nil, fmt.Errorf("nil matrix to get the center of mass")
@@ -494,7 +494,8 @@ func Projection(test, ref *matrix.DenseMatrix) *matrix.DenseMatrix{
 //and has an angle of angle (radians), up to a distance distance. The cone is approximated by a set of radius-increasing cilinders with height thickness.
 //If one starts from one given point, 2 cones, one in each direction, are possible. If whatcone is 0, both cones are considered.
 //if whatcone<0, only the cone opposite to the plane vector direction. If whatcone>0, only the cone in the plane vector direction.
-func SelCone(B, selection *matrix.DenseMatrix, angle, distance, thickness float64, whatcone int) []int{
+//the 'initial' argument  allows the construction of a truncate cone with a radius of initial.
+func SelCone(B, selection *matrix.DenseMatrix, angle, distance, thickness, initial float64, whatcone int) []int{
 	A:=B.Copy() //We will be altering the input so its better to work with a copy.
 	selected:=make([]int,0,3)
 	neverselected:=make([]int,0,30000) //waters that are too far to ever be selected
@@ -509,7 +510,7 @@ func SelCone(B, selection *matrix.DenseMatrix, angle, distance, thickness float6
 		panic(err.Error())
 	}
 	for i:=thickness/2;i<=distance;i+=thickness{
-		maxdist:=math.Tan(angle)*i  //this should give me the radius of the cone at this point
+		maxdist:=math.Tan(angle)*i + initial  //this should give me the radius of the cone at this point
 		for j:=0;j<A.Rows();j++{
 			if isInInt(selected,j)  || isInInt(neverselected,j){ //we dont scan things that we have already selected, or are too far
 				continue
