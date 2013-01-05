@@ -26,92 +26,86 @@
  */
 /***Dedicated to the long life of the Ven. Khenpo Phuntzok Tenzin Rinpoche***/
 
-
 package chem
 
-
-
-import  "github.com/skelterjohn/go.matrix"
-
+import "github.com/skelterjohn/go.matrix"
 
 /*The plan is equate PDBs XTCs and in the future DCDs. One needs to separate the molecule methods between actual molecule methods, that requires atoms and coordinates, []atom methods, and  DenseMatrix
  * methods. Then one must implements objects for Xtc trajs that are more or less equivalent to molecules and set up an interface so many analyses can be carried out exactly the same from
  * multiPDB or XTC or (eventually) DCD*/
 
 //Traj is an interface for any trajectory object, including a Molecule Object
-type Traj interface{
+type Traj interface {
 	//Opens the file and prepares for reading, should also take care of the closing.
 	Readable() bool
-	
+
 	//reads the next frame and returns it as DenseMatrix if keep==true, or discards it if false
-	Next(keep bool) (*matrix.DenseMatrix,error)
-	
+	Next(keep bool) (*matrix.DenseMatrix, error)
+
 	/*NextConc takes a slice of bools and reads as many frames as elements the list has
 	form the trajectory. The frames are discarted if the corresponding elemetn of the slice
 	is false. The function returns a slice of channels through each of each of which 
 	a *matrix.DenseMatrix will be transmited*/
-	NextConc(frames []bool)([]chan *matrix.DenseMatrix, error)
-	
+	NextConc(frames []bool) ([]chan *matrix.DenseMatrix, error)
+
 	//Selected, given a slice of ints, returns a matrix.DenseMatrix
 	//containing the coordinates of the atoms with the corresponding index.
-	SomeCoords(clist []int) (*matrix.DenseMatrix,error)
-	
+	SomeCoords(clist []int) (*matrix.DenseMatrix, error)
+
 	//Returns the number of atoms per frame
 	Len() int
-	}
-
+}
 
 //Ref (reference) is an interface for any description of the type of atoms in a molecule,
 //i.e. every characteristic of them, except for the coordinates and b-factors.
-type Ref interface{
+type Ref interface {
 
 	//Charge gets the total charge of the topology
-	 Charge()int
-	
+	Charge() int
+
 	//Unpaired gets the number of unpaired electrons in the topology
-	 Unpaired()int
-	
+	Unpaired() int
+
 	//SetCharge sets the total charge of the topology to i
-	 SetCharge(i int)
-	
+	SetCharge(i int)
+
 	//SetUnpaired sets the number of unpaired electrons in the topology to i
-	 SetUnpaired(i int)
-	
+	SetUnpaired(i int)
+
 	//Atom returns the Atom corresponding to the index i
 	//of the Atom slice in the Topology. Should panic if 
 	//out of range.
-	 Atom(i int) (*Atom)
-		
+	Atom(i int) *Atom
+
 	//SetAtom sets the (i+1)th Atom of the topology to aM.
 	//Panics if out of range
-	 SetAtom(i int,at *Atom)
-	
+	SetAtom(i int, at *Atom)
+
 	//AddAtom returms a new Ref with an atom added at the end of the topology
-	 AddAtom(at *Atom) Ref
-	
+	AddAtom(at *Atom) Ref
+
 	//SelectAtoms, given a list of ints,  returns an array of the atoms with the
 	//corresponding position in the molecule
 	//Changes to these atoms affect the original molecule.
-	 SomeAtoms(atomlist []int) ([]*Atom, error)
-	
+	SomeAtoms(atomlist []int) ([]*Atom, error)
+
 	//Returns a column vector with the massess of all atoms
 	//this will be changed to a tion that takes a Reference interface.
-	 MassCol() (*matrix.DenseMatrix,error)
-	 
+	MassCol() (*matrix.DenseMatrix, error)
+
 	//Returns a copy of the Ref with the atom i deleted
 	DelAtom(i int) Ref
-	
+
 	//Returns the number of atoms in the reference
-	 Len() int
-	
-	}
+	Len() int
+}
 
 //This allows to set QM calculations using different programs.
 //Currently ORCA and MOPAC (2009/2012) are supported.
 type QMRunner interface {
 	//Sets the number of  CPUs for the calculation, when possible
 	SetnCPU(cpu int)
-	
+
 	//Sets the name for the job, used for input
 	//and output files. The extentions will depend on the program.
 	SetName(name string)
@@ -127,12 +121,10 @@ type QMRunner interface {
 	//atoms, coords and C. returns only error.
 	BuildInput(atoms Ref, coords *matrix.DenseMatrix, Q *QMCalc) error
 
-
 	//Run runs the QM program for a calculation previously set.
 	//it waits or not for the result depending of the value of 
 	//wait.
 	Run(wait bool) (err error)
-
 
 	//GetEnergy gets the last energy for a  calculation by parsing the
 	//QM program's output file. Return error if fail. Also returns
@@ -145,7 +137,4 @@ type QMRunner interface {
 	//in calculation") if there is a geometry but the calculation didnt
 	//end properly*
 	GetGeometry(atoms Ref) (*matrix.DenseMatrix, error)
-	
 }
-
-	

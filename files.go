@@ -26,53 +26,47 @@
  */
 /***Dedicated to the long life of the Ven. Khenpo Phuntzok Tenzin Rinpoche***/
 
-	
 package chem
 
-
-
-import "os"  
-import "bufio" 
+import "os"
+import "bufio"
 import "strings"
 import "strconv"
 import "fmt"
-import  "github.com/skelterjohn/go.matrix"
-
+import "github.com/skelterjohn/go.matrix"
 
 //Pdb_read family
 
-	
-
 //A map for assigning mass to elements. 
 //Note that just common "bio-elements" are present
-var symbolMass = map[string] float64 {
-    "H":  1.0,
-    "C":  12.01,
-    "O": 16.00,
-    "N": 14.01,
-    "P": 30.97,
-    "S": 32.06,
-    "Se": 78.96,
-    "K": 39.1,
-    "Ca": 40.08,
-    "Mg": 24.30,
-    "Cl": 35.45,
-    "Na": 22.99,
-    "Cu":  63.55,
-    "Zn":  65.38,
-    "Co": 58.93,
-    "Fe": 55.84,
-    "Mn": 54.94,
-    "Si": 28.08,   
-	}
+var symbolMass = map[string]float64{
+	"H":  1.0,
+	"C":  12.01,
+	"O":  16.00,
+	"N":  14.01,
+	"P":  30.97,
+	"S":  32.06,
+	"Se": 78.96,
+	"K":  39.1,
+	"Ca": 40.08,
+	"Mg": 24.30,
+	"Cl": 35.45,
+	"Na": 22.99,
+	"Cu": 63.55,
+	"Zn": 65.38,
+	"Co": 58.93,
+	"Fe": 55.84,
+	"Mn": 54.94,
+	"Si": 28.08,
+}
 
 //A map between 3-letters name for aminoacidic residues to the corresponding 1-letter names.
-var three2OneLetter = map[string] byte{
+var three2OneLetter = map[string]byte{
 	"SER": 'S',
 	"THR": 'T',
 	"ASN": 'N',
 	"GLN": 'Q',
-	"SEC": 'U',  //Selenocysteine!
+	"SEC": 'U', //Selenocysteine!
 	"CYS": 'C',
 	"GLY": 'G',
 	"PRO": 'P',
@@ -89,355 +83,345 @@ var three2OneLetter = map[string] byte{
 	"LYS": 'K',
 	"ASP": 'D',
 	"GLU": 'E',
-	
-	}
-	
+}
 
 //This tries to guess a chemical element symbol from a PDB atom name. Mostly based on AMBER names.
 //It only deals with some common bio-elements.
-func symbolFromName(name string) (string, error){
-	symbol:=""
-	if len(name)==1{
-			symbol=name //should work
-		}else if len(name)==4 || name[0]=='H'{  //I thiiink only Hs can have 4-char names in amber.
-		symbol="H"
+func symbolFromName(name string) (string, error) {
+	symbol := ""
+	if len(name) == 1 {
+		symbol = name //should work
+	} else if len(name) == 4 || name[0] == 'H' { //I thiiink only Hs can have 4-char names in amber.
+		symbol = "H"
 		//it name has more than one character but less than four.
-		}else if name[0]=='C'{
-		if name[0:2]=="CU"{
-			symbol="Cu"
-			}else if name=="CO"{
-			symbol="Co"
-			}else if name=="CL"{
-			symbol="Cl"
-			}else{
-			symbol="C"
-			}
-		}else if name[0]=='N'{
-		if name=="NA"{
-			symbol="Na"
-			}else{
-			symbol="N"
-			}
-		}else if name[0]=='O'{
-		symbol="O"
-		}else if name[0]=='P'{
-		symbol="P"	
-		}else if name[0]=='S'{
-		if name=="SE"{
-			symbol="Se"
-			}else{
-			symbol="S"
-			}
-		}else if name[0:2]=="ZN"{
-			symbol="Zn"
-			}
-	if symbol==""{
-		return symbol, fmt.Errorf("Couldn't guess symbol from PDB name")
+	} else if name[0] == 'C' {
+		if name[0:2] == "CU" {
+			symbol = "Cu"
+		} else if name == "CO" {
+			symbol = "Co"
+		} else if name == "CL" {
+			symbol = "Cl"
+		} else {
+			symbol = "C"
 		}
-	return symbol, nil 
+	} else if name[0] == 'N' {
+		if name == "NA" {
+			symbol = "Na"
+		} else {
+			symbol = "N"
+		}
+	} else if name[0] == 'O' {
+		symbol = "O"
+	} else if name[0] == 'P' {
+		symbol = "P"
+	} else if name[0] == 'S' {
+		if name == "SE" {
+			symbol = "Se"
+		} else {
+			symbol = "S"
+		}
+	} else if name[0:2] == "ZN" {
+		symbol = "Zn"
 	}
-
+	if symbol == "" {
+		return symbol, fmt.Errorf("Couldn't guess symbol from PDB name")
+	}
+	return symbol, nil
+}
 
 //Parses a valid ATOM or HETATM line of a PDB file, returns an Atom
 // object with the info except for the coordinates and b-factors, which  are returned
 // separately as an array of 3 float64 and a float64, respectively
-func read_full_pdb_line(line string, read_additional bool, contlines int) (*Atom, []float64, float64,error) {
-	err:=make([]error,7,7) //accumulate errors to check at the end of the readed line.
-	coords:=make([]float64,3,3)
-	atom:=new(Atom)
-	atom.Het=strings.HasPrefix(line, "HETATM")  //this is called twice in the worst case. should fix
-	atom.Id,err[0]=strconv.Atoi(strings.TrimSpace(line[6:12]))
-	atom.Name=strings.TrimSpace(line[12:16])
+func read_full_pdb_line(line string, read_additional bool, contlines int) (*Atom, []float64, float64, error) {
+	err := make([]error, 7, 7) //accumulate errors to check at the end of the readed line.
+	coords := make([]float64, 3, 3)
+	atom := new(Atom)
+	atom.Het = strings.HasPrefix(line, "HETATM") //this is called twice in the worst case. should fix
+	atom.Id, err[0] = strconv.Atoi(strings.TrimSpace(line[6:12]))
+	atom.Name = strings.TrimSpace(line[12:16])
 	//PDB says that pos. 17 is for other thing but I see that is 
 	//used for residue name in many cases*/
-	atom.Molname=line[17:20]
-	atom.Molname1=three2OneLetter[atom.Molname]
-	atom.Chain=line[21] //currently this is read to a byte
-	atom.Molid,err[1]=strconv.Atoi(strings.TrimSpace(line[22:26]))
+	atom.Molname = line[17:20]
+	atom.Molname1 = three2OneLetter[atom.Molname]
+	atom.Chain = line[21] //currently this is read to a byte
+	atom.Molid, err[1] = strconv.Atoi(strings.TrimSpace(line[22:26]))
 	//Here we shouldn't need TrimSpace, but I keep it just in case someone
-	 // doesn's use all the fields when writting a PDB*/
-	coords[0],err[2]=strconv.ParseFloat(strings.TrimSpace(line[30:38]),64)
-	coords[1],err[3]=strconv.ParseFloat(strings.TrimSpace(line[38:46]),64)
-	coords[2],err[4]=strconv.ParseFloat(strings.TrimSpace(line[46:54]),64)
-	atom.Occupancy,err[5]=strconv.ParseFloat(strings.TrimSpace(line[54:60]),64)
+	// doesn's use all the fields when writting a PDB*/
+	coords[0], err[2] = strconv.ParseFloat(strings.TrimSpace(line[30:38]), 64)
+	coords[1], err[3] = strconv.ParseFloat(strings.TrimSpace(line[38:46]), 64)
+	coords[2], err[4] = strconv.ParseFloat(strings.TrimSpace(line[46:54]), 64)
+	atom.Occupancy, err[5] = strconv.ParseFloat(strings.TrimSpace(line[54:60]), 64)
 	//If I try not to declare this and just use :=, I get an "expected identifier" error
 	var bfactor float64
-	bfactor,err[6]=strconv.ParseFloat(strings.TrimSpace(line[60:66]),64)
+	bfactor, err[6] = strconv.ParseFloat(strings.TrimSpace(line[60:66]), 64)
 	//we try to read the additional only if indicated and if it is there
 	// In this part we don't catch errors. If something is missing we 
 	// just ommit it
-	if read_additional && len(line)>=80{
-		atom.Symbol=strings.TrimSpace(line[76:78])
-		atom.Symbol=strings.Title(strings.ToLower(atom.Symbol)) //Not too efficient I guess
-		atom.Charge=float64(line[78]) //strconv.ParseFloat(strings.TrimSpace(line[78:78]),64)
-		if strings.Contains(line[79:79],"-"){
-			atom.Charge=-1.0*atom.Charge 
-			}
+	if read_additional && len(line) >= 80 {
+		atom.Symbol = strings.TrimSpace(line[76:78])
+		atom.Symbol = strings.Title(strings.ToLower(atom.Symbol)) //Not too efficient I guess
+		atom.Charge = float64(line[78])                           //strconv.ParseFloat(strings.TrimSpace(line[78:78]),64)
+		if strings.Contains(line[79:79], "-") {
+			atom.Charge = -1.0 * atom.Charge
 		}
-		
-	//This part tries to guess the symbol from the atom name, if it has not been read 
-	//No error checking here, just fills symbol with the empty string the function returns
-	if len(atom.Symbol)==0{
-		atom.Symbol,_=symbolFromName(atom.Name)
-		}
-		
-		
-	for i:=range(err){
-		if err[i]!=nil{
-			//Here I should add the line number to the returned error.
-			return nil, nil, 0, err[i]
-			}
-		}
-	if atom.Symbol!=""{
-		atom.Mass=symbolMass[atom.Symbol] //Not error checking
-		}
-	return atom, coords, bfactor, nil
-	}
-	
-/*Parses a PDB line if only the coordinates and bfactors are to be read*/	
-func read_onlycoords_pdb_line(line string, contlines int) ([]float64,float64, error) {
-	coords:=make([]float64,3,3)
-	err:=make([]error,4,4)
-	var bfactor float64 //I dont get why I must declare this instead of using :=
-	//I get an "expected identifier" error if I do so.
-	coords[0],err[0]=strconv.ParseFloat(strings.TrimSpace(line[30:38]),64)
-	coords[1],err[1]=strconv.ParseFloat(strings.TrimSpace(line[38:46]),64)
-	coords[2],err[2]=strconv.ParseFloat(strings.TrimSpace(line[46:54]),64)
-	bfactor, err[3] = strconv.ParseFloat(strings.TrimSpace(line[60:66]),64)
-	//this will take care of any error
-	for i:=range(err){
-		if err[i]!=nil{
-			//Here I should add the line number to the returned error.
-			return nil, 0, err[i]
-			}
-		}
-	return coords,bfactor,nil
 	}
 
+	//This part tries to guess the symbol from the atom name, if it has not been read 
+	//No error checking here, just fills symbol with the empty string the function returns
+	if len(atom.Symbol) == 0 {
+		atom.Symbol, _ = symbolFromName(atom.Name)
+	}
+
+	for i := range err {
+		if err[i] != nil {
+			//Here I should add the line number to the returned error.
+			return nil, nil, 0, err[i]
+		}
+	}
+	if atom.Symbol != "" {
+		atom.Mass = symbolMass[atom.Symbol] //Not error checking
+	}
+	return atom, coords, bfactor, nil
+}
+
+/*Parses a PDB line if only the coordinates and bfactors are to be read*/
+func read_onlycoords_pdb_line(line string, contlines int) ([]float64, float64, error) {
+	coords := make([]float64, 3, 3)
+	err := make([]error, 4, 4)
+	var bfactor float64 //I dont get why I must declare this instead of using :=
+	//I get an "expected identifier" error if I do so.
+	coords[0], err[0] = strconv.ParseFloat(strings.TrimSpace(line[30:38]), 64)
+	coords[1], err[1] = strconv.ParseFloat(strings.TrimSpace(line[38:46]), 64)
+	coords[2], err[2] = strconv.ParseFloat(strings.TrimSpace(line[46:54]), 64)
+	bfactor, err[3] = strconv.ParseFloat(strings.TrimSpace(line[60:66]), 64)
+	//this will take care of any error
+	for i := range err {
+		if err[i] != nil {
+			//Here I should add the line number to the returned error.
+			return nil, 0, err[i]
+		}
+	}
+	return coords, bfactor, nil
+}
 
 //PdbRead reads the atomic entries for a PDB file, returns a bunch of without coordinates,
 // and the coordinates in a separate array of arrays. If there is one frame in the PDB
 // the coordinates array will be of lenght 1. It also returns an error which is not 
 // really well set up right now.
-func PdbRead(pdbname string, read_additional bool) (*Molecule, error){
-	molecule:=make([]*Atom,0)
-	modelnumber:=0  //This is the number of frames read
-	coords:=make([][]float64,1,1)
-	coords[0]=make([]float64,0)
-	bfactors:=make([][]float64,1,1)
-	bfactors[0]=make([]float64,0)
-	first_model:=true //are we reading the first model? if not we only save coordinates
+func PdbRead(pdbname string, read_additional bool) (*Molecule, error) {
+	molecule := make([]*Atom, 0)
+	modelnumber := 0 //This is the number of frames read
+	coords := make([][]float64, 1, 1)
+	coords[0] = make([]float64, 0)
+	bfactors := make([][]float64, 1, 1)
+	bfactors[0] = make([]float64, 0)
+	first_model := true //are we reading the first model? if not we only save coordinates
 	pdbfile, err := os.Open(pdbname)
-	if err!= nil{
+	if err != nil {
 		//fmt.Println("Unable to open file!!")
-		return nil,err 
-		}
+		return nil, err
+	}
 	defer pdbfile.Close()
 	pdb := bufio.NewReader(pdbfile)
-	contlines:=1 //count the lines read to better report errors
+	contlines := 1 //count the lines read to better report errors
 	for {
 		line, err := pdb.ReadString('\n')
 		if err != nil {
-			fmt.Println("PDB reading complete")  /***change this to stderr************/
+			fmt.Println("PDB reading complete") /***change this to stderr************/
 			break
-		contlines++ //count all the lines even if empty.
-			}
-		if len(line)<4{
+			contlines++ //count all the lines even if empty.
+		}
+		if len(line) < 4 {
 			continue
-			}
+		}
 		//here we start actually reading
 		/*There might be a bug for not copying the string (symbol, name, etc) but just assigning the slice
 		 * which is a reference. Check!*/
-		var c=make([]float64,3,3)
+		var c = make([]float64, 3, 3)
 		var bfactemp float64 //temporary bfactor
 		var atomtmp *Atom
-	//	var foo string // not really needed
-		if strings.HasPrefix(line, "ATOM") || strings.HasPrefix(line, "HETATM"){
-			if !first_model{
-				c,bfactemp,err=read_onlycoords_pdb_line(line, contlines)
-				}else{
-				atomtmp=new(Atom)
-				atomtmp,c,bfactemp,err=read_full_pdb_line(line, read_additional, contlines)
-				if err!=nil{
-					return nil,err 
-					}
-				//atom data other than coords is the same in all models so just read for the first.
-				molecule=append(molecule,atomtmp)
+		//	var foo string // not really needed
+		if strings.HasPrefix(line, "ATOM") || strings.HasPrefix(line, "HETATM") {
+			if !first_model {
+				c, bfactemp, err = read_onlycoords_pdb_line(line, contlines)
+			} else {
+				atomtmp = new(Atom)
+				atomtmp, c, bfactemp, err = read_full_pdb_line(line, read_additional, contlines)
+				if err != nil {
+					return nil, err
 				}
+				//atom data other than coords is the same in all models so just read for the first.
+				molecule = append(molecule, atomtmp)
+			}
 			//coords are appended for all the models
 			//we add the coords to the latest frame of coordinaates
-			coords[len(coords)-1]=append(coords[len(coords)-1],c[0],c[1],c[2])
-			bfactors[len(bfactors)-1]=append(bfactors[len(bfactors)-1],bfactemp)
-			} else if strings.HasPrefix(line,"MODEL"){
-			modelnumber++  //,_=strconv.Atoi(strings.TrimSpace(line[6:]))
-			if modelnumber > 1{ //will be one for the first model, 2 for the second.
-				first_model=false
-				coords=append(coords,make([]float64,0)) //new bunch of coords for a new frame
-				bfactors=append(bfactors,make([]float64,0))
-				}
+			coords[len(coords)-1] = append(coords[len(coords)-1], c[0], c[1], c[2])
+			bfactors[len(bfactors)-1] = append(bfactors[len(bfactors)-1], bfactemp)
+		} else if strings.HasPrefix(line, "MODEL") {
+			modelnumber++        //,_=strconv.Atoi(strings.TrimSpace(line[6:]))
+			if modelnumber > 1 { //will be one for the first model, 2 for the second.
+				first_model = false
+				coords = append(coords, make([]float64, 0)) //new bunch of coords for a new frame
+				bfactors = append(bfactors, make([]float64, 0))
 			}
-		}	
+		}
+	}
 	//This could be done faster if done in the same loop where the coords are read
 	//Instead of having another loop just for them.
-	top,err:=MakeTopology(molecule,0,0)
-	if err!=nil{
+	top, err := MakeTopology(molecule, 0, 0)
+	if err != nil {
 		return nil, err
-		}
-	frames:=len(coords)
-	mcoords:=make([]*matrix.DenseMatrix,frames,frames) //Final thing to return
-	mbfactors:=make([]*matrix.DenseMatrix,frames,frames)
-	for i:=0;i<frames;i++{
-		mcoords[i]=matrix.MakeDenseMatrix(coords[i],len(coords[i])/3,3)
-		mbfactors[i]=matrix.MakeDenseMatrix(bfactors[i],len(bfactors[i]),1)
-		}
-	//if something happened during the process
-	if err!=nil{
-		return nil, err
-		}
-	returned,err:=MakeMolecule(top,mcoords,mbfactors)
-	return returned, err
 	}
+	frames := len(coords)
+	mcoords := make([]*matrix.DenseMatrix, frames, frames) //Final thing to return
+	mbfactors := make([]*matrix.DenseMatrix, frames, frames)
+	for i := 0; i < frames; i++ {
+		mcoords[i] = matrix.MakeDenseMatrix(coords[i], len(coords[i])/3, 3)
+		mbfactors[i] = matrix.MakeDenseMatrix(bfactors[i], len(bfactors[i]), 1)
+	}
+	//if something happened during the process
+	if err != nil {
+		return nil, err
+	}
+	returned, err := MakeMolecule(top, mcoords, mbfactors)
+	return returned, err
+}
+
 //End Pdb_read family
 
-
 //PdbWrite writes a PDB file for the molecule mol with the file name pdbname.
-func PdbWrite(mol *Molecule, pdbname string) error{
-	err:=mol.Corrupted()
-	if err!=nil{
+func PdbWrite(mol *Molecule, pdbname string) error {
+	err := mol.Corrupted()
+	if err != nil {
 		return err
-		}
+	}
 	out, err := os.Create(pdbname)
-	if err!=nil{
+	if err != nil {
 		return err
-		}
+	}
 	defer out.Close()
-	fmt.Fprint(out,"REMARK     WRITTEN WITH GOCHEM :-)\n")
-	for j:= range mol.Coords{
-		towrite:=mol.Coords[j].Arrays()  //An array of array with the data in the matrix
-		chainprev:=mol.Atom(0).Chain  //this is to know when the chain changes.
-		fmt.Fprintf(out, "MODEL %d\n",j+1) //The model number starts with one
-//		fmt.Println("chain", mol.Atoms[0])		
-		for i:=0;i<mol.Len();i++{
-			ThisAtom:=mol.Atom(i)
-			if ThisAtom.Chain!=chainprev{
-				fmt.Fprintln(out,"TER")
-				chainprev=ThisAtom.Chain
-				}
-			first:="ATOM"
-			if ThisAtom.Het{
-				first="HETATM"
-				}
+	fmt.Fprint(out, "REMARK     WRITTEN WITH GOCHEM :-)\n")
+	for j := range mol.Coords {
+		towrite := mol.Coords[j].Arrays()   //An array of array with the data in the matrix
+		chainprev := mol.Atom(0).Chain      //this is to know when the chain changes.
+		fmt.Fprintf(out, "MODEL %d\n", j+1) //The model number starts with one
+		//		fmt.Println("chain", mol.Atoms[0])		
+		for i := 0; i < mol.Len(); i++ {
+			ThisAtom := mol.Atom(i)
+			if ThisAtom.Chain != chainprev {
+				fmt.Fprintln(out, "TER")
+				chainprev = ThisAtom.Chain
+			}
+			first := "ATOM"
+			if ThisAtom.Het {
+				first = "HETATM"
+			}
 			//Corrupted will check for broken bfactors and complete with zeroes
 			//So no need to check here.
-			c:=towrite[i] //coordinates for the corresponding atoms
-			if len(ThisAtom.Name)<4{
-		//		fmt.Println("chain", ThisAtom)
-				_,err=fmt.Fprintf(out,"%-6s%5d  %-3s %3s %1c%4d    %8.3f%8.3f%8.3f%6.2f%6.2f          %2s  \n",first, ThisAtom.Id, ThisAtom.Name, ThisAtom.Molname, ThisAtom.Chain,
-							ThisAtom.Molid, c[0],c[1],c[2], ThisAtom.Occupancy, mol.Bfactors[j].Get(i,0), ThisAtom.Symbol)
+			c := towrite[i] //coordinates for the corresponding atoms
+			if len(ThisAtom.Name) < 4 {
+				//		fmt.Println("chain", ThisAtom)
+				_, err = fmt.Fprintf(out, "%-6s%5d  %-3s %3s %1c%4d    %8.3f%8.3f%8.3f%6.2f%6.2f          %2s  \n", first, ThisAtom.Id, ThisAtom.Name, ThisAtom.Molname, ThisAtom.Chain,
+					ThisAtom.Molid, c[0], c[1], c[2], ThisAtom.Occupancy, mol.Bfactors[j].Get(i, 0), ThisAtom.Symbol)
 				//4 chars for the atom name are used when hydrogens are included.	
 				//This has not been tested
-				}else if len(ThisAtom.Name)==4{
-				_,err=fmt.Fprintf(out,"%-6s%5d %4s %3s %1c%4d    %8.3f%8.3f%8.3f%6.2f%6.2f          %2s  \n",first, ThisAtom.Id, ThisAtom.Name, ThisAtom.Molname, ThisAtom.Chain,
-							ThisAtom.Molid, c[0],c[1],c[2], ThisAtom.Occupancy, mol.Bfactors[j].Get(i,0), ThisAtom.Symbol)			
-				}else{
-				err=fmt.Errorf("Cant print PDB line")
-				}
-			if err!=nil{
-				return err
-				}
+			} else if len(ThisAtom.Name) == 4 {
+				_, err = fmt.Fprintf(out, "%-6s%5d %4s %3s %1c%4d    %8.3f%8.3f%8.3f%6.2f%6.2f          %2s  \n", first, ThisAtom.Id, ThisAtom.Name, ThisAtom.Molname, ThisAtom.Chain,
+					ThisAtom.Molid, c[0], c[1], c[2], ThisAtom.Occupancy, mol.Bfactors[j].Get(i, 0), ThisAtom.Symbol)
+			} else {
+				err = fmt.Errorf("Cant print PDB line")
 			}
-		fmt.Fprint(out,"ENDMDL\n")
+			if err != nil {
+				return err
+			}
 		}
-	fmt.Fprint(out,"END\n")
-	return nil
+		fmt.Fprint(out, "ENDMDL\n")
 	}
-	
-	
+	fmt.Fprint(out, "END\n")
+	return nil
+}
 
 //XyzRead reads an xyz file, returns a slice of Atom objects, and slice of matrix.DenseMatrix and an error.
-func XyzRead(xyzname string,) (*Molecule, error){
-	xyzfile, err:= os.Open(xyzname)
-	if err!= nil{
+func XyzRead(xyzname string) (*Molecule, error) {
+	xyzfile, err := os.Open(xyzname)
+	if err != nil {
 		//fmt.Println("Unable to open file!!")
-		return nil,err 
-		}
+		return nil, err
+	}
 	defer xyzfile.Close()
-	xyz := bufio.NewReader(xyzfile)	
+	xyz := bufio.NewReader(xyzfile)
 	line, err := xyz.ReadString('\n')
 	if err != nil {
-		return  nil, fmt.Errorf("Ill formatted XYZ file")
-		}
-	natoms,err:=strconv.Atoi(strings.TrimSpace(line))
+		return nil, fmt.Errorf("Ill formatted XYZ file")
+	}
+	natoms, err := strconv.Atoi(strings.TrimSpace(line))
 	if err != nil {
 		return nil, fmt.Errorf("Ill formatted XYZ file")
-		}
-	molecule:=make([]*Atom,natoms,natoms)
-	coords:=make([]float64,natoms*3,natoms*3)
-	_,err=xyz.ReadString('\n') //We dont care about this line
+	}
+	molecule := make([]*Atom, natoms, natoms)
+	coords := make([]float64, natoms*3, natoms*3)
+	_, err = xyz.ReadString('\n') //We dont care about this line
 	if err != nil {
 		return nil, fmt.Errorf("Ill formatted XYZ file")
-		}
-	errs:=make([]error,3,3)
-	for i:=0;i<natoms;i++{
+	}
+	errs := make([]error, 3, 3)
+	for i := 0; i < natoms; i++ {
 		line, errs[0] = xyz.ReadString('\n')
-		if errs[0] != nil {  //inefficient, (errs[1] can be checked once before), but clearer.
+		if errs[0] != nil { //inefficient, (errs[1] can be checked once before), but clearer.
 			break
-			}
-		fields:=strings.Fields(line)
-		if len(fields)<4{
-			errs[0]=fmt.Errorf("Line number %d in file %s ill formed",i,xyzname)
+		}
+		fields := strings.Fields(line)
+		if len(fields) < 4 {
+			errs[0] = fmt.Errorf("Line number %d in file %s ill formed", i, xyzname)
 			break
-			}
-		molecule[i]=new(Atom)
-		molecule[i].Symbol=strings.ToTitle(strings.ToLower(fields[0]))
-		molecule[i].Mass=symbolMass[molecule[i].Symbol]
-		coords[i*3],errs[0]=  strconv.ParseFloat(fields[1],64)
-		coords[i*3+1],errs[1]=strconv.ParseFloat(fields[2],64)
-		coords[i*3+2],errs[2]=strconv.ParseFloat(fields[3],64)
-	}	
+		}
+		molecule[i] = new(Atom)
+		molecule[i].Symbol = strings.ToTitle(strings.ToLower(fields[0]))
+		molecule[i].Mass = symbolMass[molecule[i].Symbol]
+		coords[i*3], errs[0] = strconv.ParseFloat(fields[1], 64)
+		coords[i*3+1], errs[1] = strconv.ParseFloat(fields[2], 64)
+		coords[i*3+2], errs[2] = strconv.ParseFloat(fields[3], 64)
+	}
 	//This could be done faster if done in the same loop where the coords are read
 	//Instead of having another loop just for them.
-	for _,i:=range errs{
-		if i!=nil{
+	for _, i := range errs {
+		if i != nil {
 			return nil, i
-			}
 		}
-	top,err:=MakeTopology(molecule,0,0)
-	if err!=nil{
-		return nil, err
-		}
-	mcoords:=make([]*matrix.DenseMatrix,1,1)
-	mcoords[0]=matrix.MakeDenseMatrix(coords,natoms,3)
-	bfactors:=make([]*matrix.DenseMatrix,1,1)
-	bfactors[0]=matrix.Zeros(len(molecule),1)
-	returned,err:=MakeMolecule(top,mcoords,bfactors)
-	return returned, err
 	}
-
-
-
+	top, err := MakeTopology(molecule, 0, 0)
+	if err != nil {
+		return nil, err
+	}
+	mcoords := make([]*matrix.DenseMatrix, 1, 1)
+	mcoords[0] = matrix.MakeDenseMatrix(coords, natoms, 3)
+	bfactors := make([]*matrix.DenseMatrix, 1, 1)
+	bfactors[0] = matrix.Zeros(len(molecule), 1)
+	returned, err := MakeMolecule(top, mcoords, bfactors)
+	return returned, err
+}
 
 //XyzWrite writes the frame frame of molecule mol in an XYZ file with name xyzname which will
 //be created fot that. If the file exist it will be overwriten.
-func XyzWrite(mol *Molecule, frame int, xyzname string) error{
-	err:=mol.Corrupted()
-	if err!=nil{
+func XyzWrite(mol *Molecule, frame int, xyzname string) error {
+	err := mol.Corrupted()
+	if err != nil {
 		return err
-		}
-	out, err := os.Create(xyzname)
-	if err!=nil{
-		return err
-		}
-	defer out.Close()
-	fmt.Fprintf(out,"%-4d\n",len(mol.Atoms))
-	fmt.Fprintf(out,"\n")
-	towrite:=mol.Coords[frame].Arrays()  //An array of array with the data in the matrix	
-	for i:=0;i<mol.Len();i++{
-		c:=towrite[i] //coordinates for the corresponding atoms
-		_,err=fmt.Fprintf(out,"%-2s  %12.6f%12.6f%12.6f \n",mol.Atom(i).Symbol, c[0],c[1],c[2])
-		if err!=nil{
-			return err
-			}
-		}
-	return nil
 	}
+	out, err := os.Create(xyzname)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+	fmt.Fprintf(out, "%-4d\n", len(mol.Atoms))
+	fmt.Fprintf(out, "\n")
+	towrite := mol.Coords[frame].Arrays() //An array of array with the data in the matrix	
+	for i := 0; i < mol.Len(); i++ {
+		c := towrite[i] //coordinates for the corresponding atoms
+		_, err = fmt.Fprintf(out, "%-2s  %12.6f%12.6f%12.6f \n", mol.Atom(i).Symbol, c[0], c[1], c[2])
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
