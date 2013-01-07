@@ -200,7 +200,7 @@ func TestQM(Te *testing.T) {
 	calc.HighBasis = "def2-QZVPP"
 	calc.HBAtoms = []int{3, 10, 12}
 	calc.HBElements = []string{"Cu", "Zn"}
-	calc.AuxBasis = "def2-TZVPP/J"
+	calc.RI=true
 	calc.Disperssion = "D2"
 	calc.CConstraints = []int{0, 10, 20}
 	orca := MakeOrcaRunner()

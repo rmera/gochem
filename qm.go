@@ -49,8 +49,10 @@ type PointCharge struct {
 type QMCalc struct {
 	Method       string
 	Basis        string
-	AuxBasis     string //for RI calculations
-	AuxColBasis  string //for RICOSX or similar calculations
+	RI           bool
+	RIJ          bool
+	auxBasis     string //for RI calculations
+	auxColBasis  string //for RICOSX or similar calculations
 	HighBasis    string //a bigger basis for certain atoms
 	LowBasis     string //lower basis for certain atoms
 	HBAtoms      []int
@@ -136,22 +138,20 @@ func (O *OrcaRunner) BuildInput(atoms Ref, coords *matrix.DenseMatrix, Q *QMCalc
 	if Q.Method == "" {
 		fmt.Fprintf(os.Stderr, "no method assigned for ORCA calculation, will used the default %s, \n", O.defmethod)
 		Q.Method = O.defmethod
-		Q.AuxColBasis = "" //makes no sense for pure functional
-		Q.AuxBasis = fmt.Sprintf("%s/J", Q.Basis)
+		Q.auxColBasis = "" //makes no sense for pure functional
+		Q.auxBasis = fmt.Sprintf("%s/J", Q.Basis)
 	}
-	//The usage of RI/RICOSX is given by the presence of AuxBasis/AuxColBasis. Its the user responsability 
-	//not to set AuxColBasis for non-hybrid functionals and not to set AuxBasis and not AuxColBasis for
-	//hybrid functionals.
-	if !strings.Contains(Q.Others, "RI") {
-		if Q.AuxColBasis != "" {
-			//this will fail if someone wrote RI in the Other variable.
-			if !(strings.Contains("RICOSX", Q.Others)) {
-				Q.Others = fmt.Sprintf("%s %s", Q.Others, "RICOSX")
-			}
-		} else if Q.AuxBasis != "" {
-			Q.Others = fmt.Sprintf("%s %s", Q.Others, "RI")
-		}
+
+	//Set RI or RIJCOSX if needed
+	if Q.RI{
+		Q.auxBasis = Q.Basis+"/J"
+		Q.Others = fmt.Sprintf("%s %s", Q.Others, "RI")
 	}
+	if Q.RIJ{
+		Q.auxColBasis= Q.Basis+"/C"
+		Q.Others = fmt.Sprintf("%s %s", Q.Others, "RIJCOSX")
+	}
+	
 	disp := "VDW3"
 	if Q.Disperssion != "" {
 		disp = orcaDisp[Q.Disperssion]
@@ -216,7 +216,7 @@ func (O *OrcaRunner) BuildInput(atoms Ref, coords *matrix.DenseMatrix, Q *QMCalc
 		}
 		pal = fmt.Sprintf("PAL%d", O.nCPU)
 	}
-	MainOptions := []string{"!", hfuhf, Q.Method, Q.Basis, Q.AuxBasis, Q.AuxColBasis, tight, disp, conv, Q.Guess, opt, Q.Others, pal, "\n"}
+	MainOptions := []string{"!", hfuhf, Q.Method, Q.Basis, Q.auxBasis, Q.auxColBasis, tight, disp, conv, Q.Guess, opt, Q.Others, pal, "\n"}
 	mainline := strings.Join(MainOptions, " ")
 	constraints := O.buildCConstraints(Q.CConstraints)
 	cosmo := ""
