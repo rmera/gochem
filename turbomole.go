@@ -29,6 +29,7 @@
 package chem
 
 import "os"
+import "io"
 import "strings"
 import "strconv"
 import "bufio"
@@ -44,6 +45,7 @@ type TMRunner struct {
 	previousMO  string
 	command     string
 	inputname   string
+	gimic       bool
 }
 
 //Creates and initialized a new instance of TMRuner, with values set
@@ -55,6 +57,7 @@ func MakeTMRunner() *TMRunner {
 }
 
 //TMRunner methods
+
 
 //Just to satisfy the interface. It does nothing
 func (O *TMRunner) SetnCPU(cpu int) {
@@ -85,25 +88,49 @@ func (O *TMRunner) SetDefaults() {
 	
 }
 
+
+func (O *TMRunner) addToControl(toappend []string) error{
+	f, err:=os.OpenFile("control", os.O_APPEND, 0666)
+	if err!=nil{
+		return err
+	}
+	defer f.Close()
+	for _,val:=range(toappend){
+		if _, err := io.WriteString(f, val+"\n");err!=nil{
+			return err
+			} 
+		}
+	return nil
+}
+
 //BuildInput builds an input for TM based int the data in atoms, coords and C.
 //returns only error.
 func (O *TMRunner) BuildInput(atoms Ref, coords *matrix.DenseMatrix, Q *QMCalc) error {
+	
+	//Set the coordinates in a slightly stupid way.
+	XyzWrite(atoms,coords,"file.xyz")
+	x2t:=exec.Command("x2t","file.xyz")
+	
+	if err:=x2t.Run();err!=nil{
+		return fmt.Errorf("Unable to run x2t: %s",err.Error())
+	}	
+	
+	fmt.Println("READY!")
 	defstring:="\n\na coord\n*\nno\n"
-	//Only error so far
 	if atoms == nil || coords == nil {
 		return fmt.Errorf("Missing charges or coordinates")
 	}
 	if Q.Basis == "" {
 		fmt.Fprintf(os.Stderr, "no basis set assigned for TM calculation, will used the default %s, \n", O.defbasis)
-		defstring:=defstring+"b a "+Q.Basis+"\n*\n"
+		defstring=defstring+"b a "+Q.Basis+"\n*\n"
 	}
-	
 	defstring=defstring+fmt.Sprintf("eht\n\n\n%d\n\n", atoms.Charge())
-	
-	of Q.Method,ok:=TMMethods[Q.Method] !ok{
+	if method,ok:=tMMethods[Q.Method]; !ok{
 		fmt.Fprintf(os.Stderr, "no method assigned for TM calculation, will used the default %s, \n", O.defmethod)
 		Q.Method = O.defmethod
 		Q.RI = true
+	}else{
+	Q.Method=method	
 	}
 	//We only support HF and DFT
 	O.command="dscf"
@@ -117,27 +144,37 @@ func (O *TMRunner) BuildInput(atoms Ref, coords *matrix.DenseMatrix, Q *QMCalc) 
 	defstring=defstring+"*\n"
 	
 	def:=exec.Command("define")
-	pipe:=def.StdinPipe()
+	pipe,err:=def.StdinPipe()
+	if err!=nil{
+		return fmt.Errorf("Unable to run define: %s",err.Error())
+		}
 	defer pipe.Close()
-	pipe.Write(defstring)
+	pipe.Write([]byte(defstring))
 	if err:=def.Run();err!=nil{
-		return fmt.Error("Unable to run define: %s",err.Error())
+		return fmt.Errorf("Unable to run define: %s",err.Error())
 		}
 		
 	if Q.Optimize{
-		O.Command "jobex"
+		O.command="jobex"
 		if Q.RI{
-			O.Command=O.Command+" -c 200 -ri"
+			O.command=O.command+" -c 200 -ri"
 		}else{
-			O.Command=O.Command+" -c 200"
+			O.command=O.command+" -c 200"
 		}
 	}
 	//Now modify control
-	disp := "$disp3"
+	args:=make([]string,1,2)
+	args[0] = "$disp3"
 	if Q.Disperssion != "" {
-		disp = tMDisp[Q.Disperssion]
+		args[0] = tMDisp[Q.Disperssion]	
 	}
-	
+	if Q.Gimic{
+		O.command="mpshift"
+		args=append(args,"$gimic")
+	}
+	if err:=O.addToControl(args);err!=nil{
+		return err
+	}
 
 /*	ElementBasis := ""
 	if Q.HBElements != nil || Q.LBElements != nil {
@@ -156,19 +193,20 @@ func (O *TMRunner) BuildInput(atoms Ref, coords *matrix.DenseMatrix, Q *QMCalc) 
 	return nil
 }
 
-var TMethods = map[string]string{
-	"HF": "hf"
-	"hf": "hf"
+var tMMethods = map[string]string{
+	"HF": "hf",
+	"hf": "hf",
+	"b3lyp": "b3-lyp",
 	"B3LYP": "b3-lyp",
 	"b3-lyp": "b3-lyp",
 	"PBE": "pbe",
 	"pbe": "pbe",
 	"TPSS": "tpss",
 	"TPSSh": "tpssh",
-	"tpss": "tpss"
+	"tpss": "tpss",
 	"tpssh": "tpssh",
 	"BP86": "b-p",
-	"b-p": "b-p"
+	"b-p": "b-p",
 }
 
 
@@ -310,13 +348,3 @@ func (O *TMRunner) GetGeometry(atoms Ref) (*matrix.DenseMatrix, error) {
 	return mcoords, nil
 }
 
-//Support function, gets a slice of errors and returns the first
-//non-nil error found, or nil if all errors are nil.
-func parseErrorSlice(errorsl []error) error {
-	for _, val := range errorsl {
-		if val != nil {
-			return val
-		}
-	}
-	return nil
-}

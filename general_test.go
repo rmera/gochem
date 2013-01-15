@@ -150,7 +150,7 @@ func TestGeo(Te *testing.T) {
 		if err != nil {
 			Te.Error(err)
 		}
-		XyzWrite(mol, 0, fmt.Sprintf("test/sample_%03.1f.xyz", scaling))
+		XyzWrite(mol, mol.Coords[0], fmt.Sprintf("test/sample_%03.1f.xyz", scaling))
 	}
 }
 
@@ -239,7 +239,7 @@ func TestQM(Te *testing.T) {
 	}
 	mol.Coords[0] = geometry
 	fmt.Println(energy)
-	if err := XyzWrite(mol, 0, "mopac.xyz"); err != nil {
+	if err := XyzWrite(mol, mol.Coords[0], "mopac.xyz"); err != nil {
 		Te.Error(err)
 	}
 	//Took away this because it takes too long to run :-)
@@ -251,6 +251,29 @@ func TestQM(Te *testing.T) {
 		Te.Error(err)
 	}
 }
+
+func TestTM(Te *testing.T){
+	fmt.Println("TM Testing!")
+	os.Chdir("test")
+	defer os.Chdir("../")
+	mol, err := XyzRead("sampleqm.xyz")
+	if err != nil {
+		Te.Error(err)
+	}
+	if err := mol.Corrupted(); err != nil {
+		Te.Error(err)
+	}
+	mol.SetCharge(1)
+	calc := new(QMCalc)
+	calc.Optimize = true
+	calc.Method = "b-p"
+	calc.Basis = "def2-SVP"
+	calc.RI=true
+	calc.Disperssion = "D3"
+	TM := MakeTMRunner()
+	TM.BuildInput(mol, mol.Coords[0], calc)
+	
+	}
 
 func TestMatrix(Te *testing.T) {
 	a := []float64{1, 1, 4, 2, 2, 5, 3, 3, 6}

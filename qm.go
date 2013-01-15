@@ -71,6 +71,7 @@ type QMCalc struct {
 	Optimize     bool
 	SCFTightness int
 	SCFConvHelp  int
+	Gimic        bool
 }
 
 type OrcaRunner struct {

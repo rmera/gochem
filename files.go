@@ -401,21 +401,17 @@ func XyzRead(xyzname string) (*Molecule, error) {
 	return returned, err
 }
 
-//XyzWrite writes the frame frame of molecule mol in an XYZ file with name xyzname which will
-//be created fot that. If the file exist it will be overwriten.
-func XyzWrite(mol *Molecule, frame int, xyzname string) error {
-	err := mol.Corrupted()
-	if err != nil {
-		return err
-	}
+//XyzWrite writes the mol Ref and the Coord coordinates in an XYZ file with name xyzname which will
+//be created fot that. If the file exist it will be overwritten.
+func XyzWrite(mol Ref, Coords *matrix.DenseMatrix, xyzname string) error {
 	out, err := os.Create(xyzname)
 	if err != nil {
 		return err
 	}
 	defer out.Close()
-	fmt.Fprintf(out, "%-4d\n", len(mol.Atoms))
+	fmt.Fprintf(out, "%-4d\n", mol.Len())
 	fmt.Fprintf(out, "\n")
-	towrite := mol.Coords[frame].Arrays() //An array of array with the data in the matrix	
+	towrite := Coords.Arrays() //An array of array with the data in the matrix	
 	for i := 0; i < mol.Len(); i++ {
 		c := towrite[i] //coordinates for the corresponding atoms
 		_, err = fmt.Fprintf(out, "%-2s  %12.6f%12.6f%12.6f \n", mol.Atom(i).Symbol, c[0], c[1], c[2])
