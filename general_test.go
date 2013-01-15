@@ -271,7 +271,9 @@ func TestTM(Te *testing.T){
 	calc.RI=true
 	calc.Disperssion = "D3"
 	TM := MakeTMRunner()
-	TM.BuildInput(mol, mol.Coords[0], calc)
+	if err:=TM.BuildInput(mol, mol.Coords[0], calc);err!=nil{
+		Te.Error(err)
+		}
 	
 	}
 

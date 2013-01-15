@@ -90,27 +90,39 @@ func (O *TMRunner) SetDefaults() {
 
 
 func (O *TMRunner) addToControl(toappend []string) error{
+	fmt.Println("running add2control")
 	f, err:=os.OpenFile("control", os.O_APPEND, 0666)
 	if err!=nil{
 		return err
 	}
 	defer f.Close()
+	fmt.Println("opened!")
 	for _,val:=range(toappend){
+		fmt.Println("writing!")
 		if _, err := io.WriteString(f, val+"\n");err!=nil{
 			return err
-			} 
-		}
+		} 
+		fmt.Println("wrote!")	
+	}
 	return nil
 }
 
 //BuildInput builds an input for TM based int the data in atoms, coords and C.
 //returns only error.
-func (O *TMRunner) BuildInput(atoms Ref, coords *matrix.DenseMatrix, Q *QMCalc) error {
-	
+func (O *TMRunner) BuildInput(atoms Ref, coords *matrix.DenseMatrix, Q *QMCalc) error {	
 	//Set the coordinates in a slightly stupid way.
 	XyzWrite(atoms,coords,"file.xyz")
 	x2t:=exec.Command("x2t","file.xyz")
-	
+	stdout, err := x2t.StdoutPipe()
+	if err != nil {
+		return fmt.Errorf("Unable to run x2t: %s",err.Error())
+	}
+    coord,err:=os.Create("coord")
+    if err!=nil{
+		return fmt.Errorf("Unable to run x2t: %s",err.Error())
+		}
+	defer coord.Close()
+    go io.Copy(coord, stdout) 
 	if err:=x2t.Run();err!=nil{
 		return fmt.Errorf("Unable to run x2t: %s",err.Error())
 	}	
