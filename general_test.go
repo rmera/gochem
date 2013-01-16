@@ -265,7 +265,7 @@ func TestTM(Te *testing.T){
 	}
 	mol.SetCharge(1)
 	calc := new(QMCalc)
-	calc.Optimize = true
+	calc.Optimize = false
 	calc.Method = "b-p"
 	calc.Basis = "def2-SVP"
 	calc.RI=true
@@ -274,7 +274,9 @@ func TestTM(Te *testing.T){
 	if err:=TM.BuildInput(mol, mol.Coords[0], calc);err!=nil{
 		Te.Error(err)
 		}
-	
+	if err=TM.Run(false);err!=nil{
+		Te.Error(err)
+		}
 	}
 
 func TestMatrix(Te *testing.T) {
