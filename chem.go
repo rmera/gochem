@@ -126,6 +126,39 @@ func (T *Topology) SetUnpaired(i int) {
 	T.unpaired = i
 }
 
+
+
+//Sets the current order of atoms as Id and the order of molecules as
+//Molid for all atoms
+func (T *Topology) ResetIds(){
+	currid:=1
+	currid2:=1
+	for key,val:=range(T.Atoms){
+		T.Atoms[key].Id=key+1
+		if currid==val.Molid{
+			continue
+			}
+		if currid==val.Molid-1{ //We hit a new molecule
+			currid2++
+			currid++
+			continue
+			}
+		//change of residue after fixing one that didnt match position
+		if currid2!=val.Molid{
+			currid2=T.Atoms[key].Molid
+			T.Atoms[key].Molid=currid+1
+			currid=currid+1
+			continue
+		}
+		//A residue's index doesnt match its position
+		T.Atoms[key].Molid=currid
+		
+		
+		
+	}
+}
+
+
 //Copy returns a copy of the molecule including coordinates
 func (T *Topology) CopyAtoms() Ref {
 	Top := new(Topology)

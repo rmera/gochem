@@ -290,3 +290,20 @@ func TestSelectCone(Te *testing.T) {
 	PdbWrite(newmol, "test/mylittlecone.pdb")
 
 }
+
+func TestReorder(Te *testing.T){
+	mol, err := PdbRead("test/2c9v.pdb",false)
+	if err != nil {
+		Te.Error(err)
+	}
+	for key,val:=range(mol.Atoms){
+		if val.Molid==6{
+			mol.Atoms[key].Id=9999
+			mol.Atoms[key].Molid=444
+		}
+	}
+	mol.ResetIds()
+	PdbWrite(mol,"test/ordertest.pdb")
+	
+}
+

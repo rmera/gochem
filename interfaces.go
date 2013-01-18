@@ -96,6 +96,9 @@ type Ref interface {
 	//Returns a copy of the Ref with the atom i deleted
 	DelAtom(i int) Ref
 
+	//Changes the Ids and Molids of atoms for ones matching their current order
+	ResetIds()
+	
 	//Returns the number of atoms in the reference
 	Len() int
 }
