@@ -404,6 +404,9 @@ func XyzRead(xyzname string) (*Molecule, error) {
 //XyzWrite writes the mol Ref and the Coord coordinates in an XYZ file with name xyzname which will
 //be created fot that. If the file exist it will be overwritten.
 func XyzWrite(mol Ref, Coords *matrix.DenseMatrix, xyzname string) error {
+	if mol.Len()!=Coords.Rows(){
+		return fmt.Errorf("Ref and Coords dont have the same number of atoms")
+		}
 	out, err := os.Create(xyzname)
 	if err != nil {
 		return err

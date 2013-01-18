@@ -252,32 +252,7 @@ func TestQM(Te *testing.T) {
 	}
 }
 
-func TestTM(Te *testing.T){
-	fmt.Println("TM Testing!")
-	os.Chdir("test")
-	defer os.Chdir("../")
-	mol, err := XyzRead("sampleqm.xyz")
-	if err != nil {
-		Te.Error(err)
-	}
-	if err := mol.Corrupted(); err != nil {
-		Te.Error(err)
-	}
-	mol.SetCharge(1)
-	calc := new(QMCalc)
-	calc.Optimize = false
-	calc.Method = "b-p"
-	calc.Basis = "def2-SVP"
-	calc.RI=true
-	calc.Disperssion = "D3"
-	TM := MakeTMRunner()
-	if err:=TM.BuildInput(mol, mol.Coords[0], calc);err!=nil{
-		Te.Error(err)
-		}
-	if err=TM.Run(false);err!=nil{
-		Te.Error(err)
-		}
-	}
+
 
 func TestMatrix(Te *testing.T) {
 	a := []float64{1, 1, 4, 2, 2, 5, 3, 3, 6}
