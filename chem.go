@@ -202,8 +202,10 @@ func (T *Topology) AddAtom(at *Atom) Ref {
 
 //SelectAtoms, given a list of ints,  returns an array of the atoms with the
 //corresponding position in the molecule
-//Changes to these atoms affect the original reference
-func (T *Topology) SomeAtoms(atomlist []int) ([]*Atom, error) {
+//Changes to these atoms affect the original reference.
+//The charge and multiplicity (unpaired electrons) for the molecule is just the one
+//for the parent reference and its not guarranteed to be correct.
+func (T *Topology) SomeAtoms(atomlist []int) (Ref, error) {
 	var err error
 	var ret []*Atom
 	lenatoms := len(T.Atoms)
@@ -213,7 +215,8 @@ func (T *Topology) SomeAtoms(atomlist []int) ([]*Atom, error) {
 		}
 		ret = append(ret, T.Atoms[j])
 	}
-	return ret, err
+	finalret,err:=MakeTopology(ret, T.Charge(), T.Unpaired())
+	return finalret, err
 }
 
 //Returns a copy of T with the i atom deleted by reslicing
