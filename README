@@ -112,8 +112,7 @@ TODOS:
 
 *Leave only SetRows and SomeRows, removing similar methods of Traj interface.
 *Get PDBWrite to accept a Ref and an array of *matrix.DenseMatrix
-*Rename PDBWrite to MultiPDBWrite and make a new PDBWrite which is a wrapper to it and
- takes a ref and one *matrix.DenseMatrix.
+*Get SomeAtoms method of Ref to return a Ref.
 *Get XyzRead to read multi-XYZ files.
 
 *Protein superimposer (Calign?).

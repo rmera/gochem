@@ -72,7 +72,7 @@ func BenchmarkChangeAxis(Te *testing.B) {
 	if err != nil {
 		Te.Error(err)
 	}
-	PdbWrite(mol, "test/2c9v-aligned.pdb")
+	PdbWrite("test/2c9v-aligned.pdb",mol,mol.Coords[0])
 	fmt.Println("bench1")
 }
 
@@ -113,7 +113,7 @@ func BenchmarkOldChangeAxis(Te *testing.B) {
 	if err != nil {
 		Te.Error(err)
 	}
-	PdbWrite(mol, "test/2c9v-old-aligned.pdb")
+	PdbWrite("test/2c9v-old-aligned.pdb",mol,mol.Coords[0])
 	fmt.Println("bench2")
 }
 
@@ -283,12 +283,8 @@ func TestSelectCone(Te *testing.T) {
 	cone := SelCone(mol.Coords[0], selection, 0.75, 20, 1, 0, 0) //0.524 approx pi/6 approx 30deg. 
 	top, _ := mol.SomeAtoms(cone)
 	ref, _ := MakeTopology(top, 0, 1)
-	coordst := SomeRows(mol.Coords[0], cone)
-	coords := make([]*matrix.DenseMatrix, 1, 1)
-	coords[0] = coordst
-	newmol, _ := MakeMolecule(ref, coords, mol.Bfactors)
-	PdbWrite(newmol, "test/mylittlecone.pdb")
-
+	coords := SomeRows(mol.Coords[0], cone)
+	PdbWrite("test/mylittlecone.pdb",ref,coords,mol.Bfactors[0])
 }
 
 func TestReorder(Te *testing.T){
@@ -303,7 +299,7 @@ func TestReorder(Te *testing.T){
 		}
 	}
 	mol.ResetIds()
-	PdbWrite(mol,"test/ordertest.pdb")
+	PdbWrite("test/ordertest.pdb",mol,mol.Coords[0])
 	
 }
 

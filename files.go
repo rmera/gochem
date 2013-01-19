@@ -289,20 +289,54 @@ func PdbRead(pdbname string, read_additional bool) (*Molecule, error) {
 
 //End Pdb_read family
 
-//PdbWrite writes a PDB file for the molecule mol with the file name pdbname.
-func PdbWrite(mol *Molecule, pdbname string) error {
-	err := mol.Corrupted()
-	if err != nil {
-		return err
+//PdbWrite writes a PDB for the molecule mol and the coordinates Coords. It is just a wrapper for
+//MultiPdbWrite. Returns error or nil.
+func PdbWrite(pdbname string, mol Ref, CandB ...*matrix.DenseMatrix) error{
+	Coords:=[]*matrix.DenseMatrix{CandB[0]}
+	var Bfactors []*matrix.DenseMatrix
+	if len(CandB)>1{
+		Bfactors=[]*matrix.DenseMatrix{CandB[1]} //any other element is just ignored	
+	}else{
+		Bfactors=[]*matrix.DenseMatrix{matrix.Zeros(mol.Len(), 1)}
+	}
+	err:=MultiPdbWrite(pdbname, mol, Coords,Bfactors)
+	return err
+	}
+
+
+//MultiPdbWrite writes a multiPDB file for the molecule mol and the various coordinate sets in CandB.
+//CandB is a list of lists of *matrix.DenseMatrix. If it has 2 elements or more, the second will be used as
+//Bfactors. If it has one element, all b-factors will be zero.
+//Returns an error if fails, or nil if succeeds.
+func MultiPdbWrite(pdbname string, mol Ref, CandB ...[]*matrix.DenseMatrix) error {
+	/*if len(CandB)<1{  //We should not need this
+		return fmt.Errorf("MultiPdbWrite: Coordinates not supplied")
+	}*/
+	Coords:=CandB[0]
+	var Bfactors []*matrix.DenseMatrix
+	if len(CandB)>1{
+		Bfactors=CandB[1] //any other element is just ignored	
+	}else{
+		for _,_=range(Coords){
+			Bfactors=append(Bfactors,matrix.Zeros(mol.Len(), 1))
+		}
+	}
+	
+	
+	for key,val:=range(Coords){
+		if val.Rows()!=mol.Len() || val.Rows()!=Bfactors[key].Rows(){
+			return fmt.Errorf("MultiPdbWrite: Ref and Coords and/or Bfactors dont have the same number of atoms")
+		}
 	}
 	out, err := os.Create(pdbname)
 	if err != nil {
 		return err
 	}
+	
 	defer out.Close()
 	fmt.Fprint(out, "REMARK     WRITTEN WITH GOCHEM :-)\n")
-	for j := range mol.Coords {
-		towrite := mol.Coords[j].Arrays()   //An array of array with the data in the matrix
+	for j := range Coords {
+		towrite := Coords[j].Arrays()   //An array of array with the data in the matrix
 		chainprev := mol.Atom(0).Chain      //this is to know when the chain changes.
 		fmt.Fprintf(out, "MODEL %d\n", j+1) //The model number starts with one
 		//		fmt.Println("chain", mol.Atoms[0])		
@@ -322,12 +356,12 @@ func PdbWrite(mol *Molecule, pdbname string) error {
 			if len(ThisAtom.Name) < 4 {
 				//		fmt.Println("chain", ThisAtom)
 				_, err = fmt.Fprintf(out, "%-6s%5d  %-3s %3s %1c%4d    %8.3f%8.3f%8.3f%6.2f%6.2f          %2s  \n", first, ThisAtom.Id, ThisAtom.Name, ThisAtom.Molname, ThisAtom.Chain,
-					ThisAtom.Molid, c[0], c[1], c[2], ThisAtom.Occupancy, mol.Bfactors[j].Get(i, 0), ThisAtom.Symbol)
+					ThisAtom.Molid, c[0], c[1], c[2], ThisAtom.Occupancy, Bfactors[j].Get(i, 0), ThisAtom.Symbol)
 				//4 chars for the atom name are used when hydrogens are included.	
 				//This has not been tested
 			} else if len(ThisAtom.Name) == 4 {
 				_, err = fmt.Fprintf(out, "%-6s%5d %4s %3s %1c%4d    %8.3f%8.3f%8.3f%6.2f%6.2f          %2s  \n", first, ThisAtom.Id, ThisAtom.Name, ThisAtom.Molname, ThisAtom.Chain,
-					ThisAtom.Molid, c[0], c[1], c[2], ThisAtom.Occupancy, mol.Bfactors[j].Get(i, 0), ThisAtom.Symbol)
+					ThisAtom.Molid, c[0], c[1], c[2], ThisAtom.Occupancy, Bfactors[j].Get(i, 0), ThisAtom.Symbol)
 			} else {
 				err = fmt.Errorf("Cant print PDB line")
 			}
@@ -403,7 +437,7 @@ func XyzRead(xyzname string) (*Molecule, error) {
 
 //XyzWrite writes the mol Ref and the Coord coordinates in an XYZ file with name xyzname which will
 //be created fot that. If the file exist it will be overwritten.
-func XyzWrite(mol Ref, Coords *matrix.DenseMatrix, xyzname string) error {
+func XyzWrite(xyzname string,mol Ref, Coords *matrix.DenseMatrix) error {
 	if mol.Len()!=Coords.Rows(){
 		return fmt.Errorf("Ref and Coords dont have the same number of atoms")
 		}
