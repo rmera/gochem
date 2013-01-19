@@ -110,9 +110,6 @@ Allows to set up, run and recover results for semiempirical
 TODOS:
 
 
-*Leave only SetRows and SomeRows, removing similar methods of Traj interface.
-*Get PDBWrite to accept a Ref and an array of *matrix.DenseMatrix
-*Get SomeAtoms method of Ref to return a Ref.
 *Get XyzRead to read multi-XYZ files.
 
 *Protein superimposer (Calign?).

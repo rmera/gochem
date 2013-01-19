@@ -220,29 +220,4 @@ func (X *XtcObj) Len() int {
 	return X.natoms
 }
 
-//Selected, given a slice of ints, returns a matrix.DenseMatrix
-//containing the coordinates of the atoms with the corresponding index.
-func (X *XtcObj) SomeCoords(clist []int) (*matrix.DenseMatrix, error) {
-	var err error
-	var ret *matrix.DenseMatrix
-	Coords, err := X.Next(true)
-	if err != nil {
-		return nil, err
-	}
-	lencoords := Coords.Rows()
-	for k, j := range clist {
-		if j > lencoords-1 {
-			return nil, fmt.Errorf("Coordinate requested (Number: %d, value: %d) out of range!", k, j)
-		}
-		tmp := Coords.GetRowVector(j)
-		if ret == nil {
-			ret = tmp
-		} else {
-			ret, err = ret.Stack(tmp)
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-	return ret, err
-}
+

@@ -560,18 +560,7 @@ func (M *Molecule) NextConc(frames []bool) ([]chan *matrix.DenseMatrix, error) {
 	return toreturn, nil
 }
 
-//SomeCoords, given a slice of ints, returns a matrix.DenseMatrix
-//containing the coordinates of the atoms with the corresponding index.
-//This function returns a copy, not a reference, so changes to the returned matrix
-//don't alter the original. It check for correctness of the Atoms requested.
-func (M *Molecule) SomeCoords(clist []int) (*matrix.DenseMatrix, error) {
-	if M.current >= len(M.Coords) {
-		return nil, fmt.Errorf("No more frames")
-	}
-	toreturn := SomeRows(M.Coords[M.current], clist)
-	M.current++
-	return toreturn, nil
-}
+
 
 /**End Traj interface implementation***********/
 

@@ -48,10 +48,6 @@ type Traj interface {
 	a *matrix.DenseMatrix will be transmited*/
 	NextConc(frames []bool) ([]chan *matrix.DenseMatrix, error)
 
-	//Selected, given a slice of ints, returns a matrix.DenseMatrix
-	//containing the coordinates of the atoms with the corresponding index.
-	SomeCoords(clist []int) (*matrix.DenseMatrix, error)
-
 	//Returns the number of atoms per frame
 	Len() int
 }
