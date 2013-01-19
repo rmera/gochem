@@ -110,9 +110,17 @@ Allows to set up, run and recover results for semiempirical
 TODOS:
 
 
+*Leave only SetRows and SomeRows, removing similar methods of Traj interface.
+*Get PDBWrite to accept a Ref and an array of *matrix.DenseMatrix
+*Rename PDBWrite to MultiPDBWrite and make a new PDBWrite which is a wrapper to it and
+ takes a ref and one *matrix.DenseMatrix.
+*Get XyzRead to read multi-XYZ files.
+
 *Protein superimposer (Calign?).
+*Support Turbomole for QM calculations.
 *Additional geometrical manipulation tools.
 *Read DCD trajectories.
+*Read Amber trajectories.
 *Add more tests.
 
 Currently, gochem is licensed under LGPL2. This might change towards BSD 
