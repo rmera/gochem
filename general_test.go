@@ -117,6 +117,23 @@ func BenchmarkOldChangeAxis(Te *testing.B) {
 	fmt.Println("bench2")
 }
 
+
+//TestMultiXyz tests that multi-XYZ files are opened and read correctly.
+func TestMultiXyz(Te *testing.T) {
+	mol, err := XyzRead("test/sample.xyz")
+	if err != nil {
+		Te.Error(err)
+	}
+	fmt.Println("Read: ", len(mol.Coords), " snapshots")
+	fmt.Println("Atom 42 Coords (should change)") 
+	fmt.Println("First snapshot: ", mol.Coords[0].GetRowVector(41), "Second snapshot: ", mol.Coords[1].GetRowVector(41))
+	fmt.Println("Atom 3 Coords (shouldnt change)") 
+	fmt.Println("First snapshot: ", mol.Coords[0].GetRowVector(2), "Second snapshot: ", mol.Coords[1].GetRowVector(2))
+	
+}
+
+
+
 //TestGeo opens the sample.xyz file in the test directory, and pull a number of hardcoded atoms
 //In the direction of a hardcoded vectos. It builds 12 files with the pulled atoms  displaced by
 //different ammounts along the pulling vector
