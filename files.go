@@ -375,7 +375,8 @@ func MultiPdbWrite(pdbname string, mol Ref, CandB ...[]*matrix.DenseMatrix) erro
 	return nil
 }
 
-//XyzRead reads an xyz file, returns a slice of Atom objects, and slice of matrix.DenseMatrix and an error.
+
+//Reads an xyz or multixyz file (as produced by Turbomole). Returns a Molecule and error or nil.
 func XyzRead(xyzname string) (*Molecule, error) {
 	xyzfile, err := os.Open(xyzname)
 	if err != nil {
@@ -383,20 +384,61 @@ func XyzRead(xyzname string) (*Molecule, error) {
 		return nil, err
 	}
 	defer xyzfile.Close()
+	Coords:=make([]*matrix.DenseMatrix,1,1)
 	xyz := bufio.NewReader(xyzfile)
+	snaps:=1
+	var top *Topology
+	var molecule []*Atom
+	for{
+		//When we read the first snapshot we collect also the topology data, later
+		//only coords are collected.
+		if snaps==1{
+			Coords[0],molecule,err=xyzReadSnap(xyz, xyzname,true)
+			if err!=nil{
+				return nil, err
+				}
+			top, err = MakeTopology(molecule, 0, 0)
+			if err != nil {
+				return nil, err
+			}
+			snaps++
+			continue
+		}
+		tmpcoords,_,err:=xyzReadSnap(xyz,xyzname,false)
+		if err!=nil{
+			//An error here simply means that there are no more snapshots
+			err=nil
+			break
+			}
+		Coords=append(Coords,tmpcoords)			
+	}
+	bfactors := make([]*matrix.DenseMatrix,len(Coords),len(Coords))
+	for key,_:=range(bfactors){
+		bfactors[key] = matrix.Zeros(top.Len(), 1)
+		}
+	returned, err := MakeMolecule(top, Coords, bfactors)
+	return returned, err
+}
+
+//XyzRead reads an xyz file, returns a slice of Atom objects, which will be nil if ReadTopol is false,
+// a slice of matrix.DenseMatrix and an error or nil.
+func xyzReadSnap(xyz *bufio.Reader,xyzname string,ReadTopol bool) (*matrix.DenseMatrix,[]*Atom, error) {
 	line, err := xyz.ReadString('\n')
 	if err != nil {
-		return nil, fmt.Errorf("Ill formatted XYZ file")
+		return nil, nil,fmt.Errorf("Ill formatted XYZ file")
 	}
 	natoms, err := strconv.Atoi(strings.TrimSpace(line))
 	if err != nil {
-		return nil, fmt.Errorf("Ill formatted XYZ file")
+		return nil, nil,fmt.Errorf("Ill formatted XYZ file")
 	}
-	molecule := make([]*Atom, natoms, natoms)
+	var molecule []*Atom
+	if ReadTopol{
+		molecule = make([]*Atom, natoms, natoms)
+	}
 	coords := make([]float64, natoms*3, natoms*3)
 	_, err = xyz.ReadString('\n') //We dont care about this line
 	if err != nil {
-		return nil, fmt.Errorf("Ill formatted XYZ file")
+		return nil, nil,fmt.Errorf("Ill formatted XYZ file")
 	}
 	errs := make([]error, 3, 3)
 	for i := 0; i < natoms; i++ {
@@ -409,9 +451,13 @@ func XyzRead(xyzname string) (*Molecule, error) {
 			errs[0] = fmt.Errorf("Line number %d in file %s ill formed", i, xyzname)
 			break
 		}
-		molecule[i] = new(Atom)
-		molecule[i].Symbol = strings.ToTitle(strings.ToLower(fields[0]))
-		molecule[i].Mass = symbolMass[molecule[i].Symbol]
+		if ReadTopol{
+			molecule[i] = new(Atom)
+			molecule[i].Symbol = strings.ToTitle(strings.ToLower(fields[0]))
+			molecule[i].Mass = symbolMass[molecule[i].Symbol]
+			molecule[i].Molname="UNK"
+			molecule[i].Name=molecule[i].Symbol
+		}
 		coords[i*3], errs[0] = strconv.ParseFloat(fields[1], 64)
 		coords[i*3+1], errs[1] = strconv.ParseFloat(fields[2], 64)
 		coords[i*3+2], errs[2] = strconv.ParseFloat(fields[3], 64)
@@ -420,20 +466,13 @@ func XyzRead(xyzname string) (*Molecule, error) {
 	//Instead of having another loop just for them.
 	for _, i := range errs {
 		if i != nil {
-			return nil, i
+			return nil,nil, i
 		}
 	}
-	top, err := MakeTopology(molecule, 0, 0)
-	if err != nil {
-		return nil, err
-	}
-	mcoords := make([]*matrix.DenseMatrix, 1, 1)
-	mcoords[0] = matrix.MakeDenseMatrix(coords, natoms, 3)
-	bfactors := make([]*matrix.DenseMatrix, 1, 1)
-	bfactors[0] = matrix.Zeros(len(molecule), 1)
-	returned, err := MakeMolecule(top, mcoords, bfactors)
-	return returned, err
+	mcoords:= matrix.MakeDenseMatrix(coords, natoms, 3)
+	return mcoords,molecule, err
 }
+
 
 //XyzWrite writes the mol Ref and the Coord coordinates in an XYZ file with name xyzname which will
 //be created fot that. If the file exist it will be overwritten.
