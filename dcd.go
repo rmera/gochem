@@ -45,12 +45,14 @@ const RSCAL32BITS int32 = 1
 //Container for an Charmm/NAMD binary trajectory file.
 type DcdObj struct {
 	natoms   int32
+	readLast bool
 	filename string
 	charmm bool
 	extrablock bool
 	fourdim bool
 	fixed int32
 	dcd *os.File
+	
 	
 }
 
@@ -210,15 +212,37 @@ func (D *DcdObj) InitRead(name string) error {
 //With the coordinates read, otherwiser, it discards the coordinates and
 //returns nil.
 func (D *DcdObj) Next(keep bool) (*matrix.DenseMatrix, error) {
+	if D.lastRead{
+		return nil, fmt.Errorf("No more frames")
+		}
+	
 	//if there is an extra block we just skip it.
-	if D.charmm && D.extrablock && keep{
-		if _,err:=D.readByteBlock();err!=nil{ 
+	//Sadly, even when there is an extra block, it is not present in all
+	//snapshots for some trajectories, so we must use the block size to see if
+	//there is an extra block or if the X block starts inmediately
+	var blocksize int32
+	if D.extrablock{
+		if err:=binary.Read(D.dcd,binary.LittleEndian,&blocksize);err!=nil{
 			return nil, err
+		}
+		//If the blocksize is 4*natoms it means that the block is not an 
+		//extra block, but the X coordinates, and thus we must skip the following
+		if blocksize!=D.natoms*4{ 
+			if _,err:=D.readByteBlock(blocksize);err!=nil{ 
+				return nil, err
 			}
+			blocksize=0
+		}
 	}
 	//now get the coords, each as a slice of float32
 	//X
-	xblock, err:=D.readFloat32Block()
+	//we collect the X block size again only if it has not been collected before
+	if blocksize==0{
+			if err:=binary.Read(D.dcd,binary.LittleEndian,&blocksize);err!=nil{
+				return nil, err
+			}
+		}
+	xblock, err:=D.readFloat32Block(blocksize)
 	if err!=nil{
 		if err.Error()=="EOF"{
 			return nil,fmt.Errorf("No more frames")
@@ -227,25 +251,37 @@ func (D *DcdObj) Next(keep bool) (*matrix.DenseMatrix, error) {
 		}
 	fmt.Println("X", len(xblock)) //, xblock)
 	//Y
-	yblock, err:=D.readFloat32Block()
+	//Collect the size first, then the rest
+	if err:=binary.Read(D.dcd,binary.LittleEndian,&blocksize);err!=nil{
+		return nil, err
+		}
+	yblock, err:=D.readFloat32Block(blocksize)
 	if err!=nil{
 		return nil,err
 		}
 	fmt.Println("Y", len(yblock)) //, yblock)
 	//Z
-	zblock, err:=D.readFloat32Block()
+	if err:=binary.Read(D.dcd,binary.LittleEndian,&blocksize);err!=nil{
+		return nil, err
+		}
+	zblock, err:=D.readFloat32Block(blocksize)
 	if err!=nil{
 		return nil,err
 		}
 	fmt.Println("Z", len(zblock))//, zblock)
-	//we skip the 4-D values if they exist
+	//we skip the 4-D values if they exist. Apparently this is not present in the 
+	//last snapshot, so we use an EOF here to signal that we have read the last snapshot.
 	if D.charmm && D.fourdim{
-		if _,err:=D.readByteBlock();err!=nil{
-			if err.Error()=="EOF"{
-				return nil,fmt.Errorf("No more frames")
-				} 
+		if err:=binary.Read(D.dcd,binary.LittleEndian,&blocksize);err!=nil{
 			return nil, err
+		}
+		if _,err:=D.readByteBlock(blocksize);err!=nil{
+			if err.Error()=="EOF"{
+				D.readLast=true
+			}else{
+				return nil, err
 			}
+		}
 	}
 	xlen:=len(xblock)
 	ylen:=len(yblock)
@@ -260,12 +296,8 @@ func (D *DcdObj) Next(keep bool) (*matrix.DenseMatrix, error) {
 //Queries the size of a block, make a slice of a quarter of that size
 //and reads that ammount of float32. This function is used for the
 //
-func (D *DcdObj)readFloat32Block()([]float32,error) {
-	var blocksize int32
+func (D *DcdObj)readFloat32Block(blocksize int32)([]float32,error) {
 	var check int32
-	if err:=binary.Read(D.dcd,binary.LittleEndian,&blocksize);err!=nil{
-		return nil, err
-	} 
 	fmt.Println("blockf",blocksize)	
 	block:=make([]float32,blocksize/4,blocksize/4)
 	if err:=binary.Read(D.dcd,binary.LittleEndian,block);err!=nil{
@@ -284,12 +316,8 @@ func (D *DcdObj)readFloat32Block()([]float32,error) {
 //Queries the size of a block, make a slice of a quarter of that size
 //and reads that ammount of float32. This function is used for the
 //
-func (D *DcdObj)readByteBlock()([]byte,error) {
-	var blocksize int32
+func (D *DcdObj)readByteBlock(blocksize int32)([]byte,error) {
 	var check int32
-	if err:=binary.Read(D.dcd,binary.LittleEndian,&blocksize);err!=nil{
-		return nil, err
-	} 
 	fmt.Println("blockb",blocksize)	
 	block:=make([]byte,blocksize,blocksize)
 	if err:=binary.Read(D.dcd,binary.LittleEndian,block);err!=nil{
