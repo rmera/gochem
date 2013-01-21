@@ -326,22 +326,21 @@ func TestReorder(Te *testing.T){
 
 func TestDCD(Te *testing.T){
 	try:=new(DcdObj)
-	if err:=try.InitRead("test/OUT-min.dcd");err!=nil{
+	if err:=try.InitRead("test/OUT-nve.dcd");err!=nil{
 		Te.Error(err)
 		}
 	fmt.Println("header!")
-	i:=1
+	if _,err:=try.Next(true);err!=nil{
+		Te.Error(err)
+	}
+/*	i:=1
 	for {
-		var viej bool
-		if i==1{
-			viej=true
-			_=viej
-			}
-		if _,err:=try.Next(viej);err!=nil{
+		if _,err:=try.Next(true);err!=nil{
 			Te.Error(err)
 			break
 		}
 		fmt.Println("YEY!", i)
 		i++
 	}
+*/
 }
