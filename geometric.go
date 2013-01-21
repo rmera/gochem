@@ -285,11 +285,9 @@ func BestPlaneP(evecs *matrix.DenseMatrix) (*matrix.DenseMatrix, error) {
 	if evecs.Rows() != 3 || evecs.Cols() != 3 {
 		return evecs, fmt.Errorf("Eigenvectors matrix must be 3x3")
 	}
-	v1 := evecs.GetColVector(2)
-	v2 := evecs.GetColVector(1)
-	tv1 := v1.Transpose()
-	tv2 := v2.Transpose()
-	normal := Cross3DRow(tv1, tv2)
+	v1 := evecs.GetRowVector(2)
+	v2 := evecs.GetRowVector(1)
+	normal := Cross3DRow(v1, v2)
 	return normal, nil
 }
 
