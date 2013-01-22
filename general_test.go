@@ -324,23 +324,21 @@ func TestReorder(Te *testing.T){
 	
 }
 
+/*
 func TestDCD(Te *testing.T){
 	try:=new(DcdObj)
-	if err:=try.InitRead("test/OUT-nve.dcd");err!=nil{
+	if err:=try.InitRead("test/OUT-min.dcd");err!=nil{
 		Te.Error(err)
 		}
 	fmt.Println("header!")
-	if _,err:=try.Next(true);err!=nil{
-		Te.Error(err)
-	}
-/*	i:=1
-	for {
-		if _,err:=try.Next(true);err!=nil{
+	for i:=1;;i++ {
+		snap,err:=try.Next(true)
+		if err!=nil{
 			Te.Error(err)
 			break
 		}
-		fmt.Println("YEY!", i)
+		fmt.Println("YEY!", i, snap.GetRowVector(0))
 		i++
 	}
-*/
 }
+*/

@@ -1,4 +1,4 @@
-////////// +build  D.dcd
+////////// +build dcd
 
 /*
  * dcd.go, part of gochem
@@ -46,7 +46,7 @@ const RSCAL32BITS int32 = 1
 type DcdObj struct {
 	natoms   int32
 	readLast bool  //Have we read the last frame?
-	readable bool  //Is it ready to be read
+	readable bool  //Is it ready to be read?
 	filename string
 	charmm bool     //Charmm traj?
 	extrablock bool
@@ -55,6 +55,7 @@ type DcdObj struct {
 	fixed int32   //Fixed atoms (not supported)
 	dcd *os.File //The DCD file
 	dcdFields [][]float32
+    endian binary.ByteOrder
 	
 	
 }
@@ -71,10 +72,11 @@ func (D *DcdObj) Readable() bool{
 
 //InitRead initializes a XtcObj for reading.
 //It requires only the filename, which must be valid.
-//It only support little-endianness, charmm/namd>=2.1 and no
+//It support big and little endianness, charmm or (namd>=2.1) and no
 //fixed atoms.
 func (D *DcdObj) InitRead(name string) error {
 	rec_scale:=RSCAL32BITS //At least for now we will not support anything else.
+	D.endian=binary.LittleEndian
 	_=rec_scale
 	NB:=bytes.NewBuffer //shortness sake
 	var err error
@@ -83,16 +85,17 @@ func (D *DcdObj) InitRead(name string) error {
 		return err
 	}
 	var check int32
-	if err:=binary.Read(D.dcd,binary.LittleEndian,&check);err!=nil{
+	if err:=binary.Read(D.dcd,D.endian,&check);err!=nil{
 		return err
 	} 
 	//For some reason the first thing we should read is an 84.
+	//If this fails it means that the file is big endian.
 	if check!=84{
-		return fmt.Errorf("Endianness probably wrong")
+		D.endian=binary.BigEndian //
 	}
 	//Then the magic number "CORD", also for some unknown reason.
 	magic:=make([]byte,4,4)
-	if err:=binary.Read(D.dcd,binary.LittleEndian,magic);err!=nil{
+	if err:=binary.Read(D.dcd,D.endian,magic);err!=nil{
 		return err
 	} 
 	if string(magic)!="CORD"{
@@ -101,83 +104,83 @@ func (D *DcdObj) InitRead(name string) error {
 	
 	//We first read a big chuck for random access.
 	buf:=make([]byte,80,80)
-	if err:=binary.Read(D.dcd,binary.LittleEndian,buf);err!=nil{
+	if err:=binary.Read(D.dcd,D.endian,buf);err!=nil{
 		return err
 	} 	
 	//X-plor sets this last int to zero, charmm sets it to its version number.
 	//if we have a charmm file we get some additional flags.
-	if err:=binary.Read(NB(buf[76:]),binary.LittleEndian,&check);err!=nil{
+	if err:=binary.Read(NB(buf[76:]),D.endian,&check);err!=nil{
 		return err
 	} 	
 	if check!=0{
-		fmt.Println("CHARMM!!!") //////77
+//		fmt.Println("CHARMM!!!") //////77
 		D.charmm=true
-		if err:=binary.Read(NB(buf[40:]),binary.LittleEndian,&check);err!=nil{
+		if err:=binary.Read(NB(buf[40:]),D.endian,&check);err!=nil{
 			return err
 		}
 		if check!=0{
-			fmt.Println("block", check) ///////////
+//			fmt.Println("block", check) ///////////
 			D.extrablock=true
 		}
-		if err:=binary.Read(NB(buf[40:]),binary.LittleEndian,&check);err!=nil{
+		if err:=binary.Read(NB(buf[40:]),D.endian,&check);err!=nil{
 			return err
 		}
 		if check==1{
-			fmt.Println("4-dim", check) ///////////
+//			fmt.Println("4-dim", check) ///////////
 			D.fourdim=true
 		}		
 		
 	}else{
 		return fmt.Errorf("X-plor DCD not supported")
 	}
-	if err:=binary.Read(NB(buf[32:]),binary.LittleEndian,&D.fixed);err!=nil{
+	if err:=binary.Read(NB(buf[32:]),D.endian,&D.fixed);err!=nil{
 		return err
 	}
-	fmt.Println("fixed", D.fixed) 		
+//	fmt.Println("fixed", D.fixed) 		
 	var delta float32 //This should work only on Charmm and namd >=2.1
-	if err:=binary.Read(NB(buf[36:]),binary.LittleEndian,&delta);err!=nil{
+	if err:=binary.Read(NB(buf[36:]),D.endian,&delta);err!=nil{
 		return err
 	}
-	fmt.Println("delta:", delta)/////////////////////////////////////// 	
+//	fmt.Println("delta:", delta)/////////////////////////////////////// 	
 
-	if err:=binary.Read(D.dcd,binary.LittleEndian,&check);err!=nil{
+	if err:=binary.Read(D.dcd,D.endian,&check);err!=nil{
 		return err
 	} 
 	if check!=84{
 		return fmt.Errorf("Wrong DCD format")
 	}	
 	var input_int int32
-	if err:=binary.Read(D.dcd,binary.LittleEndian,&input_int);err!=nil{
+	if err:=binary.Read(D.dcd,D.endian,&input_int);err!=nil{
 		return err
 	} 
 	//how many units of MAXTITLE does the title have?
 	var ntitle int32
-	if err:=binary.Read(D.dcd,binary.LittleEndian,&ntitle);err!=nil{
+	if err:=binary.Read(D.dcd,D.endian,&ntitle);err!=nil{
 		return err
 	} 
 	title:=make([]byte,MAXTITLE*ntitle,MAXTITLE*ntitle)
-	if err:=binary.Read(D.dcd,binary.LittleEndian,title);err!=nil{
+	if err:=binary.Read(D.dcd,D.endian,title);err!=nil{
 		return err
 	}
-	fmt.Println("Title:", string(title))/////////////////////////////////////// 
-	if err:=binary.Read(D.dcd,binary.LittleEndian,&input_int);err!=nil{
+//	fmt.Println("Title:", string(title))/////////////////////////////////////// 
+	if err:=binary.Read(D.dcd,D.endian,&input_int);err!=nil{
 		return err
 	} 
-	if err:=binary.Read(D.dcd,binary.LittleEndian,&check);err!=nil{
+	if err:=binary.Read(D.dcd,D.endian,&check);err!=nil{
 		return err
 	} 
 	if check!=4{  //one must read a 4 before the natoms
 		return fmt.Errorf("Wrong format in DCD")
 	}	
-	if err:=binary.Read(D.dcd,binary.LittleEndian,&D.natoms);err!=nil{
+	if err:=binary.Read(D.dcd,D.endian,&D.natoms);err!=nil{
 		return err
 	} 
-	fmt.Println("natoms", D.natoms)
-	if err:=binary.Read(D.dcd,binary.LittleEndian,&check);err!=nil{
+//	fmt.Println("natoms", D.natoms)
+	if err:=binary.Read(D.dcd,D.endian,&check);err!=nil{
 		return err
 	} 
 	if check!=4{  //and one more 4
-		return fmt.Errorf("Endianness probably wrong")
+		return fmt.Errorf("DCD has wrong format")
 	}
 	if D.fixed==0{
 		runtime.SetFinalizer(D, func(D *DcdObj) {
@@ -207,7 +210,7 @@ func (D *DcdObj) Next(keep bool) (*matrix.DenseMatrix, error) {
 		D.dcdFields[2]=make([]float32,int(D.natoms),int(D.natoms))
 		}
 	if err:=D.nextRaw(D.dcdFields);err!=nil{
-		return nil, err
+		return nil, D.eOF2NoMoreFrames(err)
 		}
 	if !keep{
 		return nil, nil
@@ -221,7 +224,7 @@ func (D *DcdObj) Next(keep bool) (*matrix.DenseMatrix, error) {
 		outBlock[j+2]=float64(D.dcdFields[2][k])
 	}
 	final:=matrix.MakeDenseMatrix(outBlock,int(D.natoms),3)
-	fmt.Print(final)/////////7
+//	fmt.Print(final)/////////7
 	return final, nil
 	
 }
@@ -240,7 +243,7 @@ func (D *DcdObj) nextRaw(blocks [][]float32) (error) {
 	if D.readLast{
 		D.readable=false
 		return fmt.Errorf("No more frames")
-		}
+	}
 	
 	//if there is an extra block we just skip it.
 	//Sadly, even when there is an extra block, it is not present in all
@@ -248,7 +251,7 @@ func (D *DcdObj) nextRaw(blocks [][]float32) (error) {
 	//there is an extra block or if the X block starts inmediately
 	var blocksize int32
 	if D.extrablock{
-		if err:=binary.Read(D.dcd,binary.LittleEndian,&blocksize);err!=nil{
+		if err:=binary.Read(D.dcd,D.endian,&blocksize);err!=nil{
 			return err
 		}
 		//If the blocksize is 4*natoms it means that the block is not an 
@@ -264,42 +267,39 @@ func (D *DcdObj) nextRaw(blocks [][]float32) (error) {
 	//X
 	//we collect the X block size again only if it has not been collected before
 	if blocksize==0{
-			if err:=binary.Read(D.dcd,binary.LittleEndian,&blocksize);err!=nil{
+			if err:=binary.Read(D.dcd,D.endian,&blocksize);err!=nil{
 				return err
 			}
 		}
     err:=D.readFloat32Block(blocksize,blocks[0])
 	if err!=nil{
-		if err.Error()=="EOF"{
-			return fmt.Errorf("No more frames")
-			}
 		return err
 		}
 //	fmt.Println("X", len(xblock)) //, xblock)
-	fmt.Println("X", blocks[0])  ///////////////////////////////
+//	fmt.Println("X", blocks[0])  ///////////////////////////////
 	//Y
 	//Collect the size first, then the rest
-	if err:=binary.Read(D.dcd,binary.LittleEndian,&blocksize);err!=nil{
+	if err:=binary.Read(D.dcd,D.endian,&blocksize);err!=nil{
 		return  err
 		}
 	err=D.readFloat32Block(blocksize,blocks[1])
 	if err!=nil{
 		return err
 		}
-	fmt.Println("Y", blocks[1]) 
+//	fmt.Println("Y", blocks[1]) 
 	//Z
-	if err:=binary.Read(D.dcd,binary.LittleEndian,&blocksize);err!=nil{
+	if err:=binary.Read(D.dcd,D.endian,&blocksize);err!=nil{
 		return err
 		}
 	err=D.readFloat32Block(blocksize,blocks[2])
 	if err!=nil{
 		return err
 		}
-	fmt.Println("Z", blocks[2]) 
+//	fmt.Println("Z", blocks[2]) 
 	//we skip the 4-D values if they exist. Apparently this is not present in the 
 	//last snapshot, so we use an EOF here to signal that we have read the last snapshot.
 	if D.charmm && D.fourdim{
-		if err:=binary.Read(D.dcd,binary.LittleEndian,&blocksize);err!=nil{
+		if err:=binary.Read(D.dcd,D.endian,&blocksize);err!=nil{
 			if err.Error()=="EOF"{
 				D.readLast=true
 			//	fmt.Println("LAST!")
@@ -321,11 +321,11 @@ func (D *DcdObj) nextRaw(blocks [][]float32) (error) {
 //appropiate size.
 func (D *DcdObj)readFloat32Block(blocksize int32, block []float32)(error) {
 	var check int32
-	fmt.Println("blockf",blocksize)	
-	if err:=binary.Read(D.dcd,binary.LittleEndian,block);err!=nil{
+//	fmt.Println("blockf",blocksize)	
+	if err:=binary.Read(D.dcd,D.endian,block);err!=nil{
 		return err
 	}
-	if err:=binary.Read(D.dcd,binary.LittleEndian,&check);err!=nil{
+	if err:=binary.Read(D.dcd,D.endian,&check);err!=nil{
 		return err
 	} 	
 	if check!=blocksize{
@@ -340,12 +340,12 @@ func (D *DcdObj)readFloat32Block(blocksize int32, block []float32)(error) {
 //
 func (D *DcdObj)readByteBlock(blocksize int32)([]byte,error) {
 	var check int32
-	fmt.Println("blockb",blocksize)	
+//	fmt.Println("blockb",blocksize)	
 	block:=make([]byte,blocksize,blocksize)
-	if err:=binary.Read(D.dcd,binary.LittleEndian,block);err!=nil{
+	if err:=binary.Read(D.dcd,D.endian,block);err!=nil{
 		return nil,err
 	}
-	if err:=binary.Read(D.dcd,binary.LittleEndian,&check);err!=nil{
+	if err:=binary.Read(D.dcd,D.endian,&check);err!=nil{
 		return nil,err
 	} 	
 	if check!=blocksize{
@@ -368,16 +368,50 @@ func (D *DcdObj) NextConc(frames []bool) ([]chan *matrix.DenseMatrix, error) {
 //Read frames from Traj from ini to end skipping skip frames between read. Returns a slice with coords of each frame
 //the number of frames read and error or nil.
 func (D *DcdObj) ManyFrames(ini, end, skip int) ([]*matrix.DenseMatrix, int, error) {
-	return nil, 0, nil
+	Coords := make([]*matrix.DenseMatrix, 0, 1) // I might attempt to give the capacity later
+	i := 0
+	for ; ; i++ {
+		if i > end {
+			break
+		}
+		if i < ini || (i-(1+ini))%skip != 0 {
+			_, err := D.Next(false) //Drop the frame
+			if err != nil {
+				if err.Error() == "No more frames" {
+					break //No more frames is not really an error
+				} else {
+					return Coords, i, err
+				}
+			}
+		} else {
+			coords, err := D.Next(true)
+			if err != nil {
+				if err.Error() == "No more frames" {
+					break //No more frames is not really an error
+				} else {
+					return Coords, i, err
+				}
+			}
+			Coords = append(Coords, coords)
+		}
+	}
+	return Coords, i, nil
 }
-
 //Natoms returns the number of atoms per frame in the XtcObj.
 //XtcObj must be initialized. 0 means an uninitialized object.
 func (D *DcdObj) Len() int {
 	return 1
 }
 
-
+func (D *DcdObj) eOF2NoMoreFrames(err error) error {
+	if err==nil{
+		return nil
+	}
+	if err.Error()=="EOF"{
+		return fmt.Errorf("No more frames")
+	}
+	return err
+}
 
 
 
@@ -392,17 +426,17 @@ func (D *DcdObj) Len() int {
 
 /*	freeindexes:=make([]int32,D.natoms-D.fixed)
 //	fixedcoords:=make([]float32,D.natoms*4-D.fixed)
-	if err:=binary.Read(D.dcd,binary.LittleEndian,&input_int);err!=nil{
+	if err:=binary.Read(D.dcd,D.endian,&input_int);err!=nil{
 		return err
 	}
 //	fmt.Println(input_int)
 	if input_int!=(D.natoms-D.fixed*4){
 		return fmt.Errorf("Wrong format in DCD")
 		} 	
-	if err:=binary.Read(D.dcd,binary.LittleEndian,freeindexes);err!=nil{
+	if err:=binary.Read(D.dcd,D.endian,freeindexes);err!=nil{
 		return err
 	} 
-	if err:=binary.Read(D.dcd,binary.LittleEndian,&input_int);err!=nil{
+	if err:=binary.Read(D.dcd,D.endian,&input_int);err!=nil{
 		return err
 	}
 //	fmt.Println(input_int)
