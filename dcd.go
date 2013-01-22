@@ -1,4 +1,4 @@
-////////// +build dcd
+// +build dcd
 
 /*
  * dcd.go, part of gochem
@@ -357,50 +357,12 @@ func (D *DcdObj)readByteBlock(blocksize int32)([]byte,error) {
 
 
 
-/*NextConc takes a slice of bools and reads as many frames as elements the list has
-form the trajectory. The frames are discarted if the corresponding elemetn of the slice
-* is false. The function returns a slice of channels through each of each of which 
-* a *matrix.DenseMatrix will be transmited*/
-func (D *DcdObj) NextConc(frames []bool) ([]chan *matrix.DenseMatrix, error) {
-	return nil, nil
-}
 
-//Read frames from Traj from ini to end skipping skip frames between read. Returns a slice with coords of each frame
-//the number of frames read and error or nil.
-func (D *DcdObj) ManyFrames(ini, end, skip int) ([]*matrix.DenseMatrix, int, error) {
-	Coords := make([]*matrix.DenseMatrix, 0, 1) // I might attempt to give the capacity later
-	i := 0
-	for ; ; i++ {
-		if i > end {
-			break
-		}
-		if i < ini || (i-(1+ini))%skip != 0 {
-			_, err := D.Next(false) //Drop the frame
-			if err != nil {
-				if err.Error() == "No more frames" {
-					break //No more frames is not really an error
-				} else {
-					return Coords, i, err
-				}
-			}
-		} else {
-			coords, err := D.Next(true)
-			if err != nil {
-				if err.Error() == "No more frames" {
-					break //No more frames is not really an error
-				} else {
-					return Coords, i, err
-				}
-			}
-			Coords = append(Coords, coords)
-		}
-	}
-	return Coords, i, nil
-}
+
 //Natoms returns the number of atoms per frame in the XtcObj.
 //XtcObj must be initialized. 0 means an uninitialized object.
 func (D *DcdObj) Len() int {
-	return 1
+	return int(D.natoms)
 }
 
 func (D *DcdObj) eOF2NoMoreFrames(err error) error {
@@ -415,35 +377,53 @@ func (D *DcdObj) eOF2NoMoreFrames(err error) error {
 
 
 
-
-
-
-
-
-
-
-
-
-/*	freeindexes:=make([]int32,D.natoms-D.fixed)
-//	fixedcoords:=make([]float32,D.natoms*4-D.fixed)
-	if err:=binary.Read(D.dcd,D.endian,&input_int);err!=nil{
-		return err
+/*NextConc takes a slice of bools and reads as many frames as elements the list has
+form the trajectory. The frames are discarted if the corresponding elemetn of the slice
+* is false. The function returns a slice of channels through each of each of which 
+* a *matrix.DenseMatrix will be transmited*/
+func (D *DcdObj) NextConc(frames []bool) ([]chan *matrix.DenseMatrix, error) {
+	if !D.Readable(){
+		return nil, fmt.Errorf("Traj object uninitialized to read")
 	}
-//	fmt.Println(input_int)
-	if input_int!=(D.natoms-D.fixed*4){
-		return fmt.Errorf("Wrong format in DCD")
-		} 	
-	if err:=binary.Read(D.dcd,D.endian,freeindexes);err!=nil{
-		return err
-	} 
-	if err:=binary.Read(D.dcd,D.endian,&input_int);err!=nil{
-		return err
+	framechans := make([]chan *matrix.DenseMatrix, len(frames)) //the slice of chans that will be returned
+	totalcoords := D.natoms * 3
+	for key, val := range frames {
+		goCoords := make([]float64, totalcoords, totalcoords) 
+		DFields:=make([][]float32,3,3)
+		DFields[0]=make([]float32,int(D.natoms),int(D.natoms))
+		DFields[1]=make([]float32,int(D.natoms),int(D.natoms))
+		DFields[2]=make([]float32,int(D.natoms),int(D.natoms))
+		if err:=D.nextRaw(DFields);err!=nil{
+			return nil, D.eOF2NoMoreFrames(err)
+		}
+		//We have to test for used twice to allow allocating for goCoords
+		//When the buffer is not going to be used.
+		if val == false {
+			framechans[key] = nil //ignored frame
+			continue
+		}
+		framechans[key] = make(chan *matrix.DenseMatrix)
+		//Now the parallel part
+		go func(natoms int, DFields [][]float32, goCoords []float64, pipe chan *matrix.DenseMatrix) {
+			for i:=0;i<int(D.natoms);i++{
+				j:=i+(i*2)
+				k:=i-i*(i/int(D.natoms))
+				goCoords[j]=float64(DFields[0][k])
+				goCoords[j+1]=float64(DFields[1][k])
+				goCoords[j+2]=float64(DFields[2][k])
+			}
+			temp := matrix.MakeDenseMatrix(goCoords, natoms, 3)
+			//			fmt.Println("in gorutine!", temp.GetRowVector(2))
+			pipe <- temp
+		}(int(D.natoms), DFields, goCoords, framechans[key])
 	}
-//	fmt.Println(input_int)
-	if input_int!=(D.natoms-D.fixed*4){
-		return fmt.Errorf("Wrong format in DCD")
-		} 
+	return framechans, nil
+}
 
-	
-	return nil
-*/
+
+
+
+
+
+
+

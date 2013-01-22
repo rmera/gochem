@@ -1,4 +1,4 @@
-// +build gromacs
+// +build cxtc
 
 /*
  * xtc.c

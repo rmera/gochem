@@ -1,4 +1,4 @@
-// +build  gromacs 
+// +build cxtc
 
 /*
  * xtc.go, part of gochem
@@ -178,41 +178,6 @@ func (X *XtcObj) NextConc(frames []bool) ([]chan *matrix.DenseMatrix, error) {
 	return framechans, nil
 }
 
-//Read frames from Traj from ini to end skipping skip frames between read. Returns a slice with coords of each frame
-//the number of frames read and error or nil.
-func (X *XtcObj) ManyFrames(ini, end, skip int) ([]*matrix.DenseMatrix, int, error) {
-	Coords := make([]*matrix.DenseMatrix, 0, 1) // I might attempt to give the capacity later
-	if X.goCoords == nil {
-		X.goCoords = make([]float64, X.natoms*3)
-	}
-	i := 0
-	for ; ; i++ {
-		if i > end {
-			break
-		}
-		if i < ini || (i-(1+ini))%skip != 0 {
-			_, err := X.Next(false) //Drop the frame
-			if err != nil {
-				if err.Error() == "No more frames" {
-					break //No more frames is not really an error
-				} else {
-					return Coords, i, err
-				}
-			}
-		} else {
-			coords, err := X.Next(true)
-			if err != nil {
-				if err.Error() == "No more frames" {
-					break //No more frames is not really an error
-				} else {
-					return Coords, i, err
-				}
-			}
-			Coords = append(Coords, coords)
-		}
-	}
-	return Coords, i, nil
-}
 
 //Natoms returns the number of atoms per frame in the XtcObj.
 //XtcObj must be initialized. 0 means an uninitialized object.
@@ -220,29 +185,4 @@ func (X *XtcObj) Len() int {
 	return X.natoms
 }
 
-//Selected, given a slice of ints, returns a matrix.DenseMatrix
-//containing the coordinates of the atoms with the corresponding index.
-func (X *XtcObj) SomeCoords(clist []int) (*matrix.DenseMatrix, error) {
-	var err error
-	var ret *matrix.DenseMatrix
-	Coords, err := X.Next(true)
-	if err != nil {
-		return nil, err
-	}
-	lencoords := Coords.Rows()
-	for k, j := range clist {
-		if j > lencoords-1 {
-			return nil, fmt.Errorf("Coordinate requested (Number: %d, value: %d) out of range!", k, j)
-		}
-		tmp := Coords.GetRowVector(j)
-		if ret == nil {
-			ret = tmp
-		} else {
-			ret, err = ret.Stack(tmp)
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-	return ret, err
-}
+

@@ -1,4 +1,5 @@
-// +build !gromacs
+// +build !cxtc 
+// +build !dcd
 
 /*
  * general_test.go
@@ -324,21 +325,4 @@ func TestReorder(Te *testing.T){
 	
 }
 
-/*
-func TestDCD(Te *testing.T){
-	try:=new(DcdObj)
-	if err:=try.InitRead("test/OUT-min.dcd");err!=nil{
-		Te.Error(err)
-		}
-	fmt.Println("header!")
-	for i:=1;;i++ {
-		snap,err:=try.Next(true)
-		if err!=nil{
-			Te.Error(err)
-			break
-		}
-		fmt.Println("YEY!", i, snap.GetRowVector(0))
-		i++
-	}
-}
-*/
+

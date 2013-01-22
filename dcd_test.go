@@ -1,4 +1,4 @@
-//        // +build gromacs 
+// +build dcd
 
 /*
  * untitled.go
@@ -32,13 +32,13 @@ package chem
 
 import "fmt"
 import "testing"
-//import "github.com/skelterjohn/go.matrix"
+import "github.com/skelterjohn/go.matrix"
 
 /*TestXtc reads the frames of the test xtc file using the
  * "interactive" or "low level" functions, i.e. one frame at a time
  * It prints the firs 2 coordinates of each frame and the number of 
  * read frames at the end.*/
-func TestXtc(Te *testing.T) {
+func TestDcd(Te *testing.T) {
 	fmt.Println("Fist test!")
 	name := "test/test.dcd"
 	traj := new(DcdObj)
@@ -48,12 +48,12 @@ func TestXtc(Te *testing.T) {
 	}
 	i := 0
 	for ; ; i++ {
-		coords, err := traj.Next(true)
+		_, err := traj.Next(true)
 		if err != nil && err.Error() != "No more frames" {
 			Te.Error(err)
 			break
 		} else if err == nil {
-			fmt.Println(coords.GetRowVector(2))
+			//fmt.Println(coords.GetRowVector(2))
 		} else {
 			break
 		}
@@ -65,7 +65,7 @@ func TestXtc(Te *testing.T) {
  * the forth frame skipping one frame for each read one. It uses the
  * "high level" function. It prints the frames read twince, and the
  * coordinates of the forth atom of the last read frame,*/
-func TestFrameXtc(Te *testing.T) {
+func TestFrameDcd(Te *testing.T) {
 	fmt.Println("Second test!")
 	name := "test/test.dcd"
 	traj := new(DcdObj)
@@ -73,15 +73,15 @@ func TestFrameXtc(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
-	Coords, read, err := traj.ManyFrames(0, 5, 1)
+	Coords, read, err := ManyFrames(traj,0, 5, 1)
 	if err != nil {
 		Te.Error(err)
 	}
 	fmt.Println(len(Coords), read, Coords[read-1].GetRowVector(4))
 	fmt.Println("Dcd second test over!")
 }
-/*
-func TestFrameXtcConc(Te *testing.T) {
+
+func TestFrameDcdConc(Te *testing.T) {
 	fmt.Println("Third test!")
 	name := "test/test.dcd"
 	traj := new(DcdObj)
@@ -132,4 +132,4 @@ func SecondRow(channelin, channelout chan *matrix.DenseMatrix, current, other in
 	}
 	return
 }
-*/
+
