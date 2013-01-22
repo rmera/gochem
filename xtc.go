@@ -46,6 +46,7 @@ import "runtime"
 
 //Container for an GROMACS XTC binary trajectory file.
 type XtcObj struct {
+	readable bool
 	natoms   int
 	filename string
 	fp       *C.XDRFILE //pointer to the XDRFILE
@@ -53,19 +54,30 @@ type XtcObj struct {
 	cCoords  []C.float
 }
 
+
+func MakeXtc(filename string) (*XtcObj,error) {
+	traj:=new(XtcObj)
+	if err := traj.initRead(filename);err!=nil{
+		return nil,err
+		}
+	return traj, nil
+	
+	}
+
+
 //Returns true if the object is ready to be read from
 //false otherwise. IT doesnt guarantee that there is something
 //to read.
 func (X *XtcObj) Readable() bool {
-	if X.fp == nil {
-		return false
+	if X.readable {
+		return true
 	}
-	return true
+	return false
 }
 
 //InitRead initializes a XtcObj for reading.
 //It requires only the filename, which must be valid
-func (X *XtcObj) InitRead(name string) error {
+func (X *XtcObj) initRead(name string) error {
 	Cfilename := C.CString(name)
 	Cnatoms := C.read_natoms(Cfilename)
 	X.natoms = int(Cnatoms)
@@ -81,6 +93,7 @@ func (X *XtcObj) InitRead(name string) error {
 	runtime.SetFinalizer(X, func(X *XtcObj) {
 		C.xtc_close(X.fp)
 	})
+	X.readable=true
 	return nil
 }
 
@@ -89,16 +102,18 @@ func (X *XtcObj) InitRead(name string) error {
 //With the coordinates read, otherwiser, it discards the coordinates and
 //returns nil.
 func (X *XtcObj) Next(keep bool) (*matrix.DenseMatrix, error) {
-	if X.natoms == 0 {
+	if !X.Readable() {
 		return nil, fmt.Errorf("Traj object uninitialized to read")
 	}
 	totalcoords := 3 * X.natoms
 	cnatoms := C.int(X.natoms)
 	worked := C.get_coords(X.fp, &X.cCoords[0], cnatoms)
 	if worked == 11 {
+		X.readable=false
 		return nil, fmt.Errorf("No more frames") //This is not really an error and should be catched in the calling function
 	}
 	if worked != 0 {
+		X.readable=false
 		return nil, fmt.Errorf("Error reading frame")
 	}
 	if keep == true { //collect the trame
@@ -145,12 +160,15 @@ func (X *XtcObj) NextConc(frames []bool) ([]chan *matrix.DenseMatrix, error) {
 		//Error handling
 		if worked == 11 {
 			if used == false {
+				X.readable=false
 				return nil, fmt.Errorf("No more frames") //This is not really an error and 
 			} else { //should be catched in the calling function
+				X.readable=false
 				return framechans, fmt.Errorf("No more frames") //same
 			}
 		}
 		if worked != 0 {
+			X.readable=false
 			return nil, fmt.Errorf("Error reading frame")
 		}
 		//We have to test for used twice to allow allocating for goCoords

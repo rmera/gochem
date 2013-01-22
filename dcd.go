@@ -60,6 +60,17 @@ type DcdObj struct {
 	
 }
 
+func MakeDcd(filename string) (*DcdObj,error) {
+	traj:=new(DcdObj)
+	if err := traj.initRead(filename);err!=nil{
+		return nil,err
+		}
+	return traj, nil
+	
+	}
+
+
+
 //Returns true if the object is ready to be read from
 //false otherwise. It doesnt guarantee that there is something
 //to read.
@@ -74,7 +85,7 @@ func (D *DcdObj) Readable() bool{
 //It requires only the filename, which must be valid.
 //It support big and little endianness, charmm or (namd>=2.1) and no
 //fixed atoms.
-func (D *DcdObj) InitRead(name string) error {
+func (D *DcdObj) initRead(name string) error {
 	rec_scale:=RSCAL32BITS //At least for now we will not support anything else.
 	D.endian=binary.LittleEndian
 	_=rec_scale

@@ -39,10 +39,8 @@ import "github.com/skelterjohn/go.matrix"
  * It prints the firs 2 coordinates of each frame and the number of 
  * read frames at the end.*/
 func TestXtc(Te *testing.T) {
-	fmt.Println("Fist test!")
-	name := "test/test.xtc"
-	traj := new(XtcObj)
-	err := traj.InitRead(name)
+	fmt.Println("First test")
+	traj,err:=MakeXtc("test/test.xtc")
 	if err != nil {
 		Te.Error(err)
 	}
@@ -67,9 +65,7 @@ func TestXtc(Te *testing.T) {
  * coordinates of the forth atom of the last read frame,*/
 func TestFrameXtc(Te *testing.T) {
 	fmt.Println("Second test!")
-	name := "test/test.xtc"
-	traj := new(XtcObj)
-	err := traj.InitRead(name)
+	traj,err:=MakeXtc("test/test.xtc")
 	if err != nil {
 		Te.Error(err)
 	}
@@ -81,10 +77,7 @@ func TestFrameXtc(Te *testing.T) {
 }
 
 func TestFrameXtcConc(Te *testing.T) {
-	fmt.Println("Third test!")
-	name := "test/test.xtc"
-	traj := new(XtcObj)
-	err := traj.InitRead(name)
+	traj,err:=MakeXtc("test/test.xtc")
 	if err != nil {
 		Te.Error(err)
 	}

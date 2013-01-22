@@ -40,9 +40,7 @@ import "github.com/skelterjohn/go.matrix"
  * read frames at the end.*/
 func TestDcd(Te *testing.T) {
 	fmt.Println("Fist test!")
-	name := "test/test.dcd"
-	traj := new(DcdObj)
-	err := traj.InitRead(name)
+	traj,err:=MakeDcd("test/test.dcd")
 	if err != nil {
 		Te.Error(err)
 	}
@@ -67,9 +65,7 @@ func TestDcd(Te *testing.T) {
  * coordinates of the forth atom of the last read frame,*/
 func TestFrameDcd(Te *testing.T) {
 	fmt.Println("Second test!")
-	name := "test/test.dcd"
-	traj := new(DcdObj)
-	err := traj.InitRead(name)
+	traj,err:=MakeDcd("test/test.dcd")
 	if err != nil {
 		Te.Error(err)
 	}
@@ -83,9 +79,7 @@ func TestFrameDcd(Te *testing.T) {
 
 func TestFrameDcdConc(Te *testing.T) {
 	fmt.Println("Third test!")
-	name := "test/test.dcd"
-	traj := new(DcdObj)
-	err := traj.InitRead(name)
+	traj,err:=MakeDcd("test/test.dcd")
 	if err != nil {
 		Te.Error(err)
 	}

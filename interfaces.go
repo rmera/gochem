@@ -36,6 +36,7 @@ import "github.com/skelterjohn/go.matrix"
 
 //Traj is an interface for any trajectory object, including a Molecule Object
 type Traj interface {
+	
 	//Opens the file and prepares for reading, should also take care of the closing.
 	Readable() bool
 

@@ -512,7 +512,8 @@ func (M *Molecule) Less(i, j int) bool {
 //It returns false otherwise.
 // The coordinates could still be empty
 func (M *Molecule) Readable() bool {
-	if M != nil || M.Coords != nil {
+	if M != nil || M.Coords != nil ||  M.current < len(M.Coords){
+		
 		return true
 	}
 	return false
@@ -528,6 +529,15 @@ func (M *Molecule) Next(a bool) (*matrix.DenseMatrix, error) {
 	}
 	M.current++
 	return M.Coords[M.current-1], nil
+}
+
+//Initializes molecule to be read as a traj (not tested!)
+func (M *Molecule) InitRead() error {
+	if M==nil || len(M.Coords)==0 {
+		return fmt.Errorf("Bad molecule")	
+	}
+	M.current=0
+	return nil
 }
 
 /*NextConc takes a slice of bools and reads as many frames as elements the list has
