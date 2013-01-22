@@ -3,8 +3,9 @@ To the long life of the Ven. Khenpo Phuntzok Tenzin Rinpoche.
 
 Gochem is a library for chemistry, especially computational 
 biochemistry, in go. It provides structures for handling atoms and 
-molecules, reading/writing some common formats (currently xyz, PDB
-and xtc) and a few functions for geometrical manipulation of molecules.
+molecules, reading/writing some common formats (currently xyz, PDB, 
+xtc and dcd) and a few functions for geometrical manipulation of 
+molecules.
 
 In gochem the Atom container contains all information about an atom that
 is not expected to vary between states (mass, etc). Coordinates and 
@@ -31,8 +32,14 @@ type *Molecule implements both the Traj and Ref interfaces.
 
 
 The library allows to read Gromacs trajectory files (xtc) if the flag
-'gromacs' is given during the build. This requires the xdrfile from the
-Gromacs team (www.gromacs.org). Trajectories can be read "in one go", 
+'xtc' is given during the build. This requires the xdrfile from the
+Gromacs team (www.gromacs.org). 
+
+Gochem also supports dcd trajectories if the flag 'dcd' is given
+during the build. In this case the implementation is go-native, not
+requiring external libraries.
+
+Trajectories can be read "in one go", 
 saving each frame in memory (optionally skipping frames); sequentially, 
 where one frame is saved in memory at a time; or concurrently, where 
 several frames are read at each time and returned as go channels to be
@@ -98,7 +105,7 @@ Axis manipulation:
 	angles, which are not defined for certain rotations.***
 	 
 Simple geometrical calculations
-Reads XTC files, sequencially and concurrently.
+Reads XTC and DCD files, sequencially and concurrently.
 Calculates and draws Ramachandran plots (uses the Plotinum library).
 Allows to set up, run and recover results from QM calculations
 	with Orca (which must be downloaded independently from 
@@ -119,7 +126,6 @@ TODOS:
 *Protein superimposer (Calign?).
 *Support Turbomole for QM calculations.
 *Additional geometrical manipulation tools.
-*Read DCD trajectories.
 *Read Amber trajectories.
 *Add more tests.
 
