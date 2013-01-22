@@ -202,8 +202,10 @@ func (T *Topology) AddAtom(at *Atom) Ref {
 
 //SelectAtoms, given a list of ints,  returns an array of the atoms with the
 //corresponding position in the molecule
-//Changes to these atoms affect the original reference
-func (T *Topology) SomeAtoms(atomlist []int) ([]*Atom, error) {
+//Changes to these atoms affect the original reference.
+//The charge and multiplicity (unpaired electrons) for the molecule is just the one
+//for the parent reference and its not guarranteed to be correct.
+func (T *Topology) SomeAtoms(atomlist []int) (Ref, error) {
 	var err error
 	var ret []*Atom
 	lenatoms := len(T.Atoms)
@@ -213,7 +215,8 @@ func (T *Topology) SomeAtoms(atomlist []int) ([]*Atom, error) {
 		}
 		ret = append(ret, T.Atoms[j])
 	}
-	return ret, err
+	finalret,err:=MakeTopology(ret, T.Charge(), T.Unpaired())
+	return finalret, err
 }
 
 //Returns a copy of T with the i atom deleted by reslicing
@@ -557,18 +560,7 @@ func (M *Molecule) NextConc(frames []bool) ([]chan *matrix.DenseMatrix, error) {
 	return toreturn, nil
 }
 
-//SomeCoords, given a slice of ints, returns a matrix.DenseMatrix
-//containing the coordinates of the atoms with the corresponding index.
-//This function returns a copy, not a reference, so changes to the returned matrix
-//don't alter the original. It check for correctness of the Atoms requested.
-func (M *Molecule) SomeCoords(clist []int) (*matrix.DenseMatrix, error) {
-	if M.current >= len(M.Coords) {
-		return nil, fmt.Errorf("No more frames")
-	}
-	toreturn := SomeRows(M.Coords[M.current], clist)
-	M.current++
-	return toreturn, nil
-}
+
 
 /**End Traj interface implementation***********/
 

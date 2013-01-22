@@ -73,7 +73,7 @@ func BenchmarkChangeAxis(Te *testing.B) {
 	if err != nil {
 		Te.Error(err)
 	}
-	PdbWrite(mol, "test/2c9v-aligned.pdb")
+	PdbWrite("test/2c9v-aligned.pdb",mol,mol.Coords[0])
 	fmt.Println("bench1")
 }
 
@@ -114,7 +114,7 @@ func BenchmarkOldChangeAxis(Te *testing.B) {
 	if err != nil {
 		Te.Error(err)
 	}
-	PdbWrite(mol, "test/2c9v-old-aligned.pdb")
+	PdbWrite("test/2c9v-old-aligned.pdb",mol,mol.Coords[0])
 	fmt.Println("bench2")
 }
 
@@ -168,7 +168,7 @@ func TestGeo(Te *testing.T) {
 		if err != nil {
 			Te.Error(err)
 		}
-		XyzWrite(mol, mol.Coords[0], fmt.Sprintf("test/sample_%03.1f.xyz", scaling))
+		XyzWrite(fmt.Sprintf("test/sample_%03.1f.xyz", scaling), mol, mol.Coords[0])
 	}
 }
 
@@ -257,7 +257,7 @@ func TestQM(Te *testing.T) {
 	}
 	mol.Coords[0] = geometry
 	fmt.Println(energy)
-	if err := XyzWrite(mol, mol.Coords[0], "mopac.xyz"); err != nil {
+	if err := XyzWrite("mopac.xyz", mol, mol.Coords[0]); err != nil {
 		Te.Error(err)
 	}
 	//Took away this because it takes too long to run :-)
@@ -297,16 +297,11 @@ func TestSelectCone(Te *testing.T) {
 	fmt.Println(sele)
 	selection := SomeRows(mol.Coords[0], sele)
 	test, _ := mol.SomeAtoms(sele) //Debug info.
-	fmt.Println(test[2], test[3])
+	fmt.Println(test.Atom(2), test.Atom(3))
 	cone := SelCone(mol.Coords[0], selection, 0.75, 20, 1, 0, 0) //0.524 approx pi/6 approx 30deg. 
-	top, _ := mol.SomeAtoms(cone)
-	ref, _ := MakeTopology(top, 0, 1)
-	coordst := SomeRows(mol.Coords[0], cone)
-	coords := make([]*matrix.DenseMatrix, 1, 1)
-	coords[0] = coordst
-	newmol, _ := MakeMolecule(ref, coords, mol.Bfactors)
-	PdbWrite(newmol, "test/mylittlecone.pdb")
-
+	ref, _ := mol.SomeAtoms(cone)
+	coords := SomeRows(mol.Coords[0], cone)
+	PdbWrite("test/mylittlecone.pdb",ref,coords,mol.Bfactors[0])
 }
 
 func TestReorder(Te *testing.T){
@@ -321,7 +316,7 @@ func TestReorder(Te *testing.T){
 		}
 	}
 	mol.ResetIds()
-	PdbWrite(mol,"test/ordertest.pdb")
+	PdbWrite("test/ordertest.pdb",mol,mol.Coords[0])
 	
 }
 

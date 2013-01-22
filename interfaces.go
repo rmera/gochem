@@ -73,7 +73,7 @@ type Ref interface {
 	//out of range.
 	Atom(i int) *Atom
 
-	//SetAtom sets the (i+1)th Atom of the topology to aM.
+	//SetAtom sets the (i+1)th Atom of the topology to atm.
 	//Panics if out of range
 	SetAtom(i int, at *Atom)
 
@@ -83,7 +83,9 @@ type Ref interface {
 	//SelectAtoms, given a list of ints,  returns an array of the atoms with the
 	//corresponding position in the molecule
 	//Changes to these atoms affect the original molecule.
-	SomeAtoms(atomlist []int) ([]*Atom, error)
+	//The charge and multiplicity (unpaired electrons) for the molecule is just the one
+	//for the parent reference and its not guarranteed to be correct.
+	SomeAtoms(atomlist []int) (Ref, error)
 
 	//Returns a column vector with the massess of all atoms
 	//this will be changed to a tion that takes a Reference interface.
