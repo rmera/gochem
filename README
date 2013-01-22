@@ -103,7 +103,6 @@ Axis manipulation:
 	The Clifford algebra implementation is concurrent. In general, 
 	Clifford algebra is mathematically better behaving than Euler 
 	angles, which are not defined for certain rotations.***
-	 
 Simple geometrical calculations
 Reads XTC and DCD files, sequencially and concurrently.
 Calculates and draws Ramachandran plots (uses the Plotinum library).
@@ -114,10 +113,9 @@ Allows to set up, run and recover results for semiempirical
 	calculations with MOPAC (which must be obtained from 
 	http://openmopac.net/)
 
+
+
 TODOS:
-
-
-*Get XyzRead to read multi-XYZ files.
 
 *Protein superimposer (Calign?).
 *Support Turbomole for QM calculations.
