@@ -48,12 +48,12 @@ func TestDcd(Te *testing.T) {
 	}
 	i := 0
 	for ; ; i++ {
-		_, err := traj.Next(true)
+		coords, err := traj.Next(true)
 		if err != nil && err.Error() != "No more frames" {
 			Te.Error(err)
 			break
 		} else if err == nil {
-			//fmt.Println(coords.GetRowVector(2))
+			fmt.Println(coords.GetRowVector(2))
 		} else {
 			break
 		}

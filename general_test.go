@@ -1,4 +1,4 @@
-// +build !cxtc 
+// +build !xtc 
 // +build !dcd
 
 /*
