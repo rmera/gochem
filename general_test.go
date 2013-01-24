@@ -319,5 +319,38 @@ func TestReorder(Te *testing.T){
 	PdbWrite("test/ordertest.pdb",mol,mol.Coords[0])
 	
 }
-
+//Aligns the main plane of a molecule with the XY-plane.
+func TestPutInXYPlane(Te *testing.T) {
+	mol, err := XyzRead("test/sample_plane.xyz")
+	if err != nil {
+		Te.Error(err)
+	}
+	indexes:=[]int{0,1,2,3,23,22,21,20,25,44,39,40,41,42,61,60,59,58,63,5}
+	some:=SomeRows(mol.Coords[0],indexes)
+	//for most rotation things it is good to have the molecule centered on its mean.
+	mol.Coords[0],_,_=MassCentrate(mol.Coords[0], some, nil)
+	//The test molecule is not completely planar so we use a subset of atoms that are contained in a plane
+	//These are the atoms given in the indexes slice.
+	some=SomeRows(mol.Coords[0],indexes)
+	//The strategy is: Take the normal to the plane of the molecule (os molecular subset), and rotate it until it matches the Z-axis
+	//This will mean that the plane of the molecule will now match the XY-plane.
+	best,err:=BestPlane(nil,some)
+	if err != nil {
+		Te.Error(err)
+	}
+	z:=matrix.MakeDenseMatrix([]float64{0,0,1},1,3)
+	zero:=matrix.MakeDenseMatrix([]float64{0,0,0},1,3)
+	axis,err:=Cross3D(best,z)
+	if err != nil {
+		Te.Error(err)
+	}
+	//The main part of the program, where the rotation actually happens. Note that we rotate the whole
+	//molecule, not just the planar subset, this is only used to calculate the rotation angle.
+	mol.Coords[0],err=RotateAbout(mol.Coords[0],zero,axis,AngleInVectors(best,z))
+	if err != nil {
+		Te.Error(err)
+	}
+	//Now we write the rotated result.
+	XyzWrite("test/Rotated.xyz", mol, mol.Coords[0])
+}
 
