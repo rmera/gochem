@@ -144,15 +144,15 @@ func (O *OrcaRunner) BuildInput(atoms Ref, coords *matrix.DenseMatrix, Q *QMCalc
 	}
 
 	//Set RI or RIJCOSX if needed
-	if Q.RI{
-		Q.auxBasis = Q.Basis+"/J"
+	if Q.RI {
+		Q.auxBasis = Q.Basis + "/J"
 		Q.Others = fmt.Sprintf("%s %s", Q.Others, "RI")
 	}
-	if Q.RIJ{
-		Q.auxColBasis= Q.Basis+"/C"
+	if Q.RIJ {
+		Q.auxColBasis = Q.Basis + "/C"
 		Q.Others = fmt.Sprintf("%s %s", Q.Others, "RIJCOSX")
 	}
-	
+
 	disp := "VDW3"
 	if Q.Disperssion != "" {
 		disp = orcaDisp[Q.Disperssion]

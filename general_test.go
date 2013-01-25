@@ -73,7 +73,7 @@ func BenchmarkChangeAxis(Te *testing.B) {
 	if err != nil {
 		Te.Error(err)
 	}
-	PdbWrite("test/2c9v-aligned.pdb",mol,mol.Coords[0])
+	PdbWrite("test/2c9v-aligned.pdb", mol, mol.Coords[0])
 	fmt.Println("bench1")
 }
 
@@ -114,10 +114,9 @@ func BenchmarkOldChangeAxis(Te *testing.B) {
 	if err != nil {
 		Te.Error(err)
 	}
-	PdbWrite("test/2c9v-old-aligned.pdb",mol,mol.Coords[0])
+	PdbWrite("test/2c9v-old-aligned.pdb", mol, mol.Coords[0])
 	fmt.Println("bench2")
 }
-
 
 //TestMultiXyz tests that multi-XYZ files are opened and read correctly.
 func TestMultiXyz(Te *testing.T) {
@@ -126,14 +125,12 @@ func TestMultiXyz(Te *testing.T) {
 		Te.Error(err)
 	}
 	fmt.Println("Read: ", len(mol.Coords), " snapshots")
-	fmt.Println("Atom 42 Coords (should change)") 
+	fmt.Println("Atom 42 Coords (should change)")
 	fmt.Println("First snapshot: ", mol.Coords[0].GetRowVector(41), "Second snapshot: ", mol.Coords[1].GetRowVector(41))
-	fmt.Println("Atom 3 Coords (shouldnt change)") 
+	fmt.Println("Atom 3 Coords (shouldnt change)")
 	fmt.Println("First snapshot: ", mol.Coords[0].GetRowVector(2), "Second snapshot: ", mol.Coords[1].GetRowVector(2))
-	
+
 }
-
-
 
 //TestGeo opens the sample.xyz file in the test directory, and pull a number of hardcoded atoms
 //In the direction of a hardcoded vectos. It builds 12 files with the pulled atoms  displaced by
@@ -218,7 +215,7 @@ func TestQM(Te *testing.T) {
 	calc.HighBasis = "def2-QZVPP"
 	calc.HBAtoms = []int{3, 10, 12}
 	calc.HBElements = []string{"Cu", "Zn"}
-	calc.RI=true
+	calc.RI = true
 	calc.Disperssion = "D2"
 	calc.CConstraints = []int{0, 10, 20}
 	orca := MakeOrcaRunner()
@@ -270,8 +267,6 @@ func TestQM(Te *testing.T) {
 	}
 }
 
-
-
 func TestMatrix(Te *testing.T) {
 	a := []float64{1, 1, 4, 2, 2, 5, 3, 3, 6}
 	A := matrix.MakeDenseMatrix(a, 3, 3)
@@ -301,56 +296,56 @@ func TestSelectCone(Te *testing.T) {
 	cone := SelCone(mol.Coords[0], selection, 0.75, 20, 1, 0, 0) //0.524 approx pi/6 approx 30deg. 
 	ref, _ := mol.SomeAtoms(cone)
 	coords := SomeRows(mol.Coords[0], cone)
-	PdbWrite("test/mylittlecone.pdb",ref,coords,mol.Bfactors[0])
+	PdbWrite("test/mylittlecone.pdb", ref, coords, mol.Bfactors[0])
 }
 
-func TestReorder(Te *testing.T){
-	mol, err := PdbRead("test/2c9v.pdb",false)
+func TestReorder(Te *testing.T) {
+	mol, err := PdbRead("test/2c9v.pdb", false)
 	if err != nil {
 		Te.Error(err)
 	}
-	for key,val:=range(mol.Atoms){
-		if val.Molid==6{
-			mol.Atoms[key].Id=9999
-			mol.Atoms[key].Molid=444
+	for key, val := range mol.Atoms {
+		if val.Molid == 6 {
+			mol.Atoms[key].Id = 9999
+			mol.Atoms[key].Molid = 444
 		}
 	}
 	mol.ResetIds()
-	PdbWrite("test/ordertest.pdb",mol,mol.Coords[0])
-	
+	PdbWrite("test/ordertest.pdb", mol, mol.Coords[0])
+
 }
+
 //Aligns the main plane of a molecule with the XY-plane.
 func TestPutInXYPlane(Te *testing.T) {
 	mol, err := XyzRead("test/sample_plane.xyz")
 	if err != nil {
 		Te.Error(err)
 	}
-	indexes:=[]int{0,1,2,3,23,22,21,20,25,44,39,40,41,42,61,60,59,58,63,5}
-	some:=SomeRows(mol.Coords[0],indexes)
+	indexes := []int{0, 1, 2, 3, 23, 22, 21, 20, 25, 44, 39, 40, 41, 42, 61, 60, 59, 58, 63, 5}
+	some := SomeRows(mol.Coords[0], indexes)
 	//for most rotation things it is good to have the molecule centered on its mean.
-	mol.Coords[0],_,_=MassCentrate(mol.Coords[0], some, nil)
+	mol.Coords[0], _, _ = MassCentrate(mol.Coords[0], some, nil)
 	//The test molecule is not completely planar so we use a subset of atoms that are contained in a plane
 	//These are the atoms given in the indexes slice.
-	some=SomeRows(mol.Coords[0],indexes)
+	some = SomeRows(mol.Coords[0], indexes)
 	//The strategy is: Take the normal to the plane of the molecule (os molecular subset), and rotate it until it matches the Z-axis
 	//This will mean that the plane of the molecule will now match the XY-plane.
-	best,err:=BestPlane(nil,some)
+	best, err := BestPlane(nil, some)
 	if err != nil {
 		Te.Error(err)
 	}
-	z:=matrix.MakeDenseMatrix([]float64{0,0,1},1,3)
-	zero:=matrix.MakeDenseMatrix([]float64{0,0,0},1,3)
-	axis,err:=Cross3D(best,z)
+	z := matrix.MakeDenseMatrix([]float64{0, 0, 1}, 1, 3)
+	zero := matrix.MakeDenseMatrix([]float64{0, 0, 0}, 1, 3)
+	axis, err := Cross3D(best, z)
 	if err != nil {
 		Te.Error(err)
 	}
 	//The main part of the program, where the rotation actually happens. Note that we rotate the whole
 	//molecule, not just the planar subset, this is only used to calculate the rotation angle.
-	mol.Coords[0],err=RotateAbout(mol.Coords[0],zero,axis,AngleInVectors(best,z))
+	mol.Coords[0], err = RotateAbout(mol.Coords[0], zero, axis, AngleInVectors(best, z))
 	if err != nil {
 		Te.Error(err)
 	}
 	//Now we write the rotated result.
 	XyzWrite("test/Rotated.xyz", mol, mol.Coords[0])
 }
-

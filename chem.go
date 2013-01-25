@@ -41,17 +41,17 @@ import "github.com/skelterjohn/go.matrix"
 //Atom contains the atoms read except for the coordinates, which will be in a matrix
 //and the b-factors, which are in a separate slice of float64.
 type Atom struct {
-	Name      string //PDB name of the atom
-	Id        int    //The PDB index of the atom
-	Tag       int //Just added this for something that someone might want to keep that is not a float.
-	Molname   string //PDB name of the residue or molecule (3-letter code for residues)
-	Molname1  byte //the one letter name for residues and nucleotids
-	Molid     int  //PDB index of the corresponding residue or molecule
+	Name      string  //PDB name of the atom
+	Id        int     //The PDB index of the atom
+	Tag       int     //Just added this for something that someone might want to keep that is not a float.
+	Molname   string  //PDB name of the residue or molecule (3-letter code for residues)
+	Molname1  byte    //the one letter name for residues and nucleotids
+	Molid     int     //PDB index of the corresponding residue or molecule
 	Chain     byte    //One-character PDB name for a chain.
 	Mass      float64 //hopefully all these float64 are not too much memory
-	Occupancy float64  //a PDB crystallographic field, often used to store values of interest. 
+	Occupancy float64 //a PDB crystallographic field, often used to store values of interest. 
 	Vdw       float64
-	Charge    float64   //Partial charge on an atom
+	Charge    float64 //Partial charge on an atom
 	Symbol    string
 	Het       bool // is the atom an hetatm in the pdb file? (if applicable)
 }
@@ -126,38 +126,33 @@ func (T *Topology) SetUnpaired(i int) {
 	T.unpaired = i
 }
 
-
-
 //Sets the current order of atoms as Id and the order of molecules as
 //Molid for all atoms
-func (T *Topology) ResetIds(){
-	currid:=1
-	currid2:=1
-	for key,val:=range(T.Atoms){
-		T.Atoms[key].Id=key+1
-		if currid==val.Molid{
+func (T *Topology) ResetIds() {
+	currid := 1
+	currid2 := 1
+	for key, val := range T.Atoms {
+		T.Atoms[key].Id = key + 1
+		if currid == val.Molid {
 			continue
-			}
-		if currid==val.Molid-1{ //We hit a new molecule
+		}
+		if currid == val.Molid-1 { //We hit a new molecule
 			currid2++
 			currid++
 			continue
-			}
+		}
 		//change of residue after fixing one that didnt match position
-		if currid2!=val.Molid{
-			currid2=T.Atoms[key].Molid
-			T.Atoms[key].Molid=currid+1
-			currid=currid+1
+		if currid2 != val.Molid {
+			currid2 = T.Atoms[key].Molid
+			T.Atoms[key].Molid = currid + 1
+			currid = currid + 1
 			continue
 		}
 		//A residue's index doesnt match its position
-		T.Atoms[key].Molid=currid
-		
-		
-		
+		T.Atoms[key].Molid = currid
+
 	}
 }
-
 
 //Copy returns a copy of the molecule including coordinates
 func (T *Topology) CopyAtoms() Ref {
@@ -215,7 +210,7 @@ func (T *Topology) SomeAtoms(atomlist []int) (Ref, error) {
 		}
 		ret = append(ret, T.Atoms[j])
 	}
-	finalret,err:=MakeTopology(ret, T.Charge(), T.Unpaired())
+	finalret, err := MakeTopology(ret, T.Charge(), T.Unpaired())
 	return finalret, err
 }
 
@@ -512,8 +507,8 @@ func (M *Molecule) Less(i, j int) bool {
 //It returns false otherwise.
 // The coordinates could still be empty
 func (M *Molecule) Readable() bool {
-	if M != nil || M.Coords != nil ||  M.current < len(M.Coords){
-		
+	if M != nil || M.Coords != nil || M.current < len(M.Coords) {
+
 		return true
 	}
 	return false
@@ -533,10 +528,10 @@ func (M *Molecule) Next(a bool) (*matrix.DenseMatrix, error) {
 
 //Initializes molecule to be read as a traj (not tested!)
 func (M *Molecule) InitRead() error {
-	if M==nil || len(M.Coords)==0 {
-		return fmt.Errorf("Bad molecule")	
+	if M == nil || len(M.Coords) == 0 {
+		return fmt.Errorf("Bad molecule")
 	}
-	M.current=0
+	M.current = 0
 	return nil
 }
 
@@ -569,8 +564,6 @@ func (M *Molecule) NextConc(frames []bool) ([]chan *matrix.DenseMatrix, error) {
 	}
 	return toreturn, nil
 }
-
-
 
 /**End Traj interface implementation***********/
 

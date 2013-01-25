@@ -36,7 +36,7 @@ import "github.com/skelterjohn/go.matrix"
 
 //Traj is an interface for any trajectory object, including a Molecule Object
 type Traj interface {
-	
+
 	//Opens the file and prepares for reading, should also take care of the closing.
 	Readable() bool
 
@@ -97,7 +97,7 @@ type Ref interface {
 
 	//Changes the Ids and Molids of atoms for ones matching their current order
 	ResetIds()
-	
+
 	//Returns the number of atoms in the reference
 	Len() int
 }
