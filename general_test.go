@@ -293,7 +293,7 @@ func TestSelectCone(Te *testing.T) {
 	}
 	res := []int{116, 146, 147}
 	allowed_chains := []string{"A", "F"}
-	sele := AtomsFromMolecules(mol, res, allowed_chains)
+	sele := Molecules2Atoms(mol, res, allowed_chains)
 	fmt.Println(sele)
 	selection := SomeRows(mol.Coords[0], sele)
 	test, _ := mol.SomeAtoms(sele) //Debug info.

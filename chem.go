@@ -41,19 +41,19 @@ import "github.com/skelterjohn/go.matrix"
 //Atom contains the atoms read except for the coordinates, which will be in a matrix
 //and the b-factors, which are in a separate slice of float64.
 type Atom struct {
-	Name      string
-	Id        int
+	Name      string //PDB name of the atom
+	Id        int    //The PDB index of the atom
 	Tag       int //Just added this for something that someone might want to keep that is not a float.
-	Molname   string
+	Molname   string //PDB name of the residue or molecule (3-letter code for residues)
 	Molname1  byte //the one letter name for residues and nucleotids
-	Molid     int
-	Chain     byte
+	Molid     int  //PDB index of the corresponding residue or molecule
+	Chain     byte    //One-character PDB name for a chain.
 	Mass      float64 //hopefully all these float64 are not too much memory
-	Occupancy float64
+	Occupancy float64  //a PDB crystallographic field, often used to store values of interest. 
 	Vdw       float64
-	Charge    float64
+	Charge    float64   //Partial charge on an atom
 	Symbol    string
-	Het       bool // is hetatm in the pdb file?
+	Het       bool // is the atom an hetatm in the pdb file (if applicable)?
 }
 
 //Atom methods
