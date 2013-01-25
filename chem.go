@@ -53,7 +53,7 @@ type Atom struct {
 	Vdw       float64
 	Charge    float64   //Partial charge on an atom
 	Symbol    string
-	Het       bool // is the atom an hetatm in the pdb file (if applicable)?
+	Het       bool // is the atom an hetatm in the pdb file? (if applicable)
 }
 
 //Atom methods
