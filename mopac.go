@@ -154,7 +154,8 @@ var mopacMultiplicity = map[int]string{
 }
 
 //Run runs the command given by the string O.command
-//it waits or not for the result depending of 
+//it waits or not for the result depending on wait. Not waiting for results works
+//only for unix-compatible systems, as it uses bash and nohup.
 func (O *MopacRunner) Run(wait bool) (err error) {
 	if wait == true {
 		command := exec.Command(O.command,fmt.Sprintf("%s.mop", O.inputname))
