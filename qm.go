@@ -275,12 +275,23 @@ func (O *OrcaRunner) BuildInput(atoms Ref, coords *matrix.DenseMatrix, Q *QMCalc
 }
 
 //Run runs the command given by the string O.command
-//it waits or not for the result depending of 
+//it waits or not for the result depending on wait.
+//Not waiting for results works
+//only for unix-compatible systems, as it uses bash and nohup.
 func (O *OrcaRunner) Run(wait bool) (err error) {
-	command := exec.Command("nohup", O.command, fmt.Sprintf("%s.inp", O.inputname))
+	
 	if wait == true {
+		out,err:=os.Create(fmt.Sprintf("%s.out", O.inputname))
+		if err!=nil{
+			return err
+			}
+		defer out.Close()
+		command := exec.Command(O.command,fmt.Sprintf("%s.inp", O.inputname))
+		command.Stdout=out
 		err = command.Run()
+		
 	} else {
+		command := exec.Command("sh","-c", "nohup "+O.command+fmt.Sprintf(" %s.inp > %s.out &", O.inputname, O.inputname))
 		err = command.Start()
 	}
 	return err

@@ -211,12 +211,12 @@ func TestQM(Te *testing.T) {
 	calc.Optimize = true
 	calc.Method = "BLYP"
 	calc.Dielectric = 4
-	calc.Basis = "def2-TZVPP"
-	calc.HighBasis = "def2-QZVPP"
+	calc.Basis = "def2-SVP"
+	calc.HighBasis = "def2-TZVP"
 	calc.HBAtoms = []int{3, 10, 12}
 	calc.HBElements = []string{"Cu", "Zn"}
 	calc.RI = true
-	calc.Disperssion = "D2"
+	calc.Disperssion = "D3"
 	calc.CConstraints = []int{0, 10, 20}
 	orca := MakeOrcaRunner()
 	atoms, _ := mol.Next(true)
@@ -226,16 +226,19 @@ func TestQM(Te *testing.T) {
 	}
 	_ = orca.BuildInput(mol, atoms, calc)
 	path, _ := os.Getwd()
+//	if err:=orca.Run(false); err!=nil{
+//			Te.Error(err.Error())
+//		}
 	fmt.Println(path)
 	//Now a MOPAC optimization with the same configuration.
 	mopac := MakeMopacRunner()
 	mopac.BuildInput(mol, atoms, calc)
-	mopaccommand := os.Getenv("MOPAC_LICENSE") + "/MOPAC2009.exe"
+	mopaccommand := os.Getenv("MOPAC_LICENSE") + "/MOPAC2012.exe"
 	mopac.SetCommand(mopaccommand)
 	fmt.Println("command", mopaccommand)
-	//	if err:=mopac.Run(true); err!=nil{
-	//		Te.Error(err.Error())
-	//	}
+		if err:=mopac.Run(true); err!=nil{
+			Te.Error(err.Error())
+		}
 	energy, err := mopac.GetEnergy()
 	if err != nil {
 		if err.Error() == "Probable problem in calculation" {
