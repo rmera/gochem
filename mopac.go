@@ -91,7 +91,7 @@ func (O *MopacRunner) BuildInput(atoms Ref, coords *matrix.DenseMatrix, Q *QMCal
 		return fmt.Errorf("Missing charges or coordinates")
 	}
 	ValidMethods := []string{"PM3", "PM6", "PM7", "AM1"}
-	if IsIn(Q.Method[0:3], ValidMethods) == -1 { //not found
+	if isIn(Q.Method[0:3], ValidMethods) == -1 { //not found
 		fmt.Fprintf(os.Stderr, "no method assigned for MOPAC calculation, will used the default %s, \n", O.defmethod)
 		Q.Method = O.defmethod
 	}

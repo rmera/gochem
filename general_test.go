@@ -1,5 +1,6 @@
 // +build !xtc 
 // +build !dcd
+// +build !plot
 
 /*
  * general_test.go
@@ -169,29 +170,6 @@ func TestGeo(Te *testing.T) {
 	}
 }
 
-//TestRama tests the Ramachandran plot functionality.
-//it generates a Ramachandran plot for the chain A of the PDB 2c9v.
-func TestRama(Te *testing.T) {
-	mol, err := PdbRead("test/2c9v.pdb", true)
-	if err != nil {
-		Te.Error(err)
-	}
-	ramalist, err := RamaList(mol, "A", []int{0, -1}) ////
-	if err != nil {
-		Te.Error(err)
-	}
-	rama, err := RamaCalc(mol.Coords[0], ramalist)
-	if err != nil {
-		Te.Error(err)
-	}
-	fmt.Println("Rama", rama, len(rama), len(ramalist), mol.Len())
-	err = RamaPlot(rama, "test/Rama")
-	if err != nil {
-		Te.Error(err)
-	}
-	//PdbWrite(mol,"test/Used4Rama.pdb")
-	//for the 3 residue  I should get -131.99, 152.49.
-}
 
 //TestQM tests the QM functionality. It prepares input for ORCA and MOPAC
 //In the case of MOPAC it reads a previously prepared output and gets the energy.

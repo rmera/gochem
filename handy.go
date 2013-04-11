@@ -28,10 +28,10 @@
 
 package chem
 
-import "reflect"
+
 import "github.com/skelterjohn/go.matrix"
 import "fmt"
-
+import "reflect"
 func Deg2Rad(f float64) float64 {
 	return f * 0.0174533
 }
@@ -57,25 +57,7 @@ func Molecules2Atoms(mol Ref, residues []int, chains []string) []int {
 
 }
 
-/*IsIn returns the position of test in the slice set, or
- * -1 if test is not present in set. Panics if set is not a slice*/
-func IsIn(test interface{}, set interface{}) int {
-	vset := reflect.ValueOf(set)
-	if reflect.TypeOf(set).Kind().String() != "slice" {
-		panic("IsIn function needs a slice as second argument!")
-	}
-	if vset.Len() < 0 {
-		return 1
-	}
-	for i := 0; i < vset.Len(); i++ {
-		vcomp := vset.Index(i)
-		comp := vcomp.Interface()
-		if reflect.DeepEqual(test, comp) {
-			return i
-		}
-	}
-	return -1
-}
+
 
 //Ones mass returns a column matrix with lenght rosw. 
 //This matrix can be used as a dummy mass matrix
@@ -172,3 +154,54 @@ func Corrupted(R Ref, X Traj) error {
 	}
 	return nil
 }
+
+
+//Some internal convenience functions.
+
+//isIn is a helper for the RamaList function, 
+//returns true if test is in container, false otherwise.
+func isInInt(container []int, test int) bool {
+	if container == nil {
+		return false
+	}
+	for _, i := range container {
+		if test == i {
+			return true
+		}
+	}
+	return false
+}
+//Same as the previous, but with strings.
+func isInString(container []string, test string) bool {
+	if container == nil {
+		return false
+	}
+	for _, i := range container {
+		if test == i {
+			return true
+		}
+	}
+	return false
+}
+
+//IsIn returns the position of test in the slice set, or
+// -1 if test is not present in set. Panics if set is not a slice
+func isIn(test interface{}, set interface{}) int {
+	vset := reflect.ValueOf(set)
+	if reflect.TypeOf(set).Kind().String() != "slice" {
+		panic("IsIn function needs a slice as second argument!")
+	}
+	if vset.Len() < 0 {
+		return 1
+	}
+	for i := 0; i < vset.Len(); i++ {
+		vcomp := vset.Index(i)
+		comp := vcomp.Interface()
+		if reflect.DeepEqual(test, comp) {
+			return i
+		}
+	}
+	return -1
+}
+
+
