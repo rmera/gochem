@@ -50,7 +50,7 @@ type gnFloat64 matrix.DenseMatrix
 
 (F *gnFloat64) Dims()(int, int){
 	return F.Rows(),F.Cols()
-	}
+}
 
  
  
