@@ -28,6 +28,7 @@
 
 package chem
 
+import "io"
 import "os"
 import "bufio"
 import "strings"
@@ -204,18 +205,25 @@ func read_onlycoords_pdb_line(line string, contlines int) ([]float64, float64, e
 	return coords, bfactor, nil
 }
 
+
+
+//PdbReadString reads the atomic entries for a PDB bufio.IO, returns a bunch of without coordinates,
+// and the coordinates in a separate array of arrays. If there is one frame in the PDB
+// the coordinates array will be of lenght 1. It also returns an error which is not 
+// really well set up right now.
+func PdbReadString(pdb string, read_additional bool) (*Molecule, error){
+	pdbstringreader:=strings.NewReader(pdb)
+	bufiopdb := bufio.NewReader(pdbstringreader)
+	mol, err:=pdbBufIORead(pdb, read_additional)
+	return mol, err
+}
+
+
 //PdbRead reads the atomic entries for a PDB file, returns a bunch of without coordinates,
 // and the coordinates in a separate array of arrays. If there is one frame in the PDB
 // the coordinates array will be of lenght 1. It also returns an error which is not 
 // really well set up right now.
-func PdbRead(pdbname string, read_additional bool) (*Molecule, error) {
-	molecule := make([]*Atom, 0)
-	modelnumber := 0 //This is the number of frames read
-	coords := make([][]float64, 1, 1)
-	coords[0] = make([]float64, 0)
-	bfactors := make([][]float64, 1, 1)
-	bfactors[0] = make([]float64, 0)
-	first_model := true //are we reading the first model? if not we only save coordinates
+func PdbRead(pdbname string, read_additional bool) (*Molecule, error){
 	pdbfile, err := os.Open(pdbname)
 	if err != nil {
 		//fmt.Println("Unable to open file!!")
@@ -223,11 +231,28 @@ func PdbRead(pdbname string, read_additional bool) (*Molecule, error) {
 	}
 	defer pdbfile.Close()
 	pdb := bufio.NewReader(pdbfile)
+	mol, err:=pdbBufIORead(pdb, read_additional)
+	return mol, err
+}	
+
+
+//pdbBufIORead reads the atomic entries for a PDB bufio.IO, returns a bunch of without coordinates,
+// and the coordinates in a separate array of arrays. If there is one frame in the PDB
+// the coordinates array will be of lenght 1. It also returns an error which is not 
+// really well set up right now.
+func pdbBufIORead(pdb *bufio.Reader, read_additional bool) (*Molecule, error) {
+	molecule := make([]*Atom, 0)
+	modelnumber := 0 //This is the number of frames read
+	coords := make([][]float64, 1, 1)
+	coords[0] = make([]float64, 0)
+	bfactors := make([][]float64, 1, 1)
+	bfactors[0] = make([]float64, 0)
+	first_model := true //are we reading the first model? if not we only save coordinates
 	contlines := 1 //count the lines read to better report errors
 	for {
 		line, err := pdb.ReadString('\n')
 		if err != nil {
-			fmt.Println("PDB reading complete") /***change this to stderr************/
+			//fmt.Println("PDB reading complete") /***change this to stderr************/
 			break
 			contlines++ //count all the lines even if empty.
 		}
