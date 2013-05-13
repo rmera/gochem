@@ -290,23 +290,102 @@ func PdbRead(pdbname string, read_additional bool) (*Molecule, error) {
 //End Pdb_read family
 
 
-func writePdbLine()
+//correctBfactors check that coords and bfactors have the same number of elements.
+func correctBfactors(coords, bfactors []*matrix.DenseMatrix) bool{
+	if len(coords) != len(bfactors){
+		return false
+		}
+	for key,coord:=range(coords){
+		if coord.Rows() != bfactors[key].Rows(){
+			return false
+			}
+		}
+	return true
+	}
 
+//writePdbLine writes a line in PDB format from the data passed as a parameters. It takes the chain of the previous atom
+//and returns the written line, the chain of the just-written atom, and error or nil.
+func writePdbLine(atom *Atom, coord *matrix.DenseMatrix, bfact float64, chainprev byte) (string, byte, error){
+	var ter string
+	var out string
+	if atom.Chain != chainprev {
+		ter=fmt.Sprintln(out, "TER\n")
+		chainprev = atom.Chain
+	}
+	first := "ATOM"
+	if atom.Het {
+		first = "HETATM"
+	}
+	formatstring:="%-6s%5d  %-3s %3s %1c%4d    %8.3f%8.3f%8.3f%6.2f%6.2f          %2s  \n"
+	
+	//4 chars for the atom name are used when hydrogens are included.	
+	//This has not been tested
+	if len(atom.Name) == 4 {
+		strings.Replace(formatstring,"%-3s", "%4s", 1)
+	}else if len(atom.Name) > 4  {
+		return "", chainprev, fmt.Errorf("Cant print PDB line")
+	}
+
+	out = fmt.Sprintf(out, "%-6s%5d  %-3s %3s %1c%4d    %8.3f%8.3f%8.3f%6.2f%6.2f          %2s  \n", first, atom.Id, atom.Name, atom.Molname, atom.Chain,
+		atom.Molid, coord.Get(0,0), coord.Get(0,1), coord.Get(0,2), atom.Occupancy, bfact, atom.Symbol)
+	
+	out = strings.Join([]string{ter,out},"")
+	return out, chainprev, nil
+}
 
 
 //PdbWrite writes a PDB for the molecule mol and the coordinates Coords. It is just a wrapper for
-//MultiPdbWrite. Returns error or nil.
+//PdbStringWrite. Returns error or nil.
 func PdbWrite(pdbname string, mol Ref, CandB ...*matrix.DenseMatrix) error {
-	Coords := []*matrix.DenseMatrix{CandB[0]}
-	var Bfactors []*matrix.DenseMatrix
+	coords := CandB[0]
+	var Bfactors *matrix.DenseMatrix
 	if len(CandB) > 1 {
-		Bfactors = []*matrix.DenseMatrix{CandB[1]} //any other element is just ignored	
+		Bfactors = CandB[1] //any other element is just ignored	
 	} else {
-		Bfactors = []*matrix.DenseMatrix{matrix.Zeros(mol.Len(), 1)}
+		Bfactors = nil
 	}
-	err := MultiPdbWrite(pdbname, mol, Coords, Bfactors)
+	
+	out, err := os.Create(pdbname)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+	
+	outstring, err := PdbStringWrite(mol, coords, Bfactors)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(out, outstring) //this might require checking for the error
+	
+	
 	return err
 }
+
+//PdbStringWrite writes a string in PDB format for a given reference, coordinate set and bfactor set, which must match each other
+//returns the written string and error or nil.
+func PdbStringWrite(mol Ref, coords, bfact *matrix.DenseMatrix) (string, error) {
+	if bfact==nil{
+		bfact=matrix.Zeros(mol.Len(), 1)
+	}
+	if coords.Rows() != mol.Len() || coords.Rows() != bfact.Rows() {
+		return "", fmt.Errorf("Ref and Coords and/or Bfactors dont have the same number of atoms")
+		}
+	chainprev := mol.Atom(0).Chain      //this is to know when the chain changes.
+	var outline string
+	var outstring string
+	var err error
+	for i := 0; i < mol.Len(); i++ {
+		outline,chainprev,err=writePdbLine(mol.Atom(i),coords.GetRowVector(i),bfact.Get(i, 0), chainprev)
+		if err!=nil{
+			return "",fmt.Errorf("Could not print PDB line: %d", i)
+			}
+		outstring=strings.Join([]string{outstring,outline},"")
+		}
+	outstring=strings.Join([]string{outstring,"END\n"},"")
+	return outstring, nil
+}		
+
+
 
 //MultiPdbWrite writes a multiPDB file for the molecule mol and the various coordinate sets in CandB.
 //CandB is a list of lists of *matrix.DenseMatrix. If it has 2 elements or more, the second will be used as
@@ -315,62 +394,31 @@ func PdbWrite(pdbname string, mol Ref, CandB ...*matrix.DenseMatrix) error {
 func MultiPdbWrite(pdbname string, mol Ref, CandB ...[]*matrix.DenseMatrix) error {
 	Coords := CandB[0]
 	var Bfactors []*matrix.DenseMatrix
-	if len(CandB) > 1 {
+	if len(CandB) > 1 && correctBfactors(Coords,CandB[1]){
 		Bfactors = CandB[1] //any other element is just ignored	
 	} else {
 		for _, _ = range Coords {
-			Bfactors = append(Bfactors, matrix.Zeros(mol.Len(), 1))
+			Bfactors = append(Bfactors,nil) //nil bfactors are taken care of by the PdbStringWrite function
 		}
 	}
 
-	for key, val := range Coords {
-		if val.Rows() != mol.Len() || val.Rows() != Bfactors[key].Rows() {
-			return fmt.Errorf("MultiPdbWrite: Ref and Coords and/or Bfactors dont have the same number of atoms")
-		}
-	}
 	out, err := os.Create(pdbname)
 	if err != nil {
 		return err
 	}
-
 	defer out.Close()
+	
 	fmt.Fprint(out, "REMARK     WRITTEN WITH GOCHEM :-)\n")
 	for j := range Coords {
-		towrite := Coords[j].Arrays()       //An array of array with the data in the matrix
-		chainprev := mol.Atom(0).Chain      //this is to know when the chain changes.
 		fmt.Fprintf(out, "MODEL %d\n", j+1) //The model number starts with one
-		//		fmt.Println("chain", mol.Atoms[0])		
-		for i := 0; i < mol.Len(); i++ {
-			ThisAtom := mol.Atom(i)
-			if ThisAtom.Chain != chainprev {
-				fmt.Fprintln(out, "TER")
-				chainprev = ThisAtom.Chain
-			}
-			first := "ATOM"
-			if ThisAtom.Het {
-				first = "HETATM"
-			}
-			//Corrupted will check for broken bfactors and complete with zeroes
-			//So no need to check here.
-			c := towrite[i] //coordinates for the corresponding atoms
-			if len(ThisAtom.Name) < 4 {
-				//		fmt.Println("chain", ThisAtom)
-				_, err = fmt.Fprintf(out, "%-6s%5d  %-3s %3s %1c%4d    %8.3f%8.3f%8.3f%6.2f%6.2f          %2s  \n", first, ThisAtom.Id, ThisAtom.Name, ThisAtom.Molname, ThisAtom.Chain,
-					ThisAtom.Molid, c[0], c[1], c[2], ThisAtom.Occupancy, Bfactors[j].Get(i, 0), ThisAtom.Symbol)
-				//4 chars for the atom name are used when hydrogens are included.	
-				//This has not been tested
-			} else if len(ThisAtom.Name) == 4 {
-				_, err = fmt.Fprintf(out, "%-6s%5d %4s %3s %1c%4d    %8.3f%8.3f%8.3f%6.2f%6.2f          %2s  \n", first, ThisAtom.Id, ThisAtom.Name, ThisAtom.Molname, ThisAtom.Chain,
-					ThisAtom.Molid, c[0], c[1], c[2], ThisAtom.Occupancy, Bfactors[j].Get(i, 0), ThisAtom.Symbol)
-			} else {
-				err = fmt.Errorf("Cant print PDB line")
-			}
-			if err != nil {
-				return err
-			}
+		outstring, err := PdbStringWrite(mol, Coords[j], Bfactors[j])
+		if err != nil {
+			return err
 		}
-		fmt.Fprint(out, "ENDMDL\n")
+		strings.Replace(outstring,"END\n","ENDMDL\n",1)
+		fmt.Fprintf(out, outstring) //here it could be needed to check for the error
 	}
+	
 	fmt.Fprint(out, "END\n")
 	return nil
 }
