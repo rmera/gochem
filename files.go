@@ -28,14 +28,15 @@
 
 package chem
 
-import "io"
-import "os"
-import "bufio"
-import "strings"
-import "strconv"
-import "fmt"
-import "github.com/skelterjohn/go.matrix"
 
+import (
+		"os"
+		"bufio"
+		"strings"
+		"strconv"
+		"fmt"
+		"github.com/skelterjohn/go.matrix"
+		)
 //Pdb_read family
 
 //A map for assigning mass to elements. 
@@ -210,11 +211,12 @@ func read_onlycoords_pdb_line(line string, contlines int) ([]float64, float64, e
 //PdbReadString reads the atomic entries for a PDB bufio.IO, returns a bunch of without coordinates,
 // and the coordinates in a separate array of arrays. If there is one frame in the PDB
 // the coordinates array will be of lenght 1. It also returns an error which is not 
-// really well set up right now.
-func PdbReadString(pdb string, read_additional bool) (*Molecule, error){
+// really well set up right now. 
+//WARNING: It has not been tested with an actual string.
+func PdbStringRead(pdb string, read_additional bool) (*Molecule, error){
 	pdbstringreader:=strings.NewReader(pdb)
 	bufiopdb := bufio.NewReader(pdbstringreader)
-	mol, err:=pdbBufIORead(pdb, read_additional)
+	mol, err:=pdbBufIORead(bufiopdb, read_additional)
 	return mol, err
 }
 
@@ -447,6 +449,11 @@ func MultiPdbWrite(pdbname string, mol Ref, CandB ...[]*matrix.DenseMatrix) erro
 	fmt.Fprint(out, "END\n")
 	return nil
 }
+
+/***End of PDB part***/
+
+
+
 
 //Reads an xyz or multixyz file (as produced by Turbomole). Returns a Molecule and error or nil.
 func XyzRead(xyzname string) (*Molecule, error) {
