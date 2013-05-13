@@ -43,15 +43,27 @@ type Traj interface {
 	//reads the next frame and returns it as DenseMatrix if keep==true, or discards it if false
 	Next(keep bool) (*matrix.DenseMatrix, error)
 
+
+	//Returns the number of atoms per frame
+	Len() int
+}
+
+type ConcTraj interface {
+	
+	//Is the trajectory ready to be read?
+	Readable() bool
+	
 	/*NextConc takes a slice of bools and reads as many frames as elements the list has
 	form the trajectory. The frames are discarted if the corresponding elemetn of the slice
 	is false. The function returns a slice of channels through each of each of which 
 	a *matrix.DenseMatrix will be transmited*/
 	NextConc(frames []bool) ([]chan *matrix.DenseMatrix, error)
-
+	
 	//Returns the number of atoms per frame
 	Len() int
-}
+	
+	}
+
 
 //Ref (reference) is an interface for any description of the type of atoms in a molecule,
 //i.e. every characteristic of them, except for the coordinates and b-factors.

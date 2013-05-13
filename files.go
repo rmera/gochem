@@ -289,6 +289,11 @@ func PdbRead(pdbname string, read_additional bool) (*Molecule, error) {
 
 //End Pdb_read family
 
+
+func writePdbLine()
+
+
+
 //PdbWrite writes a PDB for the molecule mol and the coordinates Coords. It is just a wrapper for
 //MultiPdbWrite. Returns error or nil.
 func PdbWrite(pdbname string, mol Ref, CandB ...*matrix.DenseMatrix) error {
@@ -308,9 +313,6 @@ func PdbWrite(pdbname string, mol Ref, CandB ...*matrix.DenseMatrix) error {
 //Bfactors. If it has one element, all b-factors will be zero.
 //Returns an error if fails, or nil if succeeds.
 func MultiPdbWrite(pdbname string, mol Ref, CandB ...[]*matrix.DenseMatrix) error {
-	/*if len(CandB)<1{  //We should not need this
-		return fmt.Errorf("MultiPdbWrite: Coordinates not supplied")
-	}*/
 	Coords := CandB[0]
 	var Bfactors []*matrix.DenseMatrix
 	if len(CandB) > 1 {
