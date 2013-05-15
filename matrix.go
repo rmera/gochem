@@ -1,3 +1,4 @@
+// +build !part
 /*
  * matrix.go, part of gochem.
  * 

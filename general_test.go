@@ -1,4 +1,4 @@
-// +build !xtc 
+// +build !xtc !part
 // +build !dcd
 // +build !plot
 // +build !matrix 

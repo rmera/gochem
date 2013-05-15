@@ -1,3 +1,4 @@
+// +build !part
 /*
  * qm.go, part of gochem.
  * 

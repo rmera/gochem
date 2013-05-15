@@ -1,4 +1,4 @@
-// +build plot
+// +build plot !part
 
 /*
  * Rama.go, part of gochem

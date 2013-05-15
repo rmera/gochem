@@ -32,6 +32,7 @@ import (
 	"github.com/skelterjohn/go.matrix"
 	"math"
 	"sort"
+	//"fmt"
 )
 
 /*Here I make a -very incomplete- implementation of the gonum api backed by go.matrix, which will enable me to port gochem to gonum.
@@ -372,9 +373,9 @@ func (F *CoordMatrix) Pow(A *CoordMatrix, exp float64) {
 
 //Returns an array with the data in the ith row of F
 func (F *CoordMatrix) Row(i int) []float64 {
-	c, r := F.Dims()
+	r,c := F.Dims()
 	if i >= r {
-		panic("Requested row out of bounds")
+		panic("Matrix: Requested row out of bounds")
 	}
 	a := make([]float64, c, c)
 	for j := 0; j < c; j++ {

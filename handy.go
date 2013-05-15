@@ -1,3 +1,4 @@
+// +build !part
 /*
  * files.go, part of gochem.
  * 

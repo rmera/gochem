@@ -1,3 +1,5 @@
+// +build !part
+
 /*
  * geometric.go, part of gochem
  * 
@@ -245,7 +247,7 @@ func Dihedral(a, b, c, d *matrix.DenseMatrix) float64 {
 }
 
 /***Shape indicator functions***/
-const appzero float64 = 0.0000001 //used to correct floating point 
+//const appzero float64 = 0.0000001 //used to correct floating point 
 //errors. Everything equal or less than this is considered zero.
 
 //point comparisons
@@ -320,75 +322,6 @@ func BestPlane(mol Ref, coords *matrix.DenseMatrix) (*matrix.DenseMatrix, error)
 	return normal, err
 }
 
-//This is a facility to sort Eigenvectors/Eigenvalues pairs
-//It satisfies the sort.Interface interface.
-type eigenpair struct {
-	//evecs must have as many rows as evals has elements.
-	evecs *matrix.DenseMatrix
-	evals sort.Float64Slice
-}
-
-func (E eigenpair) Less(i, j int) bool {
-	return E.evals[i] < E.evals[j]
-}
-func (E eigenpair) Swap(i, j int) {
-	E.evals.Swap(i, j)
-	//	E.evecs[i],E.evecs[j]=E.evecs[j],E.evecs[i]
-	E.evecs.SwapRows(i, j)
-}
-func (E eigenpair) Len() int {
-	return len(E.evals)
-}
-
-//Eigenwrap wraps the matrix.DenseMatrix.Eigen() function in order to guarantee 
-//That the eigenvectors and eigenvalues are sorted according to the eigenvalues
-//It also guarantees orthonormality and handness. I don't know how many of 
-//these are already guaranteed by Eig(). Will delete the unneeded parts 
-//And even this whole function when sure.
-func Eigenwrap(in *matrix.DenseMatrix) (*matrix.DenseMatrix, []float64, error) {
-	evecs, vals, _ := in.Eigen()
-	evals := [3]float64{vals.Get(0, 0), vals.Get(1, 1), vals.Get(2, 2)}
-	if err := evecs.TransposeInPlace(); err != nil {
-		return nil, nil, err
-	}
-	eig := eigenpair{evecs, evals[:]}
-	sort.Sort(eig)
-	//Here I should orthonormalize vectors if needed instead of just complaining. 
-	//I think orthonormality is guaranteed by  DenseMatrix.Eig() If it is, Ill delete all this
-	//If not I'll add ortonormalization routines.
-	for i := 0; i < eig.evecs.Rows(); i++ {
-		vectori := eig.evecs.GetRowVector(i)
-		for j := i + 1; j < eig.evecs.Rows(); j++ {
-
-			//		if i==j{
-			//			continue //actually this cant happen, I could take this away.
-			//			}
-			if math.Abs(Dot(vectori, eig.evecs.GetRowVector(j))) > appzero {
-				return eig.evecs, evals[:], fmt.Errorf("Vectors not ortogonal!")
-			}
-		}
-		if math.Abs(vectori.TwoNorm()-1) > appzero {
-			//Of course I could just normalize the vectors instead of complaining.
-			return eig.evecs, evals[:], fmt.Errorf("Vectors not normalized")
-		}
-	}
-	//Checking and fixing the handness of the matrix.This if-else is Jannes idea, 
-	//I don't really know whether it works.
-	eig.evecs.TransposeInPlace()
-	if eig.evecs.Det() < 0 {
-		eig.evecs.Scale(-1)
-	} else {
-		/*	
-			eig.evecs.TransposeInPlace()
-			eig.evecs.ScaleRow(0,-1)
-			eig.evecs.ScaleRow(2,-1)
-			eig.evecs.TransposeInPlace()
-		*/
-		//	fmt.Println("all good, I guess")
-	}
-	eig.evecs.TransposeInPlace()
-	return eig.evecs, eig.evals, nil //Returns a slice of evals
-}
 
 //CenterOfMass returns the center of mass the atoms represented by the coordinates in geometry
 //and the masses in mass, and an error. If mass is nil, it calculates the geometric center

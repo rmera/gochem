@@ -91,21 +91,21 @@ type Ref interface {
 	SetAtom(i int, at *Atom)
 
 	//AddAtom returms a new Ref with an atom added at the end of the topology
-	AddAtom(at *Atom) Ref
+	AddAtom(at *Atom)
 
 	//SelectAtoms, given a list of ints,  returns an array of the atoms with the
 	//corresponding position in the molecule
 	//Changes to these atoms affect the original molecule.
 	//The charge and multiplicity (unpaired electrons) for the molecule is just the one
 	//for the parent reference and its not guarranteed to be correct.
-	SomeAtoms(atomlist []int) (Ref, error)
+	SomeAtoms(Ref, []int)
 
 	//Returns a column vector with the massess of all atoms
 	//this will be changed to a tion that takes a Reference interface.
-	MassCol() (*matrix.DenseMatrix, error)
+	MassCol() (*CoordMatrix, error)
 
 	//Returns a copy of the Ref with the atom i deleted
-	DelAtom(i int) Ref
+	DelAtom(i int)
 
 	//Changes the Ids and Molids of atoms for ones matching their current order
 	ResetIds()
@@ -114,6 +114,7 @@ type Ref interface {
 	Len() int
 }
 
+/*
 //This allows to set QM calculations using different programs.
 //Currently ORCA and MOPAC (2009/2012) are supported.
 type QMRunner interface {
@@ -152,3 +153,4 @@ type QMRunner interface {
 	//end properly*
 	GetGeometry(atoms Ref) (*matrix.DenseMatrix, error)
 }
+*/

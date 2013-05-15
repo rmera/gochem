@@ -35,7 +35,6 @@ import (
 		"strings"
 		"strconv"
 		"fmt"
-		"github.com/skelterjohn/go.matrix"
 		)
 //Pdb_read family
 
@@ -324,8 +323,8 @@ func correctBfactors(coords, bfactors []*CoordMatrix) bool{
 		}
 	for key,coord:=range(coords){
 		cr,_:=coord.Dims()
-		br,_=bfactors[key].Dims()
-		if cr() != br{
+		br,_:=bfactors[key].Dims()
+		if cr != br{
 			return false
 			}
 		}
@@ -334,7 +333,7 @@ func correctBfactors(coords, bfactors []*CoordMatrix) bool{
 
 //writePdbLine writes a line in PDB format from the data passed as a parameters. It takes the chain of the previous atom
 //and returns the written line, the chain of the just-written atom, and error or nil.
-func writePdbLine(atom *Atom, coord *matrix.DenseMatrix, bfact float64, chainprev byte) (string, byte, error){
+func writePdbLine(atom *Atom, coord *CoordMatrix, bfact float64, chainprev byte) (string, byte, error){
 	var ter string
 	var out string
 	if atom.Chain != chainprev {
@@ -354,8 +353,8 @@ func writePdbLine(atom *Atom, coord *matrix.DenseMatrix, bfact float64, chainpre
 	}else if len(atom.Name) > 4  {
 		return "", chainprev, fmt.Errorf("Cant print PDB line")
 	}
-
-	out = fmt.Sprintf(out, "%-6s%5d  %-3s %3s %1c%4d    %8.3f%8.3f%8.3f%6.2f%6.2f          %2s  \n", first, atom.Id, atom.Name, atom.Molname, atom.Chain,
+    //"%-6s%5d  %-3s %3s %1c%4d    %8.3f%8.3f%8.3f%6.2f%6.2f          %2s  \n"
+	out = fmt.Sprintf(formatstring, first, atom.Id, atom.Name, atom.Molname, atom.Chain,
 		atom.Molid, coord.At(0,0), coord.At(0,1), coord.At(0,2), atom.Occupancy, bfact, atom.Symbol)
 	
 	out = strings.Join([]string{ter,out},"")
@@ -379,22 +378,24 @@ func PdbWrite(pdbname string, mol Ref, CandB ...*CoordMatrix) error {
 		return err
 	}
 	defer out.Close()
-	
+	fmt.Fprint(out, "REMARK     WRITTEN WITH GOCHEM :-)\n")
 	outstring, err := PdbStringWrite(mol, coords, Bfactors)
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(out, outstring) //this might require checking for the error
+	_,err=fmt.Fprintf(out, outstring) //this might require checking for the error
+	if err != nil {
+		return err
+	}	
 	
-	
-	return err
+	return nil
 }
 
 //PdbStringWrite writes a string in PDB format for a given reference, coordinate set and bfactor set, which must match each other
 //returns the written string and error or nil.
 func PdbStringWrite(mol Ref, coords, bfact *CoordMatrix) (string, error) {
 	if bfact==nil{
-		bfact=matrix.Zeros(mol.Len(), 1)
+		bfact=Zeros(mol.Len(), 1)
 	}
 	cr,_:=coords.Dims()
 	br,_:=bfact.Dims()
@@ -406,7 +407,7 @@ func PdbStringWrite(mol Ref, coords, bfact *CoordMatrix) (string, error) {
 	var outstring string
 	var err error
 	for i := 0; i < mol.Len(); i++ {
-		writecoord:=Emptycoord()
+		writecoord:=EmptyCoord()
 		writecoord.RowView(coords,i)
 		outline,chainprev,err=writePdbLine(mol.Atom(i),writecoord,bfact.At(i, 0), chainprev)
 		if err!=nil{
@@ -492,7 +493,7 @@ func xyzBufIORead(xyz *bufio.Reader) (*Molecule, error) {
 	var err error
 	var top *Topology
 	var molecule []*Atom
-	Coords:=make([]*matrix.DenseMatrix, 1, 1)
+	Coords:=make([]*CoordMatrix, 1, 1)
 	
 	for {
 		//When we read the first snapshot we collect also the topology data, later
