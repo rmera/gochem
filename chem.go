@@ -58,26 +58,25 @@ type Atom struct {
 
 //Atom methods
 
-//Copy returns a copy of the Atom object.
-func (A *Atom) Copy() *Atom {
-	if A == nil {
-		panic("Attempted to copy a nil atom")
+//Clone returns a copy of the Atom object.
+//puts the copy into the 
+func (N *Atom) Clone(A *Atom ) {
+	if A == nil || N==nil{
+		panic("Attempted to copy from or to a nil atom")
 	}
-	Newat := new(Atom)
-	Newat.Name = A.Name
-	Newat.Id = A.Id
-	Newat.Tag = A.Tag
-	Newat.Molname = A.Molname
-	Newat.Molname1 = A.Molname1
-	Newat.Molid = A.Molid
-	Newat.Chain = A.Chain
-	Newat.Mass = A.Mass
-	Newat.Occupancy = A.Occupancy
-	Newat.Vdw = A.Vdw
-	Newat.Charge = A.Charge
-	Newat.Symbol = A.Symbol
-	Newat.Het = A.Het
-	return Newat
+	N.Name = A.Name
+	N.Id = A.Id
+	N.Tag = A.Tag
+	N.Molname = A.Molname
+	N.Molname1 = A.Molname1
+	N.Molid = A.Molid
+	N.Chain = A.Chain
+	N.Mass = A.Mass
+	N.Occupancy = A.Occupancy
+	N.Vdw = A.Vdw
+	N.Charge = A.Charge
+	N.Symbol = A.Symbol
+	N.Het = A.Het
 }
 
 /*****Topology type***/
@@ -154,12 +153,12 @@ func (T *Topology) ResetIds() {
 	}
 }
 
-//Copy returns a copy of the molecule including coordinates
-func (T *Topology) CopyAtoms() Ref {
-	Top := new(Topology)
-	Top.Atoms = make([]*Atom, T.Len())
-	for key, val := range T.Atoms {
-		Top.Atoms[key] = val.Copy()
+//Copy atoms into a topology
+func (T *Topology) CloneAtoms(A Ref) {
+	//T := new(Topology)
+	T.Atoms = make([]*Atom, A.Len())
+	for key:=0;key<A.Len() {
+		Top.Atoms[key] = A.Atom(key)
 	}
 	Top.charge = T.charge
 	Top.unpaired = T.unpaired
@@ -186,59 +185,61 @@ func (T *Topology) SetAtom(i int, at *Atom) {
 }
 
 //AddAtom appends an atom at the end of the reference
-func (T *Topology) AddAtom(at *Atom) Ref {
-	newmol, ok := T.CopyAtoms().(*Topology)
-	if ok == false {
+func (T *Topology) AddAtom(at *Atom) { //Ref {
+	/*newmol, ok := T.CopyAtoms().(*Topology)
+	if !ok {
 		panic("cant happen")
 	}
-	newmol.Atoms = append(newmol.Atoms, at)
+	newmol.Atoms = append(newmol.Atoms, at)*/
+	T.Atoms=append(T.Atoms,at)
 	return newmol
 }
 
-//SelectAtoms, given a list of ints,  returns an array of the atoms with the
-//corresponding position in the molecule
-//Changes to these atoms affect the original reference.
-//The charge and multiplicity (unpaired electrons) for the molecule is just the one
-//for the parent reference and its not guarranteed to be correct.
-func (T *Topology) SomeAtoms(atomlist []int) (Ref, error) {
+//SelectAtoms puts the atoms of T
+//with indexes in atomlist into the receiver.
+func (R *Topology) SomeAtoms(T Ref, atomlist []int)  {
 	var err error
 	var ret []*Atom
-	lenatoms := len(T.Atoms)
+	lenatoms := T.Len()
 	for k, j := range atomlist {
 		if j > lenatoms-1 {
-			return nil, fmt.Errorf("Atom requested (Number: %d, value: %d) out of range!", k, j)
+			err:=fmt.Sprintf("Atom requested (Number: %d, value: %d) out of range", k, j)
+			panic(gnError(err))
 		}
 		ret = append(ret, T.Atoms[j])
 	}
-	finalret, err := MakeTopology(ret, T.Charge(), T.Unpaired())
-	return finalret, err
+	R.Atoms=ret
 }
 
-//Returns a copy of T with the i atom deleted by reslicing
-//this means that the copy still uses as much memory as the original T!
-func (T *Topology) DelAtom(i int) Ref {
+//SelectAtoms puts the atoms of T
+//with indexes in atomlist into the receiver. Returns error if problem.
+func (R *Topology) SomeAtomsSafe(T Ref, atomlist []int) error {
+	f:=func(){R.SomeAtoms(T,atomlist)}
+	return gnMaybe(gnPanicker(f))
+}
+
+
+
+
+//Deletes atom i by reslicing.
+//This means that the copy still uses as much memory as the original T.
+func (R *Topology) DelAtom(i int) {
 	if i >= T.Len() {
 		panic("Topology: Tried to delete Atom out of bounds")
 	}
-	N, ok := T.CopyAtoms().(*Topology)
-	if ok == false {
-		panic("cant happen!")
-	}
-	if i == N.Len()-1 {
-		N.Atoms = N.Atoms[:i]
+	if i == T.Len()-1 {
+		T.Atoms = T.Atoms[:i]
 	} else {
-		N.Atoms = append(N.Atoms[:i], N.Atoms[i+1:]...)
+		T.Atoms = append(T.Atoms[:i], T.Atoms[i+1:]...)
 	}
-	return N
 }
-
 //Len returns the length of the molecule.
 func (T *Topology) Len() int {
 	return len(T.Atoms) //This shouldnt be needed
 }
 
 //MassCol returns a DenseMatrix 1-col matrix with masses of atoms and an error if they have not been calculated
-func (T *Topology) MassCol() (*matrix.DenseMatrix, error) {
+func (T *Topology) MassCol() (*CoordMatrix, error) {
 	mass := make([]float64, T.Len())
 	for i := 0; i < T.Len(); i++ {
 		thisatom := T.Atom(i)
@@ -247,7 +248,7 @@ func (T *Topology) MassCol() (*matrix.DenseMatrix, error) {
 		}
 		mass[i] = thisatom.Mass
 	}
-	massmat := matrix.MakeDenseMatrix(mass, len(mass), 1)
+	massmat := NewCoord(mass, len(mass), 1)
 	return massmat, nil
 }
 
@@ -257,8 +258,8 @@ func (T *Topology) MassCol() (*matrix.DenseMatrix, error) {
 //Coordinates and b-factors are stored separately from other atomic info.
 type Molecule struct {
 	*Topology
-	Coords   []*matrix.DenseMatrix
-	Bfactors []*matrix.DenseMatrix
+	Coords   []*CoordMatrix
+	Bfactors []*CoordMatrix
 	current  int
 }
 
@@ -266,7 +267,7 @@ type Molecule struct {
 //charge charge and unpaired unpaired electrons, and returns it. It returns error if 
 //one of the slices is nil. It doesnt check for consitensy across slices or correct charge
 //or unpaired electrons.
-func MakeMolecule(ats Ref, coords, bfactors []*matrix.DenseMatrix) (*Molecule, error) {
+func MakeMolecule(ats Ref, coords, bfactors []*CoordMatrix) (*Molecule, error) {
 	if ats == nil {
 		return nil, fmt.Errorf("Supplied a nil Reference")
 	}
@@ -277,15 +278,13 @@ func MakeMolecule(ats Ref, coords, bfactors []*matrix.DenseMatrix) (*Molecule, e
 		return nil, fmt.Errorf("Supplied a nil Bfactors slice")
 	}
 	mol := new(Molecule)
-	top, ok := ats.(*Topology)
+	top, ok := ats.(*Topology) //for speed
 	if ok == true {
 		mol.Topology = top
 	} else {
 		mol.Topology = new(Topology)
-		mol.Atoms = make([]*Atom, ats.Len())
-		for i := 0; i < ats.Len(); i++ {
-			mol.Atoms[i] = ats.Atom(i)
-		}
+		mol.CloneAtoms(ats) // = make([]*Atom, ats.Len())
+		
 	}
 	mol.Coords = coords
 	mol.Bfactors = bfactors
@@ -296,12 +295,12 @@ func MakeMolecule(ats Ref, coords, bfactors []*matrix.DenseMatrix) (*Molecule, e
 
 //Deletes the coodinate i from every frame of the molecule.
 func (M *Molecule) DelCoord(i int) error {
+	r,c:=M.Coords[0].Dims() 
 	var err error
-	if i >= M.Coords[0].Rows() {
-		panic("Reference: Tried to delete Coord out of bounds")
-	}
 	for j := 0; j < len(M.Coords); j++ {
-		M.Coords[j], err = DMDelRow(M.Coords[j], i)
+		tmp:=Zeros(r-1,c)
+		tmp.DelRow((M.Coords[j], i))
+		M.Coords[j]=tmp
 		if err != nil {
 			return err
 		}
@@ -309,41 +308,35 @@ func (M *Molecule) DelCoord(i int) error {
 	return nil
 }
 
+
 //Deletes atom i and its coordinates from the molecule.
 func (M *Molecule) Del(i int) error {
 	if i >= M.Len() {
 		panic("Tried to delete Atom out of bounds")
 	}
-	if i == M.Len()-1 {
-		M.Atoms = M.Atoms[:i]
-	} else {
-		M.Atoms = append(M.Atoms[:i], M.Atoms[i+1:]...)
-	}
+	M.DelAtomInPlace()
 	err := M.DelCoord(i)
 	return err
 }
 
-//Copy returns a copy of the molecule including coordinates
-func (M *Molecule) Copy() *Molecule {
-	if err := M.Corrupted(); err != nil {
+//Clone puts in the receiver a copy of the molecule  A including coordinates
+func (M *Molecule) Clone(A *Molecule)  {
+	if err := A.Corrupted(); err != nil {
 		panic(err.Error())
 	}
+	r,c:=A.Coords[0].Dims()
 	mol := new(Molecule)
-	/*The foll. code is from Topology.CopyAtoms, I wrote it again just not to deal with the type assersion 
-	since CopyAtoms returns a Ref interface. This should change at some point*/
 	mol.Topology = new(Topology)
-	mol.Atoms = make([]*Atom, M.Len())
-	for key, val := range M.Atoms {
-		mol.Atoms[key] = val.Copy()
-	}
-	mol.charge = M.charge
-	mol.unpaired = M.unpaired
-	//Up to previous line
-	mol.Coords = make([]*matrix.DenseMatrix, 0, len(M.Coords))
-	mol.Bfactors = make([]*matrix.DenseMatrix, 0, len(M.Bfactors))
+	mol.CopyAtoms(A)
+	mol.Coords = make([]*CoordMatrix, 0, len(M.Coords))
+	mol.Bfactors = make([]*CoordMatrix, 0, len(M.Bfactors))
 	for key, val := range M.Coords {
-		mol.Coords = append(mol.Coords, val.Copy())
-		mol.Bfactors = append(mol.Bfactors, M.Bfactors[key].Copy())
+		tmp:=Zeros(r,c)
+		tmp.Clone(val)
+		mol.Coords = append(mol.Coords, tmp)
+		tmp2:=Zeros(1,c)
+		tmp.Clone(M.Bfactors[key])
+		mol.Bfactors = append(mol.Bfactors, tmp2)
 	}
 	if err := mol.Corrupted(); err != nil {
 		panic(fmt.Sprintf("Molecule creation error: %s", err.Error())) //copying a corrupted molecule means that the program is wrong.
@@ -353,15 +346,16 @@ func (M *Molecule) Copy() *Molecule {
 
 //AddFrame akes a matrix of coordinates and appends them at the end of the Coords.
 // It checks that the number of coordinates matches the number of atoms.
-func (M *Molecule) AddFrame(newframe *matrix.DenseMatrix) {
+func (M *Molecule) AddFrame(newframe *CoordMatrix) {
 	if newframe == nil {
 		panic("Attempted to add nil frame")
 	}
-	if newframe.Cols() != 3 {
+	r,c:=newframe.Dims()
+	if c!= 3 {
 		panic("Malformed coord matrix!")
 	}
-	if M.Len() != newframe.Rows() {
-		panic(fmt.Sprintf("Wrong number of coordinates (%d)", newframe.Rows()))
+	if M.Len() != r {
+		panic(gnError(fmt.Sprintf("Wrong number of coordinates (%d)", newframe.Rows())))
 	}
 	if M.Coords == nil {
 		M.Coords = make([]*matrix.DenseMatrix, 1, 1)
@@ -371,7 +365,7 @@ func (M *Molecule) AddFrame(newframe *matrix.DenseMatrix) {
 
 //AddManyFrames adds the array of matrices newfames to the molecule. It checks that
 //the number of coordinates matches the number of atoms.
-func (M *Molecule) AddManyFrames(newframes []*matrix.DenseMatrix) {
+func (M *Molecule) AddManyFrames(newframes []*CoordMatrix) {
 	if newframes == nil {
 		panic("Attempted to add nil frames")
 	}
@@ -379,26 +373,28 @@ func (M *Molecule) AddManyFrames(newframes []*matrix.DenseMatrix) {
 	if M.Coords == nil {
 		M.Coords = make([]*matrix.DenseMatrix, 1, len(newframes))
 	}
-	//Must add something here to change
-	for i := range newframes {
-		if atomslen != newframes[i].Rows() {
-			panic(fmt.Sprintf("Wrong number of coordinates (%d)  in frame %d", newframes[i].Rows(), i))
-		}
-		M.Coords = append(M.Coords, newframes[i]) //At the end there shouldnt be so much copying since
-		//only pointers are copied.
+	for key,val:= range newframes {
+		f:=func (){M.AddFrame(val)}
+		err:=gnMaybe(gnPanicker(f))
+		if err!=nil{
+			panic((fmt.Sprintf("%s in frame %d",err.Error(),key))
+			}
 	}
 }
 
 //Coord returns the coords for the atom atom in the frame frame.
 //panics if frame or coords are out of range.
-func (M *Molecule) Coord(atom, frame int) *matrix.DenseMatrix {
+func (M *Molecule) Coord(atom, frame int) *CoordMatrix {
 	if frame >= len(M.Coords) {
 		panic(fmt.Sprintf("Frame requested (%d) out of range", frame))
 	}
-	if atom >= M.Coords[frame].Rows() {
+	r,c:=M.Coords[frame].Dims()
+	if atom >= r {
 		panic(fmt.Sprintf("Requested coordinate (%d) out of bounds (%d)", atom, M.Coords[frame].Rows()))
 	}
-	return M.Coords[frame].GetRowVector(atom)
+	ret:=EmptyCoord()
+	ret.RowView(M.Coords[frame],atom)
+	return ret
 }
 
 //Current returns the number of the next readed frame
@@ -418,11 +414,12 @@ func (M *Molecule) SetCurrent(i int) {
 	M.current = i
 }
 
+/*
 //SetCoords replaces the coordinates of atoms in the positions given by atomlist with the ones in newcoords (in order)
 //If atomlist contains a single element, it replaces as many coordinates as given in newcoords, starting 
 //at the element in atomlist. In the latter case, the function checks that there are enough coordinates to
 //replace and returns an error if not.
-func (M *Molecule) SetCoords(newcoords *matrix.DenseMatrix, atomlist []int, frame int) {
+func (M *Molecule) SetCoords(newcoords *CoordMA, atomlist []int, frame int) {
 	if frame >= len(M.Coords) {
 		panic(fmt.Sprintf("Frame (%d) out of range!", frame))
 	}
@@ -445,27 +442,31 @@ func (M *Molecule) SetCoords(newcoords *matrix.DenseMatrix, atomlist []int, fram
 	}
 }
 
+*/
+
 //Corrupted checks whether the molecule is corrupted, i.e. the
 //coordinates don't match the number of atoms. It also checks
 //That the coordinate matrices have 3 columns.
 func (M *Molecule) Corrupted() error {
 	var err error
 	if M.Bfactors == nil {
-		M.Bfactors = make([]*matrix.DenseMatrix, 0, len(M.Coords))
-		M.Bfactors = append(M.Bfactors, matrix.Zeros(M.Len(), 1))
+		M.Bfactors = make([]*CoordMatrix, 0, len(M.Coords))
+		M.Bfactors = append(M.Bfactors, Zeros(M.Len(), 1))
 	}
 	lastbfac := len(M.Bfactors) - 1
 	for i := range M.Coords {
-		if M.Len() != M.Coords[i].Rows() || M.Coords[i].Cols() != 3 {
+		r,c:=M.Coords[i].Dims()
+		if M.Len() !=r  || c != 3 {
 			err = fmt.Errorf("Inconsistent coordinates/atoms in frame %d: Atoms %d, coords: %d", i, M.Len(), M.Coords[i].Rows())
 			break
 		}
 		//Since bfactors are not as important as coordinates, we will just fill with 
 		//zeroes anything that is lacking or incomplete instead of returning an error.
+		bfr,_:= M.Bfactors[i].Dims()
 		if lastbfac < i {
-			bfacs := matrix.Zeros(M.Len(), 1)
+			bfacs :=Zeros(M.Len(), 1)
 			M.Bfactors = append(M.Bfactors, bfacs)
-		} else if M.Bfactors[i].Rows() < M.Len() {
+		} else if  bfr < M.Len() {
 			M.Bfactors[i] = matrix.Zeros(M.Len(), 1)
 		}
 	}
@@ -491,7 +492,7 @@ func (M *Molecule) Swap(i, j int) {
 
 //Less: Should the atom i be sorted before atom j?
 func (M *Molecule) Less(i, j int) bool {
-	return M.Bfactors[0].Get(i, 0) < M.Bfactors[0].Get(j, 0)
+	return M.Bfactors[0].At(i, 0) < M.Bfactors[0].At(j, 0)
 }
 
 //Len is implemented in Topology
@@ -515,7 +516,7 @@ func (M *Molecule) Readable() bool {
 }
 
 //Returns the  next frame and an error
-func (M *Molecule) Next(a bool) (*matrix.DenseMatrix, error) {
+func (M *Molecule) Next(a bool) (*CoordMatrix, error) {
 	if M.current >= len(M.Coords) {
 		return nil, fmt.Errorf("No more frames")
 	}
@@ -539,8 +540,8 @@ func (M *Molecule) InitRead() error {
 form the trajectory. The frames are discarted if the corresponding elemetn of the slice
 * is false. The function returns a slice of channels through each of each of which 
 * a *matrix.DenseMatrix will be transmited*/
-func (M *Molecule) NextConc(frames []bool) ([]chan *matrix.DenseMatrix, error) {
-	toreturn := make([]chan *matrix.DenseMatrix, 0, len(frames))
+func (M *Molecule) NextConc(frames []bool) ([]chan *CoordMatrix, error) {
+	toreturn := make([]chan *CoordMatrix, 0, len(frames))
 	used := false
 	for _, val := range frames {
 		if val == false {

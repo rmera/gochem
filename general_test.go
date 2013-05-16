@@ -1,7 +1,7 @@
 // +build !xtc 
 // +build !dcd
 // +build !plot
-
+// +build !matrix 
 /*
  * general_test.go
  * 

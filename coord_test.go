@@ -1,3 +1,5 @@
+// +build matrix 
+
 /*
  * coord_test.go
  *
@@ -32,7 +34,7 @@ func TestGeo(Te *testing.T) {
 	ar, ac := A.Dims()
 	T := Zeros(ar, ac)
 	T.T(A)
-	B := Eye(ar, ac)
+	B := Eye(ar)
 	//B.Clone(A)
 	T.Mul(A, B)
 	E := Zeros(ar, ac)

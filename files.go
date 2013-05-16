@@ -300,11 +300,11 @@ func pdbBufIORead(pdb *bufio.Reader, read_additional bool) (*Molecule, error) {
 		return nil, err
 	}
 	frames := len(coords)
-	mcoords := make([]*matrix.DenseMatrix, frames, frames) //Final thing to return
-	mbfactors := make([]*matrix.DenseMatrix, frames, frames)
+	mcoords := make([]*CoordMatrix, frames, frames) //Final thing to return
+	mbfactors := make([]*CoordMatrix, frames, frames)
 	for i := 0; i < frames; i++ {
-		mcoords[i] = matrix.MakeDenseMatrix(coords[i], len(coords[i])/3, 3)
-		mbfactors[i] = matrix.MakeDenseMatrix(bfactors[i], len(bfactors[i]), 1)
+		mcoords[i] = NewCoord(coords[i], len(coords[i])/3, 3)
+		mbfactors[i] = NewCoord(bfactors[i], len(bfactors[i]), 1)
 	}
 	//if something happened during the process
 	if err != nil {
@@ -318,12 +318,14 @@ func pdbBufIORead(pdb *bufio.Reader, read_additional bool) (*Molecule, error) {
 
 
 //correctBfactors check that coords and bfactors have the same number of elements.
-func correctBfactors(coords, bfactors []*matrix.DenseMatrix) bool{
+func correctBfactors(coords, bfactors []*CoordMatrix) bool{
 	if len(coords) != len(bfactors){
 		return false
 		}
 	for key,coord:=range(coords){
-		if coord.Rows() != bfactors[key].Rows(){
+		cr,_:=coord.Dims()
+		br,_=bfactors[key].Dims()
+		if cr() != br{
 			return false
 			}
 		}
@@ -354,7 +356,7 @@ func writePdbLine(atom *Atom, coord *matrix.DenseMatrix, bfact float64, chainpre
 	}
 
 	out = fmt.Sprintf(out, "%-6s%5d  %-3s %3s %1c%4d    %8.3f%8.3f%8.3f%6.2f%6.2f          %2s  \n", first, atom.Id, atom.Name, atom.Molname, atom.Chain,
-		atom.Molid, coord.Get(0,0), coord.Get(0,1), coord.Get(0,2), atom.Occupancy, bfact, atom.Symbol)
+		atom.Molid, coord.At(0,0), coord.At(0,1), coord.At(0,2), atom.Occupancy, bfact, atom.Symbol)
 	
 	out = strings.Join([]string{ter,out},"")
 	return out, chainprev, nil
@@ -363,9 +365,9 @@ func writePdbLine(atom *Atom, coord *matrix.DenseMatrix, bfact float64, chainpre
 
 //PdbWrite writes a PDB for the molecule mol and the coordinates Coords. It is just a wrapper for
 //PdbStringWrite. Returns error or nil.
-func PdbWrite(pdbname string, mol Ref, CandB ...*matrix.DenseMatrix) error {
+func PdbWrite(pdbname string, mol Ref, CandB ...*CoordMatrix) error {
 	coords := CandB[0]
-	var Bfactors *matrix.DenseMatrix
+	var Bfactors *CoordMatrix
 	if len(CandB) > 1 {
 		Bfactors = CandB[1] //any other element is just ignored	
 	} else {
@@ -390,11 +392,13 @@ func PdbWrite(pdbname string, mol Ref, CandB ...*matrix.DenseMatrix) error {
 
 //PdbStringWrite writes a string in PDB format for a given reference, coordinate set and bfactor set, which must match each other
 //returns the written string and error or nil.
-func PdbStringWrite(mol Ref, coords, bfact *matrix.DenseMatrix) (string, error) {
+func PdbStringWrite(mol Ref, coords, bfact *CoordMatrix) (string, error) {
 	if bfact==nil{
 		bfact=matrix.Zeros(mol.Len(), 1)
 	}
-	if coords.Rows() != mol.Len() || coords.Rows() != bfact.Rows() {
+	cr,_:=coords.Dims()
+	br,_:=bfact.Dims()
+	if cr != mol.Len() || cr != br {
 		return "", fmt.Errorf("Ref and Coords and/or Bfactors dont have the same number of atoms")
 		}
 	chainprev := mol.Atom(0).Chain      //this is to know when the chain changes.
@@ -402,7 +406,9 @@ func PdbStringWrite(mol Ref, coords, bfact *matrix.DenseMatrix) (string, error) 
 	var outstring string
 	var err error
 	for i := 0; i < mol.Len(); i++ {
-		outline,chainprev,err=writePdbLine(mol.Atom(i),coords.GetRowVector(i),bfact.Get(i, 0), chainprev)
+		writecoord:=Emptycoord()
+		writecoord.RowView(coords,i)
+		outline,chainprev,err=writePdbLine(mol.Atom(i),writecoord,bfact.At(i, 0), chainprev)
 		if err!=nil{
 			return "",fmt.Errorf("Could not print PDB line: %d", i)
 			}
@@ -418,9 +424,9 @@ func PdbStringWrite(mol Ref, coords, bfact *matrix.DenseMatrix) (string, error) 
 //CandB is a list of lists of *matrix.DenseMatrix. If it has 2 elements or more, the second will be used as
 //Bfactors. If it has one element, all b-factors will be zero.
 //Returns an error if fails, or nil if succeeds.
-func MultiPdbWrite(pdbname string, mol Ref, CandB ...[]*matrix.DenseMatrix) error {
+func MultiPdbWrite(pdbname string, mol Ref, CandB ...[]*CoordMatrix) error {
 	Coords := CandB[0]
-	var Bfactors []*matrix.DenseMatrix
+	var Bfactors []*CoordMatrix
 	if len(CandB) > 1 && correctBfactors(Coords,CandB[1]){
 		Bfactors = CandB[1] //any other element is just ignored	
 	} else {
@@ -511,9 +517,9 @@ func xyzBufIORead(xyz *bufio.Reader) (*Molecule, error) {
 		}
 		Coords = append(Coords, tmpcoords)
 	}
-	bfactors := make([]*matrix.DenseMatrix, len(Coords), len(Coords))
+	bfactors := make([]*CoordMatrix, len(Coords), len(Coords))
 	for key, _ := range bfactors {
-		bfactors[key] = matrix.Zeros(top.Len(), 1)
+		bfactors[key] = Zeros(top.Len(), 1)
 	}
 	returned, err := MakeMolecule(top, Coords, bfactors)
 	return returned, err
@@ -521,7 +527,7 @@ func xyzBufIORead(xyz *bufio.Reader) (*Molecule, error) {
 
 //xyzReadSnap reads an xyz file snapshot from a bufio.Reader, returns a slice of Atom objects, which will be nil if ReadTopol is false,
 // a slice of matrix.DenseMatrix and an error or nil.
-func xyzReadSnap(xyz *bufio.Reader, ReadTopol bool) (*matrix.DenseMatrix, []*Atom, error) {
+func xyzReadSnap(xyz *bufio.Reader, ReadTopol bool) (*CoordMatrix, []*Atom, error) {
 	line, err := xyz.ReadString('\n')
 	if err != nil {
 		return nil, nil, fmt.Errorf("Ill formatted XYZ file")
@@ -568,7 +574,7 @@ func xyzReadSnap(xyz *bufio.Reader, ReadTopol bool) (*matrix.DenseMatrix, []*Ato
 			return nil, nil, i
 		}
 	}
-	mcoords := matrix.MakeDenseMatrix(coords, natoms, 3)
+	mcoords := NewCoord(coords, natoms, 3)
 	return mcoords, molecule, err
 }
 
@@ -576,7 +582,7 @@ func xyzReadSnap(xyz *bufio.Reader, ReadTopol bool) (*matrix.DenseMatrix, []*Ato
 
 //XyzWrite writes the mol Ref and the Coord coordinates in an XYZ file with name xyzname which will
 //be created fot that. If the file exist it will be overwritten.
-func XyzWrite(xyzname string, mol Ref, Coords *matrix.DenseMatrix) error {
+func XyzWrite(xyzname string, mol Ref, Coords *CoordMatrix) error {
 	out, err := os.Create(xyzname)
 	if err != nil {
 		return err
@@ -592,15 +598,16 @@ func XyzWrite(xyzname string, mol Ref, Coords *matrix.DenseMatrix) error {
 
 
 //XyzStringWrite writes the mol Ref and the Coord coordinates in an XYZ-formatted string.
-func XyzStringWrite(mol Ref, Coords *matrix.DenseMatrix) (string,error) {
+func XyzStringWrite(mol Ref, Coords *CoordMatrix) (string,error) {
 	var out string
 	if mol.Len() != Coords.Rows() {
 		return "",fmt.Errorf("Ref and Coords dont have the same number of atoms")
 	}
 	out=fmt.Sprintf("%-4d\n\n", mol.Len())
-	towrite := Coords.Arrays() //An array of array with the data in the matrix	
+	//towrite := Coords.Arrays() //An array of array with the data in the matrix	
 	for i := 0; i < mol.Len(); i++ {
-		c := towrite[i] //coordinates for the corresponding atoms
+		//c := towrite[i] //coordinates for the corresponding atoms
+		c:=Coords.Row(i)
 		temp := fmt.Sprintf("%-2s  %12.6f%12.6f%12.6f \n", mol.Atom(i).Symbol, c[0], c[1], c[2])
 		out = strings.Join([]string{out,temp},"")
 	}
