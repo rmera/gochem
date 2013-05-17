@@ -49,21 +49,20 @@ import "fmt"
 //Cross3D Takes 2 3-len column or row vectors and returns a column or a row
 //vector, respectively, with the Cross product of them.
 //should panic
-func Cross3D(a, b *matrix.DenseMatrix) (*matrix.DenseMatrix, error) {
-	ac := a.Cols()
-	ar := a.Rows()
-	bc := b.Cols()
-	br := b.Rows()
-	if ac != bc || ar != br {
+func Cross3D(a, b *matrix.DenseMatrix) (*CoordMatrix, error) {
+	ar,ac := a.Dims()
+	br,bc := b.Dims()
+	if ac != bc || ar != br || (ac!=3 && ar!=3){
 		return nil, fmt.Errorf("Malformed vectors for cross product")
 	}
 	if ac != 3 {
-		//Ok, Im sure one can do this better.
-		c := a.Transpose()
-		d := b.Transpose()
+		c:=Zeros(ac,ar)
+		c.T(a)
+		d:=Zeros(bc,br)
+		d.T(b)
 		e := Cross3DRow(c, d)
-		f := e.Transpose()
-		return f, nil
+		a.T(e)   //careful here, may need testing
+		return a, nil
 	}
 	if ar != 3 {
 		return Cross3DRow(a, b), nil
@@ -72,12 +71,12 @@ func Cross3D(a, b *matrix.DenseMatrix) (*matrix.DenseMatrix, error) {
 }
 
 //Cross3DRow returns the cross product of 2 row vectors. No error checking!
-func Cross3DRow(a, b *matrix.DenseMatrix) *matrix.DenseMatrix {
+func Cross3DRow(a, b *CoordMatrix) *CoordMatrix {
 	vec := make([]float64, 3, 3)
-	vec[0] = a.Get(0, 1)*b.Get(0, 2) - a.Get(0, 2)*b.Get(0, 1)
-	vec[1] = a.Get(0, 2)*b.Get(0, 0) - a.Get(0, 0)*b.Get(0, 2)
-	vec[2] = a.Get(0, 0)*b.Get(0, 1) - a.Get(0, 1)*b.Get(0, 0)
-	return matrix.MakeDenseMatrix(vec, 1, 3)
+	vec[0] = a.At(0, 1)*b.At(0, 2) - a.At(0, 2)*b.At(0, 1)
+	vec[1] = a.At(0, 2)*b.At(0, 0) - a.At(0, 0)*b.At(0, 2)
+	vec[2] = a.At(0, 0)*b.At(0, 1) - a.At(0, 1)*b.At(0, 0)
+	return NewCoord(vec, 1, 3)
 }
 
 //InvSqrt return the inverse of the square root of val, or zero if
@@ -86,14 +85,17 @@ func InvSqrt(val float64) float64 {
 	if math.Abs(val) <= appzero { //Not sure if need the 
 		return 0
 	} else if val < 0 { //negative
-		return -1 //might change
+		panic("attempted to get the square root of a negative number")
 	}
 	return 1.0 / math.Sqrt(val)
 }
 
 //KronekerDelta is a naive implementation of the kroneker delta function.
-func KronekerDelta(a, b float64) float64 {
-	if math.Abs(a-b) <= appzero {
+func KronekerDelta(a, b, epsilon float64) float64 {
+	if epsilon<0{
+		epsilon=appzero
+		}
+	if math.Abs(a-b) <= epsilon {
 		return 1
 	}
 	return 0
@@ -102,54 +104,4 @@ func KronekerDelta(a, b float64) float64 {
 
 
 
-//DMScaleByCol scales each column of matrix A by Col.
-func DMScaleByCol(A, Col *matrix.DenseMatrix) error {
-	Rows := A.Rows()
-	if Rows != Col.Rows() || Col.Cols() > 1 {
-		return fmt.Errorf("DMScaleByCol: Malformed matrices for scaling")
-	}
-	for i := 0; i < Rows; i++ {
-		A.ScaleRow(i, Col.Get(i, 0))
-	}
-	return nil
-}
 
-//DMScaleByRow each row of matrix A by Row.
-func DMScaleByRow(A, Row *matrix.DenseMatrix) error {
-	Cols := A.Cols()
-	if Cols != Row.Cols() || Row.Rows() > 1 {
-		return fmt.Errorf("DMScaleByRow: Malformed matrices for scaling")
-	}
-	for i := 0; i < Cols; i++ {
-		mult := Row.Get(0, i)
-		for j := 0; j < A.Rows(); j++ {
-			A.Set(j, i, mult*A.Get(j, i))
-		}
-	}
-	return nil
-}
-
-
-//DMaddfloat returns a matrix which elements are those of matrix A plus the float B.
-func DMaddfloat(A *matrix.DenseMatrix, B float64) *matrix.DenseMatrix {
-	Rows := A.Rows()
-	Cols := A.Cols()
-	copy := matrix.MakeDenseCopy(A)
-	for i := 0; i < Cols; i++ {
-		for j := 0; j < Rows; j++ {
-			copy.Set(j, i, (A.Get(j, i) + B))
-		}
-	}
-	return copy
-}
-
-//DMDelRow removes Row i from matrix A. 
-func DMDelRow(A *matrix.DenseMatrix, i int) (*matrix.DenseMatrix, error) {
-	//Im not sure if copying takes place.
-	var err error
-	lenght := A.Rows()
-	upper := A.GetMatrix(0, 0, i, 3)
-	lower := A.GetMatrix(i+1, 0, lenght-i-1, 3)
-	A, err = upper.Stack(lower)
-	return A, err
-}

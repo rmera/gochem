@@ -167,7 +167,41 @@ func gnSVD(A *CoordMatrix) (*CoordMatrix, *CoordMatrix, *CoordMatrix, error) {
 	sigma := CoordMatrix{s}
 	theV := CoordMatrix{V}
 	return &theU, &sigma, &theV, err
+
 }
+
+//returns a rows,cols matrix filled with ones.
+func Ones(rows, cols int) *CoordMatrix {
+	ones:=Zeros(rows,cols)
+	for i := 0; i < rows; i++ {
+		for j := 0; j < cols; j++ {
+			Ones.Set(i, j, 1)
+		}
+	}
+	return ones
+}
+
+Mul(A,B *CoordMatrix) *CoordMatrix{
+	ar,ac:=A.Dims()
+	br,bc:=B.Dims()
+	C:=Zeros(ar,bc)
+	C.Mul(A,B)
+	return C
+}
+
+RowView(A *CoordMatrix, i int) *CoordMatrix{
+	B:=EmptyCoord()
+	B.RowView(A,i)
+	return B
+}
+
+Clone(A *CoordMatrix) *CoordMatrix {
+	r,c:=A.Dims()
+	B:=Zeros(r,c)
+	B.Clone(A)
+	return B
+}
+
 
 //Methods
 /* When gonum is ready, all this functions will take a num.Matrix interface as an argument, instead of a
@@ -508,6 +542,13 @@ func (F *CoordMatrix) Stack(A, B *CoordMatrix) {
 
 	return
 }
+
+//Not tested!!!
+func (F *CoordMatrix) Sub(A B *CoordMatrix){
+	B.Scale(B,-1)
+	F.Add(A,B)
+	B.Scale(B,-1)
+	}
 
 //not tested
 //returns a copy of the submatrix of A starting by the point i,j and
