@@ -56,7 +56,7 @@ func TestRama(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
-	//PdbWrite(mol,"test/Used4Rama.pdb")
+	PdbWrite(mol,"test/Used4Rama.pdb")
 	//for the 3 residue  I should get -131.99, 152.49.
 }
 
