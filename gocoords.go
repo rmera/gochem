@@ -32,7 +32,7 @@ import (
 	"github.com/skelterjohn/go.matrix"
 	"math"
 	"sort"
-	//"fmt"
+//	"fmt"
 )
 
 /*Here I make a -very incomplete- implementation of the gonum api backed by go.matrix, which will enable me to port gochem to gonum.
@@ -132,7 +132,7 @@ func gnEigen(in *CoordMatrix, epsilon float64) (*CoordMatrix, []float64, error) 
 		vectori.RowView(eig.evecs, i)
 		for j := i + 1; j < eigrows; j++ {
 			vectorj.RowView(eig.evecs, j)
-			if math.Abs(vectori.Dot(vectorj)) > epsilon {
+			if math.Abs(vectori.Dot(vectorj)) > epsilon && i!=j {
 				err = NotOrthogonal //return eig.evecs, evals[:], fmt.Errorf("Vectors not ortogonal!")
 			}
 		}
@@ -310,18 +310,51 @@ func (F *CoordMatrix) Dims() (int, int) {
 
 //Dot returns the dot product between 2 vectors or matrices
 func (F *CoordMatrix) Dot(B *CoordMatrix) float64 {
-	var err error
 	if F.Cols() != B.Cols() || F.Rows() != B.Rows() {
 		panic(gnErrShape)
 	}
 	a, b := F.Dims()
 	A := gnZeros(a, b)
 	A.MulElem(F, B)
-	if err != nil {
-		panic(err.Error())
-	}
-	return F.Sum()
+	return A.Sum()
 }
+
+//puts the inverse of B in F or panics if F is non-singular.
+//its just a dirty minor adaptation from the code in go.matrix from John Asmuth
+//it will be replaced by the gonum implementation when the library is ready.
+func (F *CoordMatrix) Inv(A*CoordMatrix){
+	//fr,fc:=F.Dims()
+	ar,ac:=A.Dims()
+	if ac!=ar{
+		panic(gnErrSquare)
+	}
+	augt, _ := A.Augment(matrix.Eye(ar))
+	aug:=&CoordMatrix{augt}
+	augr,_:=aug.Dims()
+	for i := 0; i < augr; i++ {
+		j := i
+		for k := i; k < augr; k++ {
+			if math.Abs(aug.Get(k, i)) > math.Abs(aug.Get(j, i)) {
+			j = k
+			}
+		}
+		if j != i {
+			aug.SwapRows(i, j)
+			}
+		if aug.Get(i, i) == 0 {
+			panic(gnErrSingular)
+		}
+		aug.ScaleRow(i, 1.0/aug.Get(i, i))
+		for k := 0; k < augr; k++ {
+			if k == i {
+				continue
+			}
+			aug.ScaleAddRow(k, i, -aug.Get(k, i))
+		}
+	}
+	F.SubMatrix(aug,0, ac, ar, ac)
+} 
+
 
 //A slightly modified version of John Asmuth's ParalellProduct function.
 func (F *CoordMatrix) Mul(A, B *CoordMatrix) {
@@ -377,7 +410,8 @@ func (F *CoordMatrix) Mul(A, B *CoordMatrix) {
 func (F *CoordMatrix) MulElem(A, B *CoordMatrix) {
 	arows, acols := A.Dims()
 	brows, bcols := B.Dims()
-	if arows != brows || acols != bcols {
+	frows,fcols := F.Dims()
+	if arows != brows || acols != bcols  || arows!=frows || acols!=fcols{
 		panic(gnErrShape)
 	}
 	for i := 0; i < arows; i++ {
@@ -489,6 +523,23 @@ func (F *CoordMatrix) ScaleByRow(A, Row *CoordMatrix) {
 		temp.MulElem(temp, Row)
 	}
 }
+
+//When go.matrix is abandoned it is necesary to implement SetMatrix
+//SetMatrix()
+//Copies A into F aligning A(0,0) with F(i,j)
+func (F *CoordMatrix) SetMatrix(i,j int, A *CoordMatrix){
+	fr,fc:=F.Dims()
+	ar,ac:=A.Dims()
+	if ar+i > fr || ac+j > fc {
+		panic(gnErrShape)
+		}
+	for l:=0;l<ar;l++{
+		for m:=0;m<ac;m++{
+			F.Set(l+i,m+j,A.Get(l,m))
+		}
+	}
+}
+
 
 //Returns a matrix contaning all the ith rows of matrix A,
 //where i are the numbers in clist. The rows are in the same order
@@ -656,7 +707,7 @@ func (err gnError) Error() string { return string(err) }
 
 const (
 	//RM: the first 2 are mine.
-	NotOrthogonal        = gnError("matrix: not enough elements")
+	NotOrthogonal        = gnError("matrix: Vectors nor orthogonal")
 	NotEnoughElements    = gnError("matrix: not enough elements")
 	gnErrIndexOutOfRange = gnError("matrix: index out of range")
 	gnErrZeroLength      = gnError("matrix: zero length in matrix definition")
