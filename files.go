@@ -395,7 +395,7 @@ func PdbWrite(pdbname string, mol Ref, CandB ...*CoordMatrix) error {
 //returns the written string and error or nil.
 func PdbStringWrite(mol Ref, coords, bfact *CoordMatrix) (string, error) {
 	if bfact==nil{
-		bfact=Zeros(mol.Len(), 1)
+		bfact=gnZeros(mol.Len(), 1)
 	}
 	cr,_:=coords.Dims()
 	br,_:=bfact.Dims()
@@ -520,7 +520,7 @@ func xyzBufIORead(xyz *bufio.Reader) (*Molecule, error) {
 	}
 	bfactors := make([]*CoordMatrix, len(Coords), len(Coords))
 	for key, _ := range bfactors {
-		bfactors[key] = Zeros(top.Len(), 1)
+		bfactors[key] = gnZeros(top.Len(), 1)
 	}
 	returned, err := MakeMolecule(top, Coords, bfactors)
 	return returned, err

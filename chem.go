@@ -293,7 +293,7 @@ func (M *Molecule) DelCoord(i int) error {
 	r,c:=M.Coords[0].Dims() 
 	var err error
 	for j := 0; j < len(M.Coords); j++ {
-		tmp:=Zeros(r-1,c)
+		tmp:=gnZeros(r-1,c)
 		tmp.DelRow(M.Coords[j], i)
 		M.Coords[j]=tmp
 		if err != nil {
@@ -326,10 +326,10 @@ func (M *Molecule) Clone(A *Molecule)  {
 	mol.Coords = make([]*CoordMatrix, 0, len(M.Coords))
 	mol.Bfactors = make([]*CoordMatrix, 0, len(M.Bfactors))
 	for key, val := range M.Coords {
-		tmp:=Zeros(r,c)
+		tmp:=gnZeros(r,c)
 		tmp.Clone(val)
 		mol.Coords = append(mol.Coords, tmp)
-		tmp2:=Zeros(1,c)
+		tmp2:=gnZeros(1,c)
 		tmp.Clone(M.Bfactors[key])
 		mol.Bfactors = append(mol.Bfactors, tmp2)
 	}
@@ -408,7 +408,7 @@ func (M *Molecule) SetCurrent(i int) {
 }
 
 /*
-//SetCoords replaces the coordinates of atoms in the positions given by atomlist with the ones in newcoords (in order)
+//SetCoords replaces the coordinates of atoms in the positions given by atomlist with the gnOnes in newcoords (in order)
 //If atomlist contains a single element, it replaces as many coordinates as given in newcoords, starting 
 //at the element in atomlist. In the latter case, the function checks that there are enough coordinates to
 //replace and returns an error if not.
@@ -444,7 +444,7 @@ func (M *Molecule) Corrupted() error {
 	var err error
 	if M.Bfactors == nil {
 		M.Bfactors = make([]*CoordMatrix, 0, len(M.Coords))
-		M.Bfactors = append(M.Bfactors, Zeros(M.Len(), 1))
+		M.Bfactors = append(M.Bfactors, gnZeros(M.Len(), 1))
 	}
 	lastbfac := len(M.Bfactors) - 1
 	for i := range M.Coords {
@@ -457,10 +457,10 @@ func (M *Molecule) Corrupted() error {
 		//zeroes anything that is lacking or incomplete instead of returning an error.
 		bfr,_:= M.Bfactors[i].Dims()
 		if lastbfac < i {
-			bfacs :=Zeros(M.Len(), 1)
+			bfacs :=gnZeros(M.Len(), 1)
 			M.Bfactors = append(M.Bfactors, bfacs)
 		} else if  bfr < M.Len() {
-			M.Bfactors[i] = Zeros(M.Len(), 1)
+			M.Bfactors[i] = gnZeros(M.Len(), 1)
 		}
 	}
 	return err

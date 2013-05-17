@@ -1,4 +1,4 @@
-// +build !part
+
 
 /*
  * geometric.go, part of gochem
@@ -28,9 +28,11 @@
 package chem
 
 import "fmt"
-import "github.com/skelterjohn/go.matrix"
 import "math"
 import "sort"
+
+
+
 
 //AngleInVectors takes 2 vectors and calculate the angle in radians between them
 //It does not check for correctness or return errors!
@@ -81,7 +83,7 @@ func GetRotateToNewY(mol, newy *CoordMatrix) (*CoordMatrix, error) {
 	operator := []float64{cosgamma, singamma, 0,
 		-singamma, cosgamma, 0,
 		0, 0, 1}
-	return NewCoords(operator, 3, 3), nil
+	return NewCoord(operator, 3, 3), nil
 
 }
 
@@ -124,14 +126,14 @@ func GetSwitchZ(newz *CoordMatrix) *CoordMatrix{
 
 }
 
-//GetSuper superimposes the set of cartesian coordinates given as the rows of the matrix test on the ones of the rows
+//GetSuper superimposes the set of cartesian coordinates given as the rows of the matrix test on the gnOnes of the rows
 //of the matrix templa. Returns the transformed matrix, the rotation matrix, 2 translation row vectors
 //For the superposition plus an error. In order to perform the superposition, without using the transformed
 //the first translation vector has to be added first to the moving matrix, then the rotation must be performed
 //and finally the second translation has to be added.
 //This is a low level function, although one can use it directly since it returns the transformed matrix.
 //The math for this function is by Prof. Veronica Jimenez-Curihual, University of Concepcion, Chile.
-func GetSuper(test, templa *matrix.DenseMatrix) (*matrix.DenseMatrix, *matrix.DenseMatrix, *matrix.DenseMatrix, *matrix.DenseMatrix, error) {
+func GetSuper(test, templa *CoordMatrix) (*CoordMatrix, *CoordMatrix, *CoordMatrix, *CoordMatrix, error) {
 	tmr,tmc:= templa.Dims()
 	tsr,tsc:=test.Dims()
 	if tmr != tsr || tmc != 3 || tsc != 3 {
@@ -139,7 +141,7 @@ func GetSuper(test, templa *matrix.DenseMatrix) (*matrix.DenseMatrix, *matrix.De
 	}
 	var Scal float64
 	Scal = float64(1.0) / float64(tmr)
-	j := matrix.Ones(tmr, 1) //Mass is not important for this matter so we'll just use this.
+	j := gnOnes(tmr, 1) //Mass is not important for this matter so we'll just use this.
 	ctest, distest, err := MassCentrate(test, test, j)
 	if err != nil {
 		return nil, nil, nil, nil, err
@@ -148,43 +150,38 @@ func GetSuper(test, templa *matrix.DenseMatrix) (*matrix.DenseMatrix, *matrix.De
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
-	Mid := Eye(tmr)
-	jT:=Zeros(1,tmr)
-	jT.(j)
-	ScaledjProd := Mul(j, jT)
-	ScaledjProd.Scale(ScaledjProd,Scal)
-	Maux := Mul(Mul(ctempla.Transpose(), Mid), ctest)
+	Mid := gnEye(tmr)
+	jT:=gnT(j)
+	ScaledjProd := gnMul(j, jT)
+	ScaledjProd.Scale(Scal,ScaledjProd)
+	Maux := gnMul(gnMul(gnT(ctempla), Mid), ctest)
 	Maux.T(Maux) //Dont understand why this is needed
-	U, _, Vt, err := SVD(Maux)
+	U, _, Vt, err := gnSVD(Maux)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
-	U.Scale(U,-1)
-	Vt.Scale(Vt,-1)
+	U.Scale(-1,U)
+	Vt.Scale(-1,Vt)
 	//SVD gives different results here than in numpy. U and Vt are multiplide by -1 in one of them
 	//and gomatrix gives as Vt the transpose of the matrix given as Vt by numpy. I guess is not an 
 	//error, but don't know for sure.
-	ur,uc:=U.Dims()
-	UT:=Zeros(uc,ur)
-	UT.T(U)
-	Rotation := Mul(Vt, UT)
+	Rotation := gnMul(Vt, gnT(U))
 	Rotation.T(Rotation) //Don't know why does this work :(
 	if Rotation.Det() < 0 {
 		return nil, nil, nil, nil, fmt.Errorf("Got a reflection instead of a translations. The objects may be specular images of each others")
 	}
-	jT.Scale(jT,Scal)
-	subtempla:=Zeros(tmr,tmc)
+	jT.Scale(Scal,jT)
+	subtempla:=gnZeros(tmr,tmc)
 	subtempla.Clone(ctempla)
-	sub:=Mul(ctest, Rotation)
-	sub.Scale(-1)
-	subtempla.Add(subtempla,sub)
-	Translation := Mul(jT, subtempla)
+	sub:=gnMul(ctest, Rotation)
+	subtempla.Sub(subtempla,sub)
+	Translation := gnMul(jT, subtempla)
 	Translation.Add(Translation,distempla)
 	//This allings the transformed with the original template, not the mean centrate one
-	transformed := Mul(ctest, Rotation)
+	transformed := gnMul(ctest, Rotation)
 	transformed.AddRow(transformed, Translation)
 	//end transformed
-	distest.Scale(distest,-1)
+	distest.Scale(-1,distest)
 	return transformed, Rotation, distest, Translation, nil
 }
 
@@ -205,21 +202,23 @@ func rmsd_fail(test, template *matrix.DenseMatrix) (float64, error) {
 
 //RMSD returns the RSMD (root of the mean square deviation) for the sets of cartesian
 //coordinates in test and template
-func RMSD(test, template *matrix.DenseMatrix) (float64, error) {
+func RMSD(test, template *CoordMatrix) (float64, error) {
 	if template.Rows() != test.Rows() || template.Cols() != 3 || test.Cols() != 3 {
 		return 0, fmt.Errorf("Ill formed matrices for RMSD calculation")
 	}
-	ctempla := template.Copy()
-	err := ctempla.Subtract(test)
-	if err != nil {
+	tr,_:=template.Dims()
+	ctempla := gnClone(template)
+	//the maybe thing might not be needed since we check the dimensions before.
+	f:=func(){ctempla.Sub(ctempla,test)}
+	if err:=gnMaybe(gnPanicker(f));err != nil {
 		return 0, err
 	}
 	var RMSD float64
 	for i := 0; i < ctempla.Rows(); i++ {
-		temp := ctempla.GetRowVector(i)
-		RMSD += math.Pow(temp.TwoNorm(), 2)
+		temp := RowView(ctempla,i)
+		RMSD += math.Pow(temp.Norm(2), 2)
 	}
-	RMSD = RMSD / float64(ctempla.Rows())
+	RMSD = RMSD / float64(tr)
 	RMSD = math.Sqrt(RMSD)
 	return RMSD, nil
 }
@@ -237,14 +236,14 @@ func Dihedral(a, b, c, d *CoordMatrix) float64 {
 			panic(fmt.Sprintf("Vector %d has invalid shape", number))
 		}
 	}
-	b1 := Clone(b)
+	b1 := gnClone(b)
 	b1.Sub(b1,a)
-	b2 := Clone(c)
+	b2 := gnClone(c)
 	b2.Sub(b1,b)
-	b3 := Clone(d)
+	b3 := gnClone(d)
 	b3.Sub(b3,c)
-	b1scaled :=Clone(b1)
-	b1scaled.Scale(b1scaled,b2.Norm(2))
+	b1scaled :=gnClone(b1)
+	b1scaled.Scale(b2.Norm(2),b1scaled)
 	first := b1scaled.Dot(Cross3DRow(b2, b3))
 	v1:=Cross3DRow(b1, b2)
 	v2:=Cross3DRow(b2, b3)
@@ -295,7 +294,7 @@ func BestPlaneP(evecs *CoordMatrix) (*CoordMatrix, error) {
 		return evecs, fmt.Errorf("Eigenvectors matrix must be 3x3")
 	}
 	v1:=EmptyCoord()
-	v2.EmptyCoord()
+	v2:=EmptyCoord()
 	v1.RowView(evecs,2)
 	v2.RowView(evecs,1)
 	normal := Cross3DRow(v1, v2)
@@ -317,13 +316,13 @@ func BestPlane(mol Ref, coords  *CoordMatrix) (*CoordMatrix, error)  {
 			return nil, err
 		}
 	} else {
-		//Mmass=matrix.Ones(coords.Rows(),1)	
+		//Mmass=matrix.gnOnes(coords.Rows(),1)	
 	}
 	moment, err := MomentTensor(coords, Mmass)
 	if err != nil {
 		return nil, err
 	}
-	evecs, _, err := Eigen(moment)
+	evecs, _, err := gnEigen(moment,appzero)
 	if err != nil {
 		return nil, err
 	}
@@ -341,15 +340,14 @@ func CenterOfMass(geometry, mass *CoordMatrix) (*CoordMatrix, error) {
 	}
 	gr,gc:=geometry.Dims()
 	if mass == nil { //just obtain the geometric center
-		mass = Ones(gr, 1)
+		mass = gnOnes(gr, 1)
 	}
-	onesvector := Ones(1, gr)
-	ref:=Zeros(gr,gc)
+	gnOnesvector := gnOnes(1, gr)
+	ref:=gnZeros(gr,gc)
 	ref.ScaleByCol(geometry, mass)
-	ref2:=Zeros(1,gc)
-	ref2.Mul(onesvector, ref)
-	ref3:=Zeros()
-	ref2.Scale(1.0 / mass.Sum())
+	ref2:=gnZeros(1,gc)
+	ref2.Mul(gnOnesvector, ref)
+	ref2.Scale(1.0 / mass.Sum(),ref2)
 	return ref2, nil
 }
 
@@ -359,19 +357,19 @@ func MassCentrate(in, oref, mass *CoordMatrix) (*CoordMatrix, *CoordMatrix, erro
 	or,oc:=oref.Dims()
 	ir,ic:=in.Dims()
 	if mass == nil { //just obtain the geometric center
-		mass = Ones(or, 1)
+		mass = gnOnes(or, 1)
 	}
-	ref:=Zeros(or,oc)
+	ref:=gnZeros(or,oc)
 	ref.Clone(oref)
-	onesvector := Ones(1, or)
+	gnOnesvector := gnOnes(1, or)
 	f:=func(){ref.ScaleByCol(ref, mass)}
 	if err:=gnMaybe(gnPanicker(f)); err != nil {
 		return nil, nil, err
 	}
-	ref2:=Zeros(1,oc)
-	ref2.Mul(onesvector, ref)
+	ref2:=gnZeros(1,oc)
+	ref2.Mul(gnOnesvector, ref)
 	ref2.Scale(1.0 / mass.Sum(),ref2)
-	returned:=Zeros(ir,ic)
+	returned:=gnZeros(ir,ic)
 	returned.Clone(in)
 	returned.SubRow(returned,ref2)
 /*	for i := 0; i < ir; i++ {
@@ -388,42 +386,42 @@ func MassCentrate(in, oref, mass *CoordMatrix) (*CoordMatrix, *CoordMatrix, erro
 func MomentTensor(A, mass *CoordMatrix) (*CoordMatrix, error) {
 	ar,ac:=A.Dims()
 	if mass == nil {
-		mass = Ones(ar, 1)
+		mass = gnOnes(ar, 1)
 	}
 	
-	center, _, err := MassCentrate(A, Clone(A), mass)
+	center, _, err := MassCentrate(A, gnClone(A), mass)
 	if err != nil {
 		return nil, err
 	}
-	sqrmass:=Zeros(ar,1)
+	sqrmass:=gnZeros(ar,1)
 	sqrmass.Pow(mass, 0.5)
 	//	fmt.Println(center,sqrmass) ////////////////////////
 	center.ScaleByCol(center, sqrmass)
 	//	fmt.Println(center,"scaled center")
-	centerT:=Zeros(ac,ar)
+	centerT:=gnZeros(ac,ar)
 	centerT.T(center)
-	moment := Mul(centerT, center)
+	moment := gnMul(centerT, center)
 	return moment, err
 }
 
-func Projection(test, ref *matrix.DenseMatrix) *matrix.DenseMatrix {
+func Projection(test, ref *CoordMatrix) *CoordMatrix {
 	rr,rc:=ref.Dims()
-	Uref:=Zeros(rr,rc)
+	Uref:=gnZeros(rr,rc)
 	Uref.Unit(ref)
 	scalar := test.Dot(Uref) //math.Abs(la)*math.Cos(angle)
-	Uref.Scale(Uref,scalar)
+	Uref.Scale(scalar,Uref)
 	return Uref
 }
 
 //Given a set of cartesian points in sellist, obtains a vector "plane" normal to the best plane passing through the points.
 //It selects atoms from the set A that are inside a cone in the direction of "plane" that starts from the geometric center of the cartesian points,
 //and has an angle of angle (radians), up to a distance distance. The cone is approximated by a set of radius-increasing cilinders with height thickness.
-//If one starts from one given point, 2 cones, one in each direction, are possible. If whatcone is 0, both cones are considered.
+//If one starts from one given point, 2 cgnOnes, one in each direction, are possible. If whatcone is 0, both cgnOnes are considered.
 //if whatcone<0, only the cone opposite to the plane vector direction. If whatcone>0, only the cone in the plane vector direction.
 //the 'initial' argument  allows the construction of a truncate cone with a radius of initial.
 func SelCone(B, selection *CoordMatrix, angle, distance, thickness, initial float64, whatcone int) []int {
-	A := Copy(B) //We will be altering the input so its better to work with a copy.
-	ar,ac:=A.Dims()
+	A := gnClone(B) //We will be altering the input so its better to work with a copy.
+	ar,_:=A.Dims()
 	selected := make([]int, 0, 3)
 	neverselected := make([]int, 0, 30000)       //waters that are too far to ever be selected
 	nevercutoff := distance / math.Cos(angle)    //cutoff to be added to neverselected
@@ -460,8 +458,8 @@ func SelCone(B, selection *CoordMatrix, angle, distance, thickness, initial floa
 			if norm > i+(thickness/2.0) || norm < (i-thickness/2.0) {
 				continue
 			}
-			proj.Subtract(atom)
-			projnorm := proj.Norm()
+			proj.Sub(proj,atom)
+			projnorm := proj.Norm(2)
 			if projnorm <= maxdist {
 				selected = append(selected, j)
 			}

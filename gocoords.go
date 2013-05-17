@@ -69,13 +69,13 @@ func EmptyCoord() *CoordMatrix {
 }
 
 //Returns an empty CoordMatrix with the given dimensions
-func Zeros(rows, cols int) *CoordMatrix {
+func gnZeros(rows, cols int) *CoordMatrix {
 	return &CoordMatrix{matrix.Zeros(rows, cols)}
 }
 
 //Returns an identity matrix spanning span cols and rows
-func Eye(span int) *CoordMatrix {
-	A := &CoordMatrix{matrix.Zeros(span, span)}
+func gnEye(span int) *CoordMatrix {
+	A := gnZeros(span,span)
 	for i := 0; i < span; i++ {
 		A.Set(i, i, 1.0)
 	}
@@ -170,35 +170,42 @@ func gnSVD(A *CoordMatrix) (*CoordMatrix, *CoordMatrix, *CoordMatrix, error) {
 
 }
 
-//returns a rows,cols matrix filled with ones.
-func Ones(rows, cols int) *CoordMatrix {
-	ones:=Zeros(rows,cols)
+//returns a rows,cols matrix filled with gnOnes.
+func gnOnes(rows, cols int) *CoordMatrix {
+	gnOnes:=gnZeros(rows,cols)
 	for i := 0; i < rows; i++ {
 		for j := 0; j < cols; j++ {
-			Ones.Set(i, j, 1)
+			gnOnes.Set(i, j, 1)
 		}
 	}
-	return ones
+	return gnOnes
 }
 
-Mul(A,B *CoordMatrix) *CoordMatrix{
-	ar,ac:=A.Dims()
-	br,bc:=B.Dims()
-	C:=Zeros(ar,bc)
+func gnMul(A,B *CoordMatrix) *CoordMatrix {
+	ar,_:=A.Dims()
+	_,bc:=B.Dims()
+	C:=gnZeros(ar,bc)
 	C.Mul(A,B)
 	return C
 }
 
-RowView(A *CoordMatrix, i int) *CoordMatrix{
+func RowView(A *CoordMatrix, i int) *CoordMatrix {
 	B:=EmptyCoord()
 	B.RowView(A,i)
 	return B
 }
 
-Clone(A *CoordMatrix) *CoordMatrix {
+func gnClone(A *CoordMatrix) *CoordMatrix {
 	r,c:=A.Dims()
-	B:=Zeros(r,c)
+	B:=gnZeros(r,c)
 	B.Clone(A)
+	return B
+}
+
+func gnT(A *CoordMatrix) *CoordMatrix{
+	r,c:=A.Dims()
+	B:=gnZeros(c,r)
+	B.T(A)
 	return B
 }
 
@@ -308,7 +315,7 @@ func (F *CoordMatrix) Dot(B *CoordMatrix) float64 {
 		panic(gnErrShape)
 	}
 	a, b := F.Dims()
-	A := Zeros(a, b)
+	A := gnZeros(a, b)
 	A.MulElem(F, B)
 	if err != nil {
 		panic(err.Error())
@@ -325,7 +332,7 @@ func (F *CoordMatrix) Mul(A, B *CoordMatrix) {
 	_, Bcols := B.Dims()
 
 	if F == nil {
-		F = Zeros(Arows, Bcols) //I don't know if the final API will allow this.
+		F = gnZeros(Arows, Bcols) //I don't know if the final API will allow this.
 	}
 
 	in := make(chan int)
@@ -544,10 +551,10 @@ func (F *CoordMatrix) Stack(A, B *CoordMatrix) {
 }
 
 //Not tested!!!
-func (F *CoordMatrix) Sub(A B *CoordMatrix){
-	B.Scale(B,-1)
+func (F *CoordMatrix) Sub(A, B *CoordMatrix){
+	B.Scale(-1,B)
 	F.Add(A,B)
-	B.Scale(B,-1)
+	B.Scale(-1,B)
 	}
 
 //not tested

@@ -1,4 +1,4 @@
-// +build !part
+
 /*
  * matrix.go, part of gochem.
  * 
@@ -29,11 +29,11 @@
 
 package chem
 
-import "github.com/skelterjohn/go.matrix"
+
 import "math"
 import "fmt"
 
-//These ones are basic math, belonging more to the go.matrix package
+//These gnOnes are basic math, belonging more to the go.matrix package
 //If there is something similar already made
 //in go.matrix this functions will be deleted. Otherwise they could be
 //made methods for DenseMatrix and included in go.matrix
@@ -49,16 +49,16 @@ import "fmt"
 //Cross3D Takes 2 3-len column or row vectors and returns a column or a row
 //vector, respectively, with the Cross product of them.
 //should panic
-func Cross3D(a, b *matrix.DenseMatrix) (*CoordMatrix, error) {
+func Cross3D(a, b *CoordMatrix) (*CoordMatrix, error) {
 	ar,ac := a.Dims()
 	br,bc := b.Dims()
 	if ac != bc || ar != br || (ac!=3 && ar!=3){
 		return nil, fmt.Errorf("Malformed vectors for cross product")
 	}
 	if ac != 3 {
-		c:=Zeros(ac,ar)
+		c:=gnZeros(ac,ar)
 		c.T(a)
-		d:=Zeros(bc,br)
+		d:=gnZeros(bc,br)
 		d.T(b)
 		e := Cross3DRow(c, d)
 		a.T(e)   //careful here, may need testing
