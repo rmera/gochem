@@ -330,7 +330,7 @@ func (M *Molecule) Clone(A *Molecule) {
 		mol.Bfactors = append(mol.Bfactors, tmp2)
 	}
 	if err := mol.Corrupted(); err != nil {
-		panic(fmt.Sprintf("Molecule creation error: %s", err.Error())) //copying a corrupted molecule means that the program is wrong.
+		panic(fmt.Sprintf("Molecule creation error: %s", err.Error()))
 	}
 }
 
@@ -381,8 +381,8 @@ func (M *Molecule) Coord(atom, frame int) *CoordMatrix {
 	if atom >= r {
 		panic(fmt.Sprintf("Requested coordinate (%d) out of bounds (%d)", atom, M.Coords[frame].Rows()))
 	}
-	ret := gnZeros(1,3)
-	empt:=EmptyCoords()
+	ret := gnZeros(1, 3)
+	empt := EmptyCoords()
 	empt.RowView(M.Coords[frame], atom)
 	ret.Clone(empt)
 	return ret

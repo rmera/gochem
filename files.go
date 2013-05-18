@@ -332,7 +332,7 @@ func writePdbLine(atom *Atom, coord *CoordMatrix, bfact float64, chainprev byte)
 	var ter string
 	var out string
 	if atom.Chain != chainprev {
-		ter = fmt.Sprintln(out, "TER\n")
+		ter = fmt.Sprintln(out, "TER")
 		chainprev = atom.Chain
 	}
 	first := "ATOM"

@@ -56,10 +56,9 @@ func TestPDBIO(Te *testing.T) {
 	//for the 3 residue  I should get -131.99, 152.49.
 }
 
-
-//TestChangeAxis reads the PDB 2c9v.pdb from the test directory, collects 
-//The CA and CB of residue D124 of the chain A, and uses Clifford algebra to rotate the 
-//whole molecule such as the vector defined by these 2 atoms is 
+//TestChangeAxis reads the PDB 2c9v.pdb from the test directory, collects
+//The CA and CB of residue D124 of the chain A, and uses Clifford algebra to rotate the
+//whole molecule such as the vector defined by these 2 atoms is
 //aligned with the Z axis. The new molecule is written
 //as 2c9v_aligned.pdb to the test folder.
 func TestChangeAxis(Te *testing.T) {
@@ -82,7 +81,7 @@ func TestChangeAxis(Te *testing.T) {
 	}
 	//Get the axis of rotation
 	//ov1:=mol.Coord(orient_atoms[0], 0)
-	ov2 :=mol.Coord(orient_atoms[1], 0)
+	ov2 := mol.Coord(orient_atoms[1], 0)
 	//now we center the thing in the beta carbon of D124
 	mol.Coords[0].SubRow(mol.Coords[0], ov2)
 	PdbWrite("test/2c9v-translated.pdb", mol, mol.Coords[0])
@@ -90,7 +89,7 @@ func TestChangeAxis(Te *testing.T) {
 	ov1 := mol.Coord(orient_atoms[0], 0) //make sure we have the correct versions
 	ov2 = mol.Coord(orient_atoms[1], 0)  //same
 	orient := gnClone(ov2)
-	orient.Sub(orient,ov1)
+	orient.Sub(orient, ov1)
 	//	PdbWrite(mol,"test/2c9v-124centered.pdb")
 	Z := NewCoords([]float64{0, 0, 1}, 1, 3)
 	axis, _ := Cross3D(orient, Z)
@@ -102,8 +101,6 @@ func TestChangeAxis(Te *testing.T) {
 	PdbWrite("test/2c9v-aligned.pdb", mol, mol.Coords[0])
 	fmt.Println("bench1")
 }
-
-
 
 //TestOldChangeAxis reads the PDB 2c9v.pdb from the test directory, collects
 //The CA and CB of residue D124 of the chain A, and rotates the
@@ -215,9 +212,9 @@ func TestQM(Te *testing.T) {
 	}
 	_ = orca.BuildInput(mol, atoms, calc)
 	path, _ := os.Getwd()
-//	if err:=orca.Run(false); err!=nil{
-//			Te.Error(err.Error())
-//		}
+	//	if err:=orca.Run(false); err!=nil{
+	//			Te.Error(err.Error())
+	//		}
 	fmt.Println(path)
 	//Now a MOPAC optimization with the same configuration.
 	mopac := MakeMopacRunner()
@@ -225,13 +222,13 @@ func TestQM(Te *testing.T) {
 	mopaccommand := os.Getenv("MOPAC_LICENSE") + "/MOPAC2012.exe"
 	mopac.SetCommand(mopaccommand)
 	fmt.Println("command", mopaccommand)
-		if err:=mopac.Run(true); err!=nil{
-			if strings.Contains(err.Error(),"no such file"){
-				fmt.Println("Error", err.Error(), (" Will continue."))
-			}else{
+	if err := mopac.Run(true); err != nil {
+		if strings.Contains(err.Error(), "no such file") {
+			fmt.Println("Error", err.Error(), (" Will continue."))
+		} else {
 			Te.Error(err.Error())
-			}
 		}
+	}
 	energy, err := mopac.GetEnergy()
 	if err != nil {
 		if err.Error() == "Probable problem in calculation" {
