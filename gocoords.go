@@ -32,7 +32,6 @@ import (
 	"github.com/skelterjohn/go.matrix"
 	"math"
 	"sort"
-//	"fmt"
 )
 
 /*Here I make a -very incomplete- implementation of the gonum api backed by go.matrix, which will enable me to port gochem to gonum.
@@ -42,8 +41,7 @@ import (
  * correct import path when gonum is implemented (such as gonum.RandomFunc)
  */
 
-
-const appzero float64 = 0.0000001 //used to correct floating point 
+const appzero float64 = 0.0000001 //used to correct floating point
 //errors. Everything equal or less than this is considered zero.
 
 //The main container, must be able to implement any
@@ -53,7 +51,7 @@ type CoordMatrix struct {
 }
 
 //Generate and returns a CoorMatrix from data.
-func NewCoord(data []float64, rows, cols int) *CoordMatrix {
+func NewCoords(data []float64, rows, cols int) *CoordMatrix {
 	if len(data) < cols*rows {
 		panic(NotEnoughElements)
 	}
@@ -62,7 +60,7 @@ func NewCoord(data []float64, rows, cols int) *CoordMatrix {
 }
 
 //Returns and empty, but not nil, CoordMatrix. It barely allocates memory
-func EmptyCoord() *CoordMatrix {
+func EmptyCoords() *CoordMatrix {
 	var a *matrix.DenseMatrix
 	return &CoordMatrix{a}
 
@@ -75,7 +73,7 @@ func gnZeros(rows, cols int) *CoordMatrix {
 
 //Returns an identity matrix spanning span cols and rows
 func gnEye(span int) *CoordMatrix {
-	A := gnZeros(span,span)
+	A := gnZeros(span, span)
 	for i := 0; i < span; i++ {
 		A.Set(i, i, 1.0)
 	}
@@ -102,10 +100,10 @@ func (E eigenpair) Len() int {
 	return len(E.evals)
 }
 
-//gnEigen wraps the matrix.DenseMatrix.Eigen() function in order to guarantee 
+//gnEigen wraps the matrix.DenseMatrix.Eigen() function in order to guarantee
 //That the eigenvectors and eigenvalues are sorted according to the eigenvalues
-//It also guarantees orthonormality and handness. I don't know how many of 
-//these are already guaranteed by Eig(). Will delete the unneeded parts 
+//It also guarantees orthonormality and handness. I don't know how many of
+//these are already guaranteed by Eig(). Will delete the unneeded parts
 //And even this whole function when sure.
 func gnEigen(in *CoordMatrix, epsilon float64) (*CoordMatrix, []float64, error) {
 	var err error
@@ -122,17 +120,17 @@ func gnEigen(in *CoordMatrix, epsilon float64) (*CoordMatrix, []float64, error) 
 	}
 	eig := eigenpair{evecs, evals[:]}
 	sort.Sort(eig)
-	//Here I should orthonormalize vectors if needed instead of just complaining. 
+	//Here I should orthonormalize vectors if needed instead of just complaining.
 	//I think orthonormality is guaranteed by  DenseMatrix.Eig() If it is, Ill delete all this
 	//If not I'll add ortonormalization routines.
 	eigrows, _ := eig.evecs.Dims()
-	vectori := EmptyCoord()
-	vectorj := EmptyCoord()
+	vectori := EmptyCoords()
+	vectorj := EmptyCoords()
 	for i := 0; i < eigrows; i++ {
 		vectori.RowView(eig.evecs, i)
 		for j := i + 1; j < eigrows; j++ {
 			vectorj.RowView(eig.evecs, j)
-			if math.Abs(vectori.Dot(vectorj)) > epsilon && i!=j {
+			if math.Abs(vectori.Dot(vectorj)) > epsilon && i != j {
 				err = NotOrthogonal //return eig.evecs, evals[:], fmt.Errorf("Vectors not ortogonal!")
 			}
 		}
@@ -142,13 +140,13 @@ func gnEigen(in *CoordMatrix, epsilon float64) (*CoordMatrix, []float64, error) 
 
 		}
 	}
-	//Checking and fixing the handness of the matrix.This if-else is Jannes idea, 
+	//Checking and fixing the handness of the matrix.This if-else is Jannes idea,
 	//I don't really know whether it works.
 	eig.evecs.T(eig.evecs)
 	if eig.evecs.Det() < 0 {
 		eig.evecs.Scale(-1, eig.evecs) //SSC
 	} else {
-		/*	
+		/*
 			eig.evecs.TransposeInPlace()
 			eig.evecs.ScaleRow(0,-1)
 			eig.evecs.ScaleRow(2,-1)
@@ -172,7 +170,7 @@ func gnSVD(A *CoordMatrix) (*CoordMatrix, *CoordMatrix, *CoordMatrix, error) {
 
 //returns a rows,cols matrix filled with gnOnes.
 func gnOnes(rows, cols int) *CoordMatrix {
-	gnOnes:=gnZeros(rows,cols)
+	gnOnes := gnZeros(rows, cols)
 	for i := 0; i < rows; i++ {
 		for j := 0; j < cols; j++ {
 			gnOnes.Set(i, j, 1)
@@ -181,34 +179,33 @@ func gnOnes(rows, cols int) *CoordMatrix {
 	return gnOnes
 }
 
-func gnMul(A,B *CoordMatrix) *CoordMatrix {
-	ar,_:=A.Dims()
-	_,bc:=B.Dims()
-	C:=gnZeros(ar,bc)
-	C.Mul(A,B)
+func gnMul(A, B *CoordMatrix) *CoordMatrix {
+	ar, _ := A.Dims()
+	_, bc := B.Dims()
+	C := gnZeros(ar, bc)
+	C.Mul(A, B)
 	return C
 }
 
 func RowView(A *CoordMatrix, i int) *CoordMatrix {
-	B:=EmptyCoord()
-	B.RowView(A,i)
+	B := EmptyCoords()
+	B.RowView(A, i)
 	return B
 }
 
 func gnClone(A *CoordMatrix) *CoordMatrix {
-	r,c:=A.Dims()
-	B:=gnZeros(r,c)
+	r, c := A.Dims()
+	B := gnZeros(r, c)
 	B.Clone(A)
 	return B
 }
 
-func gnT(A *CoordMatrix) *CoordMatrix{
-	r,c:=A.Dims()
-	B:=gnZeros(c,r)
+func gnT(A *CoordMatrix) *CoordMatrix {
+	r, c := A.Dims()
+	B := gnZeros(c, r)
 	B.T(A)
 	return B
 }
-
 
 //Methods
 /* When gonum is ready, all this functions will take a num.Matrix interface as an argument, instead of a
@@ -252,7 +249,7 @@ func (F *CoordMatrix) AddRow(A, row *CoordMatrix) {
 	if ac != rc || rr != 1 || ac != fc || ar != fr {
 		panic(gnErrShape)
 	}
-	j := EmptyCoord()
+	j := EmptyCoords()
 	for i := 0; i < ar; i++ {
 		j.RowView(A, i)
 		j.Add(j, row)
@@ -291,14 +288,14 @@ func (F *CoordMatrix) DelRow(A *CoordMatrix, i int) {
 	if i > ar || fc != ac || fr != (ar-1) {
 		panic(gnErrShape)
 	}
-	tempA1 := EmptyCoord()
-	tempF1 := EmptyCoord()
+	tempA1 := EmptyCoords()
+	tempF1 := EmptyCoords()
 	tempA1.View(A, 0, 0, i, ac)
 	tempF1.View(F, 0, 0, i, ac)
 	tempF1.Clone(tempA1)
 	//now the other part
-	tempA2 := EmptyCoord()
-	tempF2 := EmptyCoord()
+	tempA2 := EmptyCoords()
+	tempF2 := EmptyCoords()
 	tempA2.View(A, i+1, 0, ar-i-1, ac) //The magic happens here
 	tempF2.View(F, i, 0, ar-i-1, fc)
 	tempF2.Clone(tempA2)
@@ -322,25 +319,25 @@ func (F *CoordMatrix) Dot(B *CoordMatrix) float64 {
 //puts the inverse of B in F or panics if F is non-singular.
 //its just a dirty minor adaptation from the code in go.matrix from John Asmuth
 //it will be replaced by the gonum implementation when the library is ready.
-func (F *CoordMatrix) Inv(A*CoordMatrix){
+func (F *CoordMatrix) Inv(A *CoordMatrix) {
 	//fr,fc:=F.Dims()
-	ar,ac:=A.Dims()
-	if ac!=ar{
+	ar, ac := A.Dims()
+	if ac != ar {
 		panic(gnErrSquare)
 	}
 	augt, _ := A.Augment(matrix.Eye(ar))
-	aug:=&CoordMatrix{augt}
-	augr,_:=aug.Dims()
+	aug := &CoordMatrix{augt}
+	augr, _ := aug.Dims()
 	for i := 0; i < augr; i++ {
 		j := i
 		for k := i; k < augr; k++ {
 			if math.Abs(aug.Get(k, i)) > math.Abs(aug.Get(j, i)) {
-			j = k
+				j = k
 			}
 		}
 		if j != i {
 			aug.SwapRows(i, j)
-			}
+		}
 		if aug.Get(i, i) == 0 {
 			panic(gnErrSingular)
 		}
@@ -352,9 +349,8 @@ func (F *CoordMatrix) Inv(A*CoordMatrix){
 			aug.ScaleAddRow(k, i, -aug.Get(k, i))
 		}
 	}
-	F.SubMatrix(aug,0, ac, ar, ac)
-} 
-
+	F.SubMatrix(aug, 0, ac, ar, ac)
+}
 
 //A slightly modified version of John Asmuth's ParalellProduct function.
 func (F *CoordMatrix) Mul(A, B *CoordMatrix) {
@@ -410,8 +406,8 @@ func (F *CoordMatrix) Mul(A, B *CoordMatrix) {
 func (F *CoordMatrix) MulElem(A, B *CoordMatrix) {
 	arows, acols := A.Dims()
 	brows, bcols := B.Dims()
-	frows,fcols := F.Dims()
-	if arows != brows || acols != bcols  || arows!=frows || acols!=fcols{
+	frows, fcols := F.Dims()
+	if arows != brows || acols != bcols || arows != frows || acols != fcols {
 		panic(gnErrShape)
 	}
 	for i := 0; i < arows; i++ {
@@ -448,7 +444,7 @@ func (F *CoordMatrix) Pow(A *CoordMatrix, exp float64) {
 
 //Returns an array with the data in the ith row of F
 func (F *CoordMatrix) Row(i int) []float64 {
-	r,c := F.Dims()
+	r, c := F.Dims()
 	if i >= r {
 		panic("Matrix: Requested row out of bounds")
 	}
@@ -497,7 +493,7 @@ func (F *CoordMatrix) ScaleByCol(A, Col *CoordMatrix) {
 	if F != A {
 		F.Clone(A)
 	}
-	temp := EmptyCoord()
+	temp := EmptyCoords()
 	for i := 0; i < ac; i++ {
 		temp.ColView(F, i)
 		temp.MulElem(temp, Col)
@@ -517,7 +513,7 @@ func (F *CoordMatrix) ScaleByRow(A, Row *CoordMatrix) {
 	if F != A {
 		F.Clone(A)
 	}
-	temp := EmptyCoord()
+	temp := EmptyCoords()
 	for i := 0; i < ac; i++ {
 		temp.RowView(F, i)
 		temp.MulElem(temp, Row)
@@ -527,19 +523,18 @@ func (F *CoordMatrix) ScaleByRow(A, Row *CoordMatrix) {
 //When go.matrix is abandoned it is necesary to implement SetMatrix
 //SetMatrix()
 //Copies A into F aligning A(0,0) with F(i,j)
-func (F *CoordMatrix) SetMatrix(i,j int, A *CoordMatrix){
-	fr,fc:=F.Dims()
-	ar,ac:=A.Dims()
+func (F *CoordMatrix) SetMatrix(i, j int, A *CoordMatrix) {
+	fr, fc := F.Dims()
+	ar, ac := A.Dims()
 	if ar+i > fr || ac+j > fc {
 		panic(gnErrShape)
-		}
-	for l:=0;l<ar;l++{
-		for m:=0;m<ac;m++{
-			F.Set(l+i,m+j,A.Get(l,m))
+	}
+	for l := 0; l < ar; l++ {
+		for m := 0; m < ac; m++ {
+			F.Set(l+i, m+j, A.Get(l, m))
 		}
 	}
 }
-
 
 //Returns a matrix contaning all the ith rows of matrix A,
 //where i are the numbers in clist. The rows are in the same order
@@ -602,11 +597,11 @@ func (F *CoordMatrix) Stack(A, B *CoordMatrix) {
 }
 
 //Not tested!!!
-func (F *CoordMatrix) Sub(A, B *CoordMatrix){
-	B.Scale(-1,B)
-	F.Add(A,B)
-	B.Scale(-1,B)
-	}
+func (F *CoordMatrix) Sub(A, B *CoordMatrix) {
+	B.Scale(-1, B)
+	F.Add(A, B)
+	B.Scale(-1, B)
+}
 
 //not tested
 //returns a copy of the submatrix of A starting by the point i,j and
@@ -644,7 +639,7 @@ func (F *CoordMatrix) T(A *CoordMatrix) {
 	if ar != fc || ac != fr {
 		panic(gnErrShape)
 	}
-	//we do it in a different way if you pass the received as the argument 
+	//we do it in a different way if you pass the received as the argument
 	//(transpose in place)
 	if F == A {
 		for i := 0; i < ar; i++ {

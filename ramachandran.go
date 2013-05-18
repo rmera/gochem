@@ -2,9 +2,9 @@
 
 /*
  * Rama.go, part of gochem
- * 
+ *
  * Copyright 2012 Raul Mera <rmera{at}chemDOThelsinkiDOTfi>
- * 
+ *
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Lesser General Public License as published by
     the Free Software Foundation, either version 2.1 of the License, or
@@ -17,11 +17,11 @@
 
     You should have received a copy of the GNU Lesser General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  * Gochem is developed at the laboratory for instruction in Swedish, Department of Chemistry,
- * University of Helsinki, Finland.  
- * 
- * 
+ * University of Helsinki, Finland.
+ *
+ *
 */
 /***Dedicated to the long life of the Ven. Khenpo Phuntzok Tenzin Rinpoche***/
 
@@ -36,7 +36,7 @@ import (
 	"strings"
 )
 
-/*Produce plots, in png format for the ramachandran data (psi and phi dihedrals) 
+/*Produce plots, in png format for the ramachandran data (psi and phi dihedrals)
   contained in fulldata, which can contain data for various different snapshopts.
   In the latter case, many png files are produced. The file names are plotnameXX.png
   where XX is the frame number (not limited to digits). Returns an error*/
@@ -64,15 +64,15 @@ func RamaPlot(data [][]float64, plotname string) error {
 	p.X.Max = 180
 	p.Y.Min = -180
 	p.Y.Max = 180
-	// Draw the grid 
+	// Draw the grid
 	p.Add(plotter.NewGrid())
 	// Make a scatter plotter and set its style.
-	s,err := plotter.NewScatter(pts)
-	if err!=nil{
+	s, err := plotter.NewScatter(pts)
+	if err != nil {
 		return err
-		}
+	}
 	s.GlyphStyle.Color = color.RGBA{R: 255, A: 255}
-	// Add the plotter 
+	// Add the plotter
 	p.Add(s)
 	// Save the plot to a PNG file.
 	filename := fmt.Sprintf("%s.png", plotname)
@@ -83,7 +83,7 @@ func RamaPlot(data [][]float64, plotname string) error {
 }
 
 /*Obtain psi and phi angles for the molecule M, considerint the dihedrals in [][]int
-  for all the frames in frames. It returns a slice of slices (one per frame) of slices 
+  for all the frames in frames. It returns a slice of slices (one per frame) of slices
   (with 2 elemtns), for psi and phi angles, and an error*/
 func RamaCalc(M *CoordMatrix, dihedrals [][]int) ([][]float64, error) {
 	if M == nil || dihedrals == nil {
@@ -91,11 +91,11 @@ func RamaCalc(M *CoordMatrix, dihedrals [][]int) ([][]float64, error) {
 	}
 	Rama := make([][]float64, 0, len(dihedrals))
 	for _, j := range dihedrals {
-		Cprev := RowView(M,j[0])
-		N := RowView(M,j[1])
-		Ca := RowView(M,j[2])
-		C := RowView(M,j[3])
-		Npost := RowView(M,j[4])
+		Cprev := RowView(M, j[0])
+		N := RowView(M, j[1])
+		Ca := RowView(M, j[2])
+		C := RowView(M, j[3])
+		Npost := RowView(M, j[4])
 		phi := Dihedral(Cprev, N, Ca, C)
 		psi := Dihedral(N, Ca, C, Npost)
 		temp := []float64{phi * (180 / math.Pi), psi * (180 / math.Pi)}
@@ -106,8 +106,8 @@ func RamaCalc(M *CoordMatrix, dihedrals [][]int) ([][]float64, error) {
 
 /*RamaList takes a molecule and obtains a list of lists of five int. Each element
   contain the indexes needed for one dihedral of a Rama plot. It gets the dihedral
-  indices for all residues in the range resran, if resran has 2 elements defining the 
-  boundaries. Otherwise, returns dihedral lists for the residues included in 
+  indices for all residues in the range resran, if resran has 2 elements defining the
+  boundaries. Otherwise, returns dihedral lists for the residues included in
   resran. If resran has 2 elements and the last is -1, RamaList will
   get all the dihedral for residues from resran[0] to the end of the chain.
   It only obtain dihedral lists for residues belonging to a chain included in chains */
