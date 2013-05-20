@@ -2,12 +2,12 @@
 
 /*
  * untitled.go
- * 
+ *
  * Copyright 2012 Raul Mera Adasme <rmera_changeforat_chem-dot-helsinki-dot-fi>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as 
- * published by the Free Software Foundation; either version 2.1 of the 
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation; either version 2.1 of the
  * License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -15,16 +15,16 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General 
- * Public License along with this program.  If not, see 
+ * You should have received a copy of the GNU Lesser General
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  */
-/* 
- * 
+/*
+ *
  * Gochem is developed at the laboratory for instruction in Swedish, Department of Chemistry,
- * University of Helsinki, Finland.  
- * 
- * 
+ * University of Helsinki, Finland.
+ *
+ *
  */
 /***Dedicated to the long life of the Ven. Khenpo Phuntzok Tenzin Rinpoche***/
 
@@ -32,15 +32,14 @@ package chem
 
 import "fmt"
 import "testing"
-import "github.com/skelterjohn/go.matrix"
 
 /*TestXtc reads the frames of the test xtc file using the
  * "interactive" or "low level" functions, i.e. one frame at a time
- * It prints the firs 2 coordinates of each frame and the number of 
+ * It prints the firs 2 coordinates of each frame and the number of
  * read frames at the end.*/
 func TestDcd(Te *testing.T) {
 	fmt.Println("Fist test!")
-	traj,err:=MakeDcd("test/test.dcd")
+	traj, err := MakeDcd("test/test.dcd")
 	if err != nil {
 		Te.Error(err)
 	}
@@ -51,7 +50,7 @@ func TestDcd(Te *testing.T) {
 			Te.Error(err)
 			break
 		} else if err == nil {
-			fmt.Println(coords.GetRowVector(2))
+			fmt.Println(RowView(coords, 2))
 		} else {
 			break
 		}
@@ -59,10 +58,11 @@ func TestDcd(Te *testing.T) {
 	fmt.Println("Over! frames read:", i)
 }
 
-/*TestFrameXtc reads the frames of the test xtc file from the first to
- * the forth frame skipping one frame for each read one. It uses the
- * "high level" function. It prints the frames read twince, and the
- * coordinates of the forth atom of the last read frame,*/
+/*
+//TestFrameXtc reads the frames of the test xtc file from the first to
+// the forth frame skipping one frame for each read one. It uses the
+// "high level" function. It prints the frames read twince, and the
+// coordinates of the forth atom of the last read frame
 func TestFrameDcd(Te *testing.T) {
 	fmt.Println("Second test!")
 	traj,err:=MakeDcd("test/test.dcd")
@@ -73,7 +73,7 @@ func TestFrameDcd(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
-	fmt.Println(len(Coords), read, Coords[read-1].GetRowVector(4))
+	fmt.Println(len(Coords), read, RowView(Coords[read-1],4))
 	fmt.Println("Dcd second test over!")
 }
 
@@ -84,10 +84,10 @@ func TestFrameDcdConc(Te *testing.T) {
 		Te.Error(err)
 	}
 	frames := []bool{true, true, true}
-	results := make([][]chan *matrix.DenseMatrix, 0, 0)
+	results := make([][]chan *CoordMatrix, 0, 0)
 	_ = matrix.Zeros(3, 3) //////////////
 	for i := 0; ; i++ {
-		results = append(results, make([]chan *matrix.DenseMatrix, 0, len(frames)))
+		results = append(results, make([]chan *CoordMatrix, 0, len(frames)))
 		coordchans, err := traj.NextConc(frames)
 		if err != nil && err.Error() != "No more frames" {
 			Te.Error(err)
@@ -97,7 +97,7 @@ func TestFrameDcdConc(Te *testing.T) {
 			}
 		}
 		for key, channel := range coordchans {
-			results[len(results)-1] = append(results[len(results)-1], make(chan *matrix.DenseMatrix))
+			results[len(results)-1] = append(results[len(results)-1], make(chan *CoordMatrix))
 			go SecondRow(channel, results[len(results)-1][key], len(results)-1, key)
 		}
 	}
@@ -114,11 +114,12 @@ func TestFrameDcdConc(Te *testing.T) {
 		}
 	}
 }
+*/
 
-func SecondRow(channelin, channelout chan *matrix.DenseMatrix, current, other int) {
+func SecondRow(channelin, channelout chan *CoordMatrix, current, other int) {
 	if channelin != nil {
 		temp := <-channelin
-		vector := temp.GetRowVector(2)
+		vector := RowView(temp, 2)
 		fmt.Println("sending througt", channelin, channelout, vector, current, other)
 		channelout <- vector
 	} else {
@@ -126,4 +127,3 @@ func SecondRow(channelin, channelout chan *matrix.DenseMatrix, current, other in
 	}
 	return
 }
-

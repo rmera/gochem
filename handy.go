@@ -1,12 +1,12 @@
 /*
  * files.go, part of gochem.
- * 
- * 
+ *
+ *
  * Copyright 2012 Raul Mera <rmera{at}chemDOThelsinkiDOTfi>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as 
- * published by the Free Software Foundation; either version 2.1 of the 
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation; either version 2.1 of the
  * License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -14,24 +14,23 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General 
- * Public License along with this program.  If not, see 
+ * You should have received a copy of the GNU Lesser General
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
- * 
- * 
+ *
+ *
  * Gochem is developed at the laboratory for instruction in Swedish, Department of Chemistry,
- * University of Helsinki, Finland.  
- * 
- * 
+ * University of Helsinki, Finland.
+ *
+ *
  */
 /***Dedicated to the long life of the Ven. Khenpo Phuntzok Tenzin Rinpoche***/
 
 package chem
 
-
-import "github.com/skelterjohn/go.matrix"
 import "fmt"
 import "reflect"
+
 func Deg2Rad(f float64) float64 {
 	return f * 0.0174533
 }
@@ -57,93 +56,90 @@ func Molecules2Atoms(mol Ref, residues []int, chains []string) []int {
 
 }
 
-
-
-//Ones mass returns a column matrix with lenght rosw. 
+//Ones mass returns a column matrix with lenght rosw.
 //This matrix can be used as a dummy mass matrix
 //for geometric calculations.
-func OnesMass(lenght int) *matrix.DenseMatrix {
-	return matrix.Ones(lenght, 1)
+func OnesMass(lenght int) *CoordMatrix {
+	return gnOnes(lenght, 1)
 }
 
 //Super determines the best rotation and translations to superimpose the coords in test
-//listed in testlst on te atoms of molecule templa, frame frametempla, listed in templalst. 
-//It applies those rotation and translations to the whole frame frametest of molecule test, in palce. 
+//listed in testlst on te atoms of molecule templa, frame frametempla, listed in templalst.
+//It applies those rotation and translations to the whole frame frametest of molecule test, in palce.
 //testlst and templalst must have the same number of elements.
-func Super(test, templa *matrix.DenseMatrix, testlst, templalst []int) (*matrix.DenseMatrix, error) {
-	ctest := test
+func Super(test, templa *CoordMatrix, testlst, templalst []int) (*CoordMatrix, error) {
+	_, testcols := test.Dims()
+	_, templacols := templa.Dims()
+
+	ctest := gnZeros(len(testlst), testcols)
 	if len(testlst) != 0 {
-		ctest = SomeRows(test, testlst)
+		ctest.SomeRows(test, testlst)
 	}
-	ctempla := templa
+	ctempla := gnZeros(len(templalst), templacols)
 	if len(templalst) != 0 {
-		ctempla = SomeRows(templa, templalst)
+		ctempla.SomeRows(templa, templalst)
 	}
-	if ctempla.Rows() != ctest.Rows() {
-		return nil, fmt.Errorf("Mismatched template and test atom numbers: %d, %d", ctempla.Rows(), ctest.Rows())
+	if len(templalst) != len(testlst) {
+		return nil, fmt.Errorf("Mismatched template and test atom numbers: %d, %d", len(templalst), len(testlst))
 	}
 	_, rotation, trans1, trans2, err1 := GetSuper(ctest, ctempla)
 	if err1 != nil {
 		return nil, err1
 	}
-	err1 = AddRow(test, trans1)
-	test = matrix.ParallelProduct(test, rotation)
-	err2 := AddRow(test, trans2)
-	if err1 != nil || err2 != nil {
-		return nil, fmt.Errorf("Unexpected error when aplying superposition")
-	}
+	test.AddRow(test, trans1)
+	test = gnMul(test, rotation)
+	test.AddRow(test, trans2)
 	return test, nil
 }
 
-//Rotate about rotates the coordinates in coordsorig around by angle radians around the axis 
+//Rotate about rotates the coordinates in coordsorig around by angle radians around the axis
 //given by the vector axis. It returns the rotated coordsorig, since the original is not affected.
 //Uses Clifford algebra.
-func RotateAbout(coordsorig, ax1, ax2 *matrix.DenseMatrix, angle float64) (*matrix.DenseMatrix, error) {
-	coords := coordsorig.Copy()
-	translation := ax1.Copy()
-	axis := ax2.Copy()
-	axis.Subtract(ax1) //now it became the rotation axis
-	err := SubRow(coords, translation)
-	if err != nil {
+func RotateAbout(coordsorig, ax1, ax2 *CoordMatrix, angle float64) (*CoordMatrix, error) {
+	coords := gnClone(coordsorig)
+	translation := gnClone(ax1)
+	axis := gnClone(ax2)
+	axis.Sub(axis, ax1) //now it became the rotation axis
+	f := func() { coords.SubRow(coords, translation) }
+	if err := gnMaybe(gnPanicker(f)); err != nil {
 		return nil, err
 	}
 	Rot := Rotate(coords, axis, angle)
-	err = AddRow(Rot, translation)
-	if err != nil {
+	g := func() { Rot.AddRow(Rot, translation) }
+	if err := gnMaybe(gnPanicker(g)); err != nil {
 		return nil, err
 	}
 	return Rot, nil
 }
 
 //EulerRotateAbout uses Euler angles to rotate the coordinates in coordsorig around by angle
-//radians around the axis given by the vector axis. It returns the rotated coordsorig, 
+//radians around the axis given by the vector axis. It returns the rotated coordsorig,
 //since the original is not affected. It seems more clunky than the RotateAbout, which uses Clifford algebra.
 //I leave it for benchmark, mostly, and might remove it later.
-func EulerRotateAbout(coordsorig, ax1, ax2 *matrix.DenseMatrix, angle float64) (*matrix.DenseMatrix, error) {
-	coords := coordsorig.Copy()
-	translation := ax1.Copy()
-	axis := ax1.Copy()
-	axis.Subtract(ax2) //now it became the rotation axis
-	err := SubRow(coords, translation)
-	if err != nil {
+func EulerRotateAbout(coordsorig, ax1, ax2 *CoordMatrix, angle float64) (*CoordMatrix, error) {
+	coords := gnClone(coordsorig)
+	translation := gnClone(ax1)
+	axis := gnClone(ax2)
+	axis.Sub(axis, ax1) //now it became the rotation axis
+	f := func() { coords.SubRow(coords, translation) }
+	if err := gnMaybe(gnPanicker(f)); err != nil {
 		return nil, err
 	}
 	Zswitch := GetSwitchZ(axis)
-	coords = matrix.ParallelProduct(coords, Zswitch) //rotated
+	coords = gnMul(coords, Zswitch) //rotated
 	Zrot, err := GetRotateAroundZ(angle)
 	if err != nil {
 		return nil, err
 	}
-	RevZ, err := Zswitch.Inverse()
-	if err != nil {
+	Zsr, Zsc := Zswitch.Dims()
+	RevZ := gnZeros(Zsr, Zsc)
+	g := func() { RevZ.Inv(Zswitch) }
+	if err := gnMaybe(gnPanicker(g)); err != nil {
 		return nil, err
 	}
-	coords = matrix.ParallelProduct(coords, Zrot) //rotated
-	coords = matrix.ParallelProduct(coords, RevZ)
-	err = AddRow(coords, translation)
-	if err != nil {
-		return nil, err
-	}
+	coords = gnMul(coords, Zrot) //rotated
+	coords = gnMul(coords, RevZ)
+	coords.AddRow(coords, translation)
 	return coords, err
 }
 
@@ -155,10 +151,9 @@ func Corrupted(R Ref, X Traj) error {
 	return nil
 }
 
-
 //Some internal convenience functions.
 
-//isIn is a helper for the RamaList function, 
+//isIn is a helper for the RamaList function,
 //returns true if test is in container, false otherwise.
 func isInInt(container []int, test int) bool {
 	if container == nil {
@@ -171,6 +166,7 @@ func isInInt(container []int, test int) bool {
 	}
 	return false
 }
+
 //Same as the previous, but with strings.
 func isInString(container []string, test string) bool {
 	if container == nil {
@@ -203,5 +199,3 @@ func isIn(test interface{}, set interface{}) int {
 	}
 	return -1
 }
-
-

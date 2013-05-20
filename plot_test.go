@@ -1,15 +1,15 @@
-// +build !xtc 
+// +build !xtc
 // +build !dcd
 // +build plot
 
 /*
  * plot_test.go
- * 
+ *
  * Copyright 2012 Raul Mera <rmera{at}chemDOThelsinkiDOTfi>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as 
- * published by the Free Software Foundation; either version 2.1 of the 
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation; either version 2.1 of the
  * License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -17,24 +17,20 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General 
- * Public License along with this program.  If not, see 
+ * You should have received a copy of the GNU Lesser General
+ * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
- * 
- * 
+ *
+ *
  */
 
-/*This provides some tests for the library functions requiring plotinum, in the form of little functions 
+/*This provides some tests for the library functions requiring plotinum, in the form of little functions
  * that have practical applications*/
-
-
-
 
 package chem
 
 import "testing"
 import "fmt"
-
 
 //TestRama tests the Ramachandran plot functionality.
 //it generates a Ramachandran plot for the chain A of the PDB 2c9v.
@@ -47,7 +43,8 @@ func TestRama(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
-	rama, err := RamaCalc(mol.Coords[0], ramalist)
+	ramalist2:=RamaResidueFilter(ramalist, []string{"HIS","GLY"},true)
+	rama, err := RamaCalc(mol.Coords[0], ramalist2)
 	if err != nil {
 		Te.Error(err)
 	}
@@ -59,5 +56,3 @@ func TestRama(Te *testing.T) {
 	//PdbWrite(mol,"test/Used4Rama.pdb")
 	//for the 3 residue  I should get -131.99, 152.49.
 }
-
-
