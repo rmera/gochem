@@ -97,10 +97,14 @@ func RamaPlot(data [][]float64, plotname string) error  {
   (with 2 elemtns), for psi and phi angles, and an error*/
 func RamaCalc(M *CoordMatrix, dihedrals []RamaSet) ([][]float64, error) {
 	if M == nil || dihedrals == nil {
-		return nil, fmt.Errorf("Given nil data")
+		return nil, fmt.Errorf("RamaCalc: Given nil data")
 	}
+	r,c:=M.Dims()
 	Rama := make([][]float64, 0, len(dihedrals))
 	for _, j := range dihedrals {
+		if j.Npost>=r{
+			return nil, fmt.Errorf("RamaCalc: Index requested out of range")
+		}
 		Cprev := RowView(M, j.Cprev)
 		N := RowView(M, j.N)
 		Ca := RowView(M, j.Ca)

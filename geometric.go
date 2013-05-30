@@ -362,7 +362,10 @@ func MassCentrate(in, oref, mass *CoordMatrix) (*CoordMatrix, *CoordMatrix, erro
 		return nil, nil, err
 	}
 	ref2 := gnZeros(1, oc)
-	ref2.Mul(gnOnesvector, ref)
+	g:= func(){ref2.Mul(gnOnesvector, ref)}
+	if err:=gnMaybe(gnPanicker(g));err!=nil{
+		return nil, nil, err
+	}
 	ref2.Scale(1.0/mass.Sum(), ref2)
 	returned := gnZeros(ir, ic)
 	returned.Clone(in)
@@ -399,6 +402,7 @@ func MomentTensor(A, mass *CoordMatrix) (*CoordMatrix, error) {
 	return moment, err
 }
 
+//The projection of test in ref.
 func Projection(test, ref *CoordMatrix) *CoordMatrix {
 	rr, rc := ref.Dims()
 	Uref := gnZeros(rr, rc)
