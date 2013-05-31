@@ -75,7 +75,7 @@ func TestFrameXtc(Te *testing.T) {
 	}
 	fmt.Println(len(Coords), read, RowView(Coords[read-1],4))
 }
-
+*/
 func TestFrameXtcConc(Te *testing.T) {
 	traj,err:=MakeXtc("test/test.xtc")
 	if err != nil {
@@ -83,7 +83,6 @@ func TestFrameXtcConc(Te *testing.T) {
 	}
 	frames := []bool{true, true, true}
 	results := make([][]chan *CoordMatrix, 0, 0)
-	_ = matrix.Zeros(3, 3) //////////////
 	for i := 0; ; i++ {
 		results = append(results, make([]chan *CoordMatrix, 0, len(frames)))
 		coordchans, err := traj.NextConc(frames)
@@ -112,7 +111,6 @@ func TestFrameXtcConc(Te *testing.T) {
 		}
 	}
 }
-*/
 
 func SecondRow(channelin, channelout chan *CoordMatrix, current, other int) {
 	if channelin != nil {

@@ -144,7 +144,7 @@ func (X *XtcObj) NextConc(frames []bool) ([]chan *CoordMatrix, error) {
 	used := false
 	for key, val := range frames {
 		cCoords := X.cCoords
-		/*There seems to be an issue with Go here, although I might of course be wrong
+		/*There was a data race here. 
 		if I try to used the buffer in X.goCoords, even if I check that its overwritten with the
 		* values from this frame, and that is sent to the channel, somewhow the channel gets the
 		* a matrix witht he values previously stored in the buffer. The solution here, just not use
@@ -174,19 +174,14 @@ func (X *XtcObj) NextConc(frames []bool) ([]chan *CoordMatrix, error) {
 			framechans[key] = nil //ignored frame
 			continue
 		}
-		//		if used==true{
-		//			goCoords=make([]float64,totalcoords,totalcoords)
-		//			}
 		used = true
 		framechans[key] = make(chan *CoordMatrix)
 		//Now the parallel part
 		go func(natoms int, cCoords []C.float, goCoords []float64, pipe chan *CoordMatrix) {
 			for j := 0; j < natoms*3; j++ {
-				//				fmt.Println(10*(float64(cCoords[j])))
 				goCoords[j] = 10 * (float64(cCoords[j])) //nm to Angstroms
 			}
 			temp := NewCoords(goCoords, natoms, 3)
-			//			fmt.Println("in gorutine!", temp.GetRowVector(2))
 			pipe <- temp
 		}(X.natoms, cCoords, goCoords, framechans[key])
 	}

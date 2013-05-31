@@ -92,7 +92,7 @@ func Eye(span int) *CoordMatrix {
 
 
 //Some temporary support function.
-func Eigen(in *CoordMatrix, epsilon float64)(*CoordMatrix, []Float64, error){
+func Eigen(in *CoordMatrix, epsilon float64)(*CoordMatrix, []float64, error){
 	i,j,k := gnEigen(in,epsilon)
 	return i,j,k
 }

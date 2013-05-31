@@ -32,7 +32,6 @@ import "sort"
 //AngleInVectors takes 2 vectors and calculate the angle in radians between them
 //It does not check for correctness or return errors!
 func AngleInVectors(v1, v2 *CoordMatrix) float64 {
-	//Maybe I'll also write a safer version of this function?
 	normproduct := v1.Norm(2) * v2.Norm(2)
 	dotprod := v1.Dot(v2)
 	argument := dotprod / normproduct
@@ -50,15 +49,6 @@ func AngleInVectors(v1, v2 *CoordMatrix) float64 {
 	return angle
 }
 
-/*
-def angle_in_vectors(v1,v2): #calculates the angles between to vectors (Python Numeric arrays) in radians
-	normproduct=norm(v1)*norm(v2)
-	angle=np.arccos(np.dot(v1,v2)/normproduct)
-	if angle<=approxzero or not angle:
-		return 0
-	return angle
-
- * */
 
 //GetRotateToNewY takes a set of coordinates (mol) and a vector (y). It returns
 //a rotation matrix that, when applied to mol, will rotate it around the Z axis
