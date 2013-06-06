@@ -143,13 +143,21 @@ func (O *OrcaRunner) BuildInput(atoms Ref, coords *CoordMatrix, Q *QMCalc) error
 	}
 
 	//Set RI or RIJCOSX if needed
+	if Q.RI && Q.RIJ {
+		return fmt.Errorf("RI and RIJ cannot be activate at the same time")
+	}
 	if Q.RI {
 		Q.auxBasis = Q.Basis + "/J"
-		Q.Others = fmt.Sprintf("%s %s", Q.Others, "RI")
+		if !strings.Contains(Q.Others," RI "){
+			Q.Others = fmt.Sprintf("%s %s", Q.Others, "RI")
+		}
 	}
 	if Q.RIJ {
+		Q.auxBasis = Q.Basis + "/J"
 		Q.auxColBasis = Q.Basis + "/C"
-		Q.Others = fmt.Sprintf("%s %s", Q.Others, "RIJCOSX")
+		if !strings.Contains(Q.Others,"RIJCOSX"){
+			Q.Others = fmt.Sprintf("%s %s", Q.Others, "RIJCOSX")
+		}
 	}
 
 	disp := "VDW3"
@@ -315,15 +323,15 @@ func (O *OrcaRunner) buildCConstraints(C []int) string {
 }
 
 var orcaSCFTight = map[int]string{
-	1: "",
-	2: "TightSCF",
-	3: "VeryTightSCF",
+	0: "",
+	1: "TightSCF",
+	2: "VeryTightSCF",
 }
 
 var orcaSCFConv = map[int]string{
-	1: "",
-	2: "SlowConv",
-	3: "VerySlowConv",
+	0: "",
+	1: "SlowConv",
+	2: "VerySlowConv",
 }
 
 var orcaDisp = map[string]string{
