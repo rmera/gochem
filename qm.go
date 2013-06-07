@@ -197,7 +197,7 @@ func (O *OrcaRunner) BuildInput(atoms Ref, coords *CoordMatrix, Q *QMCalc) error
 		}
 		if O.previousMO != "" {
 			Q.Guess = "MORead"
-			moinp = fmt.Sprintf("%moinp \"%s\n\"", O.previousMO)
+			moinp = fmt.Sprintf("%%moinp \"%s\n\"<F3>", O.previousMO)
 		} else {
 			moinp = ""
 			Q.Guess = "" //The default guess
