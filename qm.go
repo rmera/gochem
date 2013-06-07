@@ -104,6 +104,10 @@ func (O *OrcaRunner) SetCommand(name string) {
 	O.command = name
 }
 
+func (O *OrcaRunner) SetMOName (name string) {
+	O.previousMO = name
+}
+
 /*Sets defaults for ORCA calculation. Default is a single-point at
 revPBE/def2-SVP with RI, and all the available CPU with a max of
 8. The ORCA command is set to $ORCA_PATH/orca, at least in
