@@ -182,19 +182,15 @@ func (O *OrcaRunner) BuildInput(atoms Ref, coords *CoordMatrix, Q *QMCalc) error
 	if Q.OldMO == true {
 		dir, _ := os.Open("./")     //This should always work, hence ignoring the error
 		files, _ := dir.Readdir(-1) //Get all the files.
-		moname := O.previousMO
-		O.previousMO = ""
 		for _, val := range files {
+			if O.previousMO!=""{
+				break
+				}
 			if val.IsDir() == true {
 				continue
 			}
 			name := val.Name()
-			if moname != "" {
-				if name == moname {
-					O.previousMO = name
-					break
-				}
-			} else if strings.Contains(".gbw", name) {
+			if strings.Contains(".gbw", name) {
 				O.previousMO = name
 				break
 			}
