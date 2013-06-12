@@ -247,7 +247,7 @@ func (O *MopacRunner) GetGeometry(atoms Ref) (*CoordMatrix, error) {
 			continue
 		}
 
-		if !reading && strings.Contains(line, "FINAL  POINT  AND  DERIVATIVES") {
+		if !reading && (strings.Contains(line, "FINAL  POINT  AND  DERIVATIVES") || strings.Contains(line,"GEOMETRY OPTIMISED")){
 			final_point = true
 			continue
 		}
@@ -261,7 +261,7 @@ func (O *MopacRunner) GetGeometry(atoms Ref) (*CoordMatrix, error) {
 		}
 		if reading {
 			//So far we dont check that there are not too many atoms in the mopac output.
-			if i*3+2 > natoms*3 {
+			if i >= natoms {
 				err = nil
 				break
 			}
