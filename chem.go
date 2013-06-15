@@ -511,10 +511,10 @@ func (M *Molecule) Next(a bool) (*CoordMatrix, error) {
 	if M.current >= len(M.Coords) {
 		return nil, fmt.Errorf("No more frames")
 	}
+	M.current++
 	if a == false {
 		return nil, nil
 	}
-	M.current++
 	return M.Coords[M.current-1], nil
 }
 
