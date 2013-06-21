@@ -147,21 +147,20 @@ func (O *OrcaRunner) BuildInput(atoms Ref, coords *CoordMatrix, Q *QMCalc) error
 	}
 
 	//Set RI or RIJCOSX if needed
+	ri:=""
 	if Q.RI && Q.RIJ {
 		return fmt.Errorf("RI and RIJ cannot be activate at the same time")
 	}
 	if Q.RI {
 		Q.auxBasis = Q.Basis + "/J"
-		if !strings.Contains(Q.Others," RI "){
-			Q.Others = fmt.Sprintf("%s %s", Q.Others, "RI")
-		}
+	//	if !strings.Contains(Q.Others," RI "){
+		ri="RI"
 	}
 	if Q.RIJ {
 		Q.auxBasis = Q.Basis + "/J"
 		Q.auxColBasis = Q.Basis + "/C"
-		if !strings.Contains(Q.Others,"RIJCOSX"){
-			Q.Others = fmt.Sprintf("%s %s", Q.Others, "RIJCOSX")
-		}
+	//	if !strings.Contains(Q.Others,"RIJCOSX"){
+		ri="RIJCOSX"
 	}
 
 	disp := "VDW3"
@@ -224,7 +223,7 @@ func (O *OrcaRunner) BuildInput(atoms Ref, coords *CoordMatrix, Q *QMCalc) error
 		}
 		pal = fmt.Sprintf("PAL%d", O.nCPU)
 	}
-	MainOptions := []string{"!", hfuhf, Q.Method, Q.Basis, Q.auxBasis, Q.auxColBasis, tight, disp, conv, Q.Guess, opt, Q.Others, pal, "\n"}
+	MainOptions := []string{"!", hfuhf, Q.Method, Q.Basis, Q.auxBasis, Q.auxColBasis, tight, disp, conv, Q.Guess, opt, Q.Others, pal, ri, "\n"}
 	mainline := strings.Join(MainOptions, " ")
 	constraints := O.buildCConstraints(Q.CConstraints)
 	cosmo := ""
