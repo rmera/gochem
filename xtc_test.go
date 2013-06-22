@@ -44,14 +44,17 @@ func TestXtc(Te *testing.T) {
 		Te.Error(err)
 	}
 	i := 0
+	coords:=Zeros(traj.Len(),3)
 	for ; ; i++ {
-		coords, err := traj.Next(true)
+		err := traj.Next(coords)
 		if err != nil && err.Error() != "No more frames" {
 			Te.Error(err)
+			fmt.Println(err)
 			break
 		} else if err == nil {
 			fmt.Println(RowView(coords, 2))
 		} else {
+			fmt.Println("no more!")
 			break
 		}
 	}
@@ -81,9 +84,12 @@ func TestFrameXtcConc(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
-	frames := []bool{true, true, true}
+	frames :=make([]*CoordMatrix,3,3)
+	for i,_:=range(frames){
+		frames[i]=Zeros(traj.Len(),3)
+		}
 	results := make([][]chan *CoordMatrix, 0, 0)
-	for i := 0; ; i++ {
+	for i := 0;; i++ {
 		results = append(results, make([]chan *CoordMatrix, 0, len(frames)))
 		coordchans, err := traj.NextConc(frames)
 		if err != nil && err.Error() != "No more frames" {
@@ -97,8 +103,17 @@ func TestFrameXtcConc(Te *testing.T) {
 			results[len(results)-1] = append(results[len(results)-1], make(chan *CoordMatrix))
 			go SecondRow(channel, results[len(results)-1][key], len(results)-1, key)
 		}
+		res:=len(results)-1
+		for frame, k := range results[res]{
+			if k == nil {
+				fmt.Println(frame)
+				continue
+			}
+			fmt.Println(res,frame, <-k)
+		}
 	}
-	for framebunch, j := range results {
+}
+/*	for framebunch, j := range results {
 		if j == nil {
 			break
 		}
@@ -111,13 +126,15 @@ func TestFrameXtcConc(Te *testing.T) {
 		}
 	}
 }
-
+*/
 func SecondRow(channelin, channelout chan *CoordMatrix, current, other int) {
 	if channelin != nil {
 		temp := <-channelin
 		vector := EmptyCoords()
+		viej:=Zeros(1,3)
 		vector.RowView(temp, 2)
-		fmt.Println("sending througt", channelin, channelout, vector, current, other)
+		viej.Clone(vector)
+		fmt.Println("sending througt", channelin, channelout, viej, current, other)
 		channelout <- vector
 	} else {
 		channelout <- nil
