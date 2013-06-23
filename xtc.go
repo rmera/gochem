@@ -1,4 +1,5 @@
 // +build xtc
+
 /*
  * xtc.go, part of gochem
  *
