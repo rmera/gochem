@@ -39,7 +39,7 @@ type Traj interface {
 	Readable() bool
 
 	//reads the next frame and returns it as DenseMatrix if keep==true, or discards it if false
-	Next(keep bool) (*CoordMatrix, error)
+	Next(output *CoordMatrix)  error
 
 	//Returns the number of atoms per frame
 	Len() int
@@ -54,7 +54,7 @@ type ConcTraj interface {
 	form the trajectory. The frames are discarted if the corresponding elemetn of the slice
 	is false. The function returns a slice of channels through each of each of which
 	a *matrix.DenseMatrix will be transmited*/
-	NextConc(frames []bool) ([]chan *CoordMatrix, error)
+	NextConc(frames []*CoordMatrix) ([]chan *CoordMatrix, error)
 
 	//Returns the number of atoms per frame
 	Len() int

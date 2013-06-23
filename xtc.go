@@ -1,4 +1,5 @@
 // +build xtc
+
 /*
  * xtc.go, part of gochem
  *
@@ -132,7 +133,8 @@ func (X *XtcObj) Next(output *CoordMatrix) (error) {
 }
 
 
-func (X *XtcObj)SetConcBuffer(batchsize int) error{
+//SetConcBuffer 
+func (X *XtcObj)setConcBuffer(batchsize int) error{
 	l:=X.buffSize
 	if l==batchsize{
 		return nil
@@ -158,7 +160,7 @@ form the trajectory. The frames are discarted if the corresponding elemetn of th
 * a *matrix.DenseMatrix will be transmited*/
 func (X *XtcObj) NextConc(frames []*CoordMatrix) ([]chan *CoordMatrix, error) {
 	if X.buffSize<len(frames){
-		X.SetConcBuffer(len(frames))
+		X.setConcBuffer(len(frames))
 		}
 	if X.natoms == 0 {
 		return nil, fmt.Errorf("Traj object uninitialized to read")
