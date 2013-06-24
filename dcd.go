@@ -43,6 +43,7 @@ const RSCAL32BITS int32 = 1
 //Container for an Charmm/NAMD binary trajectory file.
 type DcdObj struct {
 	natoms     int32
+	buffSize   int
 	readLast   bool //Have we read the last frame?
 	readable   bool //Is it ready to be read?
 	filename   string
@@ -53,6 +54,7 @@ type DcdObj struct {
 	fixed      int32    //Fixed atoms (not supported)
 	dcd        *os.File //The DCD file
 	dcdFields  [][]float32
+	concBuffer [][][]float32
 	endian     binary.ByteOrder
 }
 
@@ -61,6 +63,11 @@ func MakeDcd(filename string) (*DcdObj, error) {
 	if err := traj.initRead(filename); err != nil {
 		return nil, err
 	}
+	traj.dcdFields = make([][]float32, 3, 3)
+	traj.dcdFields[0] = make([]float32, int(traj.natoms), int(traj.natoms))
+	traj.dcdFields[1] = make([]float32, int(traj.natoms), int(traj.natoms))
+	traj.dcdFields[2] = make([]float32, int(traj.natoms), int(traj.natoms))
+	traj.concBuffer=append(traj.concBuffer,traj.dcdFields)
 	return traj, nil
 
 }
@@ -202,9 +209,9 @@ func (D *DcdObj) initRead(name string) error {
 //With initread. If keep is true, returns a pointer to matrix.DenseMatrix
 //With the coordinates read, otherwiser, it discards the coordinates and
 //returns nil.
-func (D *DcdObj) Next(keep bool) (*CoordMatrix, error) {
+func (D *DcdObj) Next(keep *CoordMatrix) error {
 	if !D.readable {
-		return nil, fmt.Errorf("Not readable")
+		return fmt.Errorf("Not readable")
 	}
 	if D.dcdFields == nil {
 		D.dcdFields = make([][]float32, 3, 3)
@@ -213,23 +220,24 @@ func (D *DcdObj) Next(keep bool) (*CoordMatrix, error) {
 		D.dcdFields[2] = make([]float32, int(D.natoms), int(D.natoms))
 	}
 	if err := D.nextRaw(D.dcdFields); err != nil {
-		return nil, D.eOF2NoMoreFrames(err)
+		return D.eOF2NoMoreFrames(err)
 	}
-	if !keep {
-		return nil, nil
+	if keep==nil {
+		return nil
 	}
-	outBlock := make([]float64, int(D.natoms)*3, int(D.natoms)*3)
+	if r,_:=keep.Dims(); int32(r)<D.natoms {
+		panic("Not enough space in matrix")
+		}
+	//outBlock := make([]float64, int(D.natoms)*3, int(D.natoms)*3)
 	for i := 0; i < int(D.natoms); i++ {
-		j := i + (i * 2)
 		k := i - i*(i/int(D.natoms))
-		outBlock[j] = float64(D.dcdFields[0][k])
-		outBlock[j+1] = float64(D.dcdFields[1][k])
-		outBlock[j+2] = float64(D.dcdFields[2][k])
+		keep.Set(k,0,float64(D.dcdFields[0][k]))
+		keep.Set(k,1,float64(D.dcdFields[1][k]))
+		keep.Set(k,2,float64(D.dcdFields[2][k]))
 	}
-	final := NewCoords(outBlock, int(D.natoms), 3)
+//	final := NewCoords(outBlock, int(D.natoms), 3)
 	//	fmt.Print(final)/////////7
-	return final, nil
-
+	return nil
 }
 
 //Next Reads the next frame in a XtcObj that has been initialized for read
@@ -245,7 +253,6 @@ func (D *DcdObj) nextRaw(blocks [][]float32) error {
 		D.readable = false
 		return fmt.Errorf("No more frames")
 	}
-
 	//if there is an extra block we just skip it.
 	//Sadly, even when there is an extra block, it is not present in all
 	//snapshots for some trajectories, so we must use the block size to see if
@@ -370,45 +377,69 @@ func (D *DcdObj) eOF2NoMoreFrames(err error) error {
 	return err
 }
 
+
+func (D *DcdObj)setConcBuffer(batchsize int) error{
+	l:=D.buffSize
+	if l==batchsize{
+		return nil
+	} else if l>batchsize{
+		for i:=batchsize;i<l;i++{
+			for j,_:=range(D.concBuffer[i]){
+				D.concBuffer[i][j]=nil
+				}
+			D.concBuffer[i]=nil  //no idea if this actually works
+		}
+		D.concBuffer=D.concBuffer[:batchsize-1] //not sure if this frees the remaining []float32 slices
+		D.buffSize=batchsize
+		return nil
+	}
+	for i:=0;i<batchsize-l;i++{
+		x := make([]float32,D.Len())
+		y := make([]float32,D.Len())
+		z := make([]float32,D.Len())
+		tmp:=[][]float32{x,y,z}
+		D.concBuffer=append(D.concBuffer,tmp)
+	}
+	D.buffSize=batchsize
+	return nil
+}
+
+
 /*NextConc takes a slice of bools and reads as many frames as elements the list has
 form the trajectory. The frames are discarted if the corresponding elemetn of the slice
 * is false. The function returns a slice of channels through each of each of which
 * a *matrix.DenseMatrix will be transmited*/
-func (D *DcdObj) NextConc(frames []bool) ([]chan *CoordMatrix, error) {
+func (D *DcdObj) NextConc(frames []*CoordMatrix) ([]chan *CoordMatrix, error) {
 	if !D.Readable() {
 		return nil, fmt.Errorf("Traj object uninitialized to read")
 	}
 	framechans := make([]chan *CoordMatrix, len(frames)) //the slice of chans that will be returned
-	totalcoords := D.natoms * 3
-	for key, val := range frames {
-		goCoords := make([]float64, totalcoords, totalcoords)
-		DFields := make([][]float32, 3, 3)
-		DFields[0] = make([]float32, int(D.natoms), int(D.natoms))
-		DFields[1] = make([]float32, int(D.natoms), int(D.natoms))
-		DFields[2] = make([]float32, int(D.natoms), int(D.natoms))
+	if D.buffSize<len(frames){
+		D.setConcBuffer(len(frames))
+		}
+	for key, _ := range frames {
+		DFields := D.concBuffer[key]
 		if err := D.nextRaw(DFields); err != nil {
 			return nil, D.eOF2NoMoreFrames(err)
 		}
 		//We have to test for used twice to allow allocating for goCoords
 		//When the buffer is not going to be used.
-		if val == false {
+		if frames[key] == nil {
 			framechans[key] = nil //ignored frame
 			continue
 		}
 		framechans[key] = make(chan *CoordMatrix)
 		//Now the parallel part
-		go func(natoms int, DFields [][]float32, goCoords []float64, pipe chan *CoordMatrix) {
+		go func(natoms int, DFields [][]float32, keep *CoordMatrix, pipe chan *CoordMatrix) {
 			for i := 0; i < int(D.natoms); i++ {
-				j := i + (i * 2)
 				k := i - i*(i/int(D.natoms))
-				goCoords[j] = float64(DFields[0][k])
-				goCoords[j+1] = float64(DFields[1][k])
-				goCoords[j+2] = float64(DFields[2][k])
+				keep.Set(k,0,float64(DFields[0][k]))
+				keep.Set(k,1,float64(DFields[1][k]))
+				keep.Set(k,2,float64(DFields[2][k]))
 			}
-			temp := NewCoords(goCoords, natoms, 3)
 			//			fmt.Println("in gorutine!", temp.GetRowVector(2))
-			pipe <- temp
-		}(int(D.natoms), DFields, goCoords, framechans[key])
+			pipe <- keep
+		}(int(D.natoms), DFields, frames[key], framechans[key])
 	}
 	return framechans, nil
 }

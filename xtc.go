@@ -50,7 +50,9 @@ type XtcObj struct {
 	filename string
 	fp       *C.XDRFILE //pointer to the XDRFILE
 	goCoords []float64
+	concBuffer [][]C.float
 	cCoords  []C.float
+	buffSize int
 }
 
 func MakeXtc(filename string) (*XtcObj, error) {
@@ -84,8 +86,10 @@ func (X *XtcObj) initRead(name string) error {
 		return fmt.Errorf("Unable to open xtc file")
 	}
 	//The idea is to reserve less memory, using the same buffer many times.
-	X.goCoords = make([]float64, totalcoords, totalcoords)
+	//X.goCoords = make([]float64, totalcoords, totalcoords)
 	X.cCoords = make([]C.float, totalcoords, totalcoords)
+	X.concBuffer=append(X.concBuffer,X.cCoords)
+	X.buffSize=1
 	//This should close the file.
 	runtime.SetFinalizer(X, func(X *XtcObj) {
 		C.xtc_close(X.fp)
@@ -98,62 +102,75 @@ func (X *XtcObj) initRead(name string) error {
 //With initread. If keep is true, returns a pointer to matrix.DenseMatrix
 //With the coordinates read, otherwiser, it discards the coordinates and
 //returns nil.
-func (X *XtcObj) Next(keep bool) (*CoordMatrix, error) {
+func (X *XtcObj) Next(output *CoordMatrix) (error) {
 	if !X.Readable() {
-		return nil, fmt.Errorf("Traj object uninitialized to read")
+		return fmt.Errorf("Traj object uninitialized to read")
 	}
-	totalcoords := 3 * X.natoms
 	cnatoms := C.int(X.natoms)
 	worked := C.get_coords(X.fp, &X.cCoords[0], cnatoms)
 	if worked == 11 {
 		X.readable = false
-		return nil, fmt.Errorf("No more frames") //This is not really an error and should be catched in the calling function
+		return fmt.Errorf("No more frames") //This is not really an error and should be catched in the calling function
 	}
 	if worked != 0 {
 		X.readable = false
-		return nil, fmt.Errorf("Error reading frame")
+		return fmt.Errorf("Error reading frame")
 	}
-	if keep == true { //collect the trame
-		//make sure the buffer is there.
-		if X.goCoords == nil {
-			X.goCoords = make([]float64, totalcoords, totalcoords)
+	if output!=nil{ //collect the frame
+		r,c:=output.Dims()
+		if r <(X.natoms){
+			panic("CoordMatrix too small!")
+			}
+		for j := 0; j < r; j++ {
+			for k:=0;k<c;k++{
+				l:=k+(3*j)
+				output.Set(j,k,(10*float64(X.cCoords[l]))) //nm to Angstroms
+			}
 		}
-		for j := 0; j < totalcoords; j++ {
-			X.goCoords[j] = 10 * (float64(X.cCoords[j])) //nm to Angstroms
-		}
-		return NewCoords(X.goCoords, X.natoms, 3), nil
+		return  nil
 	}
-	return nil, nil //Just drop the frame
+	return nil //Just drop the frame
+}
+
+
+//SetConcBuffer 
+func (X *XtcObj)setConcBuffer(batchsize int) error{
+	l:=X.buffSize
+	if l==batchsize{
+		return nil
+	} else if l>batchsize{
+		for i:=batchsize;i<l;i++{
+			X.concBuffer[i]=nil  //no idea if this actually works
+			}
+		X.concBuffer=X.concBuffer[:batchsize-1] //not sure if this frees the remaining []float32 slices
+		X.buffSize=batchsize
+		return nil
+		}
+	for i:=0;i<batchsize-l;i++{
+		tmp := make([]C.float,X.Len()*3,)
+		X.concBuffer=append(X.concBuffer,tmp)
+	}
+	X.buffSize=batchsize
+	return nil
 }
 
 /*NextConc takes a slice of bools and reads as many frames as elements the list has
 form the trajectory. The frames are discarted if the corresponding elemetn of the slice
 * is false. The function returns a slice of channels through each of each of which
 * a *matrix.DenseMatrix will be transmited*/
-func (X *XtcObj) NextConc(frames []bool) ([]chan *CoordMatrix, error) {
-	//For this we dont need this memory
-	if X.goCoords != nil {
-		X.goCoords = nil
-	}
+func (X *XtcObj) NextConc(frames []*CoordMatrix) ([]chan *CoordMatrix, error) {
+	if X.buffSize<len(frames){
+		X.setConcBuffer(len(frames))
+		}
 	if X.natoms == 0 {
 		return nil, fmt.Errorf("Traj object uninitialized to read")
 	}
 	framechans := make([]chan *CoordMatrix, len(frames)) //the slice of chans that will be returned
-	totalcoords := X.natoms * 3
 	cnatoms := C.int(X.natoms)
 	used := false
 	for key, val := range frames {
-		cCoords := X.cCoords
-		/*There was a data race here. 
-		if I try to used the buffer in X.goCoords, even if I check that its overwritten with the
-		* values from this frame, and that is sent to the channel, somewhow the channel gets the
-		* a matrix witht he values previously stored in the buffer. The solution here, just not use
-		* the buffer, works but wastes the memory of the buffer*/
-		goCoords := make([]float64, totalcoords, totalcoords) //X.goCoords
-		if used == true {
-			cCoords = make([]C.float, totalcoords, totalcoords)
-		}
-		worked := C.get_coords(X.fp, &cCoords[0], cnatoms)
+		//cCoords:=X.concBuffer[key]
+		worked := C.get_coords(X.fp, &X.concBuffer[key][0], cnatoms)
 		//Error handling
 		if worked == 11 {
 			if used == false {
@@ -168,22 +185,23 @@ func (X *XtcObj) NextConc(frames []bool) ([]chan *CoordMatrix, error) {
 			X.readable = false
 			return nil, fmt.Errorf("Error reading frame")
 		}
-		//We have to test for used twice to allow allocating for goCoords
-		//When the buffer is not going to be used.
-		if val == false {
+		if val == nil {
 			framechans[key] = nil //ignored frame
 			continue
 		}
 		used = true
 		framechans[key] = make(chan *CoordMatrix)
 		//Now the parallel part
-		go func(natoms int, cCoords []C.float, goCoords []float64, pipe chan *CoordMatrix) {
-			for j := 0; j < natoms*3; j++ {
-				goCoords[j] = 10 * (float64(cCoords[j])) //nm to Angstroms
+		go func(natoms int, cCoords []C.float, goCoords *CoordMatrix, pipe chan *CoordMatrix) {
+			r,c:=goCoords.Dims()
+			for j := 0; j < r; j++ {
+				for k:=0;k<c;k++{
+					l:=k+(3*j)
+					goCoords.Set(j,k,(10*float64(cCoords[l]))) //nm to Angstroms
+				}
 			}
-			temp := NewCoords(goCoords, natoms, 3)
-			pipe <- temp
-		}(X.natoms, cCoords, goCoords, framechans[key])
+			pipe <- goCoords
+		}(X.natoms, X.concBuffer[key], val, framechans[key])
 	}
 	return framechans, nil
 }
