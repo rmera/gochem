@@ -43,30 +43,6 @@ func Rad2Deg(f float64) float64 {
 	return f / 0.0174533
 }
 
-//IndexFileParse will read a file which contains one line with integer numbers separated by spaces. It returns those numbers
-//as a slice of ints, and an error or nil.
-//WARNING: Not fully tested.
-func IndexFileParse(filename string) ([]int, error){
-	parfile, err := os.Open(filename)
-	if err != nil {
-		return nil, err
-	}
-	defer parfile.Close()
-	indexes := bufio.NewReader(parfile)
-	line, err := indexes.ReadString('\n')
-	if err != nil {
-		return nil, err
-		}
-	fields := strings.Fields(line)
-	ret:=make([]int,len(fields))
-	for key,val:=range(fields){
-		ret[key], err = strconv.Atoi(val)
-		if err!=nil{
-			return nil, err
-			}
-		}
-	return ret, nil
-}
 
 
 //Molecules2Atoms gets a selection list from a list of residues.
