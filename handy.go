@@ -29,11 +29,6 @@
 package chem
 
 import "fmt"
-import "reflect"
-import "os"
-import "bufio"
-import "strconv"
-import "strings"
 
 func Deg2Rad(f float64) float64 {
 	return f * 0.0174533
@@ -186,22 +181,3 @@ func isInString(container []string, test string) bool {
 	return false
 }
 
-//IsIn returns the position of test in the slice set, or
-// -1 if test is not present in set. Panics if set is not a slice
-func isIn(test interface{}, set interface{}) int {
-	vset := reflect.ValueOf(set)
-	if reflect.TypeOf(set).Kind().String() != "slice" {
-		panic("IsIn function needs a slice as second argument!")
-	}
-	if vset.Len() < 0 {
-		return 1
-	}
-	for i := 0; i < vset.Len(); i++ {
-		vcomp := vset.Index(i)
-		comp := vcomp.Interface()
-		if reflect.DeepEqual(test, comp) {
-			return i
-		}
-	}
-	return -1
-}
