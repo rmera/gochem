@@ -99,7 +99,7 @@ func RamaCalc(M *CoordMatrix, dihedrals []RamaSet) ([][]float64, error) {
 	if M == nil || dihedrals == nil {
 		return nil, fmt.Errorf("RamaCalc: Given nil data")
 	}
-	r,c:=M.Dims()
+	r,_:=M.Dims()
 	Rama := make([][]float64, 0, len(dihedrals))
 	for _, j := range dihedrals {
 		if j.Npost>=r{
