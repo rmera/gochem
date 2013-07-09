@@ -605,7 +605,7 @@ func (F *CoordMatrix) Stack(A, B *CoordMatrix) {
 			if i < Arows {
 				F.Set(i, j, A.At(i, j))
 			} else {
-				F.Set(i, j, B.At(i, j))
+				F.Set(i, j, B.At(i-Arows, j))
 			}
 		}
 	}
