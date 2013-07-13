@@ -45,6 +45,12 @@ type PointCharge struct {
 	Coords *CoordMatrix
 }
 
+type IConstraint struct {
+	CAtoms []int
+	Val   float64
+	Class  byte   // B: distance, A: angle, D: Dihedral
+	}
+
 type QMCalc struct {
 	Method       string
 	Basis        string
@@ -59,6 +65,7 @@ type QMCalc struct {
 	HBElements   []string
 	LBElements   []string
 	CConstraints []int //cartesian contraints
+	IConstraints []*IConstraint
 	//	IConstraints []IntConstraint //internal constraints
 	Dielectric float64
 	//	Solventmethod string
@@ -226,6 +233,10 @@ func (O *OrcaRunner) BuildInput(atoms Ref, coords *CoordMatrix, Q *QMCalc) error
 	MainOptions := []string{"!", hfuhf, Q.Method, Q.Basis, Q.auxBasis, Q.auxColBasis, tight, disp, conv, Q.Guess, opt, Q.Others, pal, ri, "\n"}
 	mainline := strings.Join(MainOptions, " ")
 	constraints := O.buildCConstraints(Q.CConstraints)
+	iconstraints,err:=O.buildIConstraints(Q.IConstraints)
+	if err!=nil{
+		return err
+	}
 	cosmo := ""
 	if Q.Dielectric > 0 {
 		cosmo = fmt.Sprintf("%%cosmo epsilon %1.0f\n        refrac 1.30\n        end\n", Q.Dielectric)
@@ -259,13 +270,14 @@ func (O *OrcaRunner) BuildInput(atoms Ref, coords *CoordMatrix, Q *QMCalc) error
 	}
 	fmt.Fprint(file, moinp)
 	fmt.Fprint(file, constraints)
+	fmt.Fprint(file, iconstraints)
 	fmt.Fprint(file, ElementBasis)
 	fmt.Fprint(file, cosmo)
 	fmt.Fprint(file, "\n")
 	//Now the type of coords, charge and multiplicity
 	fmt.Fprintf(file, "* xyz %d %d\n", atoms.Charge(), atoms.Unpaired()+1)
 	//now the coordinates
-	fmt.Println(atoms.Len(), coords.Rows()) ///////////////
+//	fmt.Println(atoms.Len(), coords.Rows()) ///////////////
 	for i := 0; i < atoms.Len(); i++ {
 		newbasis := ""
 		if isInInt(Q.HBAtoms, i) == true {
@@ -302,6 +314,48 @@ func (O *OrcaRunner) Run(wait bool) (err error) {
 	}
 	return err
 }
+
+
+//buildIConstraints transforms the list of cartesian constrains in the QMCalc structre
+//into a string with ORCA-formatted internal constraints. 
+
+func (O *OrcaRunner) buildIConstraints(C []*IConstraint) (string, error) {
+	if C == nil {
+		return "\n", nil //no constraints
+	}
+	constraints := make([]string, len(C)+3)
+	constraints[0] = "%geom Constraints\n"
+	for key, val := range C {
+
+		if iConstraintOrder[val.Class]!=len(val.CAtoms){
+			return "", fmt.Errorf("Internal constraint ill-formated")
+		}
+
+		var temp string
+		if val.Class=='B'{
+			temp=fmt.Sprintf("         {B %d %d %2.3f C}\n", val.CAtoms[0],val.CAtoms[1],val.Val)
+		}else if val.Class=='A'{
+			temp=fmt.Sprintf("         {A %d %d %d %2.3f C}\n", val.CAtoms[0],val.CAtoms[1],val.CAtoms[2],val.Val)
+		}else if val.Class=='D'{
+			temp=fmt.Sprintf("         {D %d %d %d %d %2.3f C}\n", val.CAtoms[0],val.CAtoms[1],val.CAtoms[2],val.CAtoms[3],val.Val)
+		}
+		constraints[key+1] = temp
+	}
+	last := len(constraints) - 1
+	constraints[last-1] = "         end\n"
+	constraints[last] = " end\n"
+	final := strings.Join(constraints, "")
+	return final, nil
+}
+
+var iConstraintOrder = map[byte]int{
+	'B': 2,
+	'A': 3,
+	'D': 4,
+}
+
+
+
 
 //buildCConstraints transforms the list of cartesian constrains in the QMCalc structre
 //into a string with ORCA-formatted cartesian constraints
