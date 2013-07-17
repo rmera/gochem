@@ -453,11 +453,13 @@ func (M *Molecule) Corrupted() error {
 		}
 		//Since bfactors are not as important as coordinates, we will just fill with
 		//zeroes anything that is lacking or incomplete instead of returning an error.
-		bfr, _ := M.Bfactors[i].Dims()
+
 		if lastbfac < i {
 			bfacs := gnZeros(M.Len(), 1)
 			M.Bfactors = append(M.Bfactors, bfacs)
-		} else if bfr < M.Len() {
+		}
+		bfr, _ := M.Bfactors[i].Dims()
+		if bfr < M.Len() {
 			M.Bfactors[i] = gnZeros(M.Len(), 1)
 		}
 	}

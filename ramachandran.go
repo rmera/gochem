@@ -50,23 +50,24 @@ type RamaSet struct {
   contained in fulldata, which can contain data for various different snapshopts.
   In the latter case, many png files are produced. The file names are plotnameXX.png
   where XX is the frame number (not limited to digits). Returns an error*/
-func RamaPlot(data [][]float64, plotname string) error  {
+func RamaPlot(data [][]float64, plotname, title string, tag int) error  {
 	if data == nil {
 		panic("Given nil data")
 	}
-	pts := make(plotter.XYs, len(data)) //just first frame for now
+/*	pts := make(plotter.XYs, len(data)) //just first frame for now
 	//this might not be too efficient
 	for key, val := range data {
 		pts[key].X = val[0]
 		pts[key].Y = val[1]
 	}
+*/
 	// Create a new plot, set its title and
 	// axis labels.
 	p, err := plot.New()
 	if err != nil {
 		return err
 	}
-	p.Title.Text = "Ramachandran plot"
+	p.Title.Text = title //"Ramachandran plot"
 	p.X.Label.Text = "Phi"
 	p.Y.Label.Text = "Psi"
 	//Constant axes
@@ -76,14 +77,37 @@ func RamaPlot(data [][]float64, plotname string) error  {
 	p.Y.Max = 180
 	// Draw the grid
 	p.Add(plotter.NewGrid())
-	// Make a scatter plotter and set its style.
-	s, err := plotter.NewScatter(pts)
-	if err != nil {
-		return err
+	critical:=0 // this is the residue where I run out of RB combinations and have to start adding green.
+	temp:=make(plotter.XYs,1)
+	//Here we try to produce one color for each point. First e go from red to blue, and we continue with blue to green.
+	for key,val:=range(data){
+		temp[0].X=val[0]
+		temp[0].Y=val[1]
+		// Make a scatter plotter and set its style.
+		s, err := plotter.NewScatter(temp) //(pts)
+		if err != nil {
+			return err
+		}
+		var g uint8
+		norm:=(2*255.0/len(data))+1
+		b:=uint8(key*norm)
+		r:=uint8(255)-b
+		if norm==256{
+			critical=key
+			}
+		if key*norm>255{
+			g=uint8(norm*(key-critical))
+			b=255-g
+			r=0
+		}
+		if key==tag{
+			s.GlyphStyle.Shape=plot.PyramidGlyph{}
+			}
+		s.GlyphStyle.Color = color.RGBA{R:r,B:b,G:g,A: 255}
+//		fmt.Println(r,b,g, key, norm, len(data)) //////////////////////////
+		// Add the plotter
+		p.Add(s)
 	}
-	s.GlyphStyle.Color = color.RGBA{R: 255, A: 255}
-	// Add the plotter
-	p.Add(s)
 	// Save the plot to a PNG file.
 	filename := fmt.Sprintf("%s.png", plotname)
 	if err := p.Save(4, 4, filename); err != nil {
@@ -118,16 +142,25 @@ func RamaCalc(M *CoordMatrix, dihedrals []RamaSet) ([][]float64, error) {
 	return Rama, nil
 }
 
-
-func RamaResidueFilter(dihedrals []RamaSet, filterdata []string, shouldBePresent bool) []RamaSet{
+//Filter the set of dihedral angles of a ramachandran plot by residue.(ex. only GLY, everything but GLY)
+//The 3 letter code of the residues to be filtered in or out is in filterdata, whether they are filter in 
+//or out depends on shouldBePresent. It returns the filtered data and a slice containing the indexes in 
+//the new data of the residues in the old data, when they are included, or -1 when they are not included.
+func RamaResidueFilter(dihedrals []RamaSet, filterdata []string, shouldBePresent bool) ([]RamaSet, []int){
 	RetList := make([]RamaSet, 0, 0)
-	for _,val:=range(dihedrals){
+	Index:=make([]int,len(dihedrals))
+	var added int
+	for key,val:=range(dihedrals){
 		isPresent:=isInString(filterdata, val.Molname)
 		if isPresent==shouldBePresent{
 			RetList=append(RetList,val)
+			Index[key]=added
+			added++
+			}else{
+			Index[key]=-1
 			}
 		}
-	return RetList
+	return RetList, Index
 }
 
 

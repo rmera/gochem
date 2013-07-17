@@ -43,13 +43,19 @@ func TestRama(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
-	ramalist2:=RamaResidueFilter(ramalist, []string{"HIS","GLY"},true)
+	ramalist2,index:=RamaResidueFilter(ramalist, []string{"HIS","GLY"},true)
 	rama, err := RamaCalc(mol.Coords[0], ramalist2)
 	if err != nil {
 		Te.Error(err)
 	}
+	var i int
+	for i=0;i<len(ramalist);i++{
+		if index[i]!=-1{
+			break
+			}
+		}
 	fmt.Println("Rama", rama, len(rama), len(ramalist), mol.Len())
-	err = RamaPlot(rama, "test/Rama")
+	err = RamaPlot(rama, "test/Rama","Test Ramachandran",index[i])
 	if err != nil {
 		Te.Error(err)
 	}
