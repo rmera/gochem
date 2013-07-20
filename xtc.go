@@ -45,14 +45,14 @@ import "runtime"
 
 //Container for an GROMACS XTC binary trajectory file.
 type XtcObj struct {
-	readable bool
-	natoms   int
-	filename string
-	fp       *C.XDRFILE //pointer to the XDRFILE
-	goCoords []float64
+	readable   bool
+	natoms     int
+	filename   string
+	fp         *C.XDRFILE //pointer to the XDRFILE
+	goCoords   []float64
 	concBuffer [][]C.float
-	cCoords  []C.float
-	buffSize int
+	cCoords    []C.float
+	buffSize   int
 }
 
 func MakeXtc(filename string) (*XtcObj, error) {
@@ -88,8 +88,8 @@ func (X *XtcObj) initRead(name string) error {
 	//The idea is to reserve less memory, using the same buffer many times.
 	//X.goCoords = make([]float64, totalcoords, totalcoords)
 	X.cCoords = make([]C.float, totalcoords, totalcoords)
-	X.concBuffer=append(X.concBuffer,X.cCoords)
-	X.buffSize=1
+	X.concBuffer = append(X.concBuffer, X.cCoords)
+	X.buffSize = 1
 	//This should close the file.
 	runtime.SetFinalizer(X, func(X *XtcObj) {
 		C.xtc_close(X.fp)
@@ -102,7 +102,7 @@ func (X *XtcObj) initRead(name string) error {
 //With initread. If keep is true, returns a pointer to matrix.DenseMatrix
 //With the coordinates read, otherwiser, it discards the coordinates and
 //returns nil.
-func (X *XtcObj) Next(output *CoordMatrix) (error) {
+func (X *XtcObj) Next(output *CoordMatrix) error {
 	if !X.Readable() {
 		return fmt.Errorf("Traj object uninitialized to read")
 	}
@@ -116,41 +116,40 @@ func (X *XtcObj) Next(output *CoordMatrix) (error) {
 		X.readable = false
 		return fmt.Errorf("Error reading frame")
 	}
-	if output!=nil{ //collect the frame
-		r,c:=output.Dims()
-		if r <(X.natoms){
+	if output != nil { //collect the frame
+		r, c := output.Dims()
+		if r < (X.natoms) {
 			panic("CoordMatrix too small!")
-			}
+		}
 		for j := 0; j < r; j++ {
-			for k:=0;k<c;k++{
-				l:=k+(3*j)
-				output.Set(j,k,(10*float64(X.cCoords[l]))) //nm to Angstroms
+			for k := 0; k < c; k++ {
+				l := k + (3 * j)
+				output.Set(j, k, (10 * float64(X.cCoords[l]))) //nm to Angstroms
 			}
 		}
-		return  nil
+		return nil
 	}
 	return nil //Just drop the frame
 }
 
-
-//SetConcBuffer 
-func (X *XtcObj)setConcBuffer(batchsize int) error{
-	l:=X.buffSize
-	if l==batchsize{
+//SetConcBuffer
+func (X *XtcObj) setConcBuffer(batchsize int) error {
+	l := X.buffSize
+	if l == batchsize {
 		return nil
-	} else if l>batchsize{
-		for i:=batchsize;i<l;i++{
-			X.concBuffer[i]=nil  //no idea if this actually works
-			}
-		X.concBuffer=X.concBuffer[:batchsize-1] //not sure if this frees the remaining []float32 slices
-		X.buffSize=batchsize
-		return nil
+	} else if l > batchsize {
+		for i := batchsize; i < l; i++ {
+			X.concBuffer[i] = nil //no idea if this actually works
 		}
-	for i:=0;i<batchsize-l;i++{
-		tmp := make([]C.float,X.Len()*3,)
-		X.concBuffer=append(X.concBuffer,tmp)
+		X.concBuffer = X.concBuffer[:batchsize-1] //not sure if this frees the remaining []float32 slices
+		X.buffSize = batchsize
+		return nil
 	}
-	X.buffSize=batchsize
+	for i := 0; i < batchsize-l; i++ {
+		tmp := make([]C.float, X.Len()*3)
+		X.concBuffer = append(X.concBuffer, tmp)
+	}
+	X.buffSize = batchsize
 	return nil
 }
 
@@ -159,9 +158,9 @@ form the trajectory. The frames are discarted if the corresponding elemetn of th
 * is false. The function returns a slice of channels through each of each of which
 * a *matrix.DenseMatrix will be transmited*/
 func (X *XtcObj) NextConc(frames []*CoordMatrix) ([]chan *CoordMatrix, error) {
-	if X.buffSize<len(frames){
+	if X.buffSize < len(frames) {
 		X.setConcBuffer(len(frames))
-		}
+	}
 	if X.natoms == 0 {
 		return nil, fmt.Errorf("Traj object uninitialized to read")
 	}
@@ -193,11 +192,11 @@ func (X *XtcObj) NextConc(frames []*CoordMatrix) ([]chan *CoordMatrix, error) {
 		framechans[key] = make(chan *CoordMatrix)
 		//Now the parallel part
 		go func(natoms int, cCoords []C.float, goCoords *CoordMatrix, pipe chan *CoordMatrix) {
-			r,c:=goCoords.Dims()
+			r, c := goCoords.Dims()
 			for j := 0; j < r; j++ {
-				for k:=0;k<c;k++{
-					l:=k+(3*j)
-					goCoords.Set(j,k,(10*float64(cCoords[l]))) //nm to Angstroms
+				for k := 0; k < c; k++ {
+					l := k + (3 * j)
+					goCoords.Set(j, k, (10 * float64(cCoords[l]))) //nm to Angstroms
 				}
 			}
 			pipe <- goCoords

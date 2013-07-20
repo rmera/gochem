@@ -30,6 +30,7 @@ package chem
 import (
 	"code.google.com/p/plotinum/plot"
 	"code.google.com/p/plotinum/plotter"
+	"code.google.com/p/plotinum/vg"
 	"fmt"
 	"image/color"
 	"math"
@@ -37,36 +38,21 @@ import (
 )
 
 type RamaSet struct {
-	Cprev int
-	N int
-	Ca int
-	C int
-	Npost int
-	Molid int
+	Cprev   int
+	N       int
+	Ca      int
+	C       int
+	Npost   int
+	Molid   int
 	Molname string
-	}
+}
 
-/*Produce plots, in png format for the ramachandran data (psi and phi dihedrals)
-  contained in fulldata, which can contain data for various different snapshopts.
-  In the latter case, many png files are produced. The file names are plotnameXX.png
-  where XX is the frame number (not limited to digits). Returns an error*/
-func RamaPlot(data [][]float64, plotname, title string, tag int) error  {
-	if data == nil {
-		panic("Given nil data")
-	}
-/*	pts := make(plotter.XYs, len(data)) //just first frame for now
-	//this might not be too efficient
-	for key, val := range data {
-		pts[key].X = val[0]
-		pts[key].Y = val[1]
-	}
-*/
-	// Create a new plot, set its title and
-	// axis labels.
+func basicRamaPlot(title string) (*plot.Plot, error) {
 	p, err := plot.New()
 	if err != nil {
-		return err
+		return nil, err
 	}
+	p.Title.Padding = vg.Millimeters(3)
 	p.Title.Text = title //"Ramachandran plot"
 	p.X.Label.Text = "Phi"
 	p.Y.Label.Text = "Psi"
@@ -75,45 +61,142 @@ func RamaPlot(data [][]float64, plotname, title string, tag int) error  {
 	p.X.Max = 180
 	p.Y.Min = -180
 	p.Y.Max = 180
-	// Draw the grid
 	p.Add(plotter.NewGrid())
-	critical:=0 // this is the residue where I run out of RB combinations and have to start adding green.
-	temp:=make(plotter.XYs,1)
-	//Here we try to produce one color for each point. First e go from red to blue, and we continue with blue to green.
-	for key,val:=range(data){
-		temp[0].X=val[0]
-		temp[0].Y=val[1]
+	return p, nil
+
+}
+
+func RamaPlotParts(data [][][]float64, tag [][]int, title, plotname string) error {
+	var err error
+	if data == nil {
+		panic("Given nil data")
+	}
+	// Create a new plot, set its title and
+	// axis labels.
+	p, err2 := basicRamaPlot(title)
+	if err2 != nil {
+		return err2
+	}
+	var tagged int
+	for key, val := range data {
+		temp := make(plotter.XYs, len(val))
+		for k, v := range val {
+			temp[k].X = v[0]
+			temp[k].Y = v[1]
+		}
 		// Make a scatter plotter and set its style.
 		s, err := plotter.NewScatter(temp) //(pts)
 		if err != nil {
 			return err
 		}
-		var g uint8
-		norm:=(2*255.0/len(data))+1
-		b:=uint8(key*norm)
-		r:=uint8(255)-b
-		if norm==256{
-			critical=key
+		//set the colors
+		r, g, b := colors(key, len(data))
+		s.GlyphStyle.Color = color.RGBA{R: r, B: b, G: g, A: 255}
+		//The tagging procedure is a bit complex.
+		if tag != nil {
+			if len(tag) <= len(data) {
+				panic("RamaPlotParts: If a non-nil tag slice is provided it must contain an element (which can be nil) for each element in the dihedral slice")
 			}
-		if key*norm>255{
-			g=uint8(norm*(key-critical))
-			b=255-g
-			r=0
+			if tag[key] != nil && isInInt(tag[key], key) {
+				s.GlyphStyle.Shape, err = getShape(tagged)
+				tagged++
+			}
 		}
-		if key==tag{
-			s.GlyphStyle.Shape=plot.PyramidGlyph{}
+		p.Add(s)
+
+	}
+	filename := fmt.Sprintf("%s.png", plotname)
+	//here I  intentionally shadow err.
+	if err := p.Save(5, 5, filename); err != nil {
+		return err
+	}
+
+	return err
+}
+
+func colors(key, steps int) (r, g, b uint8) {
+	norm := (2 * 255.0 / (steps + 1))
+	b = uint8(key * norm)
+	r = uint8(255) - b
+	var critical int
+	if norm*(key-1) < 256 && norm*key >= 256 {
+		critical = key
+	}
+	if key*norm > 255 {
+		g = uint8(norm * (key - critical))
+		b = 255 - g
+		r = 0
+	}
+	/*	if (key-critical)*norm>255{
+			r=uint8(norm*(key-critical))
+			g=90
+			b=255-r
+
 			}
-		s.GlyphStyle.Color = color.RGBA{R:r,B:b,G:g,A: 255}
-//		fmt.Println(r,b,g, key, norm, len(data)) //////////////////////////
+		}
+		fmt.Println(r,g,b, norm, steps)
+	*/
+	return r, g, b
+}
+
+/*Produce plots, in png format for the ramachandran data (psi and phi dihedrals)
+  contained in fulldata, which can contain data for various different snapshopts.
+  In the latter case, many png files are produced. The file names are plotnameXX.png
+  where XX is the frame number (not limited to digits). Returns an error*/
+func RamaPlot(data [][]float64, tag []int, plotname, title string) error {
+	var err error
+	if data == nil {
+		panic("Given nil data")
+	}
+	// Create a new plot, set its title and
+	// axis labels.
+	p, err := basicRamaPlot(title)
+	if err != nil {
+		return err
+	}
+	temp := make(plotter.XYs, 1)
+	var tagged int //How many residues have been tagged?
+	//Here we try to produce one color for each point. First e go from red to blue, and we continue with blue to green.
+	for key, val := range data {
+		temp[0].X = val[0]
+		temp[0].Y = val[1]
+		// Make a scatter plotter and set its style.
+		s, err := plotter.NewScatter(temp) //(pts)
+		if err != nil {
+			return err
+		}
+		r, g, b := colors(key, len(data))
+		if tag != nil && isInInt(tag, key) {
+			s.GlyphStyle.Shape, err = getShape(tagged)
+			tagged++
+		}
+		s.GlyphStyle.Color = color.RGBA{R: r, B: b, G: g, A: 255}
+		//		fmt.Println(r,b,g, key, norm, len(data)) //////////////////////////
 		// Add the plotter
 		p.Add(s)
 	}
 	// Save the plot to a PNG file.
 	filename := fmt.Sprintf("%s.png", plotname)
-	if err := p.Save(4, 4, filename); err != nil {
+	//here I  intentionally shadow err.
+	if err := p.Save(5, 5, filename); err != nil {
 		return err
 	}
-	return nil
+	return err
+}
+
+func getShape(tagged int) (plot.GlyphDrawer, error) {
+	switch tagged {
+	case 0:
+		return plot.PyramidGlyph{}, nil
+	case 1:
+		return plot.CircleGlyph{}, nil
+	case 2:
+		return plot.SquareGlyph{}, nil
+	case 3:
+		return plot.CrossGlyph{}, nil
+	default:
+		return plot.RingGlyph{}, fmt.Errorf("Maximun number of taggable residues is 4") // you can still ignore the error and will get just the regular glyph (your residue will not be tagegd)
+	}
 }
 
 /*Obtain psi and phi angles for the molecule M, considerint the dihedrals in [][]int
@@ -123,10 +206,10 @@ func RamaCalc(M *CoordMatrix, dihedrals []RamaSet) ([][]float64, error) {
 	if M == nil || dihedrals == nil {
 		return nil, fmt.Errorf("RamaCalc: Given nil data")
 	}
-	r,_:=M.Dims()
+	r, _ := M.Dims()
 	Rama := make([][]float64, 0, len(dihedrals))
 	for _, j := range dihedrals {
-		if j.Npost>=r{
+		if j.Npost >= r {
 			return nil, fmt.Errorf("RamaCalc: Index requested out of range")
 		}
 		Cprev := RowView(M, j.Cprev)
@@ -143,26 +226,25 @@ func RamaCalc(M *CoordMatrix, dihedrals []RamaSet) ([][]float64, error) {
 }
 
 //Filter the set of dihedral angles of a ramachandran plot by residue.(ex. only GLY, everything but GLY)
-//The 3 letter code of the residues to be filtered in or out is in filterdata, whether they are filter in 
-//or out depends on shouldBePresent. It returns the filtered data and a slice containing the indexes in 
+//The 3 letter code of the residues to be filtered in or out is in filterdata, whether they are filter in
+//or out depends on shouldBePresent. It returns the filtered data and a slice containing the indexes in
 //the new data of the residues in the old data, when they are included, or -1 when they are not included.
-func RamaResidueFilter(dihedrals []RamaSet, filterdata []string, shouldBePresent bool) ([]RamaSet, []int){
+func RamaResidueFilter(dihedrals []RamaSet, filterdata []string, shouldBePresent bool) ([]RamaSet, []int) {
 	RetList := make([]RamaSet, 0, 0)
-	Index:=make([]int,len(dihedrals))
+	Index := make([]int, len(dihedrals))
 	var added int
-	for key,val:=range(dihedrals){
-		isPresent:=isInString(filterdata, val.Molname)
-		if isPresent==shouldBePresent{
-			RetList=append(RetList,val)
-			Index[key]=added
+	for key, val := range dihedrals {
+		isPresent := isInString(filterdata, val.Molname)
+		if isPresent == shouldBePresent {
+			RetList = append(RetList, val)
+			Index[key] = added
 			added++
-			}else{
-			Index[key]=-1
-			}
+		} else {
+			Index[key] = -1
 		}
+	}
 	return RetList, Index
 }
-
 
 /*RamaList takes a molecule and obtains a list of lists of five int. Each element
   contain the indexes needed for one dihedral of a Rama plot. It gets the dihedral
@@ -222,10 +304,10 @@ func RamaList(M Ref, chains string, resran []int) ([]RamaSet, error) {
 				r2a := M.Atom(Ca).Molid
 				r2b := M.Atom(C).Molid
 				r3 := M.Atom(Npost).Molid
-				if r1 != r2-1 || r2 != r2a || r2a != r2b || r2b != r3-1 {
-					return nil, fmt.Errorf("Incorrect backbone")
-				}
 				if (len(resran) == 2 && (r2 >= resran[0] && r2 <= resran[1])) || isInInt(resran, r2) {
+					if r1 != r2-1 || r2 != r2a || r2a != r2b || r2b != r3-1 {
+						return nil, fmt.Errorf("Incorrect backbone Cprev: %d N-1: %d CA: %d C: %d Npost-1: %d", r1, r2-1, r2a, r2b, r3-1)
+					}
 					temp := RamaSet{Cprev, N, Ca, C, Npost, r2, M.Atom(Ca).Molname}
 					RamaList = append(RamaList, temp)
 				}

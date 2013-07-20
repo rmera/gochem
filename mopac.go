@@ -90,7 +90,7 @@ func (O *MopacRunner) BuildInput(atoms Ref, coords *CoordMatrix, Q *QMCalc) erro
 		return fmt.Errorf("Missing charges or coordinates")
 	}
 	ValidMethods := []string{"PM3", "PM6", "PM7", "AM1"}
-	if !isInString(ValidMethods,Q.Method[0:3]) { //not found
+	if !isInString(ValidMethods, Q.Method[0:3]) { //not found
 		fmt.Fprintf(os.Stderr, "no method assigned for MOPAC calculation, will used the default %s, \n", O.defmethod)
 		Q.Method = O.defmethod
 	}
@@ -247,7 +247,7 @@ func (O *MopacRunner) GetGeometry(atoms Ref) (*CoordMatrix, error) {
 			continue
 		}
 
-		if !reading && (strings.Contains(line, "FINAL  POINT  AND  DERIVATIVES") || strings.Contains(line,"GEOMETRY OPTIMISED")){
+		if !reading && (strings.Contains(line, "FINAL  POINT  AND  DERIVATIVES") || strings.Contains(line, "GEOMETRY OPTIMISED")) {
 			final_point = true
 			continue
 		}

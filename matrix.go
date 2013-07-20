@@ -66,11 +66,11 @@ func Cross3D(a, b *CoordMatrix) (*CoordMatrix, error) {
 //Cross3DRow returns the cross product of 2 row vectors. Panics if error.
 func Cross3DRow(a, b *CoordMatrix) *CoordMatrix {
 	vec := make([]float64, 3, 3)
-	_,ac:=a.Dims()
-	_,bc:=b.Dims()
-	if ac>3 || bc < 3{
+	_, ac := a.Dims()
+	_, bc := b.Dims()
+	if ac > 3 || bc < 3 {
 		panic("Malformed row vectors for cross product!")
-		}
+	}
 	vec[0] = a.At(0, 1)*b.At(0, 2) - a.At(0, 2)*b.At(0, 1)
 	vec[1] = a.At(0, 2)*b.At(0, 0) - a.At(0, 0)*b.At(0, 2)
 	vec[2] = a.At(0, 0)*b.At(0, 1) - a.At(0, 1)*b.At(0, 0)

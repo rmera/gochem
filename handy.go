@@ -38,8 +38,6 @@ func Rad2Deg(f float64) float64 {
 	return f / 0.0174533
 }
 
-
-
 //Molecules2Atoms gets a selection list from a list of residues.
 //It select all the atoms that form part of the residues in the list.
 //It doesnt return errors, if a residue is out of range, no atom will
@@ -49,7 +47,7 @@ func Molecules2Atoms(mol Ref, residues []int, chains []string) []int {
 	atlist := make([]int, 0, len(residues)*3)
 	for key := 0; key < mol.Len(); key++ {
 		at := mol.Atom(key)
-		if isInInt(residues, at.Molid) && isInString(chains, string(at.Chain)) || len(chains)==0 {
+		if isInInt(residues, at.Molid) && isInString(chains, string(at.Chain)) || len(chains) == 0 {
 			atlist = append(atlist, key)
 		}
 	}
@@ -180,4 +178,3 @@ func isInString(container []string, test string) bool {
 	}
 	return false
 }
-

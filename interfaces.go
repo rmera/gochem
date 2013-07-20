@@ -39,7 +39,7 @@ type Traj interface {
 	Readable() bool
 
 	//reads the next frame and returns it as DenseMatrix if keep==true, or discards it if false
-	Next(output *CoordMatrix)  error
+	Next(output *CoordMatrix) error
 
 	//Returns the number of atoms per frame
 	Len() int

@@ -47,9 +47,9 @@ type PointCharge struct {
 
 type IConstraint struct {
 	CAtoms []int
-	Val   float64
-	Class  byte   // B: distance, A: angle, D: Dihedral
-	}
+	Val    float64
+	Class  byte // B: distance, A: angle, D: Dihedral
+}
 
 type QMCalc struct {
 	Method       string
@@ -111,7 +111,7 @@ func (O *OrcaRunner) SetCommand(name string) {
 	O.command = name
 }
 
-func (O *OrcaRunner) SetMOName (name string) {
+func (O *OrcaRunner) SetMOName(name string) {
 	O.previousMO = name
 }
 
@@ -154,20 +154,20 @@ func (O *OrcaRunner) BuildInput(atoms Ref, coords *CoordMatrix, Q *QMCalc) error
 	}
 
 	//Set RI or RIJCOSX if needed
-	ri:=""
+	ri := ""
 	if Q.RI && Q.RIJ {
 		return fmt.Errorf("RI and RIJ cannot be activate at the same time")
 	}
 	if Q.RI {
 		Q.auxBasis = Q.Basis + "/J"
-	//	if !strings.Contains(Q.Others," RI "){
-		ri="RI"
+		//	if !strings.Contains(Q.Others," RI "){
+		ri = "RI"
 	}
 	if Q.RIJ {
 		Q.auxBasis = Q.Basis + "/J"
 		Q.auxColBasis = Q.Basis + "/C"
-	//	if !strings.Contains(Q.Others,"RIJCOSX"){
-		ri="RIJCOSX"
+		//	if !strings.Contains(Q.Others,"RIJCOSX"){
+		ri = "RIJCOSX"
 	}
 
 	disp := "VDW3"
@@ -189,9 +189,9 @@ func (O *OrcaRunner) BuildInput(atoms Ref, coords *CoordMatrix, Q *QMCalc) error
 		dir, _ := os.Open("./")     //This should always work, hence ignoring the error
 		files, _ := dir.Readdir(-1) //Get all the files.
 		for _, val := range files {
-			if O.previousMO!=""{
+			if O.previousMO != "" {
 				break
-				}
+			}
 			if val.IsDir() == true {
 				continue
 			}
@@ -233,8 +233,8 @@ func (O *OrcaRunner) BuildInput(atoms Ref, coords *CoordMatrix, Q *QMCalc) error
 	MainOptions := []string{"!", hfuhf, Q.Method, Q.Basis, Q.auxBasis, Q.auxColBasis, tight, disp, conv, Q.Guess, opt, Q.Others, pal, ri, "\n"}
 	mainline := strings.Join(MainOptions, " ")
 	constraints := O.buildCConstraints(Q.CConstraints)
-	iconstraints,err:=O.buildIConstraints(Q.IConstraints)
-	if err!=nil{
+	iconstraints, err := O.buildIConstraints(Q.IConstraints)
+	if err != nil {
 		return err
 	}
 	cosmo := ""
@@ -277,7 +277,7 @@ func (O *OrcaRunner) BuildInput(atoms Ref, coords *CoordMatrix, Q *QMCalc) error
 	//Now the type of coords, charge and multiplicity
 	fmt.Fprintf(file, "* xyz %d %d\n", atoms.Charge(), atoms.Unpaired()+1)
 	//now the coordinates
-//	fmt.Println(atoms.Len(), coords.Rows()) ///////////////
+	//	fmt.Println(atoms.Len(), coords.Rows()) ///////////////
 	for i := 0; i < atoms.Len(); i++ {
 		newbasis := ""
 		if isInInt(Q.HBAtoms, i) == true {
@@ -315,9 +315,8 @@ func (O *OrcaRunner) Run(wait bool) (err error) {
 	return err
 }
 
-
 //buildIConstraints transforms the list of cartesian constrains in the QMCalc structre
-//into a string with ORCA-formatted internal constraints. 
+//into a string with ORCA-formatted internal constraints.
 
 func (O *OrcaRunner) buildIConstraints(C []*IConstraint) (string, error) {
 	if C == nil {
@@ -327,17 +326,17 @@ func (O *OrcaRunner) buildIConstraints(C []*IConstraint) (string, error) {
 	constraints[0] = "%geom Constraints\n"
 	for key, val := range C {
 
-		if iConstraintOrder[val.Class]!=len(val.CAtoms){
+		if iConstraintOrder[val.Class] != len(val.CAtoms) {
 			return "", fmt.Errorf("Internal constraint ill-formated")
 		}
 
 		var temp string
-		if val.Class=='B'{
-			temp=fmt.Sprintf("         {B %d %d %2.3f C}\n", val.CAtoms[0],val.CAtoms[1],val.Val)
-		}else if val.Class=='A'{
-			temp=fmt.Sprintf("         {A %d %d %d %2.3f C}\n", val.CAtoms[0],val.CAtoms[1],val.CAtoms[2],val.Val)
-		}else if val.Class=='D'{
-			temp=fmt.Sprintf("         {D %d %d %d %d %2.3f C}\n", val.CAtoms[0],val.CAtoms[1],val.CAtoms[2],val.CAtoms[3],val.Val)
+		if val.Class == 'B' {
+			temp = fmt.Sprintf("         {B %d %d %2.3f C}\n", val.CAtoms[0], val.CAtoms[1], val.Val)
+		} else if val.Class == 'A' {
+			temp = fmt.Sprintf("         {A %d %d %d %2.3f C}\n", val.CAtoms[0], val.CAtoms[1], val.CAtoms[2], val.Val)
+		} else if val.Class == 'D' {
+			temp = fmt.Sprintf("         {D %d %d %d %d %2.3f C}\n", val.CAtoms[0], val.CAtoms[1], val.CAtoms[2], val.CAtoms[3], val.Val)
 		}
 		constraints[key+1] = temp
 	}
@@ -353,9 +352,6 @@ var iConstraintOrder = map[byte]int{
 	'A': 3,
 	'D': 4,
 }
-
-
-
 
 //buildCConstraints transforms the list of cartesian constrains in the QMCalc structre
 //into a string with ORCA-formatted cartesian constraints

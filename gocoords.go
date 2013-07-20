@@ -73,9 +73,8 @@ func gnZeros(rows, cols int) *CoordMatrix {
 
 //Something to survive while the gonum is implemented
 func Zeros(rows, cols int) *CoordMatrix {
-	return  gnZeros(rows, cols)
-	}
-
+	return gnZeros(rows, cols)
+}
 
 //Returns an identity matrix spanning span cols and rows
 func gnEye(span int) *CoordMatrix {
@@ -88,13 +87,12 @@ func gnEye(span int) *CoordMatrix {
 
 func Eye(span int) *CoordMatrix {
 	return gnEye(span)
-	}
-
+}
 
 //Some temporary support function.
-func Eigen(in *CoordMatrix, epsilon float64)(*CoordMatrix, []float64, error){
-	i,j,k := gnEigen(in,epsilon)
-	return i,j,k
+func Eigen(in *CoordMatrix, epsilon float64) (*CoordMatrix, []float64, error) {
+	i, j, k := gnEigen(in, epsilon)
+	return i, j, k
 }
 
 //This is a facility to sort Eigenvectors/Eigenvalues pairs

@@ -49,7 +49,6 @@ func AngleInVectors(v1, v2 *CoordMatrix) float64 {
 	return angle
 }
 
-
 //GetRotateToNewY takes a set of coordinates (mol) and a vector (y). It returns
 //a rotation matrix that, when applied to mol, will rotate it around the Z axis
 //in such a way that the projection of newy in the XY plane will be aligned with
@@ -352,8 +351,8 @@ func MassCentrate(in, oref, mass *CoordMatrix) (*CoordMatrix, *CoordMatrix, erro
 		return nil, nil, err
 	}
 	ref2 := gnZeros(1, oc)
-	g:= func(){ref2.Mul(gnOnesvector, ref)}
-	if err:=gnMaybe(gnPanicker(g));err!=nil{
+	g := func() { ref2.Mul(gnOnesvector, ref) }
+	if err := gnMaybe(gnPanicker(g)); err != nil {
 		return nil, nil, err
 	}
 	ref2.Scale(1.0/mass.Sum(), ref2)

@@ -67,7 +67,7 @@ func MakeDcd(filename string) (*DcdObj, error) {
 	traj.dcdFields[0] = make([]float32, int(traj.natoms), int(traj.natoms))
 	traj.dcdFields[1] = make([]float32, int(traj.natoms), int(traj.natoms))
 	traj.dcdFields[2] = make([]float32, int(traj.natoms), int(traj.natoms))
-	traj.concBuffer=append(traj.concBuffer,traj.dcdFields)
+	traj.concBuffer = append(traj.concBuffer, traj.dcdFields)
 	return traj, nil
 
 }
@@ -222,20 +222,20 @@ func (D *DcdObj) Next(keep *CoordMatrix) error {
 	if err := D.nextRaw(D.dcdFields); err != nil {
 		return D.eOF2NoMoreFrames(err)
 	}
-	if keep==nil {
+	if keep == nil {
 		return nil
 	}
-	if r,_:=keep.Dims(); int32(r)<D.natoms {
+	if r, _ := keep.Dims(); int32(r) < D.natoms {
 		panic("Not enough space in matrix")
-		}
+	}
 	//outBlock := make([]float64, int(D.natoms)*3, int(D.natoms)*3)
 	for i := 0; i < int(D.natoms); i++ {
 		k := i - i*(i/int(D.natoms))
-		keep.Set(k,0,float64(D.dcdFields[0][k]))
-		keep.Set(k,1,float64(D.dcdFields[1][k]))
-		keep.Set(k,2,float64(D.dcdFields[2][k]))
+		keep.Set(k, 0, float64(D.dcdFields[0][k]))
+		keep.Set(k, 1, float64(D.dcdFields[1][k]))
+		keep.Set(k, 2, float64(D.dcdFields[2][k]))
 	}
-//	final := NewCoords(outBlock, int(D.natoms), 3)
+	//	final := NewCoords(outBlock, int(D.natoms), 3)
 	//	fmt.Print(final)/////////7
 	return nil
 }
@@ -377,33 +377,31 @@ func (D *DcdObj) eOF2NoMoreFrames(err error) error {
 	return err
 }
 
-
-func (D *DcdObj)setConcBuffer(batchsize int) error{
-	l:=D.buffSize
-	if l==batchsize{
+func (D *DcdObj) setConcBuffer(batchsize int) error {
+	l := D.buffSize
+	if l == batchsize {
 		return nil
-	} else if l>batchsize{
-		for i:=batchsize;i<l;i++{
-			for j,_:=range(D.concBuffer[i]){
-				D.concBuffer[i][j]=nil
-				}
-			D.concBuffer[i]=nil  //no idea if this actually works
+	} else if l > batchsize {
+		for i := batchsize; i < l; i++ {
+			for j, _ := range D.concBuffer[i] {
+				D.concBuffer[i][j] = nil
+			}
+			D.concBuffer[i] = nil //no idea if this actually works
 		}
-		D.concBuffer=D.concBuffer[:batchsize-1] //not sure if this frees the remaining []float32 slices
-		D.buffSize=batchsize
+		D.concBuffer = D.concBuffer[:batchsize-1] //not sure if this frees the remaining []float32 slices
+		D.buffSize = batchsize
 		return nil
 	}
-	for i:=0;i<batchsize-l;i++{
-		x := make([]float32,D.Len())
-		y := make([]float32,D.Len())
-		z := make([]float32,D.Len())
-		tmp:=[][]float32{x,y,z}
-		D.concBuffer=append(D.concBuffer,tmp)
+	for i := 0; i < batchsize-l; i++ {
+		x := make([]float32, D.Len())
+		y := make([]float32, D.Len())
+		z := make([]float32, D.Len())
+		tmp := [][]float32{x, y, z}
+		D.concBuffer = append(D.concBuffer, tmp)
 	}
-	D.buffSize=batchsize
+	D.buffSize = batchsize
 	return nil
 }
-
 
 /*NextConc takes a slice of bools and reads as many frames as elements the list has
 form the trajectory. The frames are discarted if the corresponding elemetn of the slice
@@ -414,9 +412,9 @@ func (D *DcdObj) NextConc(frames []*CoordMatrix) ([]chan *CoordMatrix, error) {
 		return nil, fmt.Errorf("Traj object uninitialized to read")
 	}
 	framechans := make([]chan *CoordMatrix, len(frames)) //the slice of chans that will be returned
-	if D.buffSize<len(frames){
+	if D.buffSize < len(frames) {
 		D.setConcBuffer(len(frames))
-		}
+	}
 	for key, _ := range frames {
 		DFields := D.concBuffer[key]
 		if err := D.nextRaw(DFields); err != nil {
@@ -433,9 +431,9 @@ func (D *DcdObj) NextConc(frames []*CoordMatrix) ([]chan *CoordMatrix, error) {
 		go func(natoms int, DFields [][]float32, keep *CoordMatrix, pipe chan *CoordMatrix) {
 			for i := 0; i < int(D.natoms); i++ {
 				k := i - i*(i/int(D.natoms))
-				keep.Set(k,0,float64(DFields[0][k]))
-				keep.Set(k,1,float64(DFields[1][k]))
-				keep.Set(k,2,float64(DFields[2][k]))
+				keep.Set(k, 0, float64(DFields[0][k]))
+				keep.Set(k, 1, float64(DFields[1][k]))
+				keep.Set(k, 2, float64(DFields[2][k]))
 			}
 			//			fmt.Println("in gorutine!", temp.GetRowVector(2))
 			pipe <- keep
