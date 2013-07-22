@@ -55,7 +55,7 @@ func TestRama(Te *testing.T) {
 		}
 	}
 	fmt.Println("Rama", rama, len(rama), len(ramalist), mol.Len())
-	err = RamaPlot(rama, "test/Rama", "Test Ramachandran", index[i])
+	err = RamaPlot(rama, []int{index[i]}, "test/Rama", "Test Ramachandran")
 	if err != nil {
 		Te.Error(err)
 	}
