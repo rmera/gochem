@@ -225,14 +225,24 @@ func (O *OrcaRunner) BuildInput(atoms Ref, coords *CoordMatrix, Q *QMCalc) error
 		conv = orcaSCFConv[Q.SCFConvHelp]
 	}
 	pal := ""
+	palbig:=""
 	if O.nCPU > 1 {
 		if O.nCPU > 8 {
-			fmt.Fprintf(os.Stderr, "CPU number of %d for ORCA calculations currently not supported, maximun 8", O.nCPU)
+			palbig=fmt.Sprintf("%%pal nprocs %d\n   end\n",O.nCPU)   //fmt.Fprintf(os.Stderr, "CPU number of %d for ORCA calculations currently not supported, maximun 8", O.nCPU)
 			O.nCPU = 8
+		}else{
+			pal = fmt.Sprintf("PAL%d", O.nCPU)
 		}
-		pal = fmt.Sprintf("PAL%d", O.nCPU)
 	}
-	MainOptions := []string{"!", hfuhf, Q.Method, Q.Basis, Q.auxBasis, Q.auxColBasis, tight, disp, conv, Q.Guess, opt, Q.Others, pal, ri, "\n"}
+	grid:=""
+	if Q.Grid!=0 && Q.Grid<=9{
+		final:=""
+		if Q.Grid>3{
+			final="NoFinalGrid"
+		}
+		grid=fmt.Sprintf("Grid%d %s",Q.Grid,final)
+	}
+	MainOptions := []string{"!", hfuhf, Q.Method, Q.Basis, Q.auxBasis, Q.auxColBasis, tight, disp, conv, Q.Guess, opt, Q.Others, grid, ri, pal, "\n"}
 	mainline := strings.Join(MainOptions, " ")
 	constraints := O.buildCConstraints(Q.CConstraints)
 	iconstraints, err := O.buildIConstraints(Q.IConstraints)
@@ -242,6 +252,10 @@ func (O *OrcaRunner) BuildInput(atoms Ref, coords *CoordMatrix, Q *QMCalc) error
 	cosmo := ""
 	if Q.Dielectric > 0 {
 		cosmo = fmt.Sprintf("%%cosmo epsilon %1.0f\n        refrac 1.30\n        end\n", Q.Dielectric)
+	}
+	mem:=""
+	if Q.Memory!=0{
+		mem=fmt.Sprintf("%%MaxCore %d\n",Q.Memory)
 	}
 	ElementBasis := ""
 	if Q.HBElements != nil || Q.LBElements != nil {
@@ -270,7 +284,9 @@ func (O *OrcaRunner) BuildInput(atoms Ref, coords *CoordMatrix, Q *QMCalc) error
 	if err != nil {
 		return err
 	}
+	fmt.Fprint(file,palbig)
 	fmt.Fprint(file, moinp)
+	fmt.Fprint(file,mem)
 	fmt.Fprint(file, constraints)
 	fmt.Fprint(file, iconstraints)
 	fmt.Fprint(file, ElementBasis)

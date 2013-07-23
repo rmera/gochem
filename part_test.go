@@ -200,12 +200,15 @@ func TestQM(Te *testing.T) {
 	calc.Dielectric = 4
 	calc.Basis = "def2-SVP"
 	calc.HighBasis = "def2-TZVP"
+	calc.Grid=4
+	calc.Memory=1000
 	calc.HBAtoms = []int{3, 10, 12}
 	calc.HBElements = []string{"Cu", "Zn"}
 	calc.RI = true
 	calc.Disperssion = "D3"
 	calc.CConstraints = []int{0, 10, 20}
 	orca := MakeOrcaRunner()
+	orca.SetnCPU(16) /////////////////////
 	atoms, _ := mol.Next(true)
 	original_dir, _ := os.Getwd() //will check in a few lines
 	if err = os.Chdir("./test"); err != nil {
@@ -264,7 +267,7 @@ func TestQM(Te *testing.T) {
 
 //TestTurbo tests the QM functionality. It prepares input for Turbomole
 //Notice that 2 TM inputs cannot be in the same directory.
-func TestTurbo(Te *testing.T) {
+func estTurbo(Te *testing.T) {
 	mol, err := XyzRead("test/sample.xyz")
 	if err != nil {
 		Te.Error(err)

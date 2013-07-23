@@ -113,13 +113,14 @@ Allows to set up, run and recover results from QM calculations
 Allows to set up, run and recover results for semiempirical
 	calculations with MOPAC (which must be obtained from 
 	http://openmopac.net/)
+Allows to set up and run QM calculations with Turbomole 
+	(which must be obtained from http://www.cosmologic.com)
 
 
 
 TODOS:
 
 *Protein superimposer (Calign?).
-*Support Turbomole for QM calculations.
 *Additional geometrical manipulation tools.
 *Read Amber trajectories.
 *Add more tests.
