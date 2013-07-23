@@ -259,7 +259,6 @@ func (O *TMRunner) BuildInput(atoms Ref, coords *CoordMatrix, Q *QMCalc) error {
 		}
 	}
 	defstring = defstring + "*\n"
-	fmt.Println(defstring) ////////////////
 	def := exec.Command("define")
 	pipe, err := def.StdinPipe()
 	if err != nil {

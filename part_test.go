@@ -28,6 +28,7 @@ package chem
 //import "github.com/skelterjohn/go.matrix"
 import "fmt"
 import "os"
+//import "time"
 
 //import "strings"
 import "testing"
@@ -263,11 +264,12 @@ func TestQM(Te *testing.T) {
 	if err = os.Chdir(original_dir); err != nil {
 		Te.Error(err)
 	}
+	fmt.Println("end mopac and orca test!")
 }
 
 //TestTurbo tests the QM functionality. It prepares input for Turbomole
 //Notice that 2 TM inputs cannot be in the same directory.
-func estTurbo(Te *testing.T) {
+func TestTurbo(Te *testing.T) {
 	mol, err := XyzRead("test/sample.xyz")
 	if err != nil {
 		Te.Error(err)
@@ -293,12 +295,52 @@ func estTurbo(Te *testing.T) {
 	calc.CConstraints = []int{0, 10, 20}
 	tm := MakeTMRunner()
 	atoms, _ := mol.Next(true)
-	//original_dir, _ := os.Getwd() //will check in a few lines
+	original_dir, _ := os.Getwd() //will check in a few lines
 	if err = os.Chdir("./test"); err != nil {
 		Te.Error(err)
 	}
 	if err := tm.BuildInput(mol, atoms, calc); err != nil {
 		Te.Error(err)
 	}
+	os.Chdir(original_dir)
+	fmt.Println("end TurboTest!")
+}
 
+func TestWater(Te *testing.T){
+	fmt.Println("WATERS!")
+	//time.Sleep(500000000000000)
+	mol,err := XyzRead("test/sample.xyz")
+	if err!=nil{
+		Te.Error(err)
+		}
+	for i:=0;i<6;i++{
+		s:=new(Atom)
+		if i==0 || i==3{
+			s.Symbol="O"
+		}else{
+			s.Symbol="H"
+		}
+		mol.AddAtom(s)
+	}
+	mol.SetCharge(1)
+	mol.SetUnpaired(0)
+	c2:=Zeros(mol.Len(),3)
+	v:=Zeros(6,3)
+	l,_:=mol.Coords[0].Dims()
+	fmt.Println(l,mol.Len())
+	c2.Stack(mol.Coords[0],v)
+	mol.Coords[0]=c2
+	c:=EmptyCoords()
+	h1:=EmptyCoords()
+	c.RowView(mol.Coords[0],43)
+	h1.RowView(mol.Coords[0],42)
+	coords:=Zeros(mol.Len(),3)
+	coords.Clone(mol.Coords[0])
+	w1:=MakeWater(c,h1,2,Deg2Rad(30))
+	w2:=MakeWater(c,h1,2,0 )
+	tmp:=Zeros(6,3)
+	tmp.Stack(w1,w2)
+	coords.SetMatrix(mol.Len()-6,0,tmp)
+	XyzWrite("test/WithWater.xyz", mol, coords)
+	
 }

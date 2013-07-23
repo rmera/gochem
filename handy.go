@@ -178,3 +178,55 @@ func isInString(container []string, test string) bool {
 	}
 	return false
 }
+
+
+
+//Creates a water molecule at distance Angstroms from a2, in a direction that is angle radians from the axis defined by a1 and a2.
+//Notice that the exact position of the water is not well defined when angle is not zero. One can always use the RotateAbout
+//function to move the molecule to the desired location. 
+func MakeWater(a1, a2 *CoordMatrix, distance, angle float64) *CoordMatrix {
+	water:=Zeros(3,3)
+	WaterOHDist:=0.96
+	WaterAngle:=52.25
+	w:=EmptyCoords()
+	w.RowView(water,0) //we first set the O coordinates
+	w.Clone(a2)
+	w.Sub(w,a1)
+	w.Unit(w)
+	dist:=Zeros(1,3)
+	dist.Sub(a1,a2)
+	a1a2dist:=dist.Norm(2)
+	w.Scale(distance+a1a2dist,w)
+	w.Add(w,a1)
+	for i:=0;i<=1;i++{
+		o:=EmptyCoords()
+		o.RowView(water,0)
+		w.RowView(water,i+1)
+		w.Clone(o)
+		w.Sub(w,a2)
+		w.Unit(w)
+		w.Scale(WaterOHDist+distance,w)
+		o.Sub(o,a2)
+		upp,_:=Cross3D(w,NewCoords([]float64{0,0,1},1,3))
+		upp.Add(upp,o)
+		upp.Add(upp,a2)
+		//water.SetMatrix(3,0,upp)
+		w.Add(w,a2)
+		o.Add(o,a2)
+		sign:=1.0
+		if i==1{
+			sign=-1.0
+		}
+		temp,_:=RotateAbout(w,o,upp,0.0174533*WaterAngle*sign)
+		w.SetMatrix(0,0,temp)
+	}
+	v1:=Zeros(1,3)
+	v2:=Zeros(1,3)
+	v1.Sub(a2,a1)
+	v2.Clone(v1)
+	v2.Set(0,2,v2.At(0,2)+1) //a "random" modification. The idea is that its not colinear with v1
+	v3,_:=Cross3D(v1,v2)
+	v3.Add(v3,a2)
+	water,_=RotateAbout(water,a2,v3,angle)
+	return water
+}
