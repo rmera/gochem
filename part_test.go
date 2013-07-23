@@ -28,7 +28,8 @@ package chem
 //import "github.com/skelterjohn/go.matrix"
 import "fmt"
 import "os"
-import "strings"
+
+//import "strings"
 import "testing"
 
 //import "os"
@@ -222,34 +223,35 @@ func TestQM(Te *testing.T) {
 	mopaccommand := os.Getenv("MOPAC_LICENSE") + "/MOPAC2012.exe"
 	mopac.SetCommand(mopaccommand)
 	fmt.Println("command", mopaccommand)
-	if err := mopac.Run(true); err != nil {
-		if strings.Contains(err.Error(), "no such file") {
-			fmt.Println("Error", err.Error(), (" Will continue."))
-		} else {
-			Te.Error(err.Error())
+	/*	if err := mopac.Run(true); err != nil {
+			if strings.Contains(err.Error(), "no such file") {
+				fmt.Println("Error", err.Error(), (" Will continue."))
+			} else {
+				Te.Error(err.Error())
+			}
 		}
-	}
-	energy, err := mopac.GetEnergy()
-	if err != nil {
-		if err.Error() == "Probable problem in calculation" {
-			fmt.Println(err.Error())
-		} else {
+		energy, err := mopac.GetEnergy()
+		if err != nil {
+			if err.Error() == "Probable problem in calculation" {
+				fmt.Println(err.Error())
+			} else {
+				Te.Error(err)
+			}
+		}
+		geometry, err := mopac.GetGeometry(mol)
+		if err != nil {
+			if err.Error() == "Probable problem in calculation" {
+				fmt.Println(err.Error())
+			} else {
+				Te.Error(err)
+			}
+		}
+		mol.Coords[0] = geometry
+		fmt.Println(energy)
+		if err := XyzWrite("mopac.xyz", mol, mol.Coords[0]); err != nil {
 			Te.Error(err)
 		}
-	}
-	geometry, err := mopac.GetGeometry(mol)
-	if err != nil {
-		if err.Error() == "Probable problem in calculation" {
-			fmt.Println(err.Error())
-		} else {
-			Te.Error(err)
-		}
-	}
-	mol.Coords[0] = geometry
-	fmt.Println(energy)
-	if err := XyzWrite("mopac.xyz", mol, mol.Coords[0]); err != nil {
-		Te.Error(err)
-	}
+	*/
 	//Took away this because it takes too long to run :-)
 	/*	if err=orca.Run(true); err!=nil{
 		Te.Error(err)
@@ -258,4 +260,40 @@ func TestQM(Te *testing.T) {
 	if err = os.Chdir(original_dir); err != nil {
 		Te.Error(err)
 	}
+}
+
+//TestTurbo tests the QM functionality. It prepares input for ORCA and MOPAC
+//In the case of MOPAC it reads a previously prepared output and gets the energy.
+func TestTurbo(Te *testing.T) {
+	mol, err := XyzRead("test/sample.xyz")
+	if err != nil {
+		Te.Error(err)
+	}
+	if err := mol.Corrupted(); err != nil {
+		Te.Error(err)
+	}
+	mol.Del(mol.Len() - 1)
+	mol.SetCharge(1)
+	mol.SetUnpaired(0)
+	calc := new(QMCalc)
+	calc.SCFTightness = 3 //very demanding
+	calc.Optimize = true
+	calc.Method = "BP86"
+	calc.Dielectric = 4
+	calc.Basis = "def2-SVP"
+	calc.HighBasis = "def2-TZVP"
+	calc.HBElements = []string{"Cu", "Zn"}
+	calc.RI = true
+	calc.Disperssion = "D3"
+	calc.CConstraints = []int{0, 10, 20}
+	tm := MakeTMRunner()
+	atoms, _ := mol.Next(true)
+	//original_dir, _ := os.Getwd() //will check in a few lines
+	if err = os.Chdir("./test"); err != nil {
+		Te.Error(err)
+	}
+	if err := tm.BuildInput(mol, atoms, calc); err != nil {
+		Te.Error(err)
+	}
+
 }
