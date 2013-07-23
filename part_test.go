@@ -281,7 +281,7 @@ func TestTurbo(Te *testing.T) {
 	calc.Grid = 4
 	calc.Optimize = true
 	calc.Method = "BP86"
-	calc.Dielectric = 78.5
+	calc.Dielectric = 4
 	calc.Basis = "def2-SVP"
 	calc.HighBasis = "def2-TZVP"
 	calc.HBElements = []string{"Cu", "Zn"}

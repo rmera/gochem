@@ -131,6 +131,9 @@ func (O *TMRunner) addToControl(toappend []string, Q *QMCalc) error {
 func (O *TMRunner) addCosmo(epsilon float64) error {
 	//The ammount of newlines is wrong, must fix
 	cosmostring := "" //a few newlines before the epsilon
+	if epsilon==0{
+		return nil
+		}
 	cosmostring = fmt.Sprintf("%s%3.1f\n\n\n\n\n\n\n\nr all b\n*\n\n", cosmostring, epsilon)
 	def := exec.Command("cosmoprep")
 	pipe, err := def.StdinPipe()
