@@ -194,7 +194,7 @@ func TestQM(Te *testing.T) {
 	mol.SetCharge(1)
 	mol.SetUnpaired(0)
 	calc := new(QMCalc)
-	calc.SCFTightness = 3 //very demanding
+	calc.SCFTightness = 2 //very demanding
 	calc.Optimize = true
 	calc.Method = "BLYP"
 	calc.Dielectric = 4
@@ -262,8 +262,8 @@ func TestQM(Te *testing.T) {
 	}
 }
 
-//TestTurbo tests the QM functionality. It prepares input for ORCA and MOPAC
-//In the case of MOPAC it reads a previously prepared output and gets the energy.
+//TestTurbo tests the QM functionality. It prepares input for Turbomole
+//Notice that 2 TM inputs cannot be in the same directory.
 func TestTurbo(Te *testing.T) {
 	mol, err := XyzRead("test/sample.xyz")
 	if err != nil {
@@ -276,10 +276,12 @@ func TestTurbo(Te *testing.T) {
 	mol.SetCharge(1)
 	mol.SetUnpaired(0)
 	calc := new(QMCalc)
-	calc.SCFTightness = 3 //very demanding
+	calc.SCFConvHelp = 1 //very demanding
+	calc.Memory = 1000
+	calc.Grid = 4
 	calc.Optimize = true
 	calc.Method = "BP86"
-	calc.Dielectric = 4
+	calc.Dielectric = 78.5
 	calc.Basis = "def2-SVP"
 	calc.HighBasis = "def2-TZVP"
 	calc.HBElements = []string{"Cu", "Zn"}

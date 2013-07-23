@@ -85,7 +85,7 @@ func (O *TMRunner) SetDefaults() {
 }
 
 //Adds all the strings in toapend to the control file, just before the $symmetry keyword
-func (O *TMRunner) addToControl(toappend []string) error {
+func (O *TMRunner) addToControl(toappend []string, Q *QMCalc) error {
 	f, err := os.Open("control")
 	if err != nil {
 		return err
@@ -103,7 +103,9 @@ func (O *TMRunner) addToControl(toappend []string) error {
 		return err
 	}
 	defer out.Close()
+	var k string
 	for _, i := range lines {
+		k = i //May not be too efficient
 		if strings.Contains(i, "$symmetry") {
 			for _, j := range toappend {
 				if _, err := fmt.Fprintf(out, j+"\n"); err != nil {
@@ -111,7 +113,15 @@ func (O *TMRunner) addToControl(toappend []string) error {
 				}
 			}
 		}
-		if _, err := fmt.Fprintf(out, i); err != nil {
+		if Q.SCFConvHelp >= 1 {
+			if strings.Contains(k, "$scfiterlimit") {
+				k = "$scfiterlimit   100\n"
+			}
+			if strings.Contains(k, "$scfdamp") {
+				k = "$scfdamp start=10 step=0.005 min=0.5\n"
+			}
+		}
+		if _, err := fmt.Fprintf(out, k); err != nil {
 			return err
 		}
 	}
@@ -231,9 +241,17 @@ func (O *TMRunner) BuildInput(atoms Ref, coords *CoordMatrix, Q *QMCalc) error {
 	//We only support HF and DFT
 	//O.command = "dscf"
 	if Q.Method != "hf" {
-		defstring = defstring + "dft\non\nfunc " + Q.Method + "\n*\n"
+		grid := ""
+		if Q.Grid != 0 && Q.Grid <= 7 {
+			grid = fmt.Sprintf("grid\n m%d\n", Q.Grid)
+		}
+		defstring = defstring + "dft\non\nfunc " + Q.Method + "\n" + grid + "*\n"
 		if Q.RI {
-			defstring = defstring + "ri\non\nm 500\n*\n"
+			mem := 500
+			if Q.Memory != 0 {
+				mem = Q.Memory
+			}
+			defstring = fmt.Sprintf("%sri\non\nm %d\n*\n", defstring, mem)
 			O.command = "ridft"
 		}
 	}
@@ -269,7 +287,7 @@ func (O *TMRunner) BuildInput(atoms Ref, coords *CoordMatrix, Q *QMCalc) error {
 		O.command = "mpshift"
 		args = append(args, "$gimic")
 	}
-	if err := O.addToControl(args); err != nil {
+	if err := O.addToControl(args, Q); err != nil {
 		return err
 	}
 	//set the frozen atoms (only cartesian constraints are supported)

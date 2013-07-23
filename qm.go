@@ -73,11 +73,13 @@ type QMCalc struct {
 	Others      string //analysis methods, etc
 	//	PCharges []PointCharge
 	Guess        string //initial guess
-	OldMO        bool   //Try to look for a file with MO. The
+	Grid         int
+	OldMO        bool //Try to look for a file with MO. The
 	Optimize     bool
 	SCFTightness int
 	SCFConvHelp  int
 	Gimic        bool
+	Memory       int //Max memory to be used in MB (the effect depends on the QM program)
 }
 
 type OrcaRunner struct {
