@@ -183,11 +183,13 @@ func isInString(container []string, test string) bool {
 
 //Creates a water molecule at distance Angstroms from a2, in a direction that is angle radians from the axis defined by a1 and a2.
 //Notice that the exact position of the water is not well defined when angle is not zero. One can always use the RotateAbout
-//function to move the molecule to the desired location. 
-func MakeWater(a1, a2 *CoordMatrix, distance, angle float64) *CoordMatrix {
+//function to move the molecule to the desired location. If oxygen is true, the oxygen will be pointing to a2. Otherwise,
+//one of the hydrogens will.
+func MakeWater(a1, a2 *CoordMatrix, distance, angle float64, oxygen bool) *CoordMatrix {
 	water:=Zeros(3,3)
 	WaterOHDist:=0.96
 	WaterAngle:=52.25
+	deg2rad := 0.0174533
 	w:=EmptyCoords()
 	w.RowView(water,0) //we first set the O coordinates
 	w.Clone(a2)
@@ -217,16 +219,45 @@ func MakeWater(a1, a2 *CoordMatrix, distance, angle float64) *CoordMatrix {
 		if i==1{
 			sign=-1.0
 		}
-		temp,_:=RotateAbout(w,o,upp,0.0174533*WaterAngle*sign)
+		temp,_:=RotateAbout(w,o,upp,deg2rad*WaterAngle*sign)
 		w.SetMatrix(0,0,temp)
 	}
-	v1:=Zeros(1,3)
-	v2:=Zeros(1,3)
-	v1.Sub(a2,a1)
-	v2.Clone(v1)
-	v2.Set(0,2,v2.At(0,2)+1) //a "random" modification. The idea is that its not colinear with v1
-	v3,_:=Cross3D(v1,v2)
-	v3.Add(v3,a2)
-	water,_=RotateAbout(water,a2,v3,angle)
+	var v1, v2 *CoordMatrix
+	if angle!=0{
+		v1=Zeros(1,3)
+		v2=Zeros(1,3)
+		v1.Sub(a2,a1)
+		v2.Clone(v1)
+		v2.Set(0,2,v2.At(0,2)+1) //a "random" modification. The idea is that its not colinear with v1
+		v3,_:=Cross3D(v1,v2)
+		v3.Add(v3,a2)
+		water,_=RotateAbout(water,a2,v3,angle)
+	}
+	if oxygen{
+		return water
+		}
+	//we move things so an hydrogen points to a2 and modify the distance acordingly.
+	e1:=EmptyCoords()
+	e2:=EmptyCoords()
+	e3:=EmptyCoords()
+	e1.RowView(water,0)
+	e2.RowView(water,1)
+	e3.RowView(water,2)
+	if v1==nil{
+		v1=Zeros(1,3)
+		}
+	if v2==nil{
+		v2=Zeros(1,3)
+		}
+	v1.Sub(e2,e1)
+	v2.Sub(e3,e1)
+	axis,_:=Cross3D(v1,v2)
+	axis.Add(axis,e1)
+	water,_=RotateAbout(water,e1,axis,deg2rad*(180-WaterAngle))
+	v1.Sub(e1,a2)
+	v1.Unit(v1)
+	v1.Scale(WaterOHDist,v1)
+	fmt.Println(v1,v1.Norm(2))
+	water.AddRow(water,v1)
 	return water
 }

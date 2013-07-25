@@ -307,8 +307,6 @@ func TestTurbo(Te *testing.T) {
 }
 
 func TestWater(Te *testing.T){
-	fmt.Println("WATERS!")
-	//time.Sleep(500000000000000)
 	mol,err := XyzRead("test/sample.xyz")
 	if err!=nil{
 		Te.Error(err)
@@ -336,8 +334,8 @@ func TestWater(Te *testing.T){
 	h1.RowView(mol.Coords[0],42)
 	coords:=Zeros(mol.Len(),3)
 	coords.Clone(mol.Coords[0])
-	w1:=MakeWater(c,h1,2,Deg2Rad(30))
-	w2:=MakeWater(c,h1,2,0 )
+	w1:=MakeWater(c,h1,2,Deg2Rad(30),true)
+	w2:=MakeWater(c,h1,2,Deg2Rad(-30),false)
 	tmp:=Zeros(6,3)
 	tmp.Stack(w1,w2)
 	coords.SetMatrix(mol.Len()-6,0,tmp)

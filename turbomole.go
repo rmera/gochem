@@ -63,9 +63,11 @@ func (O *TMRunner) SetnCPU(cpu int) {
 	//It does nothing! :-D
 }
 
-//This method does nothing. Just there to satisfy the interface
-//In TM you dont quite get to choose names. We wont here at least
+//This set the name of the subdirectory, in the current directory
+//where the calculation will be ran
 func (O *TMRunner) SetName(name string) {
+	O.inputname = name
+
 }
 
 //In TM the command is set according to the method. I just assume a normal installation.
@@ -80,7 +82,8 @@ func (O *TMRunner) SetDefaults() {
 	O.defmethod = "tpss"
 	O.defbasis = "def2-SVP"
 	O.defauxbasis = "def2-SVP"
-	O.command = "jobex -c 100 -ri > jobex.out"
+	O.command = "ridft"
+	O.inputname= "gochemturbo"
 
 }
 
@@ -174,9 +177,6 @@ func (O *TMRunner) addFrozen(frozen []int) error {
 	}
 	f.Close() //I cant defer it because I need it closed now.
 	out, err := os.Create("coord")
-	if err != nil {
-		return err
-	}
 	defer out.Close()
 	for key, i := range lines {
 		if isInInt(frozen, key-1) {
@@ -201,6 +201,16 @@ func copy2pipe(pipe io.ReadCloser, file *os.File, end chan bool) {
 //BuildInput builds an input for TM based int the data in atoms, coords and C.
 //returns only error.
 func (O *TMRunner) BuildInput(atoms Ref, coords *CoordMatrix, Q *QMCalc) error {
+	err:=os.Mkdir(O.inputname,os.FileMode(0755))
+	for i:=0;err!=nil;i++{
+		if strings.Contains(err.Error(),"file exists") {
+			O.inputname=fmt.Sprintf("%s%d",O.inputname,i)
+			err = os.Mkdir(O.inputname,os.FileMode(0755))
+		}else{
+			return err
+		}
+	}
+	_=os.Chdir(O.inputname)
 	//Set the coordinates in a slightly stupid way.
 	XyzWrite("file.xyz", atoms, coords)
 	x2t := exec.Command("x2t", "file.xyz")
@@ -297,7 +307,9 @@ func (O *TMRunner) BuildInput(atoms Ref, coords *CoordMatrix, Q *QMCalc) error {
 		return err
 	}
 	//Finally the cosmo business.
-	return O.addCosmo(Q.Dielectric)
+	err= O.addCosmo(Q.Dielectric)
+	os.Chdir("../")
+	return err
 }
 
 var tMMethods = map[string]string{
