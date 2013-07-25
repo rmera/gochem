@@ -140,9 +140,8 @@ func colors(key, steps int) (r, g, b uint8) {
 }
 
 /*Produce plots, in png format for the ramachandran data (psi and phi dihedrals)
-  contained in fulldata, which can contain data for various different snapshopts.
-  In the latter case, many png files are produced. The file names are plotnameXX.png
-  where XX is the frame number (not limited to digits). Returns an error*/
+  contained in data. Data points in tag (maximun 4) are highlighted in the plot.
+  the extension must be included in plotname. Returns an error or nil*/
 func RamaPlot(data [][]float64, tag []int, plotname, title string) error {
 	var err error
 	if data == nil {
@@ -176,9 +175,9 @@ func RamaPlot(data [][]float64, tag []int, plotname, title string) error {
 		p.Add(s)
 	}
 	// Save the plot to a PNG file.
-	filename := fmt.Sprintf("%s.png", plotname)
+	filename := fmt.Sprintf("%s", plotname)
 	//here I  intentionally shadow err.
-	if err := p.Save(5, 5, filename); err != nil {
+	if err := p.Save(4,4, filename); err != nil {
 		return err
 	}
 	return err

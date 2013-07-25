@@ -257,7 +257,6 @@ func MakeWater(a1, a2 *CoordMatrix, distance, angle float64, oxygen bool) *Coord
 	v1.Sub(e1,a2)
 	v1.Unit(v1)
 	v1.Scale(WaterOHDist,v1)
-	fmt.Println(v1,v1.Norm(2))
 	water.AddRow(water,v1)
 	return water
 }
