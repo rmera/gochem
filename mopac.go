@@ -70,13 +70,13 @@ func (O *MopacRunner) SetCommand(name string) {
 }
 
 /*Sets some defaults for MopacRunner. default is an optimization at
-  PM6-DH2X It tries to locate mopac2009 according to the
+  PM6-DH2X It tries to locate MOPAC2012 according to the
   $MOPAC_LICENSE environment variable, which might only work in UNIX.
-  If other system or using MOPAC2012 the command Must be set with the
+  If other system or using MOPAC2009 the command Must be set with the
   SetCommand function. */
 func (O *MopacRunner) SetDefaults() {
 	O.defmethod = "PM6-DH2X"
-	O.command = os.ExpandEnv("${MOPAC_LICENSE}/MOPAC2009.exe")
+	O.command = os.ExpandEnv("${MOPAC_LICENSE}/MOPAC2012.exe")
 }
 
 //BuildInput builds an input for ORCA based int the data in atoms, coords and C.

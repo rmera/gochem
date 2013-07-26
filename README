@@ -74,48 +74,49 @@ Design goals:
 
 
 
-Currently Does:
+Current capabilities.
 
-Reads/writes PDB
-Reads/writes XYZ files
-Superimpose molecules (especially adequate for non-proteins since  
-	doesn't use sequence information).The user can specify what 
-	atoms to use for the supeimpose transformation calculation. 
-	Then all the atoms will be supperimposed according to that
-	transformation (i.e. the molecules to superimpose don't need 
-	to be identical)
-Calculate RMSD between molecules.
-Allows to select atoms and coordinates by using a go slice 
-	of indexes.
-Allows to replace selected coordinates.
-Calculates moment tensor and elipsoid of inertia--related properties 
-	(some not tested).
-The Molecule object implements the sort.Interface interface, 
-	so atoms can be sorted by b-factors.
-Axis manipulation:
-	Align a vector with the Z axis
-	Rotate around the Z axis until the xy proj. of a vector becomes 
-	the Y axis
-	Rotate a sub-group of atoms in a molecule using any given vector
-	as rotation axis.
-	**The previous are implemented using Clifford algebra and, as a 
-	legacy version, Euler angles and rotation matrices (math for the 
-	Cliffor algebra implementation by Doc. Dr. Janne Pesonen). 
-	The Clifford algebra implementation is concurrent. In general, 
-	Clifford algebra is mathematically better behaving than Euler 
-	angles, which are not defined for certain rotations.***
-Simple geometrical calculations
-Reads XTC and DCD files, sequencially and concurrently.
-Calculates and draws Ramachandran plots (uses the Plotinum library).
-Allows to set up, run and recover results from QM calculations
-	with Orca (which must be downloaded independently from 
-	http://www.mpibac.mpg.de/bac/logins/neese/description.php)
-Allows to set up, run and recover results for semiempirical
-	calculations with MOPAC (which must be obtained from 
-	http://openmopac.net/)
-Allows to set up and run QM calculations with Turbomole 
-	(which must be obtained from http://www.cosmologic.com)
+1.  Reads/writes PDB and XYZ files.
 
+2.   Reads XTC and DCD files, both sequentially and concurrently.
+
+3.  Superimposes molecules (especially adequate for non-proteins since  
+	doesn't use sequence information). The user specify what 
+	atoms to use for the superimposing transformation calculation. 
+	Then all the atoms will be superimposed accordingly. This means that
+	non-identical molecules can be superimposed.
+
+4.   Calculates RMSD between sets of coordinates.
+
+5.   Allows to select atoms and coordinates by using a go slice 
+     of indexes.
+
+6.   Allows to replace selected coordinates for a new set.
+
+7.   Calculates moment tensor and elipsoid of inertia--related properties 
+
+8.   The Molecule object implements the sort.Interface interface, 
+     so atoms can easily be sorted by b-factors.
+
+9.   Axis manipulation:
+	 + Align a vector with the Z axis
+	 + Rotate around the Z axis until the xy projection of a vector becomes 
+	  the Y axis
+	 + Rotate a sub-group of atoms in a molecule using any 2 coordinates as
+      the rotation axis.
+
+	 **The previous are implemented using Clifford algebra and, as a 
+	 legacy version, Euler angles and rotation matrices (math for the 
+	 Cliffor algebra implementation by Doc. Dr. Janne Pesonen). 
+	 The Clifford algebra implementation is concurrent. In general, 
+	 Clifford algebra is mathematically better behaving than Euler 
+	 angles, which are not defined for certain rotations.*
+
+10.  Calculates and draws Ramachandran plots (uses the Plotinum library).
+        for an aminoacidic chain or a subset of it.
+11   Generates input for, run and recover results from QM calculations
+	 with Turbomole, Orca and MoPAC (which must be obtained independently from their respective     
+     distributors.)
 
 
 TODOS:
