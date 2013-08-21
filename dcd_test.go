@@ -37,9 +37,9 @@ import "testing"
  * "interactive" or "low level" functions, i.e. one frame at a time
  * It prints the firs 2 coordinates of each frame and the number of
  * read frames at the end.*/
-func estDcd(Te *testing.T) {
+func estDCD(Te *testing.T) {
 	fmt.Println("Fist test!")
-	traj, err := MakeDcd("test/test.dcd")
+	traj, err := MakeDCD("test/test.dcd")
 	if err != nil {
 		Te.Error(err)
 	}
@@ -59,8 +59,8 @@ func estDcd(Te *testing.T) {
 	fmt.Println("Over! frames read:", i)
 }
 
-func TestFrameDcdConc(Te *testing.T) {
-	traj, err := MakeDcd("test/test.dcd")
+func TestFrameDCDConc(Te *testing.T) {
+	traj, err := MakeDCD("test/test.dcd")
 	if err != nil {
 		Te.Error(err)
 	}
@@ -128,9 +128,9 @@ func SecondRow(channelin, channelout chan *CoordMatrix, current, other int) {
 // the forth frame skipping one frame for each read one. It uses the
 // "high level" function. It prints the frames read twince, and the
 // coordinates of the forth atom of the last read frame
-func TestFrameDcd(Te *testing.T) {
+func TestFrameDCD(Te *testing.T) {
 	fmt.Println("Second test!")
-	traj,err:=MakeDcd("test/test.dcd")
+	traj,err:=MakeDCD("test/test.dcd")
 	if err != nil {
 		Te.Error(err)
 	}
@@ -139,12 +139,12 @@ func TestFrameDcd(Te *testing.T) {
 		Te.Error(err)
 	}
 	fmt.Println(len(Coords), read, RowView(Coords[read-1],4))
-	fmt.Println("Dcd second test over!")
+	fmt.Println("DCD second test over!")
 }
 
-func TestFrameDcdConc(Te *testing.T) {
+func TestFrameDCDConc(Te *testing.T) {
 	fmt.Println("Third test!")
-	traj,err:=MakeDcd("test/test.dcd")
+	traj,err:=MakeDCD("test/test.dcd")
 	if err != nil {
 		Te.Error(err)
 	}

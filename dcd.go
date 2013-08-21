@@ -41,7 +41,7 @@ const MAXTITLE int32 = 80
 const RSCAL32BITS int32 = 1
 
 //Container for an Charmm/NAMD binary trajectory file.
-type DcdObj struct {
+type DCDObj struct {
 	natoms     int32
 	buffSize   int
 	readLast   bool //Have we read the last frame?
@@ -58,8 +58,8 @@ type DcdObj struct {
 	endian     binary.ByteOrder
 }
 
-func MakeDcd(filename string) (*DcdObj, error) {
-	traj := new(DcdObj)
+func MakeDCD(filename string) (*DCDObj, error) {
+	traj := new(DCDObj)
 	if err := traj.initRead(filename); err != nil {
 		return nil, err
 	}
@@ -77,7 +77,7 @@ func MakeDcd(filename string) (*DcdObj, error) {
 //to read.
 //true or false depending on whether D is ready to read
 //snapshots from it.
-func (D *DcdObj) Readable() bool {
+func (D *DCDObj) Readable() bool {
 	return D.readable
 }
 
@@ -85,7 +85,7 @@ func (D *DcdObj) Readable() bool {
 //It requires only the filename, which must be valid.
 //It support big and little endianness, charmm or (namd>=2.1) and no
 //fixed atoms.
-func (D *DcdObj) initRead(name string) error {
+func (D *DCDObj) initRead(name string) error {
 	rec_scale := RSCAL32BITS //At least for now we will not support anything else.
 	D.endian = binary.LittleEndian
 	_ = rec_scale
@@ -194,7 +194,7 @@ func (D *DcdObj) initRead(name string) error {
 		return fmt.Errorf("DCD has wrong format")
 	}
 	if D.fixed == 0 {
-		runtime.SetFinalizer(D, func(D *DcdObj) {
+		runtime.SetFinalizer(D, func(D *DCDObj) {
 			D.dcd.Close()
 		})
 		D.readable = true
@@ -209,7 +209,7 @@ func (D *DcdObj) initRead(name string) error {
 //With initread. If keep is true, returns a pointer to matrix.DenseMatrix
 //With the coordinates read, otherwiser, it discards the coordinates and
 //returns nil.
-func (D *DcdObj) Next(keep *CoordMatrix) error {
+func (D *DCDObj) Next(keep *CoordMatrix) error {
 	if !D.readable {
 		return fmt.Errorf("Not readable")
 	}
@@ -244,7 +244,7 @@ func (D *DcdObj) Next(keep *CoordMatrix) error {
 //With initread. If keep is true, returns a pointer to matrix.DenseMatrix
 //With the coordinates read, otherwiser, it discards the coordinates and
 //returns nil.
-func (D *DcdObj) nextRaw(blocks [][]float32) error {
+func (D *DCDObj) nextRaw(blocks [][]float32) error {
 	if len(blocks[0]) != int(D.natoms) || len(blocks[1]) != int(D.natoms) || len(blocks[2]) != int(D.natoms) {
 		return fmt.Errorf("Not enough space in passed blocks")
 	}
@@ -327,7 +327,7 @@ func (D *DcdObj) nextRaw(blocks [][]float32) error {
 
 //Queries the size of a block, and reads its contents into block, which must have the
 //appropiate size.
-func (D *DcdObj) readFloat32Block(blocksize int32, block []float32) error {
+func (D *DCDObj) readFloat32Block(blocksize int32, block []float32) error {
 	var check int32
 	//	fmt.Println("blockf",blocksize)
 	if err := binary.Read(D.dcd, D.endian, block); err != nil {
@@ -345,7 +345,7 @@ func (D *DcdObj) readFloat32Block(blocksize int32, block []float32) error {
 //Queries the size of a block, make a slice of a quarter of that size
 //and reads that ammount of float32. This function is used for the
 //
-func (D *DcdObj) readByteBlock(blocksize int32) ([]byte, error) {
+func (D *DCDObj) readByteBlock(blocksize int32) ([]byte, error) {
 	var check int32
 	//	fmt.Println("blockb",blocksize)
 	block := make([]byte, blocksize, blocksize)
@@ -363,11 +363,11 @@ func (D *DcdObj) readByteBlock(blocksize int32) ([]byte, error) {
 
 //Natoms returns the number of atoms per frame in the XtcObj.
 //XtcObj must be initialized. 0 means an uninitialized object.
-func (D *DcdObj) Len() int {
+func (D *DCDObj) Len() int {
 	return int(D.natoms)
 }
 
-func (D *DcdObj) eOF2NoMoreFrames(err error) error {
+func (D *DCDObj) eOF2NoMoreFrames(err error) error {
 	if err == nil {
 		return nil
 	}
@@ -377,7 +377,7 @@ func (D *DcdObj) eOF2NoMoreFrames(err error) error {
 	return err
 }
 
-func (D *DcdObj) setConcBuffer(batchsize int) error {
+func (D *DCDObj) setConcBuffer(batchsize int) error {
 	l := D.buffSize
 	if l == batchsize {
 		return nil
@@ -407,7 +407,7 @@ func (D *DcdObj) setConcBuffer(batchsize int) error {
 form the trajectory. The frames are discarted if the corresponding elemetn of the slice
 * is false. The function returns a slice of channels through each of each of which
 * a *matrix.DenseMatrix will be transmited*/
-func (D *DcdObj) NextConc(frames []*CoordMatrix) ([]chan *CoordMatrix, error) {
+func (D *DCDObj) NextConc(frames []*CoordMatrix) ([]chan *CoordMatrix, error) {
 	if !D.Readable() {
 		return nil, fmt.Errorf("Traj object uninitialized to read")
 	}
