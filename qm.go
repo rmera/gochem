@@ -421,7 +421,7 @@ func (O *OrcaRunner) GetGeometry(atoms Ref) (*CoordMatrix, error) {
 		err = fmt.Errorf("Probable problem in calculation")
 	}
 	//This might not be super efficient but oh well.
-	mol, err1 := XyzRead(geofile)
+	mol, err1 := XYZRead(geofile)
 	if err1 != nil {
 		return nil, err1
 	}

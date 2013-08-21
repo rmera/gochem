@@ -36,7 +36,7 @@ import (
 	"strings"
 )
 
-//Pdb_read family
+//PDB_read family
 
 //A map for assigning mass to elements.
 //Note that just common "bio-elements" are present
@@ -205,23 +205,23 @@ func read_onlycoords_pdb_line(line string, contlines int) ([]float64, float64, e
 	return coords, bfactor, nil
 }
 
-//PdbReadString reads the atomic entries for a PDB bufio.IO, returns a bunch of without coordinates,
+//PDBReadString reads the atomic entries for a PDB bufio.IO, returns a bunch of without coordinates,
 // and the coordinates in a separate array of arrays. If there is one frame in the PDB
 // the coordinates array will be of lenght 1. It also returns an error which is not
 // really well set up right now.
 //WARNING: It has not been tested with an actual string.
-func PdbStringRead(pdb string, read_additional bool) (*Molecule, error) {
+func PDBStringRead(pdb string, read_additional bool) (*Molecule, error) {
 	pdbstringreader := strings.NewReader(pdb)
 	bufiopdb := bufio.NewReader(pdbstringreader)
 	mol, err := pdbBufIORead(bufiopdb, read_additional)
 	return mol, err
 }
 
-//PdbRead reads the atomic entries for a PDB file, returns a bunch of without coordinates,
+//PDBRead reads the atomic entries for a PDB file, returns a bunch of without coordinates,
 // and the coordinates in a separate array of arrays. If there is one frame in the PDB
 // the coordinates array will be of lenght 1. It also returns an error which is not
 // really well set up right now.
-func PdbRead(pdbname string, read_additional bool) (*Molecule, error) {
+func PDBRead(pdbname string, read_additional bool) (*Molecule, error) {
 	pdbfile, err := os.Open(pdbname)
 	if err != nil {
 		//fmt.Println("Unable to open file!!")
@@ -309,7 +309,7 @@ func pdbBufIORead(pdb *bufio.Reader, read_additional bool) (*Molecule, error) {
 	return returned, err
 }
 
-//End Pdb_read family
+//End PDB_read family
 
 //correctBfactors check that coords and bfactors have the same number of elements.
 func correctBfactors(coords, bfactors []*CoordMatrix) bool {
@@ -326,9 +326,9 @@ func correctBfactors(coords, bfactors []*CoordMatrix) bool {
 	return true
 }
 
-//writePdbLine writes a line in PDB format from the data passed as a parameters. It takes the chain of the previous atom
+//writePDBLine writes a line in PDB format from the data passed as a parameters. It takes the chain of the previous atom
 //and returns the written line, the chain of the just-written atom, and error or nil.
-func writePdbLine(atom *Atom, coord *CoordMatrix, bfact float64, chainprev byte) (string, byte, error) {
+func writePDBLine(atom *Atom, coord *CoordMatrix, bfact float64, chainprev byte) (string, byte, error) {
 	var ter string
 	var out string
 	if atom.Chain != chainprev {
@@ -356,9 +356,9 @@ func writePdbLine(atom *Atom, coord *CoordMatrix, bfact float64, chainprev byte)
 	return out, chainprev, nil
 }
 
-//PdbWrite writes a PDB for the molecule mol and the coordinates Coords. It is just a wrapper for
-//PdbStringWrite. Returns error or nil.
-func PdbWrite(pdbname string, mol Ref, CandB ...*CoordMatrix) error {
+//PDBWrite writes a PDB for the molecule mol and the coordinates Coords. It is just a wrapper for
+//PDBStringWrite. Returns error or nil.
+func PDBWrite(pdbname string, mol Ref, CandB ...*CoordMatrix) error {
 	coords := CandB[0]
 	var Bfactors *CoordMatrix
 	if len(CandB) > 1 {
@@ -373,7 +373,7 @@ func PdbWrite(pdbname string, mol Ref, CandB ...*CoordMatrix) error {
 	}
 	defer out.Close()
 	fmt.Fprint(out, "REMARK     WRITTEN WITH GOCHEM :-)\n")
-	outstring, err := PdbStringWrite(mol, coords, Bfactors)
+	outstring, err := PDBStringWrite(mol, coords, Bfactors)
 	if err != nil {
 		return err
 	}
@@ -385,9 +385,9 @@ func PdbWrite(pdbname string, mol Ref, CandB ...*CoordMatrix) error {
 	return nil
 }
 
-//PdbStringWrite writes a string in PDB format for a given reference, coordinate set and bfactor set, which must match each other
+//PDBStringWrite writes a string in PDB format for a given reference, coordinate set and bfactor set, which must match each other
 //returns the written string and error or nil.
-func PdbStringWrite(mol Ref, coords, bfact *CoordMatrix) (string, error) {
+func PDBStringWrite(mol Ref, coords, bfact *CoordMatrix) (string, error) {
 	if bfact == nil {
 		bfact = gnZeros(mol.Len(), 1)
 	}
@@ -403,7 +403,7 @@ func PdbStringWrite(mol Ref, coords, bfact *CoordMatrix) (string, error) {
 	for i := 0; i < mol.Len(); i++ {
 		writecoord := EmptyCoords()
 		writecoord.RowView(coords, i)
-		outline, chainprev, err = writePdbLine(mol.Atom(i), writecoord, bfact.At(i, 0), chainprev)
+		outline, chainprev, err = writePDBLine(mol.Atom(i), writecoord, bfact.At(i, 0), chainprev)
 		if err != nil {
 			return "", fmt.Errorf("Could not print PDB line: %d", i)
 		}
@@ -413,18 +413,18 @@ func PdbStringWrite(mol Ref, coords, bfact *CoordMatrix) (string, error) {
 	return outstring, nil
 }
 
-//MultiPdbWrite writes a multiPDB file for the molecule mol and the various coordinate sets in CandB.
+//MultiPDBWrite writes a multiPDB file for the molecule mol and the various coordinate sets in CandB.
 //CandB is a list of lists of *matrix.DenseMatrix. If it has 2 elements or more, the second will be used as
 //Bfactors. If it has one element, all b-factors will be zero.
 //Returns an error if fails, or nil if succeeds.
-func MultiPdbWrite(pdbname string, mol Ref, CandB ...[]*CoordMatrix) error {
+func MultiPDBWrite(pdbname string, mol Ref, CandB ...[]*CoordMatrix) error {
 	Coords := CandB[0]
 	var Bfactors []*CoordMatrix
 	if len(CandB) > 1 && correctBfactors(Coords, CandB[1]) {
 		Bfactors = CandB[1] //any other element is just ignored
 	} else {
 		for _, _ = range Coords {
-			Bfactors = append(Bfactors, nil) //nil bfactors are taken care of by the PdbStringWrite function
+			Bfactors = append(Bfactors, nil) //nil bfactors are taken care of by the PDBStringWrite function
 		}
 	}
 
@@ -437,7 +437,7 @@ func MultiPdbWrite(pdbname string, mol Ref, CandB ...[]*CoordMatrix) error {
 	fmt.Fprint(out, "REMARK     WRITTEN WITH GOCHEM :-)\n")
 	for j := range Coords {
 		fmt.Fprintf(out, "MODEL %d\n", j+1) //The model number starts with one
-		outstring, err := PdbStringWrite(mol, Coords[j], Bfactors[j])
+		outstring, err := PDBStringWrite(mol, Coords[j], Bfactors[j])
 		if err != nil {
 			return err
 		}
@@ -452,7 +452,7 @@ func MultiPdbWrite(pdbname string, mol Ref, CandB ...[]*CoordMatrix) error {
 /***End of PDB part***/
 
 //Reads a string formated as an xyz or multixyz (as produced by Turbomole). Returns a Molecule and error or nil.
-func XyzStringRead(xyz string) (*Molecule, error) {
+func XYZStringRead(xyz string) (*Molecule, error) {
 	xyzstringreader := strings.NewReader(xyz)
 	bufioxyz := bufio.NewReader(xyzstringreader)
 	mol, err := xyzBufIORead(bufioxyz)
@@ -460,7 +460,7 @@ func XyzStringRead(xyz string) (*Molecule, error) {
 }
 
 //Reads an xyz or multixyz file (as produced by Turbomole). Returns a Molecule and error or nil.
-func XyzRead(xyzname string) (*Molecule, error) {
+func XYZRead(xyzname string) (*Molecule, error) {
 	xyzfile, err := os.Open(xyzname)
 	if err != nil {
 		//fmt.Println("Unable to open file!!")
@@ -569,15 +569,15 @@ func xyzReadSnap(xyz *bufio.Reader, ReadTopol bool) (*CoordMatrix, []*Atom, erro
 	return mcoords, molecule, err
 }
 
-//XyzWrite writes the mol Ref and the Coord coordinates in an XYZ file with name xyzname which will
+//XYZWrite writes the mol Ref and the Coord coordinates in an XYZ file with name xyzname which will
 //be created fot that. If the file exist it will be overwritten.
-func XyzWrite(xyzname string, mol Ref, Coords *CoordMatrix) error {
+func XYZWrite(xyzname string, mol Ref, Coords *CoordMatrix) error {
 	out, err := os.Create(xyzname)
 	if err != nil {
 		return err
 	}
 	defer out.Close()
-	xyz, err := XyzStringWrite(mol, Coords)
+	xyz, err := XYZStringWrite(mol, Coords)
 	if err != nil {
 		return err
 	}
@@ -585,8 +585,8 @@ func XyzWrite(xyzname string, mol Ref, Coords *CoordMatrix) error {
 	return nil
 }
 
-//XyzStringWrite writes the mol Ref and the Coord coordinates in an XYZ-formatted string.
-func XyzStringWrite(mol Ref, Coords *CoordMatrix) (string, error) {
+//XYZStringWrite writes the mol Ref and the Coord coordinates in an XYZ-formatted string.
+func XYZStringWrite(mol Ref, Coords *CoordMatrix) (string, error) {
 	var out string
 	if mol.Len() != Coords.Rows() {
 		return "", fmt.Errorf("Ref and Coords dont have the same number of atoms")

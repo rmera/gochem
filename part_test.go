@@ -35,23 +35,23 @@ import "testing"
 
 //import "os"
 
-//TestMultiXyz tests that multi-XYZ files are opened and read correctly.
-func TestXyzIO(Te *testing.T) {
-	mol, err := XyzRead("test/sample.xyz")
+//TestMultiXYZ tests that multi-XYZ files are opened and read correctly.
+func TestXYZIO(Te *testing.T) {
+	mol, err := XYZRead("test/sample.xyz")
 	if err != nil {
 		fmt.Println("There was an error!")
 		Te.Error(err)
 	}
 	fmt.Println("XYZ read!")
-	XyzWrite("test/sampleFirst.xyz", mol, mol.Coords[0])
+	XYZWrite("test/sampleFirst.xyz", mol, mol.Coords[0])
 }
 
 func TestPDBIO(Te *testing.T) {
-	mol, err := PdbRead("test/2c9v.pdb", true)
+	mol, err := PDBRead("test/2c9v.pdb", true)
 	if err != nil {
 		Te.Error(err)
 	}
-	err = PdbWrite("test/2c9vIO.pdb", mol, mol.Coords[0], mol.Bfactors[0])
+	err = PDBWrite("test/2c9vIO.pdb", mol, mol.Coords[0], mol.Bfactors[0])
 	if err != nil {
 		Te.Error(err)
 	}
@@ -64,11 +64,11 @@ func TestPDBIO(Te *testing.T) {
 //aligned with the Z axis. The new molecule is written
 //as 2c9v_aligned.pdb to the test folder.
 func TestChangeAxis(Te *testing.T) {
-	mol, err := PdbRead("test/2c9v.pdb", true)
+	mol, err := PDBRead("test/2c9v.pdb", true)
 	if err != nil {
 		Te.Error(err)
 	}
-	PdbWrite("test/2c9v-Readtest.pdb", mol, mol.Coords[0])
+	PDBWrite("test/2c9v-Readtest.pdb", mol, mol.Coords[0])
 	//The selection thing
 	orient_atoms := [2]int{0, 0}
 	for index := 0; index < mol.Len(); index++ {
@@ -86,13 +86,13 @@ func TestChangeAxis(Te *testing.T) {
 	ov2 := mol.Coord(orient_atoms[1], 0)
 	//now we center the thing in the beta carbon of D124
 	mol.Coords[0].SubRow(mol.Coords[0], ov2)
-	PdbWrite("test/2c9v-translated.pdb", mol, mol.Coords[0])
+	PDBWrite("test/2c9v-translated.pdb", mol, mol.Coords[0])
 	//Now the rotation
 	ov1 := mol.Coord(orient_atoms[0], 0) //make sure we have the correct versions
 	ov2 = mol.Coord(orient_atoms[1], 0)  //same
 	orient := gnClone(ov2)
 	orient.Sub(orient, ov1)
-	//	PdbWrite(mol,"test/2c9v-124centered.pdb")
+	//	PDBWrite(mol,"test/2c9v-124centered.pdb")
 	Z := NewCoords([]float64{0, 0, 1}, 1, 3)
 	axis, _ := Cross3D(orient, Z)
 	angle := AngleInVectors(orient, Z)
@@ -100,7 +100,7 @@ func TestChangeAxis(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
-	PdbWrite("test/2c9v-aligned.pdb", mol, mol.Coords[0])
+	PDBWrite("test/2c9v-aligned.pdb", mol, mol.Coords[0])
 	fmt.Println("bench1")
 }
 
@@ -110,7 +110,7 @@ func TestChangeAxis(Te *testing.T) {
 //aligned with the Z axis. The new molecule is written
 //as 2c9v_aligned.pdb to the test folder.
 func TestOldChangeAxis(Te *testing.T) {
-	mol, err := PdbRead("test/2c9v.pdb", true)
+	mol, err := PDBRead("test/2c9v.pdb", true)
 	if err != nil {
 		Te.Error(err)
 	}
@@ -141,13 +141,13 @@ func TestOldChangeAxis(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
-	PdbWrite("test/2c9v-old-aligned.pdb", mol, mol.Coords[0])
+	PDBWrite("test/2c9v-old-aligned.pdb", mol, mol.Coords[0])
 	fmt.Println("bench2")
 }
 
 //Aligns the main plane of a molecule with the XY-plane.
 func TestPutInXYPlane(Te *testing.T) {
-	mol, err := XyzRead("test/sample_plane.xyz")
+	mol, err := XYZRead("test/sample_plane.xyz")
 	if err != nil {
 		Te.Error(err)
 	}
@@ -178,13 +178,13 @@ func TestPutInXYPlane(Te *testing.T) {
 		Te.Error(err)
 	}
 	//Now we write the rotated result.
-	XyzWrite("test/Rotated.xyz", mol, mol.Coords[0])
+	XYZWrite("test/Rotated.xyz", mol, mol.Coords[0])
 }
 
 //TestQM tests the QM functionality. It prepares input for ORCA and MOPAC
 //In the case of MOPAC it reads a previously prepared output and gets the energy.
 func TestQM(Te *testing.T) {
-	mol, err := XyzRead("test/sample.xyz")
+	mol, err := XYZRead("test/sample.xyz")
 	if err != nil {
 		Te.Error(err)
 	}
@@ -252,7 +252,7 @@ func TestQM(Te *testing.T) {
 		}
 		mol.Coords[0] = geometry
 		fmt.Println(energy)
-		if err := XyzWrite("mopac.xyz", mol, mol.Coords[0]); err != nil {
+		if err := XYZWrite("mopac.xyz", mol, mol.Coords[0]); err != nil {
 			Te.Error(err)
 		}
 	*/
@@ -270,7 +270,7 @@ func TestQM(Te *testing.T) {
 //TestTurbo tests the QM functionality. It prepares input for Turbomole
 //Notice that 2 TM inputs cannot be in the same directory.
 func TestTurbo(Te *testing.T) {
-	mol, err := XyzRead("test/sample.xyz")
+	mol, err := XYZRead("test/sample.xyz")
 	if err != nil {
 		Te.Error(err)
 	}
@@ -307,7 +307,7 @@ func TestTurbo(Te *testing.T) {
 }
 
 func TestWater(Te *testing.T){
-	mol,err := XyzRead("test/sample.xyz")
+	mol,err := XYZRead("test/sample.xyz")
 	if err!=nil{
 		Te.Error(err)
 		}
@@ -339,16 +339,16 @@ func TestWater(Te *testing.T){
 	tmp:=Zeros(6,3)
 	tmp.Stack(w1,w2)
 	coords.SetMatrix(mol.Len()-6,0,tmp)
-	XyzWrite("test/WithWater.xyz", mol, coords)
+	XYZWrite("test/WithWater.xyz", mol, coords)
 }
 
 
 func TestFixPDB(Te *testing.T){
-	mol, err := PdbRead("test/2c9vbroken.pdb", true)
+	mol, err := PDBRead("test/2c9vbroken.pdb", true)
 	if err != nil {
 		Te.Error(err)
 	}
 	FixNumbering(mol)
-	PdbWrite("test/2c9vfixed.pdb", mol, mol.Coords[0])
+	PDBWrite("test/2c9vfixed.pdb", mol, mol.Coords[0])
 }
 

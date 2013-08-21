@@ -35,7 +35,7 @@ import "fmt"
 //TestRama tests the Ramachandran plot functionality.
 //it generates a Ramachandran plot for the chain A of the PDB 2c9v.
 func TestRama(Te *testing.T) {
-	mol, err := PdbRead("test/2c9v.pdb", true)
+	mol, err := PDBRead("test/2c9v.pdb", true)
 	if err != nil {
 		Te.Error(err)
 	}
@@ -59,6 +59,6 @@ func TestRama(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
-	//PdbWrite(mol,"test/Used4Rama.pdb")
+	//PDBWrite(mol,"test/Used4Rama.pdb")
 	//for the 3 residue  I should get -131.99, 152.49.
 }

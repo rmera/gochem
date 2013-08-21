@@ -212,7 +212,7 @@ func (O *TMRunner) BuildInput(atoms Ref, coords *CoordMatrix, Q *QMCalc) error {
 	}
 	_=os.Chdir(O.inputname)
 	//Set the coordinates in a slightly stupid way.
-	XyzWrite("file.xyz", atoms, coords)
+	XYZWrite("file.xyz", atoms, coords)
 	x2t := exec.Command("x2t", "file.xyz")
 	stdout, err := x2t.StdoutPipe()
 	if err != nil {
