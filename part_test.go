@@ -340,5 +340,15 @@ func TestWater(Te *testing.T){
 	tmp.Stack(w1,w2)
 	coords.SetMatrix(mol.Len()-6,0,tmp)
 	XyzWrite("test/WithWater.xyz", mol, coords)
-	
 }
+
+
+func TestFixPDB(Te *testing.T){
+	mol, err := PdbRead("test/2c9vbroken.pdb", true)
+	if err != nil {
+		Te.Error(err)
+	}
+	FixNumbering(mol)
+	PdbWrite("test/2c9vfixed.pdb", mol, mol.Coords[0])
+}
+

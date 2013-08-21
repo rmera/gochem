@@ -260,3 +260,23 @@ func MakeWater(a1, a2 *CoordMatrix, distance, angle float64, oxygen bool) *Coord
 	water.AddRow(water,v1)
 	return water
 }
+
+
+//This function will put the internal numbering+1 in the atoms and residue fields, so they match the current residues/atoms
+//in the molecule
+func FixNumbering(r Ref){
+	resid:=0
+	prevres:=-1
+	for i:=0;i<r.Len();i++{
+		at:=r.Atom(i)
+		at.Id=i+1
+		if prevres!=at.Molid{
+			prevres=at.Molid
+			resid++
+		}
+		at.Molid=resid
+	}
+}
+
+
+
