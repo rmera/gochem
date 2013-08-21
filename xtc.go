@@ -44,7 +44,7 @@ import "fmt"
 import "runtime"
 
 //Container for an GROMACS XTC binary trajectory file.
-type XtcObj struct {
+type XTCObj struct {
 	readable   bool
 	natoms     int
 	filename   string
@@ -55,8 +55,8 @@ type XtcObj struct {
 	buffSize   int
 }
 
-func MakeXtc(filename string) (*XtcObj, error) {
-	traj := new(XtcObj)
+func MakeXTC(filename string) (*XTCObj, error) {
+	traj := new(XTCObj)
 	if err := traj.initRead(filename); err != nil {
 		return nil, err
 	}
@@ -67,16 +67,16 @@ func MakeXtc(filename string) (*XtcObj, error) {
 //Returns true if the object is ready to be read from
 //false otherwise. IT doesnt guarantee that there is something
 //to read.
-func (X *XtcObj) Readable() bool {
+func (X *XTCObj) Readable() bool {
 	if X.readable {
 		return true
 	}
 	return false
 }
 
-//InitRead initializes a XtcObj for reading.
+//InitRead initializes a XTCObj for reading.
 //It requires only the filename, which must be valid
-func (X *XtcObj) initRead(name string) error {
+func (X *XTCObj) initRead(name string) error {
 	Cfilename := C.CString(name)
 	Cnatoms := C.read_natoms(Cfilename)
 	X.natoms = int(Cnatoms)
@@ -91,18 +91,18 @@ func (X *XtcObj) initRead(name string) error {
 	X.concBuffer = append(X.concBuffer, X.cCoords)
 	X.buffSize = 1
 	//This should close the file.
-	runtime.SetFinalizer(X, func(X *XtcObj) {
+	runtime.SetFinalizer(X, func(X *XTCObj) {
 		C.xtc_close(X.fp)
 	})
 	X.readable = true
 	return nil
 }
 
-//Next Reads the next frame in a XtcObj that has been initialized for read
+//Next Reads the next frame in a XTCObj that has been initialized for read
 //With initread. If keep is true, returns a pointer to matrix.DenseMatrix
 //With the coordinates read, otherwiser, it discards the coordinates and
 //returns nil.
-func (X *XtcObj) Next(output *CoordMatrix) error {
+func (X *XTCObj) Next(output *CoordMatrix) error {
 	if !X.Readable() {
 		return fmt.Errorf("Traj object uninitialized to read")
 	}
@@ -133,7 +133,7 @@ func (X *XtcObj) Next(output *CoordMatrix) error {
 }
 
 //SetConcBuffer
-func (X *XtcObj) setConcBuffer(batchsize int) error {
+func (X *XTCObj) setConcBuffer(batchsize int) error {
 	l := X.buffSize
 	if l == batchsize {
 		return nil
@@ -157,7 +157,7 @@ func (X *XtcObj) setConcBuffer(batchsize int) error {
 form the trajectory. The frames are discarted if the corresponding elemetn of the slice
 * is false. The function returns a slice of channels through each of each of which
 * a *matrix.DenseMatrix will be transmited*/
-func (X *XtcObj) NextConc(frames []*CoordMatrix) ([]chan *CoordMatrix, error) {
+func (X *XTCObj) NextConc(frames []*CoordMatrix) ([]chan *CoordMatrix, error) {
 	if X.buffSize < len(frames) {
 		X.setConcBuffer(len(frames))
 	}
@@ -205,8 +205,8 @@ func (X *XtcObj) NextConc(frames []*CoordMatrix) ([]chan *CoordMatrix, error) {
 	return framechans, nil
 }
 
-//Natoms returns the number of atoms per frame in the XtcObj.
-//XtcObj must be initialized. 0 means an uninitialized object.
-func (X *XtcObj) Len() int {
+//Natoms returns the number of atoms per frame in the XTCObj.
+//XTCObj must be initialized. 0 means an uninitialized object.
+func (X *XTCObj) Len() int {
 	return X.natoms
 }

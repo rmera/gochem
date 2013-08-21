@@ -33,13 +33,13 @@ package chem
 import "fmt"
 import "testing"
 
-/*TestXtc reads the frames of the test xtc file using the
+/*TestXTC reads the frames of the test xtc file using the
  * "interactive" or "low level" functions, i.e. one frame at a time
  * It prints the firs 2 coordinates of each frame and the number of
  * read frames at the end.*/
-func TestXtc(Te *testing.T) {
+func TestXTC(Te *testing.T) {
 	fmt.Println("First test")
-	traj, err := MakeXtc("test/test.xtc")
+	traj, err := MakeXTC("test/test.xtc")
 	if err != nil {
 		Te.Error(err)
 	}
@@ -62,13 +62,13 @@ func TestXtc(Te *testing.T) {
 }
 
 /*
-//TestFrameXtc reads the frames of the test xtc file from the first to
+//TestFrameXTC reads the frames of the test xtc file from the first to
 // the forth frame skipping one frame for each read one. It uses the
 // "high level" function. It prints the frames read twince, and the
 // coordinates of the forth atom of the last read frame
-func TestFrameXtc(Te *testing.T) {
+func TestFrameXTC(Te *testing.T) {
 	fmt.Println("Second test!")
-	traj,err:=MakeXtc("test/test.xtc")
+	traj,err:=MakeXTC("test/test.xtc")
 	if err != nil {
 		Te.Error(err)
 	}
@@ -79,8 +79,8 @@ func TestFrameXtc(Te *testing.T) {
 	fmt.Println(len(Coords), read, RowView(Coords[read-1],4))
 }
 */
-func TestFrameXtcConc(Te *testing.T) {
-	traj, err := MakeXtc("test/test.xtc")
+func TestFrameXTCConc(Te *testing.T) {
+	traj, err := MakeXTC("test/test.xtc")
 	if err != nil {
 		Te.Error(err)
 	}
