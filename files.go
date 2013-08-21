@@ -144,7 +144,7 @@ func read_full_pdb_line(line string, read_additional bool, contlines int) (*Atom
 	//used for residue name in many cases*/
 	atom.Molname = line[17:20]
 	atom.Molname1 = three2OneLetter[atom.Molname]
-	atom.Chain = line[21] //currently this is read to a byte
+	atom.Chain = string(line[21]) 
 	atom.Molid, err[1] = strconv.Atoi(strings.TrimSpace(line[22:26]))
 	//Here we shouldn't need TrimSpace, but I keep it just in case someone
 	// doesn's use all the fields when writting a PDB*/
@@ -328,7 +328,7 @@ func correctBfactors(coords, bfactors []*CoordMatrix) bool {
 
 //writePDBLine writes a line in PDB format from the data passed as a parameters. It takes the chain of the previous atom
 //and returns the written line, the chain of the just-written atom, and error or nil.
-func writePDBLine(atom *Atom, coord *CoordMatrix, bfact float64, chainprev byte) (string, byte, error) {
+func writePDBLine(atom *Atom, coord *CoordMatrix, bfact float64, chainprev string) (string, string, error) {
 	var ter string
 	var out string
 	if atom.Chain != chainprev {
@@ -339,7 +339,7 @@ func writePDBLine(atom *Atom, coord *CoordMatrix, bfact float64, chainprev byte)
 	if atom.Het {
 		first = "HETATM"
 	}
-	formatstring := "%-6s%5d  %-3s %3s %1c%4d    %8.3f%8.3f%8.3f%6.2f%6.2f          %2s  \n"
+	formatstring := "%-6s%5d  %-3s %3s %1s%4d    %8.3f%8.3f%8.3f%6.2f%6.2f          %2s  \n"
 
 	//4 chars for the atom name are used when hydrogens are included.
 	//This has not been tested

@@ -46,7 +46,7 @@ type Atom struct {
 	Molname   string  //PDB name of the residue or molecule (3-letter code for residues)
 	Molname1  byte    //the one letter name for residues and nucleotids
 	Molid     int     //PDB index of the corresponding residue or molecule
-	Chain     byte    //One-character PDB name for a chain.
+	Chain     string   //One-character PDB name for a chain.
 	Mass      float64 //hopefully all these float64 are not too much memory
 	Occupancy float64 //a PDB crystallographic field, often used to store values of interest.
 	Vdw       float64

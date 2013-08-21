@@ -267,11 +267,11 @@ func RamaList(M Ref, chains string, resran []int) ([]RamaSet, error) {
 	Ca := -1
 	Cprev := -1
 	Npost := -1
-	chainprev := byte('9') //any non-valid chain name
+	chainprev := "NOTAVALIDCHAIN" //any non-valid chain name
 	for num := 0; num < M.Len(); num++ {
 		at := M.Atom(num)
 		//First get the indexes we need
-		if strings.Contains(chains, string(at.Chain)) || at.Chain == ' ' {
+		if strings.Contains(chains, string(at.Chain)) || at.Chain == " " {
 			if at.Chain != chainprev {
 				chainprev = at.Chain
 				C = -1

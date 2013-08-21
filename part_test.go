@@ -73,7 +73,7 @@ func TestChangeAxis(Te *testing.T) {
 	orient_atoms := [2]int{0, 0}
 	for index := 0; index < mol.Len(); index++ {
 		atom := mol.Atom(index)
-		if atom.Chain == 'A' && atom.Molid == 124 {
+		if atom.Chain == "A" && atom.Molid == 124 {
 			if atom.Name == "CA" {
 				orient_atoms[0] = index
 			} else if atom.Name == "CB" {
@@ -117,7 +117,7 @@ func TestOldChangeAxis(Te *testing.T) {
 	orient_atoms := [2]int{0, 0}
 	for index := 0; index < mol.Len(); index++ {
 		atom := mol.Atom(index)
-		if atom.Chain == 'A' && atom.Molid == 124 {
+		if atom.Chain == "A" && atom.Molid == 124 {
 			if atom.Name == "CA" {
 				orient_atoms[0] = index
 			} else if atom.Name == "CB" {
