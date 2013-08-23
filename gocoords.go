@@ -256,7 +256,8 @@ func (F *CoordMatrix) AddFloat(A *CoordMatrix, B float64) {
 }
 
 //AddRow adds the row vector row to each row of the matrix A, putting
-//the result on the receiver. Panics if matrices are mismatched.
+//the result on the receiver. Panics if matrices are mismatched. It will not work if A and row
+//reference to the same CoordMatrix.
 func (F *CoordMatrix) AddRow(A, row *CoordMatrix) {
 	ar, ac := A.Dims()
 	rr, rc := row.Dims()
@@ -627,7 +628,8 @@ func (F *CoordMatrix) SubMatrix(A *CoordMatrix, i, j, rows, cols int) {
 }
 
 //AddRow subtracts the row vector row to each row of the matrix A, putting
-//the result on the receiver. Panics if matrices are mismatched.
+//the result on the receiver. Panics if matrices are mismatched.  It will not 
+//work if A and row reference to the same CoordMatrix.
 func (F *CoordMatrix) SubRow(A, row *CoordMatrix) {
 	row.Scale(-1, row)
 	F.AddRow(A, row)

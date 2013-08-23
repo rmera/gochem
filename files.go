@@ -145,7 +145,7 @@ func read_full_pdb_line(line string, read_additional bool, contlines int) (*Atom
 	atom.Molname = line[17:20]
 	atom.Molname1 = three2OneLetter[atom.Molname]
 	atom.Chain = string(line[21]) 
-	atom.Molid, err[1] = strconv.Atoi(strings.TrimSpace(line[22:26]))
+	atom.Molid, err[1] = strconv.Atoi(strings.TrimSpace(line[22:30]))
 	//Here we shouldn't need TrimSpace, but I keep it just in case someone
 	// doesn's use all the fields when writting a PDB*/
 	coords[0], err[2] = strconv.ParseFloat(strings.TrimSpace(line[30:38]), 64)

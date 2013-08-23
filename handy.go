@@ -47,7 +47,7 @@ func Molecules2Atoms(mol Ref, residues []int, chains []string) []int {
 	atlist := make([]int, 0, len(residues)*3)
 	for key := 0; key < mol.Len(); key++ {
 		at := mol.Atom(key)
-		if isInInt(residues, at.Molid) && isInString(chains, string(at.Chain)) || len(chains) == 0 {
+		if isInInt(residues, at.Molid) && (isInString(chains, at.Chain) || len(chains) == 0) {
 			atlist = append(atlist, key)
 		}
 	}
