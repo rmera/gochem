@@ -279,4 +279,112 @@ func FixNumbering(r Ref){
 }
 
 
+//Takes a list of lists of residues and deletes from r
+//all atoms not in the list or not belonging to the chain chain. 
+//It caps the N and C terminal
+//of each list with -COH for the N terminal and NH2 for C terminal.
+//the residues on each sublist should be contiguous to each other.
+//for instance, {6,7,8} is a valid sublist, {6,8,9} is not.
+//This is NOT currently checked by the function!
+func CutBackRef(r Ref, chain string, list [][]int) error{
+	//i:=r.Len()
+	for k,v:=range(list){
+		nter:=v[0]
+		cter:=v[len(v)-1]
+		nresname:=""
+		cresname:=""
+		for j:=0;j<r.Len();j++{
+			if r.Atom(j).Molid==nter && r.Atom(j).Chain==chain{
+				nresname=r.Atom(j).Molname
+				break
+				}
+		if nresname==""{
+			//we will protest if the Nter is not found. If Cter is not found we will just
+			//cut at the real Cter 
+			return fmt.Errorf("list %d contains residue numbers out of boundaries",k)
+			}
+		}
+		for j:=0;j<r.Len();j++{
+			curr:=r.Atom(j)
+			if curr.Chain!=chain{
+				continue
+				}
+			if curr.Molid==cter{
+				cresname=curr.Molname
+				}
+			if curr.Molid==nter-1{
+				makeNcap(curr,nresname)
+				}
+			if curr.Molid==cter+1{
+				makeCcap(curr,cresname)
+				}
+		}
+	
+		for j:=0;j<r.Len();j++{
+			remove:=true
+			for _,i:=range(list){
+				if isInInt(i, r.Atom(j).Molid) && r.Atom(j).Chain==chain{
+					remove=false
+					break
+					}
+				}
+			if remove{
+				r.DelAtom(j)
+				}
+		}
+	
+	}
+	return nil
+}
+
+func makeNcap(at *Atom,resname string){
+	if  at.Name=="C" || at.Name=="O"{
+		at.Molid=at.Molid+1
+		at.Molname=resname
+		} 
+	if at.Name=="CA"{
+		at.Name="HC"
+		at.Symbol="H"
+		at.Molid=at.Molid+1
+		at.Molname=resname
+		}
+}
+
+func makeCcap(at *Atom, resname string){
+	if at.Name=="H" || at.Name=="N"{
+		at.Molid=at.Molid-1
+		at.Molname=resname
+		}
+	if at.Name=="CA"{
+		at.Name="HN2"
+		at.Symbol="H"
+		at.Molid=at.Molid-1
+		at.Molname=resname
+		}
+}
+
+
+//Takes a list of lists of residues and produces a new set of coordinates
+//whitout any atom not in the lists or not from the chain chain. It caps the N and C terminal
+//of each list with -COH for the N terminal and NH2 for C terminal.
+//the residues on each sublist should be contiguous to each other.
+//for instance, {6,7,8} is a valid sublist, {6,8,9} is not.
+//This is NOT currently checked by the function!
+//In addition, the Ref provided should have already been processed by 
+//CutBackRef, which is not checked either.
+func CutBackCoords(r Ref, coords *CoordMatrix, chain string, list [][]int) (*CoordMatrix, error){
+	//this is actually a really silly function. So far I dont check for errors, but I keep the return balue
+	//In case I do later.
+	var biglist []int
+	for _,i:=range(list){
+		smallist:=Molecules2Atoms(r,i,[]string{chain})
+		biglist=append(biglist,smallist...)
+	}
+	newcoords:=Zeros(len(biglist),3)
+	newcoords.SomeRows(coords,biglist)
+	return newcoords, nil
+
+
+}
+
 

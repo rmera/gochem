@@ -85,7 +85,7 @@ type Ref interface {
 	//Panics if out of range
 	SetAtom(i int, at *Atom)
 
-	//AddAtom returms a new Ref with an atom added at the end of the topology
+	//AddAtom appends an atom at the end of the Ref
 	AddAtom(at *Atom)
 
 	//SelectAtoms, given a list of ints,  returns an array of the atoms with the
