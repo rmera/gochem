@@ -340,11 +340,10 @@ func writePDBLine(atom *Atom, coord *CoordMatrix, bfact float64, chainprev strin
 		first = "HETATM"
 	}
 	formatstring := "%-6s%5d  %-3s %3s %1s%4d    %8.3f%8.3f%8.3f%6.2f%6.2f          %2s  \n"
-
 	//4 chars for the atom name are used when hydrogens are included.
 	//This has not been tested
 	if len(atom.Name) == 4 {
-		strings.Replace(formatstring, "%-3s", "%4s", 1)
+		formatstring=strings.Replace(formatstring, "%-3s ", "%-4s", 1)
 	} else if len(atom.Name) > 4 {
 		return "", chainprev, fmt.Errorf("Cant print PDB line")
 	}

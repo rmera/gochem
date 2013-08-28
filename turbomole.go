@@ -279,7 +279,6 @@ func (O *TMRunner) BuildInput(atoms Ref, coords *CoordMatrix, Q *QMCalc) error {
 	if err := def.Run(); err != nil {
 		return fmt.Errorf("Unable to run define: %s", err.Error())
 	}
-
 	if Q.Optimize {
 		O.command = "jobex"
 		if Q.RI {

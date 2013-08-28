@@ -285,9 +285,10 @@ func FixNumbering(r Ref){
 //of each list with -COH for the N terminal and NH2 for C terminal.
 //the residues on each sublist should be contiguous to each other.
 //for instance, {6,7,8} is a valid sublist, {6,8,9} is not.
-//This is NOT currently checked by the function!
-func CutBackRef(r Ref, chain string, list [][]int) error{
+//This is NOT currently checked by the function!. It returns the list of kept atoms
+func CutBackRef(r Ref, chain string, list [][]int) ([]int, error){
 	//i:=r.Len()
+	var ret []int  //This will be filled with the atoms that are kept, and will be returned.
 	for k,v:=range(list){
 		nter:=v[0]
 		cter:=v[len(v)-1]
@@ -298,11 +299,11 @@ func CutBackRef(r Ref, chain string, list [][]int) error{
 				nresname=r.Atom(j).Molname
 				break
 				}
+		}
 		if nresname==""{
 			//we will protest if the Nter is not found. If Cter is not found we will just
 			//cut at the real Cter 
-			return fmt.Errorf("list %d contains residue numbers out of boundaries",k)
-			}
+			return nil, fmt.Errorf("list %d contains residue numbers out of boundaries",k)
 		}
 		for j:=0;j<r.Len();j++{
 			curr:=r.Atom(j)
@@ -319,47 +320,53 @@ func CutBackRef(r Ref, chain string, list [][]int) error{
 				makeCcap(curr,cresname)
 				}
 		}
-	
-		for j:=0;j<r.Len();j++{
-			remove:=true
-			for _,i:=range(list){
-				if isInInt(i, r.Atom(j).Molid) && r.Atom(j).Chain==chain{
-					remove=false
-					break
-					}
-				}
-			if remove{
-				r.DelAtom(j)
-				}
-		}
-	
 	}
-	return nil
+	for _,i:=range(list){
+		t:=Molecules2Atoms(r,i,[]string{chain})
+		fmt.Println("t", len(t))
+		ret=append(ret,t...)
+	}
+	j:=0
+	for i:=0;;i++{
+		index:=i-j
+		if index>=r.Len(){
+			break
+		}
+		if !isInInt(ret, i){
+			r.DelAtom(index)
+			j++
+		}
+	}
+	return ret, nil
 }
 
 func makeNcap(at *Atom,resname string){
-	if  at.Name=="C" || at.Name=="O"{
-		at.Molid=at.Molid+1
-		at.Molname=resname
-		} 
+	if !isInString([]string{"C","O","CA"},at.Name){
+		return
+	}
+	at.Molid=at.Molid+1
+	at.Molname=resname
+	if at.Name=="C"{
+		at.Name="CT"
+		}
 	if at.Name=="CA"{
 		at.Name="HC"
 		at.Symbol="H"
-		at.Molid=at.Molid+1
-		at.Molname=resname
 		}
 }
 
 func makeCcap(at *Atom, resname string){
-	if at.Name=="H" || at.Name=="N"{
-		at.Molid=at.Molid-1
-		at.Molname=resname
+	if !isInString([]string{"N","H","CA"},at.Name){
+		return
+	}
+	at.Molid=at.Molid-1
+	at.Molname=resname
+	if at.Name=="N"{
+		at.Name="NT"
 		}
 	if at.Name=="CA"{
 		at.Name="HN2"
 		at.Symbol="H"
-		at.Molid=at.Molid-1
-		at.Molname=resname
 		}
 }
 

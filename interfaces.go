@@ -88,8 +88,7 @@ type Ref interface {
 	//AddAtom appends an atom at the end of the Ref
 	AddAtom(at *Atom)
 
-	//SelectAtoms, given a list of ints,  returns an array of the atoms with the
-	//corresponding position in the molecule
+	//Puts the atoms of Ref that are marked in the list of ints in the received.
 	//Changes to these atoms affect the original molecule.
 	//The charge and multiplicity (unpaired electrons) for the molecule is just the one
 	//for the parent reference and its not guarranteed to be correct.
