@@ -66,6 +66,7 @@ type QMCalc struct {
 	LBElements   []string
 	CConstraints []int //cartesian contraints
 	IConstraints []*IConstraint
+	ECPElements          []string //list of elements with ECP.
 	//	IConstraints []IntConstraint //internal constraints
 	Dielectric float64
 	//	Solventmethod string
@@ -78,6 +79,7 @@ type QMCalc struct {
 	Optimize     bool
 	SCFTightness int
 	SCFConvHelp  int
+	ECP          string   //The ECP to be used. It is the programmers responsibility to use a supported ECP (for instance, trying to use 10-electron core ECP for Carbon will fail)
 	Gimic        bool
 	Memory       int //Max memory to be used in MB (the effect depends on the QM program)
 }

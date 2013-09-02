@@ -283,13 +283,15 @@ func TestTurbo(Te *testing.T) {
 	calc := new(QMCalc)
 	calc.SCFConvHelp = 1 //very demanding
 	calc.Memory = 1000
+	calc.ECP="ecp-10-mdf"
+	calc.ECPElements=[]string{"Zn","Cu"}
 	calc.Grid = 4
 	calc.Optimize = true
 	calc.Method = "BP86"
 	calc.Dielectric = 4
 	calc.Basis = "def2-SVP"
 	calc.HighBasis = "def2-TZVP"
-	calc.HBElements = []string{"Cu", "Zn"}
+	calc.HBElements = []string{"Zn"}
 	calc.RI = true
 	calc.Disperssion = "D3"
 	calc.CConstraints = []int{0, 10, 20}

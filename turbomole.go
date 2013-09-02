@@ -152,12 +152,12 @@ func (O *TMRunner) addCosmo(epsilon float64) error {
 
 }
 
-func (O *TMRunner) addBasis(basiselems []string, basis, defstring string) string {
+func (O *TMRunner) addBasis(basisOrEcp string, basiselems []string, basis, defstring string) string {
 	if basiselems == nil { //no atoms to add basis to, do nothing
 		return defstring
 	}
 	for _, elem := range basiselems {
-		defstring = fmt.Sprintf("%sb \"%s\" %s\n", defstring, strings.ToLower(elem), basis)
+		defstring = fmt.Sprintf("%s%s \"%s\" %s\n", defstring, basisOrEcp, strings.ToLower(elem), basis)
 	}
 	return defstring
 }
@@ -239,8 +239,10 @@ func (O *TMRunner) BuildInput(atoms Ref, coords *CoordMatrix, Q *QMCalc) error {
 		Q.Basis = O.defbasis
 	}
 	defstring = defstring + "b all " + Q.Basis + "\n"
-	defstring = O.addBasis(Q.HBElements, Q.HighBasis, defstring)
-	defstring = O.addBasis(Q.LBElements, Q.LowBasis, defstring)
+	defstring = O.addBasis("b",Q.LBElements, Q.LowBasis, defstring)
+	defstring = O.addBasis("ecp",Q.ECPElements, Q.ECP, defstring)
+	defstring = O.addBasis("b",Q.ECPElements, Q.ECP, defstring) //we set a basis set compatible with the ECP. In TM they share the same name
+	defstring = O.addBasis("b",Q.HBElements, Q.HighBasis, defstring)  //The high basis will override the ECP basis, which can be rather small. Use under your own risk.
 	defstring = defstring + "\n\n\n\n*\n"
 	defstring = fmt.Sprintf("%seht\n\n\n%d\n\n", defstring, atoms.Charge())
 	method, ok := tMMethods[Q.Method]
@@ -269,6 +271,7 @@ func (O *TMRunner) BuildInput(atoms Ref, coords *CoordMatrix, Q *QMCalc) error {
 		}
 	}
 	defstring = defstring + "*\n"
+	fmt.Printf(defstring)
 	def := exec.Command("define")
 	pipe, err := def.StdinPipe()
 	if err != nil {
