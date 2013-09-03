@@ -35,7 +35,6 @@ import "strings"
 //import "strconv"
 import "bufio"
 import "fmt"
-import "github.com/skelterjohn/go.matrix"
 import "os/exec"
 
 type TMRunner struct {
@@ -359,7 +358,7 @@ func (O *TMRunner) GetEnergy() (float64, error) {
 }
 
 //GetGeometry is NOT working yet
-func (O *TMRunner) GetGeometry(atoms Ref) (*matrix.DenseMatrix, error) {
+func (O *TMRunner) GetGeometry(atoms Ref) (*CoordMatrix, error) {
 	return nil, nil
 
 }

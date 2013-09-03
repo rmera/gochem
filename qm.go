@@ -56,6 +56,7 @@ type QMCalc struct {
 	Basis        string
 	RI           bool
 	RIJ          bool
+	BSSE         string  //Correction for BSSE
 	auxBasis     string //for RI calculations
 	auxColBasis  string //for RICOSX or similar calculations
 	HighBasis    string //a bigger basis for certain atoms
