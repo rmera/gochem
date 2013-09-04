@@ -29,8 +29,7 @@ package chem
 import "fmt"
 import "os"
 //import "time"
-
-//import "strings"
+import "strings"
 import "testing"
 
 //import "os"
@@ -268,7 +267,8 @@ func TestQM(Te *testing.T) {
 }
 
 //TestTurbo tests the QM functionality. It prepares input for Turbomole
-//Notice that 2 TM inputs cannot be in the same directory.
+//Notice that 2 TM inputs cannot be in the same directory. Notice that TMRunner
+//supports ECPs
 func TestTurbo(Te *testing.T) {
 	mol, err := XYZRead("test/sample.xyz")
 	if err != nil {
@@ -354,3 +354,56 @@ func TestFixPDB(Te *testing.T){
 	PDBWrite("test/2c9vfixed.pdb", mol, mol.Coords[0])
 }
 
+
+
+func TestChemShell(Te *testing.T) {
+	mol, err := XYZRead("test/sample.xyz")
+	if err != nil {
+		Te.Error(err)
+	}
+	if err := mol.Corrupted(); err != nil {
+		Te.Error(err)
+	}
+	mol.Del(mol.Len() - 1)
+	mol.SetCharge(1)
+	mol.SetUnpaired(0)
+	calc := new(QMCalc)
+	calc.Optimize = true
+	calc.Method = "BLYP"
+	calc.Dielectric = 4
+	calc.Basis = "def2-SVP"
+	calc.Grid=4   //not supported yet, coming sun
+	calc.Disperssion = "D3"
+	calc.CConstraints = []int{0, 10, 20}
+	cs := MakeCSRunner()
+	atoms, _ := mol.Next(true)
+	original_dir, _ := os.Getwd() //will check in a few lines
+	if err = os.Chdir("./test"); err != nil {
+		Te.Error(err)
+	}
+	err = cs.BuildInput(mol, atoms, calc)
+	qderror_handler(err,Te)
+	//now with a PDB
+	cs.SetCoordFormat("pdb")
+	cs.SetName("gochem_pdb")
+	err = cs.BuildInput(mol, atoms, calc)
+	qderror_handler(err,Te)
+	cs.SetName("gochem_sp")
+	calc.Optimize=false
+	err = cs.BuildInput(mol, atoms, calc)
+	qderror_handler(err,Te)
+	if err = os.Chdir(original_dir); err != nil {
+		Te.Error(err)
+	}
+	fmt.Println("end ChemShell test!")
+}
+
+func qderror_handler(err error, Te *testing.T){
+	if err!=nil{
+		if strings.Contains("NonFatal",err.Error()){
+			fmt.Println("Non fatal error: ", err.Error())
+		}else{
+			Te.Error(err)
+		}
+	}
+}

@@ -31,7 +31,7 @@ package chem
 import "os"
 import "io"
 import "strings"
-
+import "log"
 //import "strconv"
 import "bufio"
 import "fmt"
@@ -270,7 +270,7 @@ func (O *TMRunner) BuildInput(atoms Ref, coords *CoordMatrix, Q *QMCalc) error {
 		}
 	}
 	defstring = defstring + "*\n"
-	fmt.Printf(defstring)
+	log.Println(defstring)
 	def := exec.Command("define")
 	pipe, err := def.StdinPipe()
 	if err != nil {
