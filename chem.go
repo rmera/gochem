@@ -46,7 +46,7 @@ type Atom struct {
 	Molname   string  //PDB name of the residue or molecule (3-letter code for residues)
 	Molname1  byte    //the one letter name for residues and nucleotids
 	Molid     int     //PDB index of the corresponding residue or molecule
-	Chain     string   //One-character PDB name for a chain.
+	Chain     string  //One-character PDB name for a chain.
 	Mass      float64 //hopefully all these float64 are not too much memory
 	Occupancy float64 //a PDB crystallographic field, often used to store values of interest.
 	Vdw       float64
@@ -92,9 +92,9 @@ type Topology struct {
 //one of the slices is nil. It doesnt check for consitensy across slices or correct charge
 //or unpaired electrons.
 func MakeTopology(ats []*Atom, charge, unpaired int) (*Topology, error) {
-	if ats == nil {
-		return nil, fmt.Errorf("Supplied a nil Topology")
-	}
+//	if ats == nil {
+//		return nil, fmt.Errorf("Supplied a nil Topology")
+//	}
 	top := new(Topology)
 	top.Atoms = ats
 	top.charge = charge

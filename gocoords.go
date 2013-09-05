@@ -628,7 +628,7 @@ func (F *CoordMatrix) SubMatrix(A *CoordMatrix, i, j, rows, cols int) {
 }
 
 //AddRow subtracts the row vector row to each row of the matrix A, putting
-//the result on the receiver. Panics if matrices are mismatched.  It will not 
+//the result on the receiver. Panics if matrices are mismatched.  It will not
 //work if A and row reference to the same CoordMatrix.
 func (F *CoordMatrix) SubRow(A, row *CoordMatrix) {
 	row.Scale(-1, row)

@@ -1,4 +1,3 @@
-
 /*
  * chemshell.go, part of gochem.
  *
@@ -33,14 +32,13 @@
 package chem
 
 import (
-	"strings"
 	"fmt"
 	"os"
+	"strings"
 )
 
-
 type CSRunner struct {
-	program   string
+	program     string
 	defmethod   string
 	defbasis    string
 	coordformat string
@@ -73,22 +71,20 @@ func (O *CSRunner) SetName(name string) {
 
 }
 
-func (O *CSRunner) SetCoordFormat(format string){
-	f,ok :=chemShellFormats[format]
-	if !ok{
-		f="xyz"
+func (O *CSRunner) SetCoordFormat(format string) {
+	f, ok := chemShellFormats[format]
+	if !ok {
+		f = "xyz"
 	}
-	O.coordformat=f
+	O.coordformat = f
 }
 
-var chemShellFormats  = map[string]string{
+var chemShellFormats = map[string]string{
 	"XYZ": "xyz",
 	"xyz": "xyz",
 	"PDB": "pdb",
 	"pdb": "pdb",
-	
 }
-
 
 //SetCommand sets the command to run the ChemShell/QCMine calculation.
 func (O *CSRunner) SetCommand(name string) {
@@ -100,67 +96,67 @@ func (O *CSRunner) SetCommand(name string) {
 func (O *CSRunner) SetDefaults() {
 	O.defmethod = "pbe0-d"
 	O.defbasis = "def2-SVP"
-	O.link=true
-	O.inputname= "gochem"
-	O.coordformat="xyz"
-	O.program="qcmine"
+	O.link = true
+	O.inputname = "gochem"
+	O.coordformat = "xyz"
+	O.program = "qcmine"
 }
 
 //BuildInput builds a ChemShell input (at this point only for pure QM calculations with QCMine). Returns error on failure.
 func (O *CSRunner) BuildInput(atoms Ref, coords *CoordMatrix, Q *QMCalc) error {
 	var nonfatal error
-	if atoms.Unpaired()!=0{
+	if atoms.Unpaired() != 0 {
 		return fmt.Errorf("Only closed shell supported for ChemShell")
-		}
-	if O.program!="qcmine"{
-		nonfatal=fmt.Errorf("NonFatal: Unavailable program requested. Only QCMine is supported at this point. Will switch to QCMine")
-		O.program="qcmine"
-		}
-	basis,ok:=chemShellBasis[Q.Basis]
+	}
+	if O.program != "qcmine" {
+		nonfatal = fmt.Errorf("NonFatal: Unavailable program requested. Only QCMine is supported at this point. Will switch to QCMine")
+		O.program = "qcmine"
+	}
+	basis, ok := chemShellBasis[Q.Basis]
 	if !ok {
-		nonfatal=fmt.Errorf("NonFatal: Unavailable basis set requested, using default")
-		basis=O.defbasis
+		nonfatal = fmt.Errorf("NonFatal: Unavailable basis set requested, using default")
+		basis = O.defbasis
 	}
-	method,ok:=chemShellMethods[Q.Method]
-	if !ok{
-		nonfatal=fmt.Errorf("NonFatal: Unavailable method requested, using default")
-		method=O.defmethod
-	}
-	disp,ok:=qcMineDisp[Q.Disperssion]
+	method, ok := chemShellMethods[Q.Method]
 	if !ok {
-		nonfatal=fmt.Errorf("NonFatal: Unavailable disperssion correction requested, using default")
-		disp="d"
+		nonfatal = fmt.Errorf("NonFatal: Unavailable method requested, using default")
+		method = O.defmethod
 	}
-    if !strings.HasSuffix(method,"-d") && disp!=""{
-		method=strings.Join([]string{method,disp},"-")
+	disp, ok := qcMineDisp[Q.Disperssion]
+	if !ok {
+		nonfatal = fmt.Errorf("NonFatal: Unavailable disperssion correction requested, using default")
+		disp = "d"
 	}
-	if Q.BSSE=="gCP"{
-		method=strings.Join([]string{method,"gcp"},"-")
+	if !strings.HasSuffix(method, "-d") && disp != "" {
+		method = strings.Join([]string{method, disp}, "-")
 	}
-	coordline:=""
-	if O.coordformat=="pdb"{
-		PDBWrite(fmt.Sprintf("%s.pdb",O.inputname),atoms,coords)
-		coordline=fmt.Sprintf("set residues [ pdb_to_res %s.pdb ] \nread_pdb file=%s.pdb coords=%s.crd\n", O.inputname,O.inputname,O.inputname)
+	if Q.BSSE == "gCP" {
+		method = strings.Join([]string{method, "gcp"}, "-")
+	}
+	coordline := ""
+	if O.coordformat == "pdb" {
+		PDBWrite(fmt.Sprintf("%s.pdb", O.inputname), atoms, coords)
+		coordline = fmt.Sprintf("set residues [ pdb_to_res %s.pdb ] \nread_pdb file=%s.pdb coords=%s.crd\n", O.inputname, O.inputname, O.inputname)
 
-	}else{
-		XYZWrite(fmt.Sprintf("%s.xyz",O.inputname),atoms,coords)
-		coordline=fmt.Sprintf("read_xyz %s.xyz coords=%s.crd \nset residues [ res_selectall coords=%s.crd ]\n",O.inputname,O.inputname,O.inputname)
+	} else {
+		XYZWrite(fmt.Sprintf("%s.xyz", O.inputname), atoms, coords)
+		coordline = fmt.Sprintf("read_xyz %s.xyz coords=%s.crd \nset residues [ res_selectall coords=%s.crd ]\n", O.inputname, O.inputname, O.inputname)
 	}
-	frozen:=""
-	optline:=""
-	writeline:=""
-	if Q.Optimize{
-		optline="coordinates=hdlc \\\n     "
-		if len(Q.CConstraints)>0{
-			frozen="set frozen [ list "
-			for _,v:=range(Q.CConstraints){
-				frozen=fmt.Sprintf("%s %d",frozen,v)
+	frozen := ""
+	optline := ""
+	writeline := ""
+	if Q.Optimize {
+		optline = "coordinates=hdlc \\\n     "
+		if len(Q.CConstraints) > 0 {
+			frozen = "set frozen [ list "
+			for _, v := range Q.CConstraints {
+				frozen = fmt.Sprintf("%s %d", frozen, v)
 			}
-			frozen=fmt.Sprintf("%s]\n",frozen)
-			optline=fmt.Sprintf("%s frozen= $frozen \\\n     ",optline)
+			frozen = fmt.Sprintf("%s]\n", frozen)
+			optline = fmt.Sprintf("%s frozen= $frozen \\\n     ", optline)
 		}
-		optline=fmt.Sprintf("%s residues= $residues \\\n     maxcycle=300 \\\n     result=%s.crd \\\n     ",optline,O.inputname)
-		writeline=fmt.Sprintf("write_xyz file=%s.xyz coords=%s.crd\n",O.inputname,O.inputname)
+		optline = fmt.Sprintf("%s residues= $residues \\\n     maxcycle=300 \\\n     result=%s.crd \\\n     ", optline, O.inputname)
+		writeline = fmt.Sprintf("write_xyz file=%s.xyz coords=%s.crd\n", O.inputname, O.inputname)
 	}
 	//we start actually writing the input
 	file, err := os.Create(fmt.Sprintf("%s.chm", O.inputname))
@@ -168,35 +164,32 @@ func (O *CSRunner) BuildInput(atoms Ref, coords *CoordMatrix, Q *QMCalc) error {
 		return err
 	}
 	defer file.Close()
-	_,_=fmt.Fprint(file,coordline)
-	_,_=fmt.Fprint(file,frozen)
-	_,_=fmt.Fprint(file,"\n\n")
-	command:="energy \\\n"
-	if Q.Optimize{
-		command="dl-find \\\n"
-		}
-	_,_=fmt.Fprint(file,command)
-	b:="\\\n             "  //break
-	sb:="\\\n    "
-	link:="0"
-	if O.link{
-		link="1"
-		}
+	_, _ = fmt.Fprint(file, coordline)
+	_, _ = fmt.Fprint(file, frozen)
+	_, _ = fmt.Fprint(file, "\n\n")
+	command := "energy \\\n"
+	if Q.Optimize {
+		command = "dl-find \\\n"
+	}
+	_, _ = fmt.Fprint(file, command)
+	b := "\\\n             " //break
+	sb := "\\\n    "
+	link := "0"
+	if O.link {
+		link = "1"
+	}
 	//I admit the following is horrible. Just take a leap of faith
-	arguments:=fmt.Sprintf("     theory= %s : [ list basis=%s %s hamiltonian=%s %s accuracy=high %s link=%s %s charge=%d %s jobname=%s %s useghosts=0 %s mpi_nprocs=$::env(mpi_nprocs) %s mpi_mf=$::env(mpi_mf) %s mpi_omp=$::env(mpi_omp)] %s coords=%s.crd %s %s list_option=full\n\n",O.program,basis,b,method,b,b,link,b,atoms.Charge(),b,O.inputname,b,b,b,b,sb,O.inputname,sb,optline)
-	_,_=fmt.Fprint(file,arguments)
-	_,_=fmt.Fprint(file,writeline)
+	arguments := fmt.Sprintf("     theory= %s : [ list basis=%s %s hamiltonian=%s %s accuracy=high %s link=%s %s charge=%d %s jobname=%s %s useghosts=0 %s mpi_nprocs=$::env(mpi_nprocs) %s mpi_mf=$::env(mpi_mf) %s mpi_omp=$::env(mpi_omp)] %s coords=%s.crd %s %s list_option=full\n\n", O.program, basis, b, method, b, b, link, b, atoms.Charge(), b, O.inputname, b, b, b, b, sb, O.inputname, sb, optline)
+	_, _ = fmt.Fprint(file, arguments)
+	_, _ = fmt.Fprint(file, writeline)
 	return nonfatal
 }
 
-
-
 var qcMineDisp = map[string]string{
-	"D3": "d",
-	"":  "",
-	"nodisp":"",
+	"D3":     "d",
+	"":       "",
+	"nodisp": "",
 }
-
 
 var chemShellMethods = map[string]string{
 	"HF":     "hf",
@@ -204,15 +197,15 @@ var chemShellMethods = map[string]string{
 	"b3lyp":  "b3-lyp",
 	"B3LYP":  "b3-lyp",
 	"b3-lyp": "b3-lyp",
-	"BLYP":    "blyp",
-	"blyp":    "blyp",
-	"b-lyp":   "blyp",
-	"PBE0":    "pbe0",
-	"pbe0":    "pbe0",
+	"BLYP":   "blyp",
+	"blyp":   "blyp",
+	"b-lyp":  "blyp",
+	"PBE0":   "pbe0",
+	"pbe0":   "pbe0",
 	"BP86":   "bp86",
-	"bp86":    "bp86",
-	"revpbe":  "revPBE-d",  //qcmine only supports revPBE with -D3 correction
-	"revPBE":   "revPBE-d",
+	"bp86":   "bp86",
+	"revpbe": "revPBE-d", //qcmine only supports revPBE with -D3 correction
+	"revPBE": "revPBE-d",
 }
 
 var chemShellBasis = map[string]string{
@@ -221,6 +214,3 @@ var chemShellBasis = map[string]string{
 	"def2-SVP":  "def2-SVP",
 	"svp":       "def2-SVP",
 }
-
-
-

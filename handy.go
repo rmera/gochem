@@ -179,197 +179,192 @@ func isInString(container []string, test string) bool {
 	return false
 }
 
-
-
 //Creates a water molecule at distance Angstroms from a2, in a direction that is angle radians from the axis defined by a1 and a2.
 //Notice that the exact position of the water is not well defined when angle is not zero. One can always use the RotateAbout
 //function to move the molecule to the desired location. If oxygen is true, the oxygen will be pointing to a2. Otherwise,
 //one of the hydrogens will.
 func MakeWater(a1, a2 *CoordMatrix, distance, angle float64, oxygen bool) *CoordMatrix {
-	water:=Zeros(3,3)
-	WaterOHDist:=0.96
-	WaterAngle:=52.25
+	water := Zeros(3, 3)
+	WaterOHDist := 0.96
+	WaterAngle := 52.25
 	deg2rad := 0.0174533
-	w:=EmptyCoords()
-	w.RowView(water,0) //we first set the O coordinates
+	w := EmptyCoords()
+	w.RowView(water, 0) //we first set the O coordinates
 	w.Clone(a2)
-	w.Sub(w,a1)
+	w.Sub(w, a1)
 	w.Unit(w)
-	dist:=Zeros(1,3)
-	dist.Sub(a1,a2)
-	a1a2dist:=dist.Norm(2)
-	w.Scale(distance+a1a2dist,w)
-	w.Add(w,a1)
-	for i:=0;i<=1;i++{
-		o:=EmptyCoords()
-		o.RowView(water,0)
-		w.RowView(water,i+1)
+	dist := Zeros(1, 3)
+	dist.Sub(a1, a2)
+	a1a2dist := dist.Norm(2)
+	w.Scale(distance+a1a2dist, w)
+	w.Add(w, a1)
+	for i := 0; i <= 1; i++ {
+		o := EmptyCoords()
+		o.RowView(water, 0)
+		w.RowView(water, i+1)
 		w.Clone(o)
-		w.Sub(w,a2)
+		w.Sub(w, a2)
 		w.Unit(w)
-		w.Scale(WaterOHDist+distance,w)
-		o.Sub(o,a2)
-		upp,_:=Cross3D(w,NewCoords([]float64{0,0,1},1,3))
-		upp.Add(upp,o)
-		upp.Add(upp,a2)
+		w.Scale(WaterOHDist+distance, w)
+		o.Sub(o, a2)
+		upp, _ := Cross3D(w, NewCoords([]float64{0, 0, 1}, 1, 3))
+		upp.Add(upp, o)
+		upp.Add(upp, a2)
 		//water.SetMatrix(3,0,upp)
-		w.Add(w,a2)
-		o.Add(o,a2)
-		sign:=1.0
-		if i==1{
-			sign=-1.0
+		w.Add(w, a2)
+		o.Add(o, a2)
+		sign := 1.0
+		if i == 1 {
+			sign = -1.0
 		}
-		temp,_:=RotateAbout(w,o,upp,deg2rad*WaterAngle*sign)
-		w.SetMatrix(0,0,temp)
+		temp, _ := RotateAbout(w, o, upp, deg2rad*WaterAngle*sign)
+		w.SetMatrix(0, 0, temp)
 	}
 	var v1, v2 *CoordMatrix
-	if angle!=0{
-		v1=Zeros(1,3)
-		v2=Zeros(1,3)
-		v1.Sub(a2,a1)
+	if angle != 0 {
+		v1 = Zeros(1, 3)
+		v2 = Zeros(1, 3)
+		v1.Sub(a2, a1)
 		v2.Clone(v1)
-		v2.Set(0,2,v2.At(0,2)+1) //a "random" modification. The idea is that its not colinear with v1
-		v3,_:=Cross3D(v1,v2)
-		v3.Add(v3,a2)
-		water,_=RotateAbout(water,a2,v3,angle)
+		v2.Set(0, 2, v2.At(0, 2)+1) //a "random" modification. The idea is that its not colinear with v1
+		v3, _ := Cross3D(v1, v2)
+		v3.Add(v3, a2)
+		water, _ = RotateAbout(water, a2, v3, angle)
 	}
-	if oxygen{
+	if oxygen {
 		return water
-		}
+	}
 	//we move things so an hydrogen points to a2 and modify the distance acordingly.
-	e1:=EmptyCoords()
-	e2:=EmptyCoords()
-	e3:=EmptyCoords()
-	e1.RowView(water,0)
-	e2.RowView(water,1)
-	e3.RowView(water,2)
-	if v1==nil{
-		v1=Zeros(1,3)
-		}
-	if v2==nil{
-		v2=Zeros(1,3)
-		}
-	v1.Sub(e2,e1)
-	v2.Sub(e3,e1)
-	axis,_:=Cross3D(v1,v2)
-	axis.Add(axis,e1)
-	water,_=RotateAbout(water,e1,axis,deg2rad*(180-WaterAngle))
-	v1.Sub(e1,a2)
+	e1 := EmptyCoords()
+	e2 := EmptyCoords()
+	e3 := EmptyCoords()
+	e1.RowView(water, 0)
+	e2.RowView(water, 1)
+	e3.RowView(water, 2)
+	if v1 == nil {
+		v1 = Zeros(1, 3)
+	}
+	if v2 == nil {
+		v2 = Zeros(1, 3)
+	}
+	v1.Sub(e2, e1)
+	v2.Sub(e3, e1)
+	axis, _ := Cross3D(v1, v2)
+	axis.Add(axis, e1)
+	water, _ = RotateAbout(water, e1, axis, deg2rad*(180-WaterAngle))
+	v1.Sub(e1, a2)
 	v1.Unit(v1)
-	v1.Scale(WaterOHDist,v1)
-	water.AddRow(water,v1)
+	v1.Scale(WaterOHDist, v1)
+	water.AddRow(water, v1)
 	return water
 }
 
-
 //This function will put the internal numbering+1 in the atoms and residue fields, so they match the current residues/atoms
 //in the molecule
-func FixNumbering(r Ref){
-	resid:=0
-	prevres:=-1
-	for i:=0;i<r.Len();i++{
-		at:=r.Atom(i)
-		at.Id=i+1
-		if prevres!=at.Molid{
-			prevres=at.Molid
+func FixNumbering(r Ref) {
+	resid := 0
+	prevres := -1
+	for i := 0; i < r.Len(); i++ {
+		at := r.Atom(i)
+		at.Id = i + 1
+		if prevres != at.Molid {
+			prevres = at.Molid
 			resid++
 		}
-		at.Molid=resid
+		at.Molid = resid
 	}
 }
 
-
 //Takes a list of lists of residues and deletes from r
-//all atoms not in the list or not belonging to the chain chain. 
+//all atoms not in the list or not belonging to the chain chain.
 //It caps the N and C terminal
 //of each list with -COH for the N terminal and NH2 for C terminal.
 //the residues on each sublist should be contiguous to each other.
 //for instance, {6,7,8} is a valid sublist, {6,8,9} is not.
 //This is NOT currently checked by the function!. It returns the list of kept atoms
-func CutBackRef(r Ref, chain string, list [][]int) ([]int, error){
+func CutBackRef(r Ref, chain string, list [][]int) ([]int, error) {
 	//i:=r.Len()
-	var ret []int  //This will be filled with the atoms that are kept, and will be returned.
-	for k,v:=range(list){
-		nter:=v[0]
-		cter:=v[len(v)-1]
-		nresname:=""
-		cresname:=""
-		for j:=0;j<r.Len();j++{
-			if r.Atom(j).Molid==nter && r.Atom(j).Chain==chain{
-				nresname=r.Atom(j).Molname
+	var ret []int //This will be filled with the atoms that are kept, and will be returned.
+	for k, v := range list {
+		nter := v[0]
+		cter := v[len(v)-1]
+		nresname := ""
+		cresname := ""
+		for j := 0; j < r.Len(); j++ {
+			if r.Atom(j).Molid == nter && r.Atom(j).Chain == chain {
+				nresname = r.Atom(j).Molname
 				break
-				}
+			}
 		}
-		if nresname==""{
+		if nresname == "" {
 			//we will protest if the Nter is not found. If Cter is not found we will just
-			//cut at the real Cter 
-			return nil, fmt.Errorf("list %d contains residue numbers out of boundaries",k)
+			//cut at the real Cter
+			return nil, fmt.Errorf("list %d contains residue numbers out of boundaries", k)
 		}
-		for j:=0;j<r.Len();j++{
-			curr:=r.Atom(j)
-			if curr.Chain!=chain{
+		for j := 0; j < r.Len(); j++ {
+			curr := r.Atom(j)
+			if curr.Chain != chain {
 				continue
-				}
-			if curr.Molid==cter{
-				cresname=curr.Molname
-				}
-			if curr.Molid==nter-1{
-				makeNcap(curr,nresname)
-				}
-			if curr.Molid==cter+1{
-				makeCcap(curr,cresname)
-				}
+			}
+			if curr.Molid == cter {
+				cresname = curr.Molname
+			}
+			if curr.Molid == nter-1 {
+				makeNcap(curr, nresname)
+			}
+			if curr.Molid == cter+1 {
+				makeCcap(curr, cresname)
+			}
 		}
 	}
-	for _,i:=range(list){
-		t:=Molecules2Atoms(r,i,[]string{chain})
+	for _, i := range list {
+		t := Molecules2Atoms(r, i, []string{chain})
 		fmt.Println("t", len(t))
-		ret=append(ret,t...)
+		ret = append(ret, t...)
 	}
-	j:=0
-	for i:=0;;i++{
-		index:=i-j
-		if index>=r.Len(){
-			break
-		}
-		if !isInInt(ret, i){
-			r.DelAtom(index)
-			j++
-		}
-	}
+	//	j:=0
+	//	for i:=0;;i++{
+	//		index:=i-j
+	//		if index>=r.Len(){
+	//			break
+	//		}
+	//		if !isInInt(ret, i){
+	//			r.DelAtom(index)
+	//			j++
+	//		}
+	//	}
 	return ret, nil
 }
 
-func makeNcap(at *Atom,resname string){
-	if !isInString([]string{"C","O","CA"},at.Name){
+func makeNcap(at *Atom, resname string) {
+	if !isInString([]string{"C", "O", "CA"}, at.Name) {
 		return
 	}
-	at.Molid=at.Molid+1
-	at.Molname=resname
-	if at.Name=="C"{
-		at.Name="CT"
-		}
-	if at.Name=="CA"{
-		at.Name="HC"
-		at.Symbol="H"
-		}
+	at.Molid = at.Molid + 1
+	at.Molname = resname
+	if at.Name == "C" {
+		at.Name = "CT"
+	}
+	if at.Name == "CA" {
+		at.Name = "HC"
+		at.Symbol = "H"
+	}
 }
 
-func makeCcap(at *Atom, resname string){
-	if !isInString([]string{"N","H","CA"},at.Name){
+func makeCcap(at *Atom, resname string) {
+	if !isInString([]string{"N", "H", "CA"}, at.Name) {
 		return
 	}
-	at.Molid=at.Molid-1
-	at.Molname=resname
-	if at.Name=="N"{
-		at.Name="NT"
-		}
-	if at.Name=="CA"{
-		at.Name="HN2"
-		at.Symbol="H"
-		}
+	at.Molid = at.Molid - 1
+	at.Molname = resname
+	if at.Name == "N" {
+		at.Name = "NT"
+	}
+	if at.Name == "CA" {
+		at.Name = "HN2"
+		at.Symbol = "H"
+	}
 }
-
 
 //Takes a list of lists of residues and produces a new set of coordinates
 //whitout any atom not in the lists or not from the chain chain. It caps the N and C terminal
@@ -377,21 +372,52 @@ func makeCcap(at *Atom, resname string){
 //the residues on each sublist should be contiguous to each other.
 //for instance, {6,7,8} is a valid sublist, {6,8,9} is not.
 //This is NOT currently checked by the function!
-//In addition, the Ref provided should have already been processed by 
+//In addition, the Ref provided should have already been processed by
 //CutBackRef, which is not checked either.
-func CutBackCoords(r Ref, coords *CoordMatrix, chain string, list [][]int) (*CoordMatrix, error){
+func CutBackCoords(r Ref, coords *CoordMatrix, chain string, list [][]int) (*CoordMatrix, error) {
 	//this is actually a really silly function. So far I dont check for errors, but I keep the return balue
 	//In case I do later.
 	var biglist []int
-	for _,i:=range(list){
-		smallist:=Molecules2Atoms(r,i,[]string{chain})
-		biglist=append(biglist,smallist...)
+	for _, i := range list {
+		smallist := Molecules2Atoms(r, i, []string{chain})
+		biglist = append(biglist, smallist...)
 	}
-	newcoords:=Zeros(len(biglist),3)
-	newcoords.SomeRows(coords,biglist)
+	newcoords := Zeros(len(biglist), 3)
+	newcoords.SomeRows(coords, biglist)
 	return newcoords, nil
-
 
 }
 
+//CutLateralRef will return a list with the atom indexes of the lateral chains of the residues in list
+//for each of these residues it will change the alpha carbon to oxygen and change the residue number of the rest
+//of the backbone to -1.
+func CutLateralRef(r Ref, chain string, list []int) []int {
+	for i := 0; i < r.Len(); i++ {
+		curr := r.Atom(i)
+		if isInInt(list, curr.Molid) && curr.Chain == chain {
+			if curr.Name == "CA" {
+				curr.Name = "HB4"
+				curr.Symbol = "H"
+			} else if isInString([]string{"C", "H", "HA", "O", "N"}, curr.Name) { //change the res number of the backbone so it is not considered
+				curr.Molid = -1
+			}
 
+		}
+	}
+	newlist := Molecules2Atoms(r, list, []string{chain})
+	return newlist
+}
+
+//This will tag all atoms with a given name in a given list of atoms.
+//return the number of tagged atoms
+func TagName(r Ref, name string, list []int) int{
+	tag:=0
+	for i := 0; i < r.Len(); i++ {
+		curr := r.Atom(i)
+		if isInInt(list, i) && curr.Name == name {
+			curr.Tag = 1
+			tag++
+		}
+	}
+	return tag
+}

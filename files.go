@@ -144,7 +144,7 @@ func read_full_pdb_line(line string, read_additional bool, contlines int) (*Atom
 	//used for residue name in many cases*/
 	atom.Molname = line[17:20]
 	atom.Molname1 = three2OneLetter[atom.Molname]
-	atom.Chain = string(line[21]) 
+	atom.Chain = string(line[21])
 	atom.Molid, err[1] = strconv.Atoi(strings.TrimSpace(line[22:30]))
 	//Here we shouldn't need TrimSpace, but I keep it just in case someone
 	// doesn's use all the fields when writting a PDB*/
@@ -343,7 +343,7 @@ func writePDBLine(atom *Atom, coord *CoordMatrix, bfact float64, chainprev strin
 	//4 chars for the atom name are used when hydrogens are included.
 	//This has not been tested
 	if len(atom.Name) == 4 {
-		formatstring=strings.Replace(formatstring, "%-3s ", "%-4s", 1)
+		formatstring = strings.Replace(formatstring, "%-3s ", "%-4s", 1)
 	} else if len(atom.Name) > 4 {
 		return "", chainprev, fmt.Errorf("Cant print PDB line")
 	}

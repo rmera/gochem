@@ -32,6 +32,7 @@ import "os"
 import "io"
 import "strings"
 import "log"
+
 //import "strconv"
 import "bufio"
 import "fmt"
@@ -82,7 +83,7 @@ func (O *TMRunner) SetDefaults() {
 	O.defbasis = "def2-SVP"
 	O.defauxbasis = "def2-SVP"
 	O.command = "ridft"
-	O.inputname= "gochemturbo"
+	O.inputname = "gochemturbo"
 
 }
 
@@ -133,9 +134,9 @@ func (O *TMRunner) addToControl(toappend []string, Q *QMCalc) error {
 func (O *TMRunner) addCosmo(epsilon float64) error {
 	//The ammount of newlines is wrong, must fix
 	cosmostring := "" //a few newlines before the epsilon
-	if epsilon==0{
+	if epsilon == 0 {
 		return nil
-		}
+	}
 	cosmostring = fmt.Sprintf("%s%3.1f\n\n\n\n\n\n\n\nr all b\n*\n\n", cosmostring, epsilon)
 	def := exec.Command("cosmoprep")
 	pipe, err := def.StdinPipe()
@@ -200,16 +201,16 @@ func copy2pipe(pipe io.ReadCloser, file *os.File, end chan bool) {
 //BuildInput builds an input for TM based int the data in atoms, coords and C.
 //returns only error.
 func (O *TMRunner) BuildInput(atoms Ref, coords *CoordMatrix, Q *QMCalc) error {
-	err:=os.Mkdir(O.inputname,os.FileMode(0755))
-	for i:=0;err!=nil;i++{
-		if strings.Contains(err.Error(),"file exists") {
-			O.inputname=fmt.Sprintf("%s%d",O.inputname,i)
-			err = os.Mkdir(O.inputname,os.FileMode(0755))
-		}else{
+	err := os.Mkdir(O.inputname, os.FileMode(0755))
+	for i := 0; err != nil; i++ {
+		if strings.Contains(err.Error(), "file exists") {
+			O.inputname = fmt.Sprintf("%s%d", O.inputname, i)
+			err = os.Mkdir(O.inputname, os.FileMode(0755))
+		} else {
 			return err
 		}
 	}
-	_=os.Chdir(O.inputname)
+	_ = os.Chdir(O.inputname)
 	//Set the coordinates in a slightly stupid way.
 	XYZWrite("file.xyz", atoms, coords)
 	x2t := exec.Command("x2t", "file.xyz")
@@ -238,10 +239,10 @@ func (O *TMRunner) BuildInput(atoms Ref, coords *CoordMatrix, Q *QMCalc) error {
 		Q.Basis = O.defbasis
 	}
 	defstring = defstring + "b all " + Q.Basis + "\n"
-	defstring = O.addBasis("b",Q.LBElements, Q.LowBasis, defstring)
-	defstring = O.addBasis("ecp",Q.ECPElements, Q.ECP, defstring)
-	defstring = O.addBasis("b",Q.ECPElements, Q.ECP, defstring) //we set a basis set compatible with the ECP. In TM they share the same name
-	defstring = O.addBasis("b",Q.HBElements, Q.HighBasis, defstring)  //The high basis will override the ECP basis, which can be rather small. Use under your own risk.
+	defstring = O.addBasis("b", Q.LBElements, Q.LowBasis, defstring)
+	defstring = O.addBasis("ecp", Q.ECPElements, Q.ECP, defstring)
+	defstring = O.addBasis("b", Q.ECPElements, Q.ECP, defstring)      //we set a basis set compatible with the ECP. In TM they share the same name
+	defstring = O.addBasis("b", Q.HBElements, Q.HighBasis, defstring) //The high basis will override the ECP basis, which can be rather small. Use under your own risk.
 	defstring = defstring + "\n\n\n\n*\n"
 	defstring = fmt.Sprintf("%seht\n\n\n%d\n\n", defstring, atoms.Charge())
 	method, ok := tMMethods[Q.Method]
@@ -308,7 +309,7 @@ func (O *TMRunner) BuildInput(atoms Ref, coords *CoordMatrix, Q *QMCalc) error {
 		return err
 	}
 	//Finally the cosmo business.
-	err= O.addCosmo(Q.Dielectric)
+	err = O.addCosmo(Q.Dielectric)
 	os.Chdir("../")
 	return err
 }

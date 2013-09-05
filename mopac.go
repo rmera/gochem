@@ -130,7 +130,7 @@ func (O *MopacRunner) BuildInput(atoms Ref, coords *CoordMatrix, Q *QMCalc) erro
 	//now the coordinates
 	for i := 0; i < atoms.Len(); i++ {
 		tag := 1
-		if isInInt(Q.CConstraints, i) == true {
+		if isInInt(Q.CConstraints, i) {
 			tag = 0
 		}
 		//	fmt.Println(atoms.Atom(i).Symbol)

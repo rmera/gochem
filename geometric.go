@@ -29,24 +29,20 @@ import "fmt"
 import "math"
 import "sort"
 
-
 /*
-        """projects any vector V in a plane with contains the 0 and which normal vector is  N. V and N must be numeric arrays"""
-        def __init__(self,N): #set the operator
-                self.file1=[1-(pow(N[0],2)/pow(norm(N),2)),(N[0]*N[1])/pow(norm(N),2),(N[0]*N[2])/pow(norm(N),2)]
-                self.file2=[(N[1]*N[0])/pow(norm(N),2),1-(pow(N[1],2)/pow(norm(N),2)),(N[1]*N[2])/pow(norm(N),2)]
-                self.file3=[(N[2]*N[0])/pow(norm(N),2),(N[2]*N[1])/pow(norm(N),2),1-(pow(N[2],2)/pow(norm(N),2))]
-                self.op=array([self.file1,self.file2,self.file3])
-        def project(self,V):
-                self.projection=dot(self.op,V)
-                return self.projection
+   """projects any vector V in a plane with contains the 0 and which normal vector is  N. V and N must be numeric arrays"""
+   def __init__(self,N): #set the operator
+           self.file1=[1-(pow(N[0],2)/pow(norm(N),2)),(N[0]*N[1])/pow(norm(N),2),(N[0]*N[2])/pow(norm(N),2)]
+           self.file2=[(N[1]*N[0])/pow(norm(N),2),1-(pow(N[1],2)/pow(norm(N),2)),(N[1]*N[2])/pow(norm(N),2)]
+           self.file3=[(N[2]*N[0])/pow(norm(N),2),(N[2]*N[1])/pow(norm(N),2),1-(pow(N[2],2)/pow(norm(N),2))]
+           self.op=array([self.file1,self.file2,self.file3])
+   def project(self,V):
+           self.projection=dot(self.op,V)
+           return self.projection
 
 
 */
 //func GetShadow()
-
-
-
 
 //AngleInVectors takes 2 vectors and calculate the angle in radians between them
 //It does not check for correctness or return errors!

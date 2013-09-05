@@ -177,7 +177,7 @@ func RamaPlot(data [][]float64, tag []int, plotname, title string) error {
 	// Save the plot to a PNG file.
 	filename := fmt.Sprintf("%s.png", plotname)
 	//here I  intentionally shadow err.
-	if err := p.Save(4,4, filename); err != nil {
+	if err := p.Save(4, 4, filename); err != nil {
 		return err
 	}
 	return err

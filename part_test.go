@@ -28,6 +28,7 @@ package chem
 //import "github.com/skelterjohn/go.matrix"
 import "fmt"
 import "os"
+
 //import "time"
 import "strings"
 import "testing"
@@ -200,8 +201,8 @@ func TestQM(Te *testing.T) {
 	calc.Dielectric = 4
 	calc.Basis = "def2-SVP"
 	calc.HighBasis = "def2-TZVP"
-	calc.Grid=4
-	calc.Memory=1000
+	calc.Grid = 4
+	calc.Memory = 1000
 	calc.HBAtoms = []int{3, 10, 12}
 	calc.HBElements = []string{"Cu", "Zn"}
 	calc.RI = true
@@ -283,8 +284,8 @@ func TestTurbo(Te *testing.T) {
 	calc := new(QMCalc)
 	calc.SCFConvHelp = 1 //very demanding
 	calc.Memory = 1000
-	calc.ECP="ecp-10-mdf"
-	calc.ECPElements=[]string{"Zn","Cu"}
+	calc.ECP = "ecp-10-mdf"
+	calc.ECPElements = []string{"Zn", "Cu"}
 	calc.Grid = 4
 	calc.Optimize = true
 	calc.Method = "BP86"
@@ -308,44 +309,43 @@ func TestTurbo(Te *testing.T) {
 	fmt.Println("end TurboTest!")
 }
 
-func TestWater(Te *testing.T){
-	mol,err := XYZRead("test/sample.xyz")
-	if err!=nil{
+func TestWater(Te *testing.T) {
+	mol, err := XYZRead("test/sample.xyz")
+	if err != nil {
 		Te.Error(err)
-		}
-	for i:=0;i<6;i++{
-		s:=new(Atom)
-		if i==0 || i==3{
-			s.Symbol="O"
-		}else{
-			s.Symbol="H"
+	}
+	for i := 0; i < 6; i++ {
+		s := new(Atom)
+		if i == 0 || i == 3 {
+			s.Symbol = "O"
+		} else {
+			s.Symbol = "H"
 		}
 		mol.AddAtom(s)
 	}
 	mol.SetCharge(1)
 	mol.SetUnpaired(0)
-	c2:=Zeros(mol.Len(),3)
-	v:=Zeros(6,3)
-	l,_:=mol.Coords[0].Dims()
-	fmt.Println(l,mol.Len())
-	c2.Stack(mol.Coords[0],v)
-	mol.Coords[0]=c2
-	c:=EmptyCoords()
-	h1:=EmptyCoords()
-	c.RowView(mol.Coords[0],43)
-	h1.RowView(mol.Coords[0],42)
-	coords:=Zeros(mol.Len(),3)
+	c2 := Zeros(mol.Len(), 3)
+	v := Zeros(6, 3)
+	l, _ := mol.Coords[0].Dims()
+	fmt.Println(l, mol.Len())
+	c2.Stack(mol.Coords[0], v)
+	mol.Coords[0] = c2
+	c := EmptyCoords()
+	h1 := EmptyCoords()
+	c.RowView(mol.Coords[0], 43)
+	h1.RowView(mol.Coords[0], 42)
+	coords := Zeros(mol.Len(), 3)
 	coords.Clone(mol.Coords[0])
-	w1:=MakeWater(c,h1,2,Deg2Rad(30),true)
-	w2:=MakeWater(c,h1,2,Deg2Rad(-30),false)
-	tmp:=Zeros(6,3)
-	tmp.Stack(w1,w2)
-	coords.SetMatrix(mol.Len()-6,0,tmp)
+	w1 := MakeWater(c, h1, 2, Deg2Rad(30), true)
+	w2 := MakeWater(c, h1, 2, Deg2Rad(-30), false)
+	tmp := Zeros(6, 3)
+	tmp.Stack(w1, w2)
+	coords.SetMatrix(mol.Len()-6, 0, tmp)
 	XYZWrite("test/WithWater.xyz", mol, coords)
 }
 
-
-func TestFixPDB(Te *testing.T){
+func TestFixPDB(Te *testing.T) {
 	mol, err := PDBRead("test/2c9vbroken.pdb", true)
 	if err != nil {
 		Te.Error(err)
@@ -353,8 +353,6 @@ func TestFixPDB(Te *testing.T){
 	FixNumbering(mol)
 	PDBWrite("test/2c9vfixed.pdb", mol, mol.Coords[0])
 }
-
-
 
 func TestChemShell(Te *testing.T) {
 	mol, err := XYZRead("test/sample.xyz")
@@ -372,7 +370,7 @@ func TestChemShell(Te *testing.T) {
 	calc.Method = "BLYP"
 	calc.Dielectric = 4
 	calc.Basis = "def2-SVP"
-	calc.Grid=4   //not supported yet, coming sun
+	calc.Grid = 4 //not supported yet, coming sun
 	calc.Disperssion = "D3"
 	calc.CConstraints = []int{0, 10, 20}
 	cs := MakeCSRunner()
@@ -382,27 +380,27 @@ func TestChemShell(Te *testing.T) {
 		Te.Error(err)
 	}
 	err = cs.BuildInput(mol, atoms, calc)
-	qderror_handler(err,Te)
+	qderror_handler(err, Te)
 	//now with a PDB
 	cs.SetCoordFormat("pdb")
 	cs.SetName("gochem_pdb")
 	err = cs.BuildInput(mol, atoms, calc)
-	qderror_handler(err,Te)
+	qderror_handler(err, Te)
 	cs.SetName("gochem_sp")
-	calc.Optimize=false
+	calc.Optimize = false
 	err = cs.BuildInput(mol, atoms, calc)
-	qderror_handler(err,Te)
+	qderror_handler(err, Te)
 	if err = os.Chdir(original_dir); err != nil {
 		Te.Error(err)
 	}
 	fmt.Println("end ChemShell test!")
 }
 
-func qderror_handler(err error, Te *testing.T){
-	if err!=nil{
-		if strings.Contains("NonFatal",err.Error()){
+func qderror_handler(err error, Te *testing.T) {
+	if err != nil {
+		if strings.Contains("NonFatal", err.Error()) {
 			fmt.Println("Non fatal error: ", err.Error())
-		}else{
+		} else {
 			Te.Error(err)
 		}
 	}
