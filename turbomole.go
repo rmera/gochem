@@ -200,6 +200,8 @@ func copy2pipe(pipe io.ReadCloser, file *os.File, end chan bool) {
 
 //BuildInput builds an input for TM based int the data in atoms, coords and C.
 //returns only error.
+//Note that at this point the interface does not support multiplicities different from 1 and 2.
+//The number in atoms is simply ignored.
 func (O *TMRunner) BuildInput(atoms Ref, coords *CoordMatrix, Q *QMCalc) error {
 	err := os.Mkdir(O.inputname, os.FileMode(0755))
 	for i := 0; err != nil; i++ {
@@ -244,7 +246,7 @@ func (O *TMRunner) BuildInput(atoms Ref, coords *CoordMatrix, Q *QMCalc) error {
 	defstring = O.addBasis("b", Q.ECPElements, Q.ECP, defstring)      //we set a basis set compatible with the ECP. In TM they share the same name
 	defstring = O.addBasis("b", Q.HBElements, Q.HighBasis, defstring) //The high basis will override the ECP basis, which can be rather small. Use under your own risk.
 	defstring = defstring + "\n\n\n\n*\n"
-	defstring = fmt.Sprintf("%seht\n\n\n%d\n\n", defstring, atoms.Charge())
+	defstring = fmt.Sprintf("%seht\n\n%d\n\n", defstring, atoms.Charge())
 	method, ok := tMMethods[Q.Method]
 	if !ok {
 		fmt.Fprintf(os.Stderr, "no method assigned for TM calculation, will used the default %s, \n", O.defmethod)
