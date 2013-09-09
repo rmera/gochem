@@ -68,7 +68,7 @@ func AngleInVectors(v1, v2 *CoordMatrix) float64 {
 //a rotation matrix that, when applied to mol, will rotate it around the Z axis
 //in such a way that the projection of newy in the XY plane will be aligned with
 //the Y axis.
-func GetRotateToNewY(mol, newy *CoordMatrix) (*CoordMatrix, error) {
+func GetRotateToNewY(newy *CoordMatrix) (*CoordMatrix, error) {
 	nr, nc := newy.Dims()
 	if nc != 3 || nr != 1 {
 		return nil, fmt.Errorf("Wrong newy vector")
@@ -86,10 +86,8 @@ func GetRotateToNewY(mol, newy *CoordMatrix) (*CoordMatrix, error) {
 
 }
 
-//GetRotateAroundZ takes a set of coordinates (mol) and a vector (y). It returns
-//a rotation matrix that, when applied to mol, will rotate it around the Z axis
-//in such a way that the projection of newy in the XY plane will be aligned with
-//the Y axis.
+//GetRotateAroundZ returns an operator that will rotate a set of
+//coordinates by gamma radians around the z axis.
 func GetRotateAroundZ(gamma float64) (*CoordMatrix, error) {
 	singamma := math.Sin(gamma)
 	cosgamma := math.Cos(gamma)
