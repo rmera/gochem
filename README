@@ -1,12 +1,6 @@
 To the long life of the Ven. Khenpo Phuntzok Tenzin Rinpoche.
 
-***************
-Notice: The gochem API has recently being adapted to comply with the
-gonum API (http://groups.google.com/group/gonum-dev/topics) Due to this,
-the API is not to be considered stable and minor changes are expected.
-***************
 
-Gochem is a library for chemistry, especially computational 
 biochemistry, in go. It provides structures for handling atoms and 
 molecules, reading/writing some common formats (currently xyz, PDB, 
 xtc and dcd) and a few functions for geometrical manipulation of 
@@ -105,7 +99,7 @@ Current capabilities.
 	 + Rotate a sub-group of atoms in a molecule using any 2 coordinates as
       the rotation axis.
 
-	 **The previous are implemented using Clifford algebra and, as a 
+	 **The latter is implemented using Clifford algebra and, as a 
 	 legacy version, Euler angles and rotation matrices (math for the 
 	 Cliffor algebra implementation by Doc. Dr. Janne Pesonen). 
 	 The Clifford algebra implementation is concurrent. In general, 
@@ -115,7 +109,7 @@ Current capabilities.
 10.  Calculates and draws Ramachandran plots (uses the Plotinum library).
         for an aminoacidic chain or a subset of it.
 11   Generates input for, run and recover results from QM calculations
-	 with Turbomole, Orca and MoPAC (which must be obtained independently from their respective     
+	 with Turbomole, Orca and MOPAC (which must be obtained independently from their respective     
      distributors.)
 
 
