@@ -357,7 +357,7 @@ func writePDBLine(atom *Atom, coord *CoordMatrix, bfact float64, chainprev strin
 
 //PDBWrite writes a PDB for the molecule mol and the coordinates Coords. It is just a wrapper for
 //PDBStringWrite. Returns error or nil.
-func PDBWrite(pdbname string, mol Ref, CandB ...*CoordMatrix) error {
+func PDBWrite(pdbname string, mol Atomer, CandB ...*CoordMatrix) error {
 	coords := CandB[0]
 	var Bfactors *CoordMatrix
 	if len(CandB) > 1 {
@@ -386,7 +386,7 @@ func PDBWrite(pdbname string, mol Ref, CandB ...*CoordMatrix) error {
 
 //PDBStringWrite writes a string in PDB format for a given reference, coordinate set and bfactor set, which must match each other
 //returns the written string and error or nil.
-func PDBStringWrite(mol Ref, coords, bfact *CoordMatrix) (string, error) {
+func PDBStringWrite(mol Atomer, coords, bfact *CoordMatrix) (string, error) {
 	if bfact == nil {
 		bfact = gnZeros(mol.Len(), 1)
 	}
@@ -416,7 +416,7 @@ func PDBStringWrite(mol Ref, coords, bfact *CoordMatrix) (string, error) {
 //CandB is a list of lists of *matrix.DenseMatrix. If it has 2 elements or more, the second will be used as
 //Bfactors. If it has one element, all b-factors will be zero.
 //Returns an error if fails, or nil if succeeds.
-func MultiPDBWrite(pdbname string, mol Ref, CandB ...[]*CoordMatrix) error {
+func MultiPDBWrite(pdbname string, mol Atomer, CandB ...[]*CoordMatrix) error {
 	Coords := CandB[0]
 	var Bfactors []*CoordMatrix
 	if len(CandB) > 1 && correctBfactors(Coords, CandB[1]) {
@@ -570,7 +570,7 @@ func xyzReadSnap(xyz *bufio.Reader, ReadTopol bool) (*CoordMatrix, []*Atom, erro
 
 //XYZWrite writes the mol Ref and the Coord coordinates in an XYZ file with name xyzname which will
 //be created fot that. If the file exist it will be overwritten.
-func XYZWrite(xyzname string, mol Ref, Coords *CoordMatrix) error {
+func XYZWrite(xyzname string, mol Atomer, Coords *CoordMatrix) error {
 	out, err := os.Create(xyzname)
 	if err != nil {
 		return err
@@ -585,7 +585,7 @@ func XYZWrite(xyzname string, mol Ref, Coords *CoordMatrix) error {
 }
 
 //XYZStringWrite writes the mol Ref and the Coord coordinates in an XYZ-formatted string.
-func XYZStringWrite(mol Ref, Coords *CoordMatrix) (string, error) {
+func XYZStringWrite(mol Atomer, Coords *CoordMatrix) (string, error) {
 	var out string
 	if mol.Len() != Coords.Rows() {
 		return "", fmt.Errorf("Ref and Coords dont have the same number of atoms")

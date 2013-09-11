@@ -142,7 +142,7 @@ func (O *OrcaRunner) SetDefaults() {
 
 //BuildInput builds an input for ORCA based int the data in atoms, coords and C.
 //returns only error.
-func (O *OrcaRunner) BuildInput(atoms Ref, coords *CoordMatrix, Q *QMCalc) error {
+func (O *OrcaRunner) BuildInput(atoms ReadRef, coords *CoordMatrix, Q *QMCalc) error {
 	//Only error so far
 	if atoms == nil || coords == nil {
 		return fmt.Errorf("Missing charges or coordinates")

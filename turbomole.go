@@ -202,7 +202,7 @@ func copy2pipe(pipe io.ReadCloser, file *os.File, end chan bool) {
 //returns only error.
 //Note that at this point the interface does not support multiplicities different from 1 and 2.
 //The number in atoms is simply ignored.
-func (O *TMRunner) BuildInput(atoms Ref, coords *CoordMatrix, Q *QMCalc) error {
+func (O *TMRunner) BuildInput(atoms ReadRef, coords *CoordMatrix, Q *QMCalc) error {
 	err := os.Mkdir(O.inputname, os.FileMode(0755))
 	for i := 0; err != nil; i++ {
 		if strings.Contains(err.Error(), "file exists") {

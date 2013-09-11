@@ -43,7 +43,7 @@ func Rad2Deg(f float64) float64 {
 //It doesnt return errors, if a residue is out of range, no atom will
 //be returned for it. Atoms are also required to be part of one of the chains
 //specified in chains.
-func Molecules2Atoms(mol Ref, residues []int, chains []string) []int {
+func Molecules2Atoms(mol Atomer, residues []int, chains []string) []int {
 	atlist := make([]int, 0, len(residues)*3)
 	for key := 0; key < mol.Len(); key++ {
 		at := mol.Atom(key)
@@ -143,7 +143,7 @@ func EulerRotateAbout(coordsorig, ax1, ax2 *CoordMatrix, angle float64) (*CoordM
 }
 
 //Corrupted is a convenience function to check that a reference and a trajectory have the same number of atoms
-func Corrupted(R Ref, X Traj) error {
+func Corrupted(R Atomer, X Traj) error {
 	if X.Len() != R.Len() {
 		return fmt.Errorf("Mismatched number of atoms/coordinates")
 	}
@@ -282,7 +282,7 @@ func FixNumbering(r Ref) {
 //the residues on each sublist should be contiguous to each other.
 //for instance, {6,7,8} is a valid sublist, {6,8,9} is not.
 //This is NOT currently checked by the function!. It returns the list of kept atoms
-func CutBackRef(r Ref, chain string, list [][]int) ([]int, error) {
+func CutBackRef(r Atomer, chain string, list [][]int) ([]int, error) {
 	//i:=r.Len()
 	var ret []int //This will be filled with the atoms that are kept, and will be returned.
 	for k, v := range list {
@@ -366,6 +366,7 @@ func makeCcap(at *Atom, resname string) {
 	}
 }
 
+/*
 //Takes a list of lists of residues and produces a new set of coordinates
 //whitout any atom not in the lists or not from the chain chain. It caps the N and C terminal
 //of each list with -COH for the N terminal and NH2 for C terminal.
@@ -387,11 +388,12 @@ func CutBackCoords(r Ref, coords *CoordMatrix, chain string, list [][]int) (*Coo
 	return newcoords, nil
 
 }
+*/
 
 //CutLateralRef will return a list with the atom indexes of the lateral chains of the residues in list
 //for each of these residues it will change the alpha carbon to oxygen and change the residue number of the rest
 //of the backbone to -1.
-func CutLateralRef(r Ref, chain string, list []int) []int {
+func CutLateralRef(r Atomer, chain string, list []int) []int {
 	for i := 0; i < r.Len(); i++ {
 		curr := r.Atom(i)
 		if isInInt(list, curr.Molid) && curr.Chain == chain {
@@ -410,7 +412,7 @@ func CutLateralRef(r Ref, chain string, list []int) []int {
 
 //This will tag all atoms with a given name in a given list of atoms.
 //return the number of tagged atoms
-func TagName(r Ref, name string, list []int) int{
+func TagName(r Atomer, name string, list []int) int{
 	tag:=0
 	for i := 0; i < r.Len(); i++ {
 		curr := r.Atom(i)

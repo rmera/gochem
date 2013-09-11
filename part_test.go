@@ -321,7 +321,7 @@ func TestWater(Te *testing.T) {
 		} else {
 			s.Symbol = "H"
 		}
-		mol.AddAtom(s)
+		mol.AppendAtom(s)
 	}
 	mol.SetCharge(1)
 	mol.SetUnpaired(0)

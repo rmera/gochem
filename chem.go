@@ -153,7 +153,7 @@ func (T *Topology) ResetIds() {
 }
 
 //Copy atoms into a topology
-func (T *Topology) CloneAtoms(A Ref) {
+func (T *Topology) CloneAtoms(A Atomer) {
 	//T := new(Topology)
 	T.Atoms = make([]*Atom, A.Len())
 	for key := 0; key < A.Len(); key++ {
@@ -180,8 +180,8 @@ func (T *Topology) SetAtom(i int, at *Atom) {
 	T.Atoms[i] = at
 }
 
-//AddAtom appends an atom at the end of the reference
-func (T *Topology) AddAtom(at *Atom) { //Ref {
+//AppendAtom appends an atom at the end of the reference
+func (T *Topology) AppendAtom(at *Atom) { //Ref {
 	/*newmol, ok := T.CopyAtoms().(*Topology)
 	if !ok {
 		panic("cant happen")
@@ -192,7 +192,7 @@ func (T *Topology) AddAtom(at *Atom) { //Ref {
 
 //SelectAtoms puts the atoms of T
 //with indexes in atomlist into the receiver.
-func (R *Topology) SomeAtoms(T Ref, atomlist []int) {
+func (R *Topology) SomeAtoms(T Atomer, atomlist []int) {
 	var ret []*Atom
 	lenatoms := T.Len()
 	for k, j := range atomlist {
@@ -207,7 +207,7 @@ func (R *Topology) SomeAtoms(T Ref, atomlist []int) {
 
 //SelectAtoms puts the atoms of T
 //with indexes in atomlist into the receiver. Returns error if problem.
-func (R *Topology) SomeAtomsSafe(T Ref, atomlist []int) error {
+func (R *Topology) SomeAtomsSafe(T Atomer, atomlist []int) error {
 	f := func() { R.SomeAtoms(T, atomlist) }
 	return gnMaybe(gnPanicker(f))
 }

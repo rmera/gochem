@@ -252,7 +252,7 @@ func RamaResidueFilter(dihedrals []RamaSet, filterdata []string, shouldBePresent
   resran. If resran has 2 elements and the last is -1, RamaList will
   get all the dihedral for residues from resran[0] to the end of the chain.
   It only obtain dihedral lists for residues belonging to a chain included in chains */
-func RamaList(M Ref, chains string, resran []int) ([]RamaSet, error) {
+func RamaList(M Atomer, chains string, resran []int) ([]RamaSet, error) {
 	RamaList := make([]RamaSet, 0, 0)
 	if len(resran) == 2 {
 		if resran[1] == -1 {

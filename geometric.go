@@ -301,7 +301,7 @@ func BestPlaneP(evecs *CoordMatrix) (*CoordMatrix, error) {
 
 //BestPlane returns a row vector that is normal to the plane that best contains the molecule
 //if passed a nil Ref, it will simply set all masses to 1.
-func BestPlane(mol Ref, coords *CoordMatrix) (*CoordMatrix, error) {
+func BestPlane(mol ReadRef, coords *CoordMatrix) (*CoordMatrix, error) {
 	var err error
 	var Mmass *CoordMatrix
 	cr, _ := coords.Dims()

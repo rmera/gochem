@@ -60,9 +60,24 @@ type ConcTraj interface {
 	Len() int
 }
 
-//Ref (reference) is an interface for any description of the type of atoms in a molecule,
-//i.e. every characteristic of them, except for the coordinates and b-factors.
-type Ref interface {
+
+type Atomer interface {
+
+	//Atom returns the Atom corresponding to the index i
+	//of the Atom slice in the Topology. Should panic if
+	//out of range.
+	Atom(i int) *Atom
+
+	Len() int
+}
+
+type ReadRef interface {
+
+	Atomer
+
+	//Returns a column vector with the massess of all atoms
+	//this will be changed to a tion that takes a Reference interface.
+	MassCol() (*CoordMatrix, error)
 
 	//Charge gets the total charge of the topology
 	Charge() int
@@ -70,33 +85,34 @@ type Ref interface {
 	//Unpaired gets the number of unpaired electrons in the topology
 	Unpaired() int
 
+	//Puts the atoms of Ref that are marked in the list of ints in the received.
+	//Changes to these atoms affect the original molecule.
+	//The charge and multiplicity (unpaired electrons) for the molecule is just the one
+	//for the parent reference and its not guarranteed to be correct.
+	SomeAtoms(Atomer, []int)
+
+}
+
+
+
+//Ref (reference) is an interface for any description of the type of atoms in a molecule,
+//i.e. every characteristic of them, except for the coordinates and b-factors.
+type WriteRef interface {
+
+	CloneAtoms(A Atomer)
+
 	//SetCharge sets the total charge of the topology to i
 	SetCharge(i int)
 
 	//SetUnpaired sets the number of unpaired electrons in the topology to i
 	SetUnpaired(i int)
 
-	//Atom returns the Atom corresponding to the index i
-	//of the Atom slice in the Topology. Should panic if
-	//out of range.
-	Atom(i int) *Atom
-
 	//SetAtom sets the (i+1)th Atom of the topology to atm.
 	//Panics if out of range
 	SetAtom(i int, at *Atom)
 
 	//AddAtom appends an atom at the end of the Ref
-	AddAtom(at *Atom)
-
-	//Puts the atoms of Ref that are marked in the list of ints in the received.
-	//Changes to these atoms affect the original molecule.
-	//The charge and multiplicity (unpaired electrons) for the molecule is just the one
-	//for the parent reference and its not guarranteed to be correct.
-	SomeAtoms(Ref, []int)
-
-	//Returns a column vector with the massess of all atoms
-	//this will be changed to a tion that takes a Reference interface.
-	MassCol() (*CoordMatrix, error)
+	AppendAtom(at *Atom)
 
 	//Returns a copy of the Ref with the atom i deleted
 	DelAtom(i int)
@@ -104,9 +120,15 @@ type Ref interface {
 	//Changes the Ids and Molids of atoms for ones matching their current order
 	ResetIds()
 
-	//Returns the number of atoms in the reference
-	Len() int
 }
+
+//Read-write reference
+type Ref interface {
+
+	ReadRef
+	WriteRef
+}
+
 
 /*
 //This allows to set QM calculations using different programs.
