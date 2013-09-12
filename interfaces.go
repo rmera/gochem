@@ -77,7 +77,7 @@ type ReadRef interface {
 
 	//Returns a column vector with the massess of all atoms
 	//this will be changed to a tion that takes a Reference interface.
-	MassCol() (*CoordMatrix, error)
+	Masses() (*CoordMatrix, error)
 
 	//Charge gets the total charge of the topology
 	Charge() int
@@ -95,8 +95,7 @@ type ReadRef interface {
 
 
 
-//Ref (reference) is an interface for any description of the type of atoms in a molecule,
-//i.e. every characteristic of them, except for the coordinates and b-factors.
+
 type WriteRef interface {
 
 	CloneAtoms(A Atomer)
@@ -122,6 +121,9 @@ type WriteRef interface {
 
 }
 
+
+//Ref (reference) is an interface for any description of the type of atoms in a molecule,
+//i.e. every characteristic of them, except for the coordinates and b-factors.
 //Read-write reference
 type Ref interface {
 

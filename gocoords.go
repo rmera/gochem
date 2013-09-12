@@ -26,6 +26,11 @@
 //Package chem provides atom and molecule structures, facilities for reading and writing some
 //files used in computational chemistry and some functions for geometric manipulations and shape
 //indicators.
+
+//All the *Vec functions will operate/produce column or row vectors depending on whether the matrix underlying CoordMatrix
+//is row or column major.
+
+
 package chem
 
 import (
@@ -50,10 +55,23 @@ type CoordMatrix struct {
 	*matrix.DenseMatrix
 }
 
-//Generate and returns a CoorMatrix from data.
-func NewCoords(data []float64, rows, cols int) *CoordMatrix {
+
+
+//Generate and returns a CoorMatrix with arbitrary shape from data.
+func NewCoordMatrix(data []float64, rows, cols int) *CoordMatrix {
 	if len(data) < cols*rows {
 		panic(NotEnoughElements)
+	}
+	return &CoordMatrix{matrix.MakeDenseMatrix(data, rows, cols)}
+
+}
+
+//Generate and returns a CoorMatrix with 3 columns from data.
+func NewCoords(data []float64) *CoordMatrix {
+	const cols int = 3
+	rows := len(data)/cols
+	if cols%rows!=0 {
+		panic("Input slice lenght not divisible by 3")
 	}
 	return &CoordMatrix{matrix.MakeDenseMatrix(data, rows, cols)}
 
@@ -67,18 +85,20 @@ func EmptyCoords() *CoordMatrix {
 }
 
 //Returns an empty CoordMatrix with the given dimensions
-func gnZeros(rows, cols int) *CoordMatrix {
+//It is to be substituted by the Gonum function.
+func Zeros(rows, cols int) *CoordMatrix {
 	return &CoordMatrix{matrix.Zeros(rows, cols)}
 }
 
 //Something to survive while the gonum is implemented
-func Zeros(rows, cols int) *CoordMatrix {
-	return gnZeros(rows, cols)
+func ZeroVecs(rows int) *CoordMatrix {
+	const cols int = 3
+	return Zeros(rows, cols)
 }
 
 //Returns an identity matrix spanning span cols and rows
 func gnEye(span int) *CoordMatrix {
-	A := gnZeros(span, span)
+	A := Zeros(span, span)
 	for i := 0; i < span; i++ {
 		A.Set(i, i, 1.0)
 	}
@@ -185,7 +205,7 @@ func gnSVD(A *CoordMatrix) (*CoordMatrix, *CoordMatrix, *CoordMatrix, error) {
 
 //returns a rows,cols matrix filled with gnOnes.
 func gnOnes(rows, cols int) *CoordMatrix {
-	gnOnes := gnZeros(rows, cols)
+	gnOnes := Zeros(rows, cols)
 	for i := 0; i < rows; i++ {
 		for j := 0; j < cols; j++ {
 			gnOnes.Set(i, j, 1)
@@ -197,7 +217,7 @@ func gnOnes(rows, cols int) *CoordMatrix {
 func gnMul(A, B *CoordMatrix) *CoordMatrix {
 	ar, _ := A.Dims()
 	_, bc := B.Dims()
-	C := gnZeros(ar, bc)
+	C := Zeros(ar, bc)
 	C.Mul(A, B)
 	return C
 }
@@ -210,14 +230,14 @@ func RowView(A *CoordMatrix, i int) *CoordMatrix {
 
 func gnClone(A *CoordMatrix) *CoordMatrix {
 	r, c := A.Dims()
-	B := gnZeros(r, c)
+	B := Zeros(r, c)
 	B.Clone(A)
 	return B
 }
 
 func gnT(A *CoordMatrix) *CoordMatrix {
 	r, c := A.Dims()
-	B := gnZeros(c, r)
+	B := Zeros(c, r)
 	B.T(A)
 	return B
 }
@@ -255,20 +275,29 @@ func (F *CoordMatrix) AddFloat(A *CoordMatrix, B float64) {
 	}
 }
 
+
+
 //AddRow adds the row vector row to each row of the matrix A, putting
 //the result on the receiver. Panics if matrices are mismatched. It will not work if A and row
 //reference to the same CoordMatrix.
-func (F *CoordMatrix) AddRow(A, row *CoordMatrix) {
+func AddRow(A,row *CoordMatrix){
+	F.AddRow(A,row)
+}
+
+//Adds a vector to the  coordmatrix A putting the result on the received.
+//depending on whether the underlying matrix to coordmatrix
+//is col or row major, it could add a col or a row vector.
+func (F *CoordMatrix) AddVec(A, vec *CoordMatrix) {
 	ar, ac := A.Dims()
-	rr, rc := row.Dims()
+	rr, rc := vec.Dims()
 	fr, fc := F.Dims()
 	if ac != rc || rr != 1 || ac != fc || ar != fr {
 		panic(gnErrShape)
 	}
 	j := EmptyCoords()
 	for i := 0; i < ar; i++ {
-		j.RowView(A, i)
-		j.Add(j, row)
+		j.VecView(A, i)
+		j.Add(j, vec)
 	}
 }
 
@@ -292,11 +321,14 @@ func (F *CoordMatrix) Clone(A *CoordMatrix) {
 
 }
 
-//Puts a view of the given row of the matrix on the receiver
+//Puts a view of the given col of the matrix on the receiver
 func (F *CoordMatrix) ColView(A *CoordMatrix, i int) {
 	ar, _ := A.Dims()
 	F.View(A, 0, i, ar, 1)
 }
+
+
+
 
 func (F *CoordMatrix) DelRow(A *CoordMatrix, i int) {
 	ar, ac := A.Dims()
@@ -317,6 +349,14 @@ func (F *CoordMatrix) DelRow(A *CoordMatrix, i int) {
 	tempF2.Clone(tempA2)
 }
 
+
+//puts a copy of matrix A without the vector i
+//in the received. Vector could be a col or row vector depending
+//on the majorship of the implementation.
+func (F *CoordMatrix) DelVec(A *CoordMatrix, i int) {
+	F.DelRow(A,i)
+}
+
 func (F *CoordMatrix) Dims() (int, int) {
 	return F.Rows(), F.Cols()
 }
@@ -327,7 +367,7 @@ func (F *CoordMatrix) Dot(B *CoordMatrix) float64 {
 		panic(gnErrShape)
 	}
 	a, b := F.Dims()
-	A := gnZeros(a, b)
+	A := Zeros(a, b)
 	A.MulElem(F, B)
 	return A.Sum()
 }
@@ -377,7 +417,7 @@ func (F *CoordMatrix) Mul(A, B *CoordMatrix) {
 	_, Bcols := B.Dims()
 
 	if F == nil {
-		F = gnZeros(Arows, Bcols) //I don't know if the final API will allow this.
+		F = Zeros(Arows, Bcols) //I don't know if the final API will allow this.
 	}
 
 	in := make(chan int)
@@ -473,8 +513,7 @@ func (F *CoordMatrix) Row(i int) []float64 {
 
 //Puts a view of the given row of the matrix in the receiver
 func (F *CoordMatrix) RowView(A *CoordMatrix, i int) {
-	_, ac := A.Dims()
-	F.View(A, i, 0, 1, ac)
+	F.VecView(A,i)
 }
 
 //Scale the matrix A by a number i, putting the result in the received.
@@ -517,11 +556,17 @@ func (F *CoordMatrix) ScaleByCol(A, Col *CoordMatrix) {
 
 }
 
+
+
+func (F *CoordMatrix) ScaleByRow(A, Row *CoordMatrix) {
+	F.ScaleByVec(A,Row)
+}
+
 //ScaleByRow scales each column of matrix A by Col, putting the result
 //in the received.
-func (F *CoordMatrix) ScaleByRow(A, Row *CoordMatrix) {
+func (F *CoordMatrix) ScaleByVec(A, Vec *CoordMatrix) {
 	ar, ac := A.Dims()
-	rr, rc := Row.Dims()
+	rr, rc := Vec.Dims()
 	fr, fc := F.Dims()
 	if ac != rc || rr != 1 || ar != fr || ac != fc {
 		panic(gnErrShape)
@@ -531,8 +576,8 @@ func (F *CoordMatrix) ScaleByRow(A, Row *CoordMatrix) {
 	}
 	temp := EmptyCoords()
 	for i := 0; i < ac; i++ {
-		temp.RowView(F, i)
-		temp.MulElem(temp, Row)
+		temp.VecView(F, i)
+		temp.MulElem(temp, Vec)
 	}
 }
 
@@ -555,7 +600,7 @@ func (F *CoordMatrix) SetMatrix(i, j int, A *CoordMatrix) {
 //Returns a matrix contaning all the ith rows of matrix A,
 //where i are the numbers in clist. The rows are in the same order
 //than the clist.
-func (F *CoordMatrix) SomeRows(A *CoordMatrix, clist []int) {
+func (F *CoordMatrix) SomeVecs(A *CoordMatrix, clist []int) {
 	ar, ac := A.Dims()
 	fr, fc := F.Dims()
 	if ac != fc || fr != len(clist) || ar < len(clist) {
@@ -568,15 +613,17 @@ func (F *CoordMatrix) SomeRows(A *CoordMatrix, clist []int) {
 	}
 }
 
-//Returns a matrix contaning all the ith rows of matrix A,
-//where i are the numbers in clist. The rows are in the same order
+//Returns a matrix contaning all the ith vectors of matrix A,
+//where i are the numbers in clist. The vectors are in the same order
 //than the clist. Returns an error instead of panicking.
-func (F *CoordMatrix) SomeRowsSafe(A *CoordMatrix, clist []int) (err error) {
-	f := func() { F.SomeRows(A, clist) }
+func (F *CoordMatrix) SomeVecsSafe(A *CoordMatrix, clist []int) (err error) {
+	f := func() { F.SomeVecs(A, clist) }
 	return gnMaybe(gnPanicker(f))
 }
 
-func (F *CoordMatrix) SetRows(A *CoordMatrix, clist []int) {
+//Set the vectors whith index n = each value on clist, in the received to the
+//n vector of A.
+func (F *CoordMatrix) SetVecs(A *CoordMatrix, clist []int) {
 	ar, ac := A.Dims()
 	fr, fc := F.Dims()
 	if ac != fc || fr < len(clist) || ar < len(clist) {
@@ -588,6 +635,13 @@ func (F *CoordMatrix) SetRows(A *CoordMatrix, clist []int) {
 		}
 	}
 }
+
+
+//puts in F a matrix consistent of A over B or A to the left of B
+func StacVec(A,B *CoordMatrix){
+	F.Stack(A,B)
+}
+
 
 //puts in F a matrix consisting in A over B
 func (F *CoordMatrix) Stack(A, B *CoordMatrix) {
@@ -627,13 +681,21 @@ func (F *CoordMatrix) SubMatrix(A *CoordMatrix, i, j, rows, cols int) {
 	F.Clone(&temp)
 }
 
-//AddRow subtracts the row vector row to each row of the matrix A, putting
+//SubRow subtracts the row vector row to each row of the matrix A, putting
 //the result on the receiver. Panics if matrices are mismatched.  It will not
 //work if A and row reference to the same CoordMatrix.
 func (F *CoordMatrix) SubRow(A, row *CoordMatrix) {
-	row.Scale(-1, row)
-	F.AddRow(A, row)
-	row.Scale(-1, row)
+	SubVec(A,row)
+}
+
+
+//SubRow subtracts the vector  to each vector of the matrix A, putting
+//the result on the receiver. Panics if matrices are mismatched.  It will not
+//work if A and row reference to the same CoordMatrix.
+func (F *CoordMatrix) SubVec(A, vec *CoordMatrix) {
+	row.Scale(-1, vec)
+	F.AddVec(A, vec)
+	row.Scale(-1, vec)
 }
 
 //Sum returns the sum of all elements in matrix A.
@@ -682,6 +744,13 @@ func (F *CoordMatrix) T(A *CoordMatrix) {
 func (F *CoordMatrix) Unit(A *CoordMatrix) {
 	norm := 1.0 / A.Norm(2)
 	F.Scale(norm, A)
+}
+
+
+//Puts a view of the given vector of the matrix in the receiver
+func (F *CoordMatrix) VecView(A *CoordMatrix, i int) {
+	_, ac := A.Dims()
+	F.View(A, i, 0, 1, ac)
 }
 
 func (F *CoordMatrix) View(A *CoordMatrix, i, j, rows, cols int) {

@@ -45,8 +45,8 @@ func makeParavector() *paravector {
 	R := new(paravector)
 	R.Real = 0 //I shouldnt need this
 	R.Imag = 0
-	R.Vreal = gnZeros(1, 3)
-	R.Vimag = gnZeros(1, 3)
+	R.Vreal = Zeros(1, 3)
+	R.Vimag = Zeros(1, 3)
 	return R
 }
 
@@ -57,7 +57,7 @@ func paravectorFromVector(A *CoordMatrix) *paravector {
 	R.Real = 0 //I shouldnt need this
 	R.Imag = 0
 	R.Vreal = A
-	R.Vimag = gnZeros(1, 3)
+	R.Vimag = Zeros(1, 3)
 	return R
 }
 
@@ -173,7 +173,7 @@ func RotateSer(Target, axis *CoordMatrix, angle float64) *CoordMatrix {
 		R.Vimag.Set(0, i, math.Sin(angle/2.0)*paxis.Vreal.At(0, i))
 	}
 	Rrev := R.reverse()
-	Res := gnZeros(tarr, 3)
+	Res := Zeros(tarr, 3)
 	for i := 0; i < tarr; i++ {
 		rowvec := EmptyCoords()
 		rowvec.RowView(Target, i)
@@ -197,7 +197,7 @@ func Rotate(Target, axis *CoordMatrix, angle float64) *CoordMatrix {
 		R.Vimag.Set(0, i, math.Sin(angle/2.0)*paxis.Vreal.At(0, i))
 	}
 	Rrev := R.reverse() // R-dagger
-	Res := gnZeros(rows, 3)
+	Res := Zeros(rows, 3)
 	ended := make(chan bool, rows)
 	for i := 0; i < rows; i++ {
 		go func(i int) {

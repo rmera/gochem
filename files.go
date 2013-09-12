@@ -298,8 +298,8 @@ func pdbBufIORead(pdb *bufio.Reader, read_additional bool) (*Molecule, error) {
 	mcoords := make([]*CoordMatrix, frames, frames) //Final thing to return
 	mbfactors := make([]*CoordMatrix, frames, frames)
 	for i := 0; i < frames; i++ {
-		mcoords[i] = NewCoords(coords[i], len(coords[i])/3, 3)
-		mbfactors[i] = NewCoords(bfactors[i], len(bfactors[i]), 1)
+		mcoords[i] = NewCoords(coords[i], 3)
+		mbfactors[i] = NewCoordMatrix(bfactors[i], len(bfactors[i]), 1)
 	}
 	//if something happened during the process
 	if err != nil {
@@ -388,7 +388,7 @@ func PDBWrite(pdbname string, mol Atomer, CandB ...*CoordMatrix) error {
 //returns the written string and error or nil.
 func PDBStringWrite(mol Atomer, coords, bfact *CoordMatrix) (string, error) {
 	if bfact == nil {
-		bfact = gnZeros(mol.Len(), 1)
+		bfact = Zeros(mol.Len(), 1)
 	}
 	cr, _ := coords.Dims()
 	br, _ := bfact.Dims()
@@ -509,7 +509,7 @@ func xyzBufIORead(xyz *bufio.Reader) (*Molecule, error) {
 	}
 	bfactors := make([]*CoordMatrix, len(Coords), len(Coords))
 	for key, _ := range bfactors {
-		bfactors[key] = gnZeros(top.Len(), 1)
+		bfactors[key] = Zeros(top.Len(), 1)
 	}
 	returned, err := MakeMolecule(top, Coords, bfactors)
 	return returned, err

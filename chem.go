@@ -230,8 +230,8 @@ func (T *Topology) Len() int {
 	return len(T.Atoms) //This shouldnt be needed
 }
 
-//MassCol returns a DenseMatrix 1-col matrix with masses of atoms and an error if they have not been calculated
-func (T *Topology) MassCol() (*CoordMatrix, error) {
+//MassCol returns a CoordMatrix with the masses of atoms, or nil and an error if they have not been calculated
+func (T *Topology) Masses() (*CoordMatrix, error) {
 	mass := make([]float64, T.Len())
 	for i := 0; i < T.Len(); i++ {
 		thisatom := T.Atom(i)
@@ -287,11 +287,11 @@ func MakeMolecule(ats Ref, coords, bfactors []*CoordMatrix) (*Molecule, error) {
 
 //Deletes the coodinate i from every frame of the molecule.
 func (M *Molecule) DelCoord(i int) error {
-	r, c := M.Coords[0].Dims()
+	r,_ := M.Coords[0].Dims()
 	var err error
 	for j := 0; j < len(M.Coords); j++ {
-		tmp := gnZeros(r-1, c)
-		tmp.DelRow(M.Coords[j], i)
+		tmp := ZeroVecs(r-1)
+		tmp.DelVec(M.Coords[j], i)
 		M.Coords[j] = tmp
 		if err != nil {
 			return err
@@ -315,17 +315,17 @@ func (M *Molecule) Clone(A *Molecule) {
 	if err := A.Corrupted(); err != nil {
 		panic(err.Error())
 	}
-	r, c := A.Coords[0].Dims()
+	r,_ := A.Coords[0].Dims()
 	mol := new(Molecule)
 	mol.Topology = new(Topology)
 	mol.CloneAtoms(A)
 	mol.Coords = make([]*CoordMatrix, 0, len(M.Coords))
 	mol.Bfactors = make([]*CoordMatrix, 0, len(M.Bfactors))
 	for key, val := range M.Coords {
-		tmp := gnZeros(r, c)
+		tmp := ZeroVecs(r)
 		tmp.Clone(val)
 		mol.Coords = append(mol.Coords, tmp)
-		tmp2 := gnZeros(1, c)
+		tmp2 := Zeros(1, c)
 		tmp.Clone(M.Bfactors[key])
 		mol.Bfactors = append(mol.Bfactors, tmp2)
 	}
@@ -381,9 +381,9 @@ func (M *Molecule) Coord(atom, frame int) *CoordMatrix {
 	if atom >= r {
 		panic(fmt.Sprintf("Requested coordinate (%d) out of bounds (%d)", atom, M.Coords[frame].Rows()))
 	}
-	ret := gnZeros(1, 3)
+	ret := ZeroVecs(1)
 	empt := EmptyCoords()
-	empt.RowView(M.Coords[frame], atom)
+	empt.VecView(M.Coords[frame], atom)
 	ret.Clone(empt)
 	return ret
 }
@@ -442,7 +442,7 @@ func (M *Molecule) Corrupted() error {
 	var err error
 	if M.Bfactors == nil {
 		M.Bfactors = make([]*CoordMatrix, 0, len(M.Coords))
-		M.Bfactors = append(M.Bfactors, gnZeros(M.Len(), 1))
+		M.Bfactors = append(M.Bfactors, Zeros(M.Len(), 1))
 	}
 	lastbfac := len(M.Bfactors) - 1
 	for i := range M.Coords {
@@ -455,12 +455,12 @@ func (M *Molecule) Corrupted() error {
 		//zeroes anything that is lacking or incomplete instead of returning an error.
 
 		if lastbfac < i {
-			bfacs := gnZeros(M.Len(), 1)
+			bfacs := Zeros(M.Len(), 1)
 			M.Bfactors = append(M.Bfactors, bfacs)
 		}
 		bfr, _ := M.Bfactors[i].Dims()
 		if bfr < M.Len() {
-			M.Bfactors[i] = gnZeros(M.Len(), 1)
+			M.Bfactors[i] = Zeros(M.Len(), 1)
 		}
 	}
 	return err
