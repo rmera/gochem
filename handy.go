@@ -30,14 +30,6 @@ package chem
 
 import "fmt"
 
-func Deg2Rad(f float64) float64 {
-	return f * 0.0174533
-}
-
-func Rad2Deg(f float64) float64 {
-	return f / 0.0174533
-}
-
 //Molecules2Atoms gets a selection list from a list of residues.
 //It select all the atoms that form part of the residues in the list.
 //It doesnt return errors, if a residue is out of range, no atom will
