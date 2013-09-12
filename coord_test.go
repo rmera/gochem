@@ -31,7 +31,7 @@ import "fmt"
 func TestGeo(Te *testing.T) {
 	a := []float64{1.0, 2.0, 3, 4, 5, 6, 7, 8, 9}
 	A := NewCoords(a)
-	ar,_:= A.Dims()
+	ar, ac := A.Dims()
 	T := ZeroVecs(ar)
 	T.T(A)
 	B := gnEye(ar)
@@ -49,8 +49,8 @@ func TestGeo(Te *testing.T) {
 
 func TestSomeVecs(Te *testing.T) {
 	a := []float64{1.0, 2.0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18}
-	A := NewCoords(a, 6, 3)
-	B := Zeros(3, 3) //We should cause an error by modifying this.
+	A := NewCoords(a)
+	B := ZeroVecs(3) //We should cause an error by modifying this.
 	cind := []int{1, 3, 5}
 	err := B.SomeVecsSafe(A, cind)
 	if err != nil {

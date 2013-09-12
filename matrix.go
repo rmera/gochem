@@ -49,9 +49,9 @@ func Cross3D(a, b *CoordMatrix) (*CoordMatrix, error) {
 		return nil, fmt.Errorf("Malformed vectors for cross product")
 	}
 	if ac != 3 {
-		c := gnZeros(ac, ar)
+		c := Zeros(ac, ar)
 		c.T(a)
-		d := gnZeros(bc, br)
+		d := Zeros(bc, br)
 		d.T(b)
 		e := Cross3DRow(c, d)
 		a.T(e) //careful here, may need testing
@@ -74,7 +74,7 @@ func Cross3DRow(a, b *CoordMatrix) *CoordMatrix {
 	vec[0] = a.At(0, 1)*b.At(0, 2) - a.At(0, 2)*b.At(0, 1)
 	vec[1] = a.At(0, 2)*b.At(0, 0) - a.At(0, 0)*b.At(0, 2)
 	vec[2] = a.At(0, 0)*b.At(0, 1) - a.At(0, 1)*b.At(0, 0)
-	return NewCoords(vec, 1, 3)
+	return NewCoordMatrix(vec, 1, 3)
 }
 
 //InvSqrt return the inverse of the square root of val, or zero if

@@ -298,7 +298,7 @@ func pdbBufIORead(pdb *bufio.Reader, read_additional bool) (*Molecule, error) {
 	mcoords := make([]*CoordMatrix, frames, frames) //Final thing to return
 	mbfactors := make([]*CoordMatrix, frames, frames)
 	for i := 0; i < frames; i++ {
-		mcoords[i] = NewCoords(coords[i], 3)
+		mcoords[i] = NewCoords(coords[i])
 		mbfactors[i] = NewCoordMatrix(bfactors[i], len(bfactors[i]), 1)
 	}
 	//if something happened during the process
@@ -564,7 +564,7 @@ func xyzReadSnap(xyz *bufio.Reader, ReadTopol bool) (*CoordMatrix, []*Atom, erro
 			return nil, nil, i
 		}
 	}
-	mcoords := NewCoords(coords, natoms, 3)
+	mcoords := NewCoords(coords)
 	return mcoords, molecule, err
 }
 

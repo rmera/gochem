@@ -278,7 +278,7 @@ func (O *MopacRunner) GetGeometry(atoms Ref) (*CoordMatrix, error) {
 	if err != nil {
 		return nil, err
 	}
-	mcoords := NewCoords(coords, natoms, 3)
+	mcoords := NewCoords(coords)
 	if trust_radius_warning {
 		return mcoords, fmt.Errorf("Probable problem in calculation")
 	}

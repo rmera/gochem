@@ -85,7 +85,7 @@ func TestChangeAxis(Te *testing.T) {
 	//ov1:=mol.Coord(orient_atoms[0], 0)
 	ov2 := mol.Coord(orient_atoms[1], 0)
 	//now we center the thing in the beta carbon of D124
-	mol.Coords[0].SubRow(mol.Coords[0], ov2)
+	mol.Coords[0].SubVec(mol.Coords[0], ov2)
 	PDBWrite("test/2c9v-translated.pdb", mol, mol.Coords[0])
 	//Now the rotation
 	ov1 := mol.Coord(orient_atoms[0], 0) //make sure we have the correct versions
@@ -93,7 +93,7 @@ func TestChangeAxis(Te *testing.T) {
 	orient := gnClone(ov2)
 	orient.Sub(orient, ov1)
 	//	PDBWrite(mol,"test/2c9v-124centered.pdb")
-	Z := NewCoords([]float64{0, 0, 1}, 1, 3)
+	Z := NewCoords([]float64{0, 0, 1})
 	axis, _ := Cross3D(orient, Z)
 	angle := AngleInVectors(orient, Z)
 	mol.Coords[0] = Rotate(mol.Coords[0], axis, angle)
@@ -128,7 +128,7 @@ func TestOldChangeAxis(Te *testing.T) {
 	ov1 := mol.Coord(orient_atoms[0], 0)
 	ov2 := mol.Coord(orient_atoms[1], 0)
 	//now we center the thing in the beta carbon of D124
-	mol.Coords[0].SubRow(mol.Coords[0], ov2)
+	mol.Coords[0].SubVec(mol.Coords[0], ov2)
 	//Now the rotation
 	ov1 = mol.Coord(orient_atoms[0], 0) //make sure we have the correct versions
 	ov2 = mol.Coord(orient_atoms[1], 0) //same
@@ -152,21 +152,21 @@ func TestPutInXYPlane(Te *testing.T) {
 		Te.Error(err)
 	}
 	indexes := []int{0, 1, 2, 3, 23, 22, 21, 20, 25, 44, 39, 40, 41, 42, 61, 60, 59, 58, 63, 5}
-	some := gnZeros(len(indexes), 3)
-	some.SomeRows(mol.Coords[0], indexes)
+	some := ZeroVecs(len(indexes))
+	some.SomeVecs(mol.Coords[0], indexes)
 	//for most rotation things it is good to have the molecule centered on its mean.
 	mol.Coords[0], _, _ = MassCentrate(mol.Coords[0], some, nil)
 	//The test molecule is not completely planar so we use a subset of atoms that are contained in a plane
 	//These are the atoms given in the indexes slice.
-	some.SomeRows(mol.Coords[0], indexes)
+	some.SomeVecs(mol.Coords[0], indexes)
 	//The strategy is: Take the normal to the plane of the molecule (os molecular subset), and rotate it until it matches the Z-axis
 	//This will mean that the plane of the molecule will now match the XY-plane.
 	best, err := BestPlane(nil, some)
 	if err != nil {
 		Te.Error(err)
 	}
-	z := NewCoords([]float64{0, 0, 1}, 1, 3)
-	zero := NewCoords([]float64{0, 0, 0}, 1, 3)
+	z := NewCoords([]float64{0, 0, 1})
+	zero := NewCoords([]float64{0, 0, 0})
 	axis, err := Cross3D(best, z)
 	if err != nil {
 		Te.Error(err)
@@ -345,7 +345,7 @@ func TestWater(Te *testing.T) {
 	XYZWrite("test/WithWater.xyz", mol, coords)
 }
 
-func TestFixPDB(Te *testing.T) {
+func TesSSStFixPDB(Te *testing.T) {
 	mol, err := PDBRead("test/2c9vbroken.pdb", true)
 	if err != nil {
 		Te.Error(err)

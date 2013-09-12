@@ -92,9 +92,9 @@ type Topology struct {
 //one of the slices is nil. It doesnt check for consitensy across slices or correct charge
 //or unpaired electrons.
 func MakeTopology(ats []*Atom, charge, unpaired int) (*Topology, error) {
-//	if ats == nil {
-//		return nil, fmt.Errorf("Supplied a nil Topology")
-//	}
+	//	if ats == nil {
+	//		return nil, fmt.Errorf("Supplied a nil Topology")
+	//	}
 	top := new(Topology)
 	top.Atoms = ats
 	top.charge = charge
@@ -240,7 +240,7 @@ func (T *Topology) Masses() (*CoordMatrix, error) {
 		}
 		mass[i] = thisatom.Mass
 	}
-	massmat := NewCoords(mass, len(mass), 1)
+	massmat := NewCoordMatrix(mass, len(mass), 1)
 	return massmat, nil
 }
 
@@ -287,10 +287,10 @@ func MakeMolecule(ats Ref, coords, bfactors []*CoordMatrix) (*Molecule, error) {
 
 //Deletes the coodinate i from every frame of the molecule.
 func (M *Molecule) DelCoord(i int) error {
-	r,_ := M.Coords[0].Dims()
+	r, _ := M.Coords[0].Dims()
 	var err error
 	for j := 0; j < len(M.Coords); j++ {
-		tmp := ZeroVecs(r-1)
+		tmp := ZeroVecs(r - 1)
 		tmp.DelVec(M.Coords[j], i)
 		M.Coords[j] = tmp
 		if err != nil {
@@ -315,7 +315,7 @@ func (M *Molecule) Clone(A *Molecule) {
 	if err := A.Corrupted(); err != nil {
 		panic(err.Error())
 	}
-	r,_ := A.Coords[0].Dims()
+	r, _ := A.Coords[0].Dims()
 	mol := new(Molecule)
 	mol.Topology = new(Topology)
 	mol.CloneAtoms(A)
@@ -325,7 +325,7 @@ func (M *Molecule) Clone(A *Molecule) {
 		tmp := ZeroVecs(r)
 		tmp.Clone(val)
 		mol.Coords = append(mol.Coords, tmp)
-		tmp2 := Zeros(1, c)
+		tmp2 := ZeroVecs(1)
 		tmp.Clone(M.Bfactors[key])
 		mol.Bfactors = append(mol.Bfactors, tmp2)
 	}

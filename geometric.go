@@ -82,7 +82,7 @@ func GetRotateToNewY(newy *CoordMatrix) (*CoordMatrix, error) {
 	operator := []float64{cosgamma, singamma, 0,
 		-singamma, cosgamma, 0,
 		0, 0, 1}
-	return NewCoords(operator, 3, 3), nil
+	return NewCoordMatrix(operator, 3, 3), nil
 
 }
 
@@ -94,7 +94,7 @@ func GetRotateAroundZ(gamma float64) (*CoordMatrix, error) {
 	operator := []float64{cosgamma, singamma, 0,
 		-singamma, cosgamma, 0,
 		0, 0, 1}
-	return NewCoords(operator, 3, 3), nil
+	return NewCoordMatrix(operator, 3, 3), nil
 
 }
 
@@ -118,7 +118,7 @@ func GetSwitchZ(newz *CoordMatrix) *CoordMatrix {
 	operator := []float64{cosphi*costheta*cospsi - sinphi*sinpsi, -sinphi*cospsi - cosphi*costheta*sinpsi, cosphi * sintheta,
 		sinphi*costheta*cospsi + cosphi*sinpsi, -sinphi*costheta*sinpsi + cosphi*cospsi, sintheta * sinphi,
 		-sintheta * cospsi, sintheta * sinpsi, costheta}
-	finalop := NewCoords(operator, 3, 3)
+	finalop := NewCoordMatrix(operator, 3, 3)
 	return finalop
 
 }
@@ -168,7 +168,7 @@ func GetSuper(test, templa *CoordMatrix) (*CoordMatrix, *CoordMatrix, *CoordMatr
 		return nil, nil, nil, nil, fmt.Errorf("Got a reflection instead of a translations. The objects may be specular images of each others")
 	}
 	jT.Scale(Scal, jT)
-	subtempla := gnZeros(tmr, tmc)
+	subtempla := Zeros(tmr, tmc)
 	subtempla.Clone(ctempla)
 	sub := gnMul(ctest, Rotation)
 	subtempla.Sub(subtempla, sub)
@@ -176,7 +176,7 @@ func GetSuper(test, templa *CoordMatrix) (*CoordMatrix, *CoordMatrix, *CoordMatr
 	Translation.Add(Translation, distempla)
 	//This allings the transformed with the original template, not the mean centrate one
 	transformed := gnMul(ctest, Rotation)
-	transformed.AddRow(transformed, Translation)
+	transformed.AddVec(transformed, Translation)
 	//end transformed
 	distest.Scale(-1, distest)
 	return transformed, Rotation, distest, Translation, nil
@@ -309,7 +309,7 @@ func BestPlane(mol ReadRef, coords *CoordMatrix) (*CoordMatrix, error) {
 		if mol.Len() != cr {
 			return nil, fmt.Errorf("Inconsistent coordinates(%d)/atoms(%d)", mol.Len(), cr)
 		}
-		Mmass, err = mol.MassCol()
+		Mmass, err = mol.Masses()
 		if err != nil {
 			return nil, err
 		}
@@ -340,9 +340,9 @@ func CenterOfMass(geometry, mass *CoordMatrix) (*CoordMatrix, error) {
 		mass = gnOnes(gr, 1)
 	}
 	gnOnesvector := gnOnes(1, gr)
-	ref := gnZeros(gr, gc)
+	ref := Zeros(gr, gc)
 	ref.ScaleByCol(geometry, mass)
-	ref2 := gnZeros(1, gc)
+	ref2 := Zeros(1, gc)
 	ref2.Mul(gnOnesvector, ref)
 	ref2.Scale(1.0/mass.Sum(), ref2)
 	return ref2, nil
@@ -356,20 +356,20 @@ func MassCentrate(in, oref, mass *CoordMatrix) (*CoordMatrix, *CoordMatrix, erro
 	if mass == nil { //just obtain the geometric center
 		mass = gnOnes(or, 1)
 	}
-	ref := gnZeros(or, oc)
+	ref := Zeros(or, oc)
 	ref.Clone(oref)
 	gnOnesvector := gnOnes(1, or)
 	f := func() { ref.ScaleByCol(ref, mass) }
 	if err := gnMaybe(gnPanicker(f)); err != nil {
 		return nil, nil, err
 	}
-	ref2 := gnZeros(1, oc)
+	ref2 := Zeros(1, oc)
 	g := func() { ref2.Mul(gnOnesvector, ref) }
 	if err := gnMaybe(gnPanicker(g)); err != nil {
 		return nil, nil, err
 	}
 	ref2.Scale(1.0/mass.Sum(), ref2)
-	returned := gnZeros(ir, ic)
+	returned := Zeros(ir, ic)
 	returned.Clone(in)
 	returned.SubRow(returned, ref2)
 	/*	for i := 0; i < ir; i++ {
@@ -393,12 +393,12 @@ func MomentTensor(A, mass *CoordMatrix) (*CoordMatrix, error) {
 	if err != nil {
 		return nil, err
 	}
-	sqrmass := gnZeros(ar, 1)
+	sqrmass := Zeros(ar, 1)
 	sqrmass.Pow(mass, 0.5)
 	//	fmt.Println(center,sqrmass) ////////////////////////
 	center.ScaleByCol(center, sqrmass)
 	//	fmt.Println(center,"scaled center")
-	centerT := gnZeros(ac, ar)
+	centerT := Zeros(ac, ar)
 	centerT.T(center)
 	moment := gnMul(centerT, center)
 	return moment, err
@@ -407,7 +407,7 @@ func MomentTensor(A, mass *CoordMatrix) (*CoordMatrix, error) {
 //The projection of test in ref.
 func Projection(test, ref *CoordMatrix) *CoordMatrix {
 	rr, rc := ref.Dims()
-	Uref := gnZeros(rr, rc)
+	Uref := Zeros(rr, rc)
 	Uref.Unit(ref)
 	scalar := test.Dot(Uref) //math.Abs(la)*math.Cos(angle)
 	Uref.Scale(scalar, Uref)

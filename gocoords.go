@@ -30,10 +30,10 @@
 //All the *Vec functions will operate/produce column or row vectors depending on whether the matrix underlying CoordMatrix
 //is row or column major.
 
-
 package chem
 
 import (
+	"fmt"
 	"github.com/skelterjohn/go.matrix"
 	"math"
 	"sort"
@@ -55,8 +55,6 @@ type CoordMatrix struct {
 	*matrix.DenseMatrix
 }
 
-
-
 //Generate and returns a CoorMatrix with arbitrary shape from data.
 func NewCoordMatrix(data []float64, rows, cols int) *CoordMatrix {
 	if len(data) < cols*rows {
@@ -69,9 +67,10 @@ func NewCoordMatrix(data []float64, rows, cols int) *CoordMatrix {
 //Generate and returns a CoorMatrix with 3 columns from data.
 func NewCoords(data []float64) *CoordMatrix {
 	const cols int = 3
-	rows := len(data)/cols
-	if cols%rows!=0 {
-		panic("Input slice lenght not divisible by 3")
+	l := len(data)
+	rows := l / cols
+	if l%cols != 0 {
+		panic(fmt.Sprintf("Input slice lenght %d not divisible by %d: %d", rows, cols, rows%cols))
 	}
 	return &CoordMatrix{matrix.MakeDenseMatrix(data, rows, cols)}
 
@@ -84,16 +83,16 @@ func EmptyCoords() *CoordMatrix {
 
 }
 
-//Returns an empty CoordMatrix with the given dimensions
+//Returns an zero-filled CoordMatrix with the given dimensions
 //It is to be substituted by the Gonum function.
 func Zeros(rows, cols int) *CoordMatrix {
 	return &CoordMatrix{matrix.Zeros(rows, cols)}
 }
 
-//Something to survive while the gonum is implemented
-func ZeroVecs(rows int) *CoordMatrix {
+//Returns a zero-filled CoordMatrix wiwth vecs vectors and 3 in the other dimension.
+func ZeroVecs(vecs int) *CoordMatrix {
 	const cols int = 3
-	return Zeros(rows, cols)
+	return Zeros(vecs, cols)
 }
 
 //Returns an identity matrix spanning span cols and rows
@@ -275,13 +274,11 @@ func (F *CoordMatrix) AddFloat(A *CoordMatrix, B float64) {
 	}
 }
 
-
-
 //AddRow adds the row vector row to each row of the matrix A, putting
 //the result on the receiver. Panics if matrices are mismatched. It will not work if A and row
 //reference to the same CoordMatrix.
-func AddRow(A,row *CoordMatrix){
-	F.AddRow(A,row)
+func (F *CoordMatrix) AddRow(A, row *CoordMatrix) {
+	F.AddVec(A, row)
 }
 
 //Adds a vector to the  coordmatrix A putting the result on the received.
@@ -327,9 +324,6 @@ func (F *CoordMatrix) ColView(A *CoordMatrix, i int) {
 	F.View(A, 0, i, ar, 1)
 }
 
-
-
-
 func (F *CoordMatrix) DelRow(A *CoordMatrix, i int) {
 	ar, ac := A.Dims()
 	fr, fc := F.Dims()
@@ -349,12 +343,11 @@ func (F *CoordMatrix) DelRow(A *CoordMatrix, i int) {
 	tempF2.Clone(tempA2)
 }
 
-
 //puts a copy of matrix A without the vector i
 //in the received. Vector could be a col or row vector depending
 //on the majorship of the implementation.
 func (F *CoordMatrix) DelVec(A *CoordMatrix, i int) {
-	F.DelRow(A,i)
+	F.DelRow(A, i)
 }
 
 func (F *CoordMatrix) Dims() (int, int) {
@@ -406,6 +399,17 @@ func (F *CoordMatrix) Inv(A *CoordMatrix) {
 		}
 	}
 	F.SubMatrix(aug, 0, ac, ar, ac)
+}
+
+//return the number of vecs in F. Panics if the
+//other dimmension is not 3.
+func (F *CoordMatrix) VecNum() int {
+	r, c := F.Dims()
+	if c != 3 {
+		panic(Not3xXMatrix)
+	}
+	return r
+
 }
 
 //A slightly modified version of John Asmuth's ParalellProduct function.
@@ -513,7 +517,7 @@ func (F *CoordMatrix) Row(i int) []float64 {
 
 //Puts a view of the given row of the matrix in the receiver
 func (F *CoordMatrix) RowView(A *CoordMatrix, i int) {
-	F.VecView(A,i)
+	F.VecView(A, i)
 }
 
 //Scale the matrix A by a number i, putting the result in the received.
@@ -556,10 +560,8 @@ func (F *CoordMatrix) ScaleByCol(A, Col *CoordMatrix) {
 
 }
 
-
-
 func (F *CoordMatrix) ScaleByRow(A, Row *CoordMatrix) {
-	F.ScaleByVec(A,Row)
+	F.ScaleByVec(A, Row)
 }
 
 //ScaleByRow scales each column of matrix A by Col, putting the result
@@ -636,12 +638,10 @@ func (F *CoordMatrix) SetVecs(A *CoordMatrix, clist []int) {
 	}
 }
 
-
 //puts in F a matrix consistent of A over B or A to the left of B
-func StacVec(A,B *CoordMatrix){
-	F.Stack(A,B)
+func (F *CoordMatrix) StacVec(A, B *CoordMatrix) {
+	F.Stack(A, B)
 }
-
 
 //puts in F a matrix consisting in A over B
 func (F *CoordMatrix) Stack(A, B *CoordMatrix) {
@@ -685,17 +685,16 @@ func (F *CoordMatrix) SubMatrix(A *CoordMatrix, i, j, rows, cols int) {
 //the result on the receiver. Panics if matrices are mismatched.  It will not
 //work if A and row reference to the same CoordMatrix.
 func (F *CoordMatrix) SubRow(A, row *CoordMatrix) {
-	SubVec(A,row)
+	F.SubVec(A, row)
 }
-
 
 //SubRow subtracts the vector  to each vector of the matrix A, putting
 //the result on the receiver. Panics if matrices are mismatched.  It will not
 //work if A and row reference to the same CoordMatrix.
 func (F *CoordMatrix) SubVec(A, vec *CoordMatrix) {
-	row.Scale(-1, vec)
+	vec.Scale(-1, vec)
 	F.AddVec(A, vec)
-	row.Scale(-1, vec)
+	vec.Scale(-1, vec)
 }
 
 //Sum returns the sum of all elements in matrix A.
@@ -746,7 +745,6 @@ func (F *CoordMatrix) Unit(A *CoordMatrix) {
 	F.Scale(norm, A)
 }
 
-
 //Puts a view of the given vector of the matrix in the receiver
 func (F *CoordMatrix) VecView(A *CoordMatrix, i int) {
 	_, ac := A.Dims()
@@ -787,9 +785,11 @@ type gnError string
 func (err gnError) Error() string { return string(err) }
 
 const (
-	//RM: the first 2 are mine.
-	NotOrthogonal        = gnError("matrix: Vectors nor orthogonal")
-	NotEnoughElements    = gnError("matrix: not enough elements")
+	//RM
+	Not3xXMatrix      = gnError("matrix: The other dimmension should be 3")
+	NotOrthogonal     = gnError("matrix: Vectors nor orthogonal")
+	NotEnoughElements = gnError("matrix: not enough elements")
+	//end RM
 	gnErrIndexOutOfRange = gnError("matrix: index out of range")
 	gnErrZeroLength      = gnError("matrix: zero length in matrix definition")
 	gnErrRowLength       = gnError("matrix: row length mismatch")

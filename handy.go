@@ -67,16 +67,16 @@ func OnesMass(lenght int) *CoordMatrix {
 //It applies those rotation and translations to the whole frame frametest of molecule test, in palce.
 //testlst and templalst must have the same number of elements.
 func Super(test, templa *CoordMatrix, testlst, templalst []int) (*CoordMatrix, error) {
-	_, testcols := test.Dims()
-	_, templacols := templa.Dims()
+	//_, testcols := test.Dims()
+	//_, templacols := templa.Dims()
 
-	ctest := gnZeros(len(testlst), testcols)
+	ctest := ZeroVecs(len(testlst))
 	if len(testlst) != 0 {
-		ctest.SomeRows(test, testlst)
+		ctest.SomeVecs(test, testlst)
 	}
-	ctempla := gnZeros(len(templalst), templacols)
+	ctempla := ZeroVecs(len(templalst))
 	if len(templalst) != 0 {
-		ctempla.SomeRows(templa, templalst)
+		ctempla.SomeVecs(templa, templalst)
 	}
 	if len(templalst) != len(testlst) {
 		return nil, fmt.Errorf("Mismatched template and test atom numbers: %d, %d", len(templalst), len(testlst))
@@ -85,9 +85,9 @@ func Super(test, templa *CoordMatrix, testlst, templalst []int) (*CoordMatrix, e
 	if err1 != nil {
 		return nil, err1
 	}
-	test.AddRow(test, trans1)
+	test.AddVec(test, trans1)
 	test = gnMul(test, rotation)
-	test.AddRow(test, trans2)
+	test.AddVec(test, trans2)
 	return test, nil
 }
 
@@ -99,12 +99,12 @@ func RotateAbout(coordsorig, ax1, ax2 *CoordMatrix, angle float64) (*CoordMatrix
 	translation := gnClone(ax1)
 	axis := gnClone(ax2)
 	axis.Sub(axis, ax1) //now it became the rotation axis
-	f := func() { coords.SubRow(coords, translation) }
+	f := func() { coords.SubVec(coords, translation) }
 	if err := gnMaybe(gnPanicker(f)); err != nil {
 		return nil, err
 	}
 	Rot := Rotate(coords, axis, angle)
-	g := func() { Rot.AddRow(Rot, translation) }
+	g := func() { Rot.AddVec(Rot, translation) }
 	if err := gnMaybe(gnPanicker(g)); err != nil {
 		return nil, err
 	}
@@ -120,7 +120,7 @@ func EulerRotateAbout(coordsorig, ax1, ax2 *CoordMatrix, angle float64) (*CoordM
 	translation := gnClone(ax1)
 	axis := gnClone(ax2)
 	axis.Sub(axis, ax1) //now it became the rotation axis
-	f := func() { coords.SubRow(coords, translation) }
+	f := func() { coords.SubVec(coords, translation) }
 	if err := gnMaybe(gnPanicker(f)); err != nil {
 		return nil, err
 	}
@@ -131,14 +131,14 @@ func EulerRotateAbout(coordsorig, ax1, ax2 *CoordMatrix, angle float64) (*CoordM
 		return nil, err
 	}
 	Zsr, Zsc := Zswitch.Dims()
-	RevZ := gnZeros(Zsr, Zsc)
+	RevZ := Zeros(Zsr, Zsc)
 	g := func() { RevZ.Inv(Zswitch) }
 	if err := gnMaybe(gnPanicker(g)); err != nil {
 		return nil, err
 	}
 	coords = gnMul(coords, Zrot) //rotated
 	coords = gnMul(coords, RevZ)
-	coords.AddRow(coords, translation)
+	coords.AddVec(coords, translation)
 	return coords, err
 }
 
@@ -184,7 +184,7 @@ func isInString(container []string, test string) bool {
 //function to move the molecule to the desired location. If oxygen is true, the oxygen will be pointing to a2. Otherwise,
 //one of the hydrogens will.
 func MakeWater(a1, a2 *CoordMatrix, distance, angle float64, oxygen bool) *CoordMatrix {
-	water := Zeros(3, 3)
+	water := ZeroVecs(3)
 	WaterOHDist := 0.96
 	WaterAngle := 52.25
 	deg2rad := 0.0174533
@@ -193,7 +193,7 @@ func MakeWater(a1, a2 *CoordMatrix, distance, angle float64, oxygen bool) *Coord
 	w.Clone(a2)
 	w.Sub(w, a1)
 	w.Unit(w)
-	dist := Zeros(1, 3)
+	dist := ZeroVecs(1)
 	dist.Sub(a1, a2)
 	a1a2dist := dist.Norm(2)
 	w.Scale(distance+a1a2dist, w)
@@ -207,7 +207,7 @@ func MakeWater(a1, a2 *CoordMatrix, distance, angle float64, oxygen bool) *Coord
 		w.Unit(w)
 		w.Scale(WaterOHDist+distance, w)
 		o.Sub(o, a2)
-		upp, _ := Cross3D(w, NewCoords([]float64{0, 0, 1}, 1, 3))
+		upp, _ := Cross3D(w, NewCoords([]float64{0, 0, 1}))
 		upp.Add(upp, o)
 		upp.Add(upp, a2)
 		//water.SetMatrix(3,0,upp)
@@ -222,8 +222,8 @@ func MakeWater(a1, a2 *CoordMatrix, distance, angle float64, oxygen bool) *Coord
 	}
 	var v1, v2 *CoordMatrix
 	if angle != 0 {
-		v1 = Zeros(1, 3)
-		v2 = Zeros(1, 3)
+		v1 = ZeroVecs(1)
+		v2 = ZeroVecs(1)
 		v1.Sub(a2, a1)
 		v2.Clone(v1)
 		v2.Set(0, 2, v2.At(0, 2)+1) //a "random" modification. The idea is that its not colinear with v1
@@ -242,10 +242,10 @@ func MakeWater(a1, a2 *CoordMatrix, distance, angle float64, oxygen bool) *Coord
 	e2.RowView(water, 1)
 	e3.RowView(water, 2)
 	if v1 == nil {
-		v1 = Zeros(1, 3)
+		v1 = ZeroVecs(1)
 	}
 	if v2 == nil {
-		v2 = Zeros(1, 3)
+		v2 = ZeroVecs(1)
 	}
 	v1.Sub(e2, e1)
 	v2.Sub(e3, e1)
@@ -255,7 +255,7 @@ func MakeWater(a1, a2 *CoordMatrix, distance, angle float64, oxygen bool) *Coord
 	v1.Sub(e1, a2)
 	v1.Unit(v1)
 	v1.Scale(WaterOHDist, v1)
-	water.AddRow(water, v1)
+	water.AddVec(water, v1)
 	return water
 }
 
@@ -412,8 +412,8 @@ func CutLateralRef(r Atomer, chain string, list []int) []int {
 
 //This will tag all atoms with a given name in a given list of atoms.
 //return the number of tagged atoms
-func TagName(r Atomer, name string, list []int) int{
-	tag:=0
+func TagName(r Atomer, name string, list []int) int {
+	tag := 0
 	for i := 0; i < r.Len(); i++ {
 		curr := r.Atom(i)
 		if isInInt(list, i) && curr.Name == name {
