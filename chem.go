@@ -49,10 +49,11 @@ type Atom struct {
 	Chain     string  //One-character PDB name for a chain.
 	Mass      float64 //hopefully all these float64 are not too much memory
 	Occupancy float64 //a PDB crystallographic field, often used to store values of interest.
-	Vdw       float64
+	Vdw       float64 //radius
 	Charge    float64 //Partial charge on an atom
 	Symbol    string
-	Het       bool // is the atom an hetatm in the pdb file? (if applicable)
+	SS        string //secondary structure.
+	Het       bool   // is the atom an hetatm in the pdb file? (if applicable)
 }
 
 //Atom methods
