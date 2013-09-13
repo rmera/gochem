@@ -79,30 +79,30 @@ func RamaPlotParts(data [][][]float64, tag [][]int, title, plotname string) erro
 	}
 	var tagged int
 	for key, val := range data {
-		temp := make(plotter.XYs, len(val))
+		temp := make(plotter.XYs, 1) //len(val))
 		for k, v := range val {
-			temp[k].X = v[0]
-			temp[k].Y = v[1]
-		}
-		// Make a scatter plotter and set its style.
-		s, err := plotter.NewScatter(temp) //(pts)
-		if err != nil {
-			return err
-		}
-		//set the colors
-		r, g, b := colors(key, len(data))
-		s.GlyphStyle.Color = color.RGBA{R: r, B: b, G: g, A: 255}
-		//The tagging procedure is a bit complex.
-		if tag != nil {
-			if len(tag) <= len(data) {
-				panic("RamaPlotParts: If a non-nil tag slice is provided it must contain an element (which can be nil) for each element in the dihedral slice")
+			temp[0].X = v[0]
+			temp[0].Y = v[1]
+			// Make a scatter plotter and set its style.
+			s, err := plotter.NewScatter(temp) //(pts)
+			if err != nil {
+				return err
 			}
-			if tag[key] != nil && isInInt(tag[key], key) {
-				s.GlyphStyle.Shape, err = getShape(tagged)
-				tagged++
+			if tag != nil {
+				if len(tag) < len(data) {
+					panic("RamaPlotParts: If a non-nil tag slice is provided it must contain an element (which can be nil) for each element in the dihedral slice")
+				}
+				if tag[key] != nil && isInInt(tag[key], k) {
+					s.GlyphStyle.Shape, err = getShape(tagged)
+					tagged++
+				}
 			}
+			//set the colors
+			r, g, b := colors(key, len(data))
+			s.GlyphStyle.Color = color.RGBA{R: r, B: b, G: g, A: 255}
+			//The tagging procedure is a bit complex.
+			p.Add(s)
 		}
-		p.Add(s)
 
 	}
 	filename := fmt.Sprintf("%s.png", plotname)
@@ -142,7 +142,7 @@ func colors(key, steps int) (r, g, b uint8) {
 /*Produce plots, in png format for the ramachandran data (psi and phi dihedrals)
   contained in data. Data points in tag (maximun 4) are highlighted in the plot.
   the extension must be included in plotname. Returns an error or nil*/
-func RamaPlot(data [][]float64, tag []int, plotname, title string) error {
+func RamaPlot(data [][]float64, tag []int, title, plotname string) error {
 	var err error
 	if data == nil {
 		panic("Given nil data")
