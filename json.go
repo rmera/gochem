@@ -32,6 +32,8 @@ import (
 	"bufio"
 	"encoding/json"
 	"strings"
+	"fmt"
+
 //	"os"
 )
 
@@ -46,22 +48,23 @@ type JSONCoords struct {
 }
 
 type JSONError struct {
-	Error    bool //If this is false (no error) all the other fields will be at their zero-values.
-	InOptions bool //If error, was it in parsing the options?
+	IsError      bool //If this is false (no error) all the other fields will be at their zero-values.
+	InOptions    bool //If error, was it in parsing the options?
 	InSelections bool //Was it in parsing selections?
-	InProcess bool
-	Selection  string  //Which selection?
-	State   int    //Which state of it?
-	Atom  int     
-	Function string  //which go function gave the error
-	Message string   //the error itself
+	InProcess    bool
+	Selection    string //Which selection?
+	State        int    //Which state of it?
+	Atom         int
+	Function     string //which go function gave the error
+	Message      string //the error itself
 }
 
 
+
 type JSONOptions struct {
-	SelNames []string
-	AtomsPerSel []int  //Knowing in advance makes memory allocation more efficient
-	StatesPerSel []int   //How many snapshots a traj has?
+	SelNames      []string
+	AtomsPerSel   []int //Knowing in advance makes memory allocation more efficient
+	StatesPerSel  []int //How many snapshots a traj has?
 	StringOptions [][]string
 	IntOptions    [][]int
 	BoolOptions   [][]bool
@@ -69,46 +72,52 @@ type JSONOptions struct {
 }
 
 
-func MakeJSONError(where, function string, err error)([]byte){
-	jerr:=new(JSONError)
-	jerr.Error=true
-	switch where{
+
+//Takes an error and some additional info to create a JSON error
+func MakeJSONError(where, function string, err error) []byte {
+	jerr := new(JSONError)
+	jerr.IsError = true
+	switch where {
 	case "options":
-		jerr.InOptions=true
+		jerr.InOptions = true
 	case "selection":
-		jerr.InSelections=true
+		jerr.InSelections = true
 	default:
-		jerr.InProcess=true
+		jerr.InProcess = true
 	}
-	jerr.Function=function
-	jerr.Message=err.Error()
-	ret,err2:=json.Marshal(jerr)
-	if err2!=nil{
-		panic(strings.Join([]string{err.Error(),err2.Error()}," - ")) //well, shit.
-		}
+	jerr.Function = function
+	jerr.Message = err.Error()
+	ret, err2 := json.Marshal(jerr)
+	if err2 != nil {
+		panic(strings.Join([]string{err.Error(), err2.Error()}, " - ")) //well, shit.
+	}
 	return ret
 }
 
 
-func DecodeJSONOptions(stdin *bufio.Reader) (*JSONOptions, error){
-	line,err:=stdin.ReadBytes('\n')
-	if err!=nil{
+
+func DecodeJSONOptions(stdin *bufio.Reader) (*JSONOptions, error) {
+	line, err := stdin.ReadBytes('\n')
+	if err != nil {
 		return nil, err
 	}
-	ret:=new(JSONOptions)
-	err=json.Unmarshal(line, ret)
-	if err!=nil{
+	ret := new(JSONOptions)
+	err = json.Unmarshal(line, ret)
+	if err != nil {
 		return nil, err
 	}
 	return ret, nil
 }
 
 
-func DecodeJSONMolecule(stream *bufio.Reader, atomnumber int) (*Topology, *CoordMatrix, error) {
+//Decodes a JSON molecule into a gochem molecule. Can handle several frames (all of which need to have the same amount of atoms). It does
+//not collect the b-factors.
+func DecodeJSONMolecule(stream *bufio.Reader, atomnumber, frames int) (*Topology, []*CoordMatrix, error) {
 	atoms := make([]*Atom, 0, atomnumber)
+	coordset := make([]*CoordMatrix, 0, frames)
 	rawcoords := make([]float64, 0, 3*atomnumber)
-	for i := 0; i<atomnumber; i++ {
-		line, err := stream.ReadBytes('\n')  //Using this function allocates a lot without need. There is no function that takes a []bytes AND a limit. I might write one at some point.
+	for i := 0; i < atomnumber; i++ {
+		line, err := stream.ReadBytes('\n') //Using this function allocates a lot without need. There is no function that takes a []bytes AND a limit. I might write one at some point.
 		if err != nil {
 			break
 		}
@@ -118,7 +127,7 @@ func DecodeJSONMolecule(stream *bufio.Reader, atomnumber int) (*Topology, *Coord
 			return nil, nil, err
 		}
 		atoms = append(atoms, at)
-		line, err = stream.ReadBytes('\n')   //See previous comment.
+		line, err = stream.ReadBytes('\n') //See previous comment.
 		if err != nil {
 			break
 		}
@@ -130,14 +139,25 @@ func DecodeJSONMolecule(stream *bufio.Reader, atomnumber int) (*Topology, *Coord
 	}
 	mol, _ := MakeTopology(atoms, 0, 0) //no idea of the charge or multiplicity
 	coords := NewCoords(rawcoords)
-	return mol, coords, nil
-}
+	coordset = append(coordset, coords)
+	if frames == 1 {
+		return mol, coordset, nil
+	}
+	for i:=0;i<(frames-1);i++{
+		coords,err:=DecodeJSONCoords(stream,atomnumber)
+		if err!=nil{
+			return mol, coordset, fmt.Errorf("Error reading the %d th frame: %s",i+2,err.Error())
+			}
+		coordset=append(coordset,coords)
+	}
+	return mol, coordset, nil
 
+}
 
 func DecodeJSONCoords(stream *bufio.Reader, atomnumber int) (*CoordMatrix, error) {
 	rawcoords := make([]float64, 0, 3*atomnumber)
-	for i := 0; i<atomnumber; i++ {
-		line, err := stream.ReadBytes('\n')  //Using this function allocates a lot without need. There is no function that takes a []bytes AND a limit. I might write one at some point.
+	for i := 0; i < atomnumber; i++ {
+		line, err := stream.ReadBytes('\n') //Using this function allocates a lot without need. There is no function that takes a []bytes AND a limit. I might write one at some point.
 		if err != nil {
 			break
 		}
@@ -150,4 +170,3 @@ func DecodeJSONCoords(stream *bufio.Reader, atomnumber int) (*CoordMatrix, error
 	coords := NewCoords(rawcoords)
 	return coords, nil
 }
-
