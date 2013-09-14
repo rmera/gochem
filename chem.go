@@ -52,7 +52,6 @@ type Atom struct {
 	Vdw       float64 //radius
 	Charge    float64 //Partial charge on an atom
 	Symbol    string
-	SS        string //secondary structure.
 	Het       bool   // is the atom an hetatm in the pdb file? (if applicable)
 }
 
