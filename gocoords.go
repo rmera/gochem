@@ -403,7 +403,7 @@ func (F *CoordMatrix) Inv(A *CoordMatrix) {
 
 //return the number of vecs in F. Panics if the
 //other dimmension is not 3.
-func (F *CoordMatrix) VecNum() int {
+func (F *CoordMatrix) NumVec() int {
 	r, c := F.Dims()
 	if c != 3 {
 		panic(Not3xXMatrix)

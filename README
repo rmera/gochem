@@ -120,6 +120,16 @@ TODOS:
 *Read Amber trajectories.
 *Add more tests.
 
+
+There is no publication on gochem yet. If you use the library, or a
+program based on gochem before such a publication is available,
+please cite the library in your publication as:
+
+Mera-Adasme, R., Pesonen, J. "Gochem: a library for computational 
+chemistry". https://www.github.com/rmera/gochem
+
+
+
 Currently, gochem is licensed under LGPL2. This might change towards BSD 
 in the future. Meanwhile, if you want to use some of this for a 
 BSD-licensed project, let me know.

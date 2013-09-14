@@ -80,6 +80,7 @@ func RamaPlotParts(data [][][]float64, tag [][]int, title, plotname string) erro
 	var tagged int
 	for key, val := range data {
 		temp := make(plotter.XYs, 1) //len(val))
+		fmt.Println(key, len(val))
 		for k, v := range val {
 			temp[0].X = v[0]
 			temp[0].Y = v[1]
@@ -115,7 +116,7 @@ func RamaPlotParts(data [][][]float64, tag [][]int, title, plotname string) erro
 }
 
 func colors(key, steps int) (r, g, b uint8) {
-	norm := (2 * 255.0 / (steps + 1))
+	norm := (2 * 255.0 / (steps - 1))
 	b = uint8(key * norm)
 	r = uint8(255) - b
 	var critical int
@@ -127,6 +128,7 @@ func colors(key, steps int) (r, g, b uint8) {
 		b = 255 - g
 		r = 0
 	}
+	//	fmt.Println("crit", critical, norm, steps, key, r, g, b)
 	/*	if (key-critical)*norm>255{
 			r=uint8(norm*(key-critical))
 			g=90
