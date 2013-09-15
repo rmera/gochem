@@ -407,13 +407,17 @@ func qderror_handler(err error, Te *testing.T) {
 }
 
 func TestReduce(Te *testing.T) {
-	mol, err := PDBRead("test/2c9v.pdb", true)
+	mol, err := PDBRead("test/mod.pdb", true)
 	if err != nil {
 		Te.Error(err)
 	}
-	mol2, err := Reduce(mol, mol.Coords[0], 2, "test/reducereport.log")
+	logger,err:=os.Create("test/reducereport.log")
+	if err!=nil{
+		Te.Error(err)
+		}
+	mol2, err := Reduce(mol, mol.Coords[0], 2, logger)
 	if err != nil {
 		Te.Error(err)
 	}
-	PDBWrite("test/2c9vH.pdb", mol2, mol2.Coords[0])
+	PDBWrite("test/2c9vHReduce.pdb", mol2, mol2.Coords[0])
 }
