@@ -31,17 +31,21 @@ package chem
 import (
 	"bufio"
 	"os"
+	"strings"
 	"os/exec"
 )
 
-//Reduce uses the Reduce program
-//(Word, et. al. (1999) J. Mol. Biol. 285, 1735-1747.
-//For more information see http://kinemage.biochem.duke.edu)
-//To protonate a protein and flip residues. It writes
-//the report from Reduce to a file called Reduce.err in the current dir.
-//The Reduce executable must be a file called "reduce" and be in the PATH.
-func Reduce(mol Atomer, coords *CoordMatrix, build int, report string) (*Molecule, error) {
-	pdb, err := PDBStringWrite(mol, coords, nil)
+//Reduce uses the Reduce program (Word, et. al. (1999) J. Mol. Biol. 285, 
+//1735-1747. For more information see http://kinemage.biochem.duke.edu)
+//To protonate a protein and flip residues. It writes the report from Reduce
+//to a file called Reduce.err in the current dir. The Reduce executable must 
+//be a file called "reduce" and be in the PATH.
+func Reduce(mol Atomer, coords *CoordMatrix, build int, report *os.File) (*Molecule, error) {
+/*Unfortunately, I need to write each pdb to be protonated to disk. I just couldnt possibly make it work passing a PDB string
+to reduce with a pipe. For some reason I only got a part of the PDB. It is something that should be fixed.*/
+	pdbname:="gochemreducetmp.pdb"
+	err := PDBWrite(pdbname,mol, coords, nil)
+
 	if err != nil {
 		return nil, err
 	}
@@ -51,11 +55,11 @@ func Reduce(mol Atomer, coords *CoordMatrix, build int, report string) (*Molecul
 	} else if build > 1 {
 		flip = "-BUILD"
 	}
-	reduce := exec.Command("reduce", flip, "-")
-	inp, err := reduce.StdinPipe()
-	if err != nil {
-		return nil, err
-	}
+	reduce := exec.Command("reduce", flip, pdbname) // , "-")
+//	inp, err := reduce.StdinPipe()
+//	if err != nil {
+//		return nil, err
+//	}
 	out, err := reduce.StdoutPipe()
 	if err != nil {
 		return nil, err
@@ -64,28 +68,58 @@ func Reduce(mol Atomer, coords *CoordMatrix, build int, report string) (*Molecul
 	if err != nil {
 		return nil, err
 	}
-	defer out.Close()
-	defer out2.Close()
 	if err := reduce.Start(); err != nil {
 		return nil, err
 	}
+/*	//Failed attempt to transmit the data directly to reduce using a pipe.
 	binp := bufio.NewWriter(inp)
-	_, err = binp.WriteString(pdb)
-	if err != nil {
-		return nil, err
+	chainprev:=mol.Atom(0).Chain
+	outline:=""
+	wcoord:=EmptyCoords()
+	for i:=0;i<mol.Len();i++{
+		wcoord.VecView(coords,i)
+		outline,chainprev,err=writePDBLine(mol.Atom(i),wcoord,0.0,chainprev)
+		_, err = binp.WriteString(outline)
+		if err != nil {
+			return nil, err
+		}
+		fmt.Println("tostdin", outline)
 	}
 	inp.Close()
+*/
 	bufiopdb := bufio.NewReader(out)
+	if report==nil{
+		report, err := os.Create("Reduce.log")
+		if err != nil {
+			return nil, err
+		}
+		defer report.Close()
+	}
+	repio := bufio.NewWriter(report)
+	dashes:=0
+	for {
+		s,err:=bufiopdb.ReadString('\n')
+		if err!=nil{
+			return nil, err
+		}
+		if strings.Contains(s,"USER  MOD ---------------------------------------------------"){
+			dashes++
+			if dashes>1{
+				break
+			}
+		}
+		repio.WriteString(s)
+	}
 	mol2, err := pdbBufIORead(bufiopdb, false)
-	rep, err := os.Create(report)
-	if err != nil {
-		return mol2, err
+	if err!=nil{
+		return nil, err
+		}
+	if _,err = repio.ReadFrom(out2); err!=nil{
+		return nil, err
 	}
-	defer rep.Close()
-	repio := bufio.NewWriter(rep)
-	_, err = repio.ReadFrom(out2)
-	if err != nil {
-		return mol2, err
-	}
+	if err=reduce.Wait(); err!=nil && !strings.Contains(err.Error(),"exit status 1"){
+		return mol2,err
+		}
+	os.Remove(pdbname)
 	return mol2, nil
 }
