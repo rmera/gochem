@@ -318,6 +318,24 @@ func (F *CoordMatrix) Clone(A *CoordMatrix) {
 
 }
 
+
+//Returns an array with the data in the ith row of F
+func (F *CoordMatrix) Col(a []float64, i int) []float64 {
+	r, c := F.Dims()
+	if i >= c {
+		panic("Matrix: Requested column out of bounds")
+	}
+	if a==nil{
+		a = make([]float64, r, r)
+	}
+	for j := 0; j < r; j++ {
+		if j>=len(a){
+			break
+		}
+		a[j] = F.At(j, i)
+	}
+	return a
+}
 //Puts a view of the given col of the matrix on the receiver
 func (F *CoordMatrix) ColView(A *CoordMatrix, i int) {
 	ar, _ := A.Dims()
@@ -503,13 +521,18 @@ func (F *CoordMatrix) Pow(A *CoordMatrix, exp float64) {
 }
 
 //Returns an array with the data in the ith row of F
-func (F *CoordMatrix) Row(i int) []float64 {
+func (F *CoordMatrix) Row(a []float64, i int) []float64 {
 	r, c := F.Dims()
 	if i >= r {
 		panic("Matrix: Requested row out of bounds")
 	}
-	a := make([]float64, c, c)
+	if a==nil{
+		a = make([]float64, c, c)
+	}
 	for j := 0; j < c; j++ {
+		if j>=len(a){
+			break
+		}
 		a[j] = F.At(i, j)
 	}
 	return a

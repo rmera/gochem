@@ -1,3 +1,5 @@
+// +build pymol 
+
 /*
  * pymol_test.go
  *

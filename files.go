@@ -30,6 +30,7 @@ package chem
 
 import (
 	"bufio"
+	"io"
 	"fmt"
 	"os"
 	"strconv"
@@ -213,6 +214,13 @@ func read_onlycoords_pdb_line(line string, contlines int) ([]float64, float64, e
 func PDBStringRead(pdb string, read_additional bool) (*Molecule, error) {
 	pdbstringreader := strings.NewReader(pdb)
 	bufiopdb := bufio.NewReader(pdbstringreader)
+	mol, err := pdbBufIORead(bufiopdb, read_additional)
+	return mol, err
+}
+
+
+func PDBReaderRead(pdb io.Reader, read_additional bool) (*Molecule, error) {
+	bufiopdb := bufio.NewReader(pdb)
 	mol, err := pdbBufIORead(bufiopdb, read_additional)
 	return mol, err
 }
@@ -590,11 +598,12 @@ func XYZStringWrite(mol Atomer, Coords *CoordMatrix) (string, error) {
 	if mol.Len() != Coords.Rows() {
 		return "", fmt.Errorf("Ref and Coords dont have the same number of atoms")
 	}
+	c:=make([]float64,3,3)
 	out = fmt.Sprintf("%-4d\n\n", mol.Len())
 	//towrite := Coords.Arrays() //An array of array with the data in the matrix
 	for i := 0; i < mol.Len(); i++ {
 		//c := towrite[i] //coordinates for the corresponding atoms
-		c := Coords.Row(i)
+		c = Coords.Row(c,i)
 		temp := fmt.Sprintf("%-2s  %12.6f%12.6f%12.6f \n", mol.Atom(i).Symbol, c[0], c[1], c[2])
 		out = strings.Join([]string{out, temp}, "")
 	}

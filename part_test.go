@@ -411,8 +411,12 @@ func TestReduce(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
-	mol2, err := Reduce(mol, mol.Coords[0], 2, "test/reducereport.log")
+	mol2, err := Reduce(mol, mol.Coords[0], 2, nil)
 	if err != nil {
+		fmt.Println("ERRERRRR", err)
+		Te.Error(err)
+	}
+	if err=mol2.Corrupted();err!=nil{
 		Te.Error(err)
 	}
 	PDBWrite("test/2c9vH.pdb", mol2, mol2.Coords[0])

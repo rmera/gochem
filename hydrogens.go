@@ -32,6 +32,9 @@ import (
 	"bufio"
 	"os"
 	"os/exec"
+	"fmt"
+//	"unicode/utf8"
+//	"strings"
 )
 
 //Reduce uses the Reduce program
@@ -40,7 +43,7 @@ import (
 //To protonate a protein and flip residues. It writes
 //the report from Reduce to a file called Reduce.err in the current dir.
 //The Reduce executable must be a file called "reduce" and be in the PATH.
-func Reduce(mol Atomer, coords *CoordMatrix, build int, report string) (*Molecule, error) {
+func Reduce(mol Atomer, coords *CoordMatrix, build int, report *bufio.Writer) (*Molecule, error) {
 	pdb, err := PDBStringWrite(mol, coords, nil)
 	if err != nil {
 		return nil, err
@@ -64,28 +67,49 @@ func Reduce(mol Atomer, coords *CoordMatrix, build int, report string) (*Molecul
 	if err != nil {
 		return nil, err
 	}
-	defer out.Close()
-	defer out2.Close()
 	if err := reduce.Start(); err != nil {
 		return nil, err
 	}
 	binp := bufio.NewWriter(inp)
-	_, err = binp.WriteString(pdb)
+	l:=len([]byte(pdb))
+	l2, err := binp.WriteString(pdb)
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println(pdb, "the full pdb")
+	fmt.Println(l,l2)
 	inp.Close()
-	bufiopdb := bufio.NewReader(out)
-	mol2, err := pdbBufIORead(bufiopdb, false)
-	rep, err := os.Create(report)
+	if report==nil{
+		rep, err := os.Create("Reduce.log")
+		if err != nil {
+			return nil, err
+		}
+		defer rep.Close()
+		report = bufio.NewWriter(rep)
+	}
+	//the first lines of the PDB belong to the report.
+/*	for {
+		fmt.Println("writing lines!")
+		line,err:=bufiopdb.ReadString('\n')
+		if err!=nil{
+			return nil, err
+		}
+		if strings.Contains(line, "USER  MOD ----------------------------------------------------------"){
+			break
+		}
+		report.WriteString(line) //NO error checking!!!
+	}
+*/
+	fmt.Println("will write")
+	mol2, err := PDBReaderRead(out, false)
+	_, err = report.ReadFrom(out2)
 	if err != nil {
 		return mol2, err
 	}
-	defer rep.Close()
-	repio := bufio.NewWriter(rep)
-	_, err = repio.ReadFrom(out2)
-	if err != nil {
-		return mol2, err
+	fmt.Println("wrote")
+	if err := reduce.Wait(); err != nil && err.Error()!="exit status 1"{
+		return nil, err
 	}
+	fmt.Println("last", mol2.Atom(mol2.Len()-1))
 	return mol2, nil
 }
