@@ -115,7 +115,7 @@ to reduce with a pipe. For some reason I only got a part of the PDB. It is somet
 		return nil, err
 		}
 	if _,err = repio.ReadFrom(out2); err!=nil{
-		return nil, err
+		return mol2, err
 	}
 	if err=reduce.Wait(); err!=nil && !strings.Contains(err.Error(),"exit status 1"){
 		return mol2,err
