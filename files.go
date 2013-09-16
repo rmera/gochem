@@ -340,14 +340,14 @@ func writePDBLine(atom *Atom, coord *CoordMatrix, bfact float64, chainprev strin
 	var ter string
 	var out string
 	if atom.Chain != chainprev {
-		ter = fmt.Sprintln(out, "TER")
+		ter = fmt.Sprint(out, "TER\n")
 		chainprev = atom.Chain
 	}
 	first := "ATOM"
 	if atom.Het {
 		first = "HETATM"
 	}
-	formatstring := "%-6s%5d  %-3s %3s %1s%4d    %8.3f%8.3f%8.3f%6.2f%6.2f          %2s  \n"
+	formatstring := "%-6s%5d  %-3s %-4s%1s%4d    %8.3f%8.3f%8.3f%6.2f%6.2f          %2s  \n"
 	//4 chars for the atom name are used when hydrogens are included.
 	//This has not been tested
 	if len(atom.Name) == 4 {
