@@ -34,6 +34,7 @@ import (
 	"strings"
 	"fmt"
 	"os"
+	"io"
 )
 
 type JSONAtom struct {
@@ -84,12 +85,12 @@ type JSONInfo struct {
 	StringInfo [][]string
 	IntInfo    [][]int
 }
-func (J *JSONInfo) Marshal() ([]byte,*JSONError){
-	ret,err:=json.Marshal(J)
-	if err!=nil{
-		return nil, MakeJSONError("postprocess","JSONInfo.Marshal",err)
+func (J *JSONInfo) Send(out io.Writer) (*JSONError){
+	enc:=json.NewEncoder(out)
+	if err:=enc.Encode(J);err!=nil{
+		return MakeJSONError("postprocess","JSONInfo.Marshal",err)
 	}
-	return ret, nil
+	return nil
 }
 
 
@@ -206,51 +207,44 @@ func DecodeJSONCoords(stream *bufio.Reader, atomnumber int) (*CoordMatrix, *JSON
 
 
 
-func TransmitMoleculeJSON(mol Atomer, coordset, bfactors []*CoordMatrix, ss [][]string, out *os.File) *JSONError{
-	jmol,err:=EncodeAtoms2JSON(mol)
-	if err!=nil{
+func TransmitMoleculeJSON(mol Atomer, coordset, bfactors []*CoordMatrix, ss [][]string, out io.Writer) *JSONError{
+	fmt.Fprintln(os.Stderr, "JOVEN")
+	enc:=json.NewEncoder(out)
+	fmt.Fprintln(os.Stderr, "VIEJA")
+	if err:=EncodeAtoms2JSON(mol,enc); err!=nil{
 		return err
 	}
-	for _,i:=range(jmol){
-		fmt.Fprint(out,i)
-		fmt.Fprint(out,"\n")
-	}
+	fmt.Fprintln(os.Stderr, "VIeeeeeeEJA")
 	for _,coords:=range(coordset){
-		jcoords,err:=EncodeCoords2JSON(coords)
-		if err!=nil{
+		if err:=EncodeCoords2JSON(coords,enc); err!=nil{
 			return err
 		}
-		for _,i:=range(jcoords){
-			fmt.Fprint(out,i)
-			fmt.Fprint(out,"\n")
-		}
 	}
+
+	fmt.Fprintln(os.Stderr, "VIEJaaaaaaaaaaaaaaaaaaaA")
 	if bfactors!=nil{
 		jb:=new(jSONbfac)
 		for _,b:=range(bfactors){
 			jb.Bfactors=b.Col(nil,0)
-			jjb,err2:=json.Marshal(jb)
-			if err2!=nil{
-				return MakeJSONError("postprocess","TransmitMoleculeJson(bfactors)",err2)
+			if err:=enc.Encode(jb);err!=nil{
+				return MakeJSONError("postprocess","TransmitMoleculeJson(bfactors)",err)
 			}
-			fmt.Fprint(out,jjb)
-			fmt.Fprint(out,"\n")
 		}
 	}
 	if ss!=nil{
 		jss:=new(jSONss)
 		for _,s:=range(ss){
 			jss.SS=s
-			jjss,err2:=json.Marshal(jss)
-			if err2!=nil{
-				return MakeJSONError("postprocess","TransmitMoleculeJson(ss)",err2)
+			if err:=enc.Encode(jss); err!=nil{
+				return MakeJSONError("postprocess","TransmitMoleculeJson(ss)",err)
 			}
-			fmt.Fprint(out,jjss)
-			fmt.Fprint(out,"\n")
 		}
 	}
 	return nil
 }
+
+
+
 
 type jSONbfac struct {
 	Bfactors []float64
@@ -262,36 +256,32 @@ type jSONss struct {
 
 
 type jSONCoords struct{
-	coords []float64
+	Coords []float64
 }
 
-func EncodeAtoms2JSON(mol Atomer) ([][]byte, *JSONError){
-	ret:=make([][]byte,0,mol.Len())
+func EncodeAtoms2JSON(mol Atomer, enc *json.Encoder) (*JSONError){
 	for i:=0;i<mol.Len();i++{
-		b,err:=json.Marshal(mol.Atom(i))
-		if err!=nil{
-			return  nil, MakeJSONError("postprocess","EncodeAtoms2JSON",err)
+		fmt.Fprintln(os.Stderr, "IIII", i)
+		if err:=enc.Encode(mol.Atom(i));err!=nil{
+			return  MakeJSONError("postprocess","EncodeAtoms2JSON",err)
 		}
-		ret=append(ret,b)
+	//	out.Write([]byte{'\n'})
 	}
-	return ret, nil
+	return nil
 }
 
 
 
-func EncodeCoords2JSON(coords *CoordMatrix)  ([][]byte, *JSONError){
+func EncodeCoords2JSON(coords *CoordMatrix, enc *json.Encoder)  (*JSONError){
 	c:=new(jSONCoords)
 	t:=make([]float64,3,3)
-	ret:=make([][]byte,0,coords.NumVec())
 	for i:=0;i<coords.NumVec();i++{
-		c.coords=coords.Row(t,i)
-		b,err:=json.Marshal(c)
-		if err!=nil{
-			return  nil, MakeJSONError("postprocess","EncodeCoords2JSON",err)
+		c.Coords=coords.Row(t,i)
+		if err:=enc.Encode(c); err!=nil{
+			return MakeJSONError("postprocess","EncodeCoords2JSON",err)
 		}
-		ret=append(ret,b)
 	}
-	return ret, nil
+	return nil
 }
 
 
