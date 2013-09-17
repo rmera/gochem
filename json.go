@@ -33,7 +33,6 @@ import (
 	"encoding/json"
 	"strings"
 	"fmt"
-	"os"
 	"io"
 )
 
@@ -208,20 +207,15 @@ func DecodeJSONCoords(stream *bufio.Reader, atomnumber int) (*CoordMatrix, *JSON
 
 
 func TransmitMoleculeJSON(mol Atomer, coordset, bfactors []*CoordMatrix, ss [][]string, out io.Writer) *JSONError{
-	fmt.Fprintln(os.Stderr, "JOVEN")
 	enc:=json.NewEncoder(out)
-	fmt.Fprintln(os.Stderr, "VIEJA")
 	if err:=EncodeAtoms2JSON(mol,enc); err!=nil{
 		return err
 	}
-	fmt.Fprintln(os.Stderr, "VIeeeeeeEJA")
 	for _,coords:=range(coordset){
 		if err:=EncodeCoords2JSON(coords,enc); err!=nil{
 			return err
 		}
 	}
-
-	fmt.Fprintln(os.Stderr, "VIEJaaaaaaaaaaaaaaaaaaaA")
 	if bfactors!=nil{
 		jb:=new(jSONbfac)
 		for _,b:=range(bfactors){
@@ -261,11 +255,9 @@ type jSONCoords struct{
 
 func EncodeAtoms2JSON(mol Atomer, enc *json.Encoder) (*JSONError){
 	for i:=0;i<mol.Len();i++{
-		fmt.Fprintln(os.Stderr, "IIII", i)
 		if err:=enc.Encode(mol.Atom(i));err!=nil{
 			return  MakeJSONError("postprocess","EncodeAtoms2JSON",err)
 		}
-	//	out.Write([]byte{'\n'})
 	}
 	return nil
 }
