@@ -132,7 +132,7 @@ type Ref interface {
 }
 
 
-/*
+
 //This allows to set QM calculations using different programs.
 //Currently ORCA and MOPAC (2009/2012) are supported.
 type QMRunner interface {
@@ -152,7 +152,7 @@ type QMRunner interface {
 
 	//BuildInput builds an input for the QM program based int the data in
 	//atoms, coords and C. returns only error.
-	BuildInput(atoms Ref, coords *matrix.DenseMatrix, Q *QMCalc) error
+	BuildInput(atoms ReadRef, coords *CoordMatrix, Q *QMCalc) error
 
 	//Run runs the QM program for a calculation previously set.
 	//it waits or not for the result depending of the value of
@@ -169,6 +169,6 @@ type QMRunner interface {
 	//output. Returns error if fail. Returns Error ("Probable problem
 	//in calculation") if there is a geometry but the calculation didnt
 	//end properly*
-	GetGeometry(atoms Ref) (*matrix.DenseMatrix, error)
+	GetGeometry(atoms Ref) (*CoordMatrix, error)
 }
-*/
+

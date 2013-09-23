@@ -385,10 +385,10 @@ func CutBackCoords(r Ref, coords *CoordMatrix, chain string, list [][]int) (*Coo
 //CutLateralRef will return a list with the atom indexes of the lateral chains of the residues in list
 //for each of these residues it will change the alpha carbon to oxygen and change the residue number of the rest
 //of the backbone to -1.
-func CutLateralRef(r Atomer, chain string, list []int) []int {
+func CutBetaRef(r Atomer, chain []string, list []int) []int {
 	for i := 0; i < r.Len(); i++ {
 		curr := r.Atom(i)
-		if isInInt(list, curr.Molid) && curr.Chain == chain {
+		if isInInt(list, curr.Molid) && isInString(chain, curr.Chain) {
 			if curr.Name == "CA" {
 				curr.Name = "HB4"
 				curr.Symbol = "H"
@@ -398,9 +398,31 @@ func CutLateralRef(r Atomer, chain string, list []int) []int {
 
 		}
 	}
-	newlist := Molecules2Atoms(r, list, []string{chain})
+	newlist := Molecules2Atoms(r, list, chain)
 	return newlist
 }
+
+
+func CutAlphaRef(r Atomer, chain []string, list []int) []int {
+	for i := 0; i < r.Len(); i++ {
+		curr := r.Atom(i)
+		if isInInt(list, curr.Molid) && isInString(chain, curr.Chain) {
+			if curr.Name == "C" {
+				curr.Name = "HA2"
+				curr.Symbol = "H"
+			}else if curr.Name == "N"{
+				curr.Name = "HA3"
+				curr.Symbol = "H"
+			} else if isInString([]string{"H", "O"}, curr.Name) { //change the res number of the backbone so it is not considered
+				curr.Molid = -1
+			}
+
+		}
+	}
+	newlist := Molecules2Atoms(r, list, chain)
+	return newlist
+}
+
 
 //This will tag all atoms with a given name in a given list of atoms.
 //return the number of tagged atoms
