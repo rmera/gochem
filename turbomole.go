@@ -246,7 +246,20 @@ func (O *TMRunner) BuildInput(atoms ReadRef, coords *CoordMatrix, Q *QMCalc) err
 	defstring = O.addBasis("b", Q.ECPElements, Q.ECP, defstring)      //we set a basis set compatible with the ECP. In TM they share the same name
 	defstring = O.addBasis("b", Q.HBElements, Q.HighBasis, defstring) //The high basis will override the ECP basis, which can be rather small. Use under your own risk.
 	defstring = defstring + "\n\n\n\n*\n"
-	defstring = fmt.Sprintf("%seht\n\n%d\n\n", defstring, atoms.Charge())
+	//This is because the %$$#%^ define interface ask some $#%&&# questions in the eht setup when encounters some atoms.
+	//so i have to add an additional newline for each of these types. So far I know only that copper causes this.
+	stupid:=""
+	stupidatoms:="Cu" //if you want to add more stupid atoms jsut add then to the string: "Cu Zn"
+	for i:=0;i<atoms.Len();i++{
+		if stupidatoms==""{
+			break
+		}
+		if strings.Contains(stupidatoms,atoms.Atom(i).Symbol){
+			stupidatoms=strings.Replace(stupidatoms,atoms.Atom(i).Symbol,"",-1)
+			stupid=stupid+"\n"
+		}
+	}
+	defstring = fmt.Sprintf("%seht\n%s\n%d\n\n", defstring,stupid,atoms.Charge())
 	method, ok := tMMethods[Q.Method]
 	if !ok {
 		fmt.Fprintf(os.Stderr, "no method assigned for TM calculation, will used the default %s, \n", O.defmethod)

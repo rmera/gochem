@@ -385,13 +385,20 @@ func CutBackCoords(r Ref, coords *CoordMatrix, chain string, list [][]int) (*Coo
 //CutLateralRef will return a list with the atom indexes of the lateral chains of the residues in list
 //for each of these residues it will change the alpha carbon to oxygen and change the residue number of the rest
 //of the backbone to -1.
-func CutBetaRef(r Atomer, chain []string, list []int) []int {
+func CutBetaRef(r Atomer, chain []string, list []int) []int{
+//	pairs := make([][]int,1,10)
+//	pairs[0]=make([]int,0,2)
 	for i := 0; i < r.Len(); i++ {
 		curr := r.Atom(i)
 		if isInInt(list, curr.Molid) && isInString(chain, curr.Chain) {
+			if curr.Name=="CB"{
+	//			pairs[len(pairs)-1][1]=i //I am assuming that CA will show before CB in the PDB, which is rather weak
+		//		paairs=append(pairs,make([]int,1,2))
+			}
 			if curr.Name == "CA" {
 				curr.Name = "HB4"
 				curr.Symbol = "H"
+		//		pairs[len(pairs)-1]=append(pairs[len(pairs)-1],i)
 			} else if isInString([]string{"C", "H", "HA", "O", "N"}, curr.Name) { //change the res number of the backbone so it is not considered
 				curr.Molid = -1
 			}
@@ -436,4 +443,36 @@ func TagName(r Atomer, name string, list []int) int {
 		}
 	}
 	return tag
+}
+
+//Scales all bonds between atoms in the same residue with names n1, n2 to a final lenght finallengt, by moving the atoms n2.
+//the operation is executed in place.
+func ScaleBonds(mol Atomer, coords *CoordMatrix, n1, n2 string, finallenght float64){
+	for i:=0;i<mol.Len();i++{
+		c1:=mol.Atom(i)
+		A:=EmptyCoords()
+		B:=EmptyCoords()
+		if c1.Name!=n1 {
+			continue
+		}
+		for j:=0;j<mol.Len();j++{
+			c2:=mol.Atom(j)
+			if c1.Molid==c2.Molid && c1.Name==n1 && c2.Name==n2{
+				A.VecView(coords,i)
+				B.VecView(coords,j)
+				ScaleBond(A,B,finallenght)
+				}
+		}
+	}
+}
+
+
+//ScaleCHBond takes a bond and moves the H (in place) so the distance between them is bond.
+//CAUTION: I have only tested it for the case where the original distance>bond, although I think it will also work in the other case.
+func ScaleBond(C,H *CoordMatrix,bond float64){
+	Odist:=ZeroVecs(1)
+	Odist.Sub(H,C)
+	distance:=Odist.Norm(2)
+	Odist.Scale((distance-bond)/distance,Odist)
+	H.Sub(H,Odist)
 }
