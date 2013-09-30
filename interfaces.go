@@ -39,7 +39,7 @@ type Traj interface {
 	Readable() bool
 
 	//reads the next frame and returns it as DenseMatrix if keep==true, or discards it if false
-	Next(output *CoordMatrix) error
+	Next(output *VecMatrix) error
 
 	//Returns the number of atoms per frame
 	Len() int
@@ -54,7 +54,7 @@ type ConcTraj interface {
 	form the trajectory. The frames are discarted if the corresponding elemetn of the slice
 	is false. The function returns a slice of channels through each of each of which
 	a *matrix.DenseMatrix will be transmited*/
-	NextConc(frames []*CoordMatrix) ([]chan *CoordMatrix, error)
+	NextConc(frames []*VecMatrix) ([]chan *VecMatrix, error)
 
 	//Returns the number of atoms per frame
 	Len() int
@@ -77,7 +77,7 @@ type ReadRef interface {
 
 	//Returns a column vector with the massess of all atoms
 	//this will be changed to a tion that takes a Reference interface.
-	Masses() (*CoordMatrix, error)
+	Masses() ([]float64, error)
 
 	//Charge gets the total charge of the topology
 	Charge() int
@@ -152,7 +152,7 @@ type QMRunner interface {
 
 	//BuildInput builds an input for the QM program based int the data in
 	//atoms, coords and C. returns only error.
-	BuildInput(atoms ReadRef, coords *CoordMatrix, Q *QMCalc) error
+	BuildInput(atoms ReadRef, coords *VecMatrix, Q *QMCalc) error
 
 	//Run runs the QM program for a calculation previously set.
 	//it waits or not for the result depending of the value of
@@ -169,6 +169,6 @@ type QMRunner interface {
 	//output. Returns error if fail. Returns Error ("Probable problem
 	//in calculation") if there is a geometry but the calculation didnt
 	//end properly*
-	GetGeometry(atoms Ref) (*CoordMatrix, error)
+	GetGeometry(atoms Ref) (*VecMatrix, error)
 }
 

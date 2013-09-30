@@ -81,7 +81,7 @@ func (O *MopacRunner) SetDefaults() {
 
 //BuildInput builds an input for ORCA based int the data in atoms, coords and C.
 //returns only error.
-func (O *MopacRunner) BuildInput(atoms ReadRef, coords *CoordMatrix, Q *QMCalc) error {
+func (O *MopacRunner) BuildInput(atoms ReadRef, coords *VecMatrix, Q *QMCalc) error {
 	if strings.Contains(Q.Others, "RI") {
 		Q.Others = ""
 	}
@@ -218,7 +218,7 @@ func (O *MopacRunner) GetEnergy() (float64, error) {
 /*Get Geometry reads the optimized geometry from a MOPAC2009/2012 output.
   Return error if fail. Returns Error ("Probable problem in calculation")
   if there is a geometry but the calculation didnt end properly*/
-func (O *MopacRunner) GetGeometry(atoms Ref) (*CoordMatrix, error) {
+func (O *MopacRunner) GetGeometry(atoms Ref) (*VecMatrix, error) {
 	var err error
 	natoms := atoms.Len()
 	coords := make([]float64, natoms*3, natoms*3) //will be used for return
@@ -278,7 +278,7 @@ func (O *MopacRunner) GetGeometry(atoms Ref) (*CoordMatrix, error) {
 	if err != nil {
 		return nil, err
 	}
-	mcoords := NewCoords(coords)
+	mcoords := NewVecs(coords)
 	if trust_radius_warning {
 		return mcoords, fmt.Errorf("Probable problem in calculation")
 	}

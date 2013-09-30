@@ -42,16 +42,16 @@ import "fmt"
 //Cross3D Takes 2 3-len column or row vectors and returns a column or a row
 //vector, respectively, with the Cross product of them.
 //should panic
-func Cross3D(a, b *CoordMatrix) (*CoordMatrix, error) {
+func Cross3D(a, b *VecMatrix) (*VecMatrix, error) {
 	ar, ac := a.Dims()
 	br, bc := b.Dims()
 	if ac != bc || ar != br || (ac != 3 && ar != 3) {
 		return nil, fmt.Errorf("Malformed vectors for cross product")
 	}
 	if ac != 3 {
-		c := Zeros(ac, ar)
+		c := ZeroVecs(ac, ar)
 		c.T(a)
-		d := Zeros(bc, br)
+		d := ZeroVecs(bc, br)
 		d.T(b)
 		e := Cross3DRow(c, d)
 		a.T(e) //careful here, may need testing
@@ -64,7 +64,7 @@ func Cross3D(a, b *CoordMatrix) (*CoordMatrix, error) {
 }
 
 //Cross3DRow returns the cross product of 2 row vectors. Panics if error.
-func Cross3DRow(a, b *CoordMatrix) *CoordMatrix {
+func Cross3DRow(a, b *VecMatrix) *VecMatrix {
 	vec := make([]float64, 3, 3)
 	_, ac := a.Dims()
 	_, bc := b.Dims()
@@ -74,7 +74,7 @@ func Cross3DRow(a, b *CoordMatrix) *CoordMatrix {
 	vec[0] = a.At(0, 1)*b.At(0, 2) - a.At(0, 2)*b.At(0, 1)
 	vec[1] = a.At(0, 2)*b.At(0, 0) - a.At(0, 0)*b.At(0, 2)
 	vec[2] = a.At(0, 0)*b.At(0, 1) - a.At(0, 1)*b.At(0, 0)
-	return NewCoordMatrix(vec, 1, 3)
+	return NewVecMatrix(vec, 1, 3)
 }
 
 //InvSqrt return the inverse of the square root of val, or zero if

@@ -40,7 +40,7 @@ import (
 //To protonate a protein and flip residues. It writes the report from Reduce
 //to a file called Reduce.err in the current dir. The Reduce executable must 
 //be a file called "reduce" and be in the PATH.
-func Reduce(mol Atomer, coords *CoordMatrix, build int, report *os.File) (*Molecule, error) {
+func Reduce(mol Atomer, coords *VecMatrix, build int, report *os.File) (*Molecule, error) {
 /*Unfortunately, I need to write each pdb to be protonated to disk. I just couldnt possibly make it work passing a PDB string
 to reduce with a pipe. For some reason I only got a part of the PDB. It is something that should be fixed.*/
 	pdbname:="gochemreducetmp.pdb"
@@ -75,7 +75,7 @@ to reduce with a pipe. For some reason I only got a part of the PDB. It is somet
 	binp := bufio.NewWriter(inp)
 	chainprev:=mol.Atom(0).Chain
 	outline:=""
-	wcoord:=EmptyCoords()
+	wcoord:=EmptyVecs()
 	for i:=0;i<mol.Len();i++{
 		wcoord.VecView(coords,i)
 		outline,chainprev,err=writePDBLine(mol.Atom(i),wcoord,0.0,chainprev)

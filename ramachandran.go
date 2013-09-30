@@ -203,7 +203,7 @@ func getShape(tagged int) (plot.GlyphDrawer, error) {
 /*Obtain psi and phi angles for the molecule M, considerint the dihedrals in [][]int
   for all the frames in frames. It returns a slice of slices (one per frame) of slices
   (with 2 elemtns), for psi and phi angles, and an error*/
-func RamaCalc(M *CoordMatrix, dihedrals []RamaSet) ([][]float64, error) {
+func RamaCalc(M *VecMatrix, dihedrals []RamaSet) ([][]float64, error) {
 	if M == nil || dihedrals == nil {
 		return nil, fmt.Errorf("RamaCalc: Given nil data")
 	}
@@ -213,11 +213,11 @@ func RamaCalc(M *CoordMatrix, dihedrals []RamaSet) ([][]float64, error) {
 		if j.Npost >= r {
 			return nil, fmt.Errorf("RamaCalc: Index requested out of range")
 		}
-		Cprev := RowView(M, j.Cprev)
-		N := RowView(M, j.N)
-		Ca := RowView(M, j.Ca)
-		C := RowView(M, j.C)
-		Npost := RowView(M, j.Npost)
+		Cprev := VecView(M, j.Cprev)
+		N := VecView(M, j.N)
+		Ca := VecView(M, j.Ca)
+		C := VecView(M, j.C)
+		Npost := VecView(M, j.Npost)
 		phi := Dihedral(Cprev, N, Ca, C)
 		psi := Dihedral(N, Ca, C, Npost)
 		temp := []float64{phi * (180 / math.Pi), psi * (180 / math.Pi)}

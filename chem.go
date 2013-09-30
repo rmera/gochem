@@ -230,8 +230,8 @@ func (T *Topology) Len() int {
 	return len(T.Atoms) //This shouldnt be needed
 }
 
-//MassCol returns a CoordMatrix with the masses of atoms, or nil and an error if they have not been calculated
-func (T *Topology) Masses() (*CoordMatrix, error) {
+//MassCol returns a VecMatrix with the masses of atoms, or nil and an error if they have not been calculated
+func (T *Topology) Masses() ([]float64, error) {
 	mass := make([]float64, T.Len())
 	for i := 0; i < T.Len(); i++ {
 		thisatom := T.Atom(i)
@@ -240,8 +240,7 @@ func (T *Topology) Masses() (*CoordMatrix, error) {
 		}
 		mass[i] = thisatom.Mass
 	}
-	massmat := NewCoordMatrix(mass, len(mass), 1)
-	return massmat, nil
+	return mass, nil
 }
 
 /**Type Molecule**/
@@ -250,8 +249,8 @@ func (T *Topology) Masses() (*CoordMatrix, error) {
 //Coordinates and b-factors are stored separately from other atomic info.
 type Molecule struct {
 	*Topology
-	Coords   []*CoordMatrix
-	Bfactors []*CoordMatrix
+	Coords   []*VecMatrix
+	Bfactors [][]float64
 	current  int
 }
 
@@ -259,7 +258,7 @@ type Molecule struct {
 //charge charge and unpaired unpaired electrons, and returns it. It returns error if
 //one of the slices is nil. It doesnt check for consitensy across slices or correct charge
 //or unpaired electrons.
-func MakeMolecule(ats Ref, coords, bfactors []*CoordMatrix) (*Molecule, error) {
+func MakeMolecule(ats Ref, coords []*VecMatrix, bfactors [][]float64) (*Molecule, error) {
 	if ats == nil {
 		return nil, fmt.Errorf("Supplied a nil Reference")
 	}
@@ -319,14 +318,13 @@ func (M *Molecule) Clone(A *Molecule) {
 	mol := new(Molecule)
 	mol.Topology = new(Topology)
 	mol.CloneAtoms(A)
-	mol.Coords = make([]*CoordMatrix, 0, len(M.Coords))
-	mol.Bfactors = make([]*CoordMatrix, 0, len(M.Bfactors))
+	mol.Coords = make([]*VecMatrix, 0, len(M.Coords))
+	mol.Bfactors = make([][]float64, 0, len(M.Bfactors))
 	for key, val := range M.Coords {
 		tmp := ZeroVecs(r)
 		tmp.Clone(val)
 		mol.Coords = append(mol.Coords, tmp)
-		tmp2 := ZeroVecs(1)
-		tmp.Clone(M.Bfactors[key])
+		tmp2 :=  cloneB(M.Bfactors[key])
 		mol.Bfactors = append(mol.Bfactors, tmp2)
 	}
 	if err := mol.Corrupted(); err != nil {
@@ -334,9 +332,17 @@ func (M *Molecule) Clone(A *Molecule) {
 	}
 }
 
+func cloneB(b []float64) []float64{
+	r:=make([]float64,len(b),len(b))
+	for k,v:=range(b){
+		r[k]=v
+	}
+	return r
+}
+
 //AddFrame akes a matrix of coordinates and appends them at the end of the Coords.
 // It checks that the number of coordinates matches the number of atoms.
-func (M *Molecule) AddFrame(newframe *CoordMatrix) {
+func (M *Molecule) AddFrame(newframe *VecMatrix) {
 	if newframe == nil {
 		panic("Attempted to add nil frame")
 	}
@@ -348,19 +354,19 @@ func (M *Molecule) AddFrame(newframe *CoordMatrix) {
 		panic(gnError(fmt.Sprintf("Wrong number of coordinates (%d)", newframe.Rows())))
 	}
 	if M.Coords == nil {
-		M.Coords = make([]*CoordMatrix, 1, 1)
+		M.Coords = make([]*VecMatrix, 1, 1)
 	}
 	M.Coords = append(M.Coords, newframe)
 }
 
 //AddManyFrames adds the array of matrices newfames to the molecule. It checks that
 //the number of coordinates matches the number of atoms.
-func (M *Molecule) AddManyFrames(newframes []*CoordMatrix) {
+func (M *Molecule) AddManyFrames(newframes []*VecMatrix) {
 	if newframes == nil {
 		panic("Attempted to add nil frames")
 	}
 	if M.Coords == nil {
-		M.Coords = make([]*CoordMatrix, 1, len(newframes))
+		M.Coords = make([]*VecMatrix, 1, len(newframes))
 	}
 	for key, val := range newframes {
 		f := func() { M.AddFrame(val) }
@@ -373,7 +379,7 @@ func (M *Molecule) AddManyFrames(newframes []*CoordMatrix) {
 
 //Coord returns the coords for the atom atom in the frame frame.
 //panics if frame or coords are out of range.
-func (M *Molecule) Coord(atom, frame int) *CoordMatrix {
+func (M *Molecule) Coord(atom, frame int) *VecMatrix {
 	if frame >= len(M.Coords) {
 		panic(fmt.Sprintf("Frame requested (%d) out of range", frame))
 	}
@@ -382,7 +388,7 @@ func (M *Molecule) Coord(atom, frame int) *CoordMatrix {
 		panic(fmt.Sprintf("Requested coordinate (%d) out of bounds (%d)", atom, M.Coords[frame].Rows()))
 	}
 	ret := ZeroVecs(1)
-	empt := EmptyCoords()
+	empt := EmptyVecs()
 	empt.VecView(M.Coords[frame], atom)
 	ret.Clone(empt)
 	return ret
@@ -406,21 +412,21 @@ func (M *Molecule) SetCurrent(i int) {
 }
 
 /*
-//SetCoords replaces the coordinates of atoms in the positions given by atomlist with the gnOnes in newcoords (in order)
-//If atomlist contains a single element, it replaces as many coordinates as given in newcoords, starting
+//SetCoords replaces the coordinates of atoms in the positions given by atomlist with the gnOnes in NewVecs (in order)
+//If atomlist contains a single element, it replaces as many coordinates as given in NewVecs, starting
 //at the element in atomlist. In the latter case, the function checks that there are enough coordinates to
 //replace and returns an error if not.
-func (M *Molecule) SetCoords(newcoords *CoordMA, atomlist []int, frame int) {
+func (M *Molecule) SetCoords(NewVecs *CoordMA, atomlist []int, frame int) {
 	if frame >= len(M.Coords) {
 		panic(fmt.Sprintf("Frame (%d) out of range!", frame))
 	}
-	//If supplies a list with one number, the newcoords will replace the old coords
+	//If supplies a list with one number, the NewVecs will replace the old coords
 	//Starting that number. We do check that you don't put more coords than spaces we have.
 	if len(atomlist) == 1 {
-		if newcoords.Rows() > M.Coords[frame].Rows()-atomlist[0]-1 {
+		if NewVecs.Rows() > M.Coords[frame].Rows()-atomlist[0]-1 {
 			panic(fmt.Sprintf("Cant replace starting from position %d: Not enough atoms in molecule", atomlist[0]))
 		}
-		M.Coords[frame].SetMatrix(atomlist[0], 0, newcoords)
+		M.Coords[frame].SetMatrix(atomlist[0], 0, NewVecs)
 		return
 	}
 	//If the list has more than one atom
@@ -429,7 +435,7 @@ func (M *Molecule) SetCoords(newcoords *CoordMA, atomlist []int, frame int) {
 		if j > lenatoms-1 {
 			panic(fmt.Sprintf("Requested position number: %d (%d) out of range", k, j))
 		}
-		M.Coords[frame].SetMatrix(j, 0, newcoords.GetRowVector(k))
+		M.Coords[frame].SetMatrix(j, 0, NewVecs.GetRowVector(k))
 	}
 }
 
@@ -441,8 +447,8 @@ func (M *Molecule) SetCoords(newcoords *CoordMA, atomlist []int, frame int) {
 func (M *Molecule) Corrupted() error {
 	var err error
 	if M.Bfactors == nil {
-		M.Bfactors = make([]*CoordMatrix, 0, len(M.Coords))
-		M.Bfactors = append(M.Bfactors, Zeros(M.Len(), 1))
+		M.Bfactors = make([][]float64, 0, len(M.Coords))
+		M.Bfactors = append(M.Bfactors, make([]float64,M.Len()))
 	}
 	lastbfac := len(M.Bfactors) - 1
 	for i := range M.Coords {
@@ -455,12 +461,12 @@ func (M *Molecule) Corrupted() error {
 		//zeroes anything that is lacking or incomplete instead of returning an error.
 
 		if lastbfac < i {
-			bfacs := Zeros(M.Len(), 1)
+			bfacs := make([]float64,M.Len())
 			M.Bfactors = append(M.Bfactors, bfacs)
 		}
-		bfr, _ := M.Bfactors[i].Dims()
+		bfr:= len(M.Bfactors[i])
 		if bfr < M.Len() {
-			M.Bfactors[i] = Zeros(M.Len(), 1)
+			M.Bfactors[i] = make([]float64,M.Len(), 1)
 		}
 	}
 	return err
@@ -479,13 +485,16 @@ func (M *Molecule) Swap(i, j int) {
 	M.Atoms[i], M.Atoms[j] = M.Atoms[j], M.Atoms[i]
 	for k := 0; k < len(M.Coords); k++ {
 		M.Coords[k].SwapRows(i, j)
-		M.Bfactors[k].SwapRows(i, j)
+		t1:=M.Bfactors[k][i]
+		t2:=M.Bfactors[k][j]
+		M.Bfactors[k][i]=t2
+		M.Bfactors[k][j]=t2
 	}
 }
 
 //Less: Should the atom i be sorted before atom j?
 func (M *Molecule) Less(i, j int) bool {
-	return M.Bfactors[0].At(i, 0) < M.Bfactors[0].At(j, 0)
+	return M.Bfactors[0][i] < M.Bfactors[0][j]
 }
 
 //Len is implemented in Topology
@@ -509,7 +518,7 @@ func (M *Molecule) Readable() bool {
 }
 
 //Returns the  next frame and an error
-func (M *Molecule) Next(a bool) (*CoordMatrix, error) {
+func (M *Molecule) Next(a bool) (*VecMatrix, error) {
 	if M.current >= len(M.Coords) {
 		return nil, fmt.Errorf("No more frames")
 	}
@@ -533,8 +542,8 @@ func (M *Molecule) InitRead() error {
 form the trajectory. The frames are discarted if the corresponding elemetn of the slice
 * is false. The function returns a slice of channels through each of each of which
 * a *matrix.DenseMatrix will be transmited*/
-func (M *Molecule) NextConc(frames []bool) ([]chan *CoordMatrix, error) {
-	toreturn := make([]chan *CoordMatrix, 0, len(frames))
+func (M *Molecule) NextConc(frames []bool) ([]chan *VecMatrix, error) {
+	toreturn := make([]chan *VecMatrix, 0, len(frames))
 	used := false
 	for _, val := range frames {
 		if val == false {
@@ -550,8 +559,8 @@ func (M *Molecule) NextConc(frames []bool) ([]chan *CoordMatrix, error) {
 			}
 		}
 		used = true
-		toreturn = append(toreturn, make(chan *CoordMatrix))
-		go func(a *CoordMatrix, pipe chan *CoordMatrix) {
+		toreturn = append(toreturn, make(chan *VecMatrix))
+		go func(a *VecMatrix, pipe chan *VecMatrix) {
 			pipe <- a
 		}(M.Coords[M.current], toreturn[len(toreturn)-1])
 		M.current++

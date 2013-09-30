@@ -50,7 +50,7 @@ func Molecules2Atoms(mol Atomer, residues []int, chains []string) []int {
 //Ones mass returns a column matrix with lenght rosw.
 //This matrix can be used as a dummy mass matrix
 //for geometric calculations.
-func OnesMass(lenght int) *CoordMatrix {
+func OnesMass(lenght int) *VecMatrix {
 	return gnOnes(lenght, 1)
 }
 
@@ -58,7 +58,7 @@ func OnesMass(lenght int) *CoordMatrix {
 //listed in testlst on te atoms of molecule templa, frame frametempla, listed in templalst.
 //It applies those rotation and translations to the whole frame frametest of molecule test, in palce.
 //testlst and templalst must have the same number of elements.
-func Super(test, templa *CoordMatrix, testlst, templalst []int) (*CoordMatrix, error) {
+func Super(test, templa *VecMatrix, testlst, templalst []int) (*VecMatrix, error) {
 	//_, testcols := test.Dims()
 	//_, templacols := templa.Dims()
 
@@ -86,7 +86,7 @@ func Super(test, templa *CoordMatrix, testlst, templalst []int) (*CoordMatrix, e
 //Rotate about rotates the coordinates in coordsorig around by angle radians around the axis
 //given by the vector axis. It returns the rotated coordsorig, since the original is not affected.
 //Uses Clifford algebra.
-func RotateAbout(coordsorig, ax1, ax2 *CoordMatrix, angle float64) (*CoordMatrix, error) {
+func RotateAbout(coordsorig, ax1, ax2 *VecMatrix, angle float64) (*VecMatrix, error) {
 	coords := gnClone(coordsorig)
 	translation := gnClone(ax1)
 	axis := gnClone(ax2)
@@ -107,7 +107,7 @@ func RotateAbout(coordsorig, ax1, ax2 *CoordMatrix, angle float64) (*CoordMatrix
 //radians around the axis given by the vector axis. It returns the rotated coordsorig,
 //since the original is not affected. It seems more clunky than the RotateAbout, which uses Clifford algebra.
 //I leave it for benchmark, mostly, and might remove it later.
-func EulerRotateAbout(coordsorig, ax1, ax2 *CoordMatrix, angle float64) (*CoordMatrix, error) {
+func EulerRotateAbout(coordsorig, ax1, ax2 *VecMatrix, angle float64) (*VecMatrix, error) {
 	coords := gnClone(coordsorig)
 	translation := gnClone(ax1)
 	axis := gnClone(ax2)
@@ -123,7 +123,7 @@ func EulerRotateAbout(coordsorig, ax1, ax2 *CoordMatrix, angle float64) (*CoordM
 		return nil, err
 	}
 	Zsr, Zsc := Zswitch.Dims()
-	RevZ := Zeros(Zsr, Zsc)
+	RevZ := ZeroVecs(Zsr, Zsc)
 	g := func() { RevZ.Inv(Zswitch) }
 	if err := gnMaybe(gnPanicker(g)); err != nil {
 		return nil, err
@@ -175,13 +175,13 @@ func isInString(container []string, test string) bool {
 //Notice that the exact position of the water is not well defined when angle is not zero. One can always use the RotateAbout
 //function to move the molecule to the desired location. If oxygen is true, the oxygen will be pointing to a2. Otherwise,
 //one of the hydrogens will.
-func MakeWater(a1, a2 *CoordMatrix, distance, angle float64, oxygen bool) *CoordMatrix {
+func MakeWater(a1, a2 *VecMatrix, distance, angle float64, oxygen bool) *VecMatrix {
 	water := ZeroVecs(3)
 	WaterOHDist := 0.96
 	WaterAngle := 52.25
 	deg2rad := 0.0174533
-	w := EmptyCoords()
-	w.RowView(water, 0) //we first set the O coordinates
+	w := EmptyVecs()
+	w.VecView(water, 0) //we first set the O coordinates
 	w.Clone(a2)
 	w.Sub(w, a1)
 	w.Unit(w)
@@ -191,15 +191,15 @@ func MakeWater(a1, a2 *CoordMatrix, distance, angle float64, oxygen bool) *Coord
 	w.Scale(distance+a1a2dist, w)
 	w.Add(w, a1)
 	for i := 0; i <= 1; i++ {
-		o := EmptyCoords()
-		o.RowView(water, 0)
-		w.RowView(water, i+1)
+		o := EmptyVecs()
+		o.VecView(water, 0)
+		w.VecView(water, i+1)
 		w.Clone(o)
 		w.Sub(w, a2)
 		w.Unit(w)
 		w.Scale(WaterOHDist+distance, w)
 		o.Sub(o, a2)
-		upp, _ := Cross3D(w, NewCoords([]float64{0, 0, 1}))
+		upp, _ := Cross3D(w, NewVecs([]float64{0, 0, 1}))
 		upp.Add(upp, o)
 		upp.Add(upp, a2)
 		//water.SetMatrix(3,0,upp)
@@ -212,7 +212,7 @@ func MakeWater(a1, a2 *CoordMatrix, distance, angle float64, oxygen bool) *Coord
 		temp, _ := RotateAbout(w, o, upp, deg2rad*WaterAngle*sign)
 		w.SetMatrix(0, 0, temp)
 	}
-	var v1, v2 *CoordMatrix
+	var v1, v2 *VecMatrix
 	if angle != 0 {
 		v1 = ZeroVecs(1)
 		v2 = ZeroVecs(1)
@@ -227,12 +227,12 @@ func MakeWater(a1, a2 *CoordMatrix, distance, angle float64, oxygen bool) *Coord
 		return water
 	}
 	//we move things so an hydrogen points to a2 and modify the distance acordingly.
-	e1 := EmptyCoords()
-	e2 := EmptyCoords()
-	e3 := EmptyCoords()
-	e1.RowView(water, 0)
-	e2.RowView(water, 1)
-	e3.RowView(water, 2)
+	e1 := EmptyVecs()
+	e2 := EmptyVecs()
+	e3 := EmptyVecs()
+	e1.VecView(water, 0)
+	e2.VecView(water, 1)
+	e3.VecView(water, 2)
 	if v1 == nil {
 		v1 = ZeroVecs(1)
 	}
@@ -367,7 +367,7 @@ func makeCcap(at *Atom, resname string) {
 //This is NOT currently checked by the function!
 //In addition, the Ref provided should have already been processed by
 //CutBackRef, which is not checked either.
-func CutBackCoords(r Ref, coords *CoordMatrix, chain string, list [][]int) (*CoordMatrix, error) {
+func CutBackCoords(r Ref, coords *VecMatrix, chain string, list [][]int) (*VecMatrix, error) {
 	//this is actually a really silly function. So far I dont check for errors, but I keep the return balue
 	//In case I do later.
 	var biglist []int
@@ -375,9 +375,9 @@ func CutBackCoords(r Ref, coords *CoordMatrix, chain string, list [][]int) (*Coo
 		smallist := Molecules2Atoms(r, i, []string{chain})
 		biglist = append(biglist, smallist...)
 	}
-	newcoords := Zeros(len(biglist), 3)
-	newcoords.SomeRows(coords, biglist)
-	return newcoords, nil
+	NewVecs := ZeroVecs(len(biglist), 3)
+	NewVecs.SomeVecs(coords, biglist)
+	return NewVecs, nil
 
 }
 */
@@ -447,11 +447,11 @@ func TagName(r Atomer, name string, list []int) int {
 
 //Scales all bonds between atoms in the same residue with names n1, n2 to a final lenght finallengt, by moving the atoms n2.
 //the operation is executed in place.
-func ScaleBonds(mol Atomer, coords *CoordMatrix, n1, n2 string, finallenght float64){
+func ScaleBonds(mol Atomer, coords *VecMatrix, n1, n2 string, finallenght float64){
 	for i:=0;i<mol.Len();i++{
 		c1:=mol.Atom(i)
-		A:=EmptyCoords()
-		B:=EmptyCoords()
+		A:=EmptyVecs()
+		B:=EmptyVecs()
 		if c1.Name!=n1 {
 			continue
 		}
@@ -469,7 +469,7 @@ func ScaleBonds(mol Atomer, coords *CoordMatrix, n1, n2 string, finallenght floa
 
 //ScaleCHBond takes a bond and moves the H (in place) so the distance between them is bond.
 //CAUTION: I have only tested it for the case where the original distance>bond, although I think it will also work in the other case.
-func ScaleBond(C,H *CoordMatrix,bond float64){
+func ScaleBond(C,H *VecMatrix,bond float64){
 	Odist:=ZeroVecs(1)
 	Odist.Sub(H,C)
 	distance:=Odist.Norm(2)

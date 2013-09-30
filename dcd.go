@@ -209,7 +209,7 @@ func (D *DCDObj) initRead(name string) error {
 //With initread. If keep is true, returns a pointer to matrix.DenseMatrix
 //With the coordinates read, otherwiser, it discards the coordinates and
 //returns nil.
-func (D *DCDObj) Next(keep *CoordMatrix) error {
+func (D *DCDObj) Next(keep *VecMatrix) error {
 	if !D.readable {
 		return fmt.Errorf("Not readable")
 	}
@@ -235,7 +235,7 @@ func (D *DCDObj) Next(keep *CoordMatrix) error {
 		keep.Set(k, 1, float64(D.dcdFields[1][k]))
 		keep.Set(k, 2, float64(D.dcdFields[2][k]))
 	}
-	//	final := NewCoords(outBlock, int(D.natoms), 3)
+	//	final := NewVecs(outBlock, int(D.natoms), 3)
 	//	fmt.Print(final)/////////7
 	return nil
 }
@@ -407,11 +407,11 @@ func (D *DCDObj) setConcBuffer(batchsize int) error {
 form the trajectory. The frames are discarted if the corresponding elemetn of the slice
 * is false. The function returns a slice of channels through each of each of which
 * a *matrix.DenseMatrix will be transmited*/
-func (D *DCDObj) NextConc(frames []*CoordMatrix) ([]chan *CoordMatrix, error) {
+func (D *DCDObj) NextConc(frames []*VecMatrix) ([]chan *VecMatrix, error) {
 	if !D.Readable() {
 		return nil, fmt.Errorf("Traj object uninitialized to read")
 	}
-	framechans := make([]chan *CoordMatrix, len(frames)) //the slice of chans that will be returned
+	framechans := make([]chan *VecMatrix, len(frames)) //the slice of chans that will be returned
 	if D.buffSize < len(frames) {
 		D.setConcBuffer(len(frames))
 	}
@@ -426,9 +426,9 @@ func (D *DCDObj) NextConc(frames []*CoordMatrix) ([]chan *CoordMatrix, error) {
 			framechans[key] = nil //ignored frame
 			continue
 		}
-		framechans[key] = make(chan *CoordMatrix)
+		framechans[key] = make(chan *VecMatrix)
 		//Now the parallel part
-		go func(natoms int, DFields [][]float32, keep *CoordMatrix, pipe chan *CoordMatrix) {
+		go func(natoms int, DFields [][]float32, keep *VecMatrix, pipe chan *VecMatrix) {
 			for i := 0; i < int(D.natoms); i++ {
 				k := i - i*(i/int(D.natoms))
 				keep.Set(k, 0, float64(DFields[0][k]))

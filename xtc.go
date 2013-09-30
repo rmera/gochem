@@ -102,7 +102,7 @@ func (X *XTCObj) initRead(name string) error {
 //With initread. If keep is true, returns a pointer to matrix.DenseMatrix
 //With the coordinates read, otherwiser, it discards the coordinates and
 //returns nil.
-func (X *XTCObj) Next(output *CoordMatrix) error {
+func (X *XTCObj) Next(output *VecMatrix) error {
 	if !X.Readable() {
 		return fmt.Errorf("Traj object uninitialized to read")
 	}
@@ -119,7 +119,7 @@ func (X *XTCObj) Next(output *CoordMatrix) error {
 	if output != nil { //collect the frame
 		r, c := output.Dims()
 		if r < (X.natoms) {
-			panic("CoordMatrix too small!")
+			panic("VecMatrix too small!")
 		}
 		for j := 0; j < r; j++ {
 			for k := 0; k < c; k++ {
@@ -157,14 +157,14 @@ func (X *XTCObj) setConcBuffer(batchsize int) error {
 form the trajectory. The frames are discarted if the corresponding elemetn of the slice
 * is false. The function returns a slice of channels through each of each of which
 * a *matrix.DenseMatrix will be transmited*/
-func (X *XTCObj) NextConc(frames []*CoordMatrix) ([]chan *CoordMatrix, error) {
+func (X *XTCObj) NextConc(frames []*VecMatrix) ([]chan *VecMatrix, error) {
 	if X.buffSize < len(frames) {
 		X.setConcBuffer(len(frames))
 	}
 	if X.natoms == 0 {
 		return nil, fmt.Errorf("Traj object uninitialized to read")
 	}
-	framechans := make([]chan *CoordMatrix, len(frames)) //the slice of chans that will be returned
+	framechans := make([]chan *VecMatrix, len(frames)) //the slice of chans that will be returned
 	cnatoms := C.int(X.natoms)
 	used := false
 	for key, val := range frames {
@@ -189,9 +189,9 @@ func (X *XTCObj) NextConc(frames []*CoordMatrix) ([]chan *CoordMatrix, error) {
 			continue
 		}
 		used = true
-		framechans[key] = make(chan *CoordMatrix)
+		framechans[key] = make(chan *VecMatrix)
 		//Now the parallel part
-		go func(natoms int, cCoords []C.float, goCoords *CoordMatrix, pipe chan *CoordMatrix) {
+		go func(natoms int, cCoords []C.float, goCoords *VecMatrix, pipe chan *VecMatrix) {
 			r, c := goCoords.Dims()
 			for j := 0; j < r; j++ {
 				for k := 0; k < c; k++ {

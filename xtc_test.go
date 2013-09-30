@@ -44,7 +44,7 @@ func TestXTC(Te *testing.T) {
 		Te.Error(err)
 	}
 	i := 0
-	coords := Zeros(traj.Len(), 3)
+	coords := ZeroVecs(traj.Len(), 3)
 	for ; ; i++ {
 		err := traj.Next(coords)
 		if err != nil && err.Error() != "No more frames" {
@@ -52,7 +52,7 @@ func TestXTC(Te *testing.T) {
 			fmt.Println(err)
 			break
 		} else if err == nil {
-			fmt.Println(RowView(coords, 2))
+			fmt.Println(VecView(coords, 2))
 		} else {
 			fmt.Println("no more!")
 			break
@@ -76,7 +76,7 @@ func TestFrameXTC(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
-	fmt.Println(len(Coords), read, RowView(Coords[read-1],4))
+	fmt.Println(len(Coords), read, VecView(Coords[read-1],4))
 }
 */
 func TestFrameXTCConc(Te *testing.T) {
@@ -84,13 +84,13 @@ func TestFrameXTCConc(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
-	frames := make([]*CoordMatrix, 3, 3)
+	frames := make([]*VecMatrix, 3, 3)
 	for i, _ := range frames {
-		frames[i] = Zeros(traj.Len(), 3)
+		frames[i] = ZeroVecs(traj.Len(), 3)
 	}
-	results := make([][]chan *CoordMatrix, 0, 0)
+	results := make([][]chan *VecMatrix, 0, 0)
 	for i := 0; ; i++ {
-		results = append(results, make([]chan *CoordMatrix, 0, len(frames)))
+		results = append(results, make([]chan *VecMatrix, 0, len(frames)))
 		coordchans, err := traj.NextConc(frames)
 		if err != nil && err.Error() != "No more frames" {
 			Te.Error(err)
@@ -100,7 +100,7 @@ func TestFrameXTCConc(Te *testing.T) {
 			}
 		}
 		for key, channel := range coordchans {
-			results[len(results)-1] = append(results[len(results)-1], make(chan *CoordMatrix))
+			results[len(results)-1] = append(results[len(results)-1], make(chan *VecMatrix))
 			go SecondRow(channel, results[len(results)-1][key], len(results)-1, key)
 		}
 		res := len(results) - 1
@@ -128,12 +128,12 @@ func TestFrameXTCConc(Te *testing.T) {
 	}
 }
 */
-func SecondRow(channelin, channelout chan *CoordMatrix, current, other int) {
+func SecondRow(channelin, channelout chan *VecMatrix, current, other int) {
 	if channelin != nil {
 		temp := <-channelin
-		vector := EmptyCoords()
-		viej := Zeros(1, 3)
-		vector.RowView(temp, 2)
+		vector := EmptyVecs()
+		viej := ZeroVecs(1, 3)
+		vector.VecView(temp, 2)
 		viej.Clone(vector)
 		fmt.Println("sending througt", channelin, channelout, viej, current, other)
 		channelout <- vector

@@ -303,30 +303,28 @@ func pdbBufIORead(pdb *bufio.Reader, read_additional bool) (*Molecule, error) {
 		return nil, err
 	}
 	frames := len(coords)
-	mcoords := make([]*CoordMatrix, frames, frames) //Final thing to return
-	mbfactors := make([]*CoordMatrix, frames, frames)
+	mcoords := make([]*VecMatrix, frames, frames) //Final thing to return
 	for i := 0; i < frames; i++ {
-		mcoords[i] = NewCoords(coords[i])
-		mbfactors[i] = NewCoordMatrix(bfactors[i], len(bfactors[i]), 1)
+		mcoords[i] = NewVecs(coords[i])
 	}
 	//if something happened during the process
 	if err != nil {
 		return nil, err
 	}
-	returned, err := MakeMolecule(top, mcoords, mbfactors)
+	returned, err := MakeMolecule(top, mcoords, bfactors)
 	return returned, err
 }
 
 //End PDB_read family
 
 //correctBfactors check that coords and bfactors have the same number of elements.
-func correctBfactors(coords, bfactors []*CoordMatrix) bool {
+func correctBfactors(coords []*VecMatrix, bfactors [][]float64) bool {
 	if len(coords) != len(bfactors) {
 		return false
 	}
 	for key, coord := range coords {
 		cr, _ := coord.Dims()
-		br, _ := bfactors[key].Dims()
+		br := len(bfactors[key])
 		if cr != br {
 			return false
 		}
@@ -336,7 +334,7 @@ func correctBfactors(coords, bfactors []*CoordMatrix) bool {
 
 //writePDBLine writes a line in PDB format from the data passed as a parameters. It takes the chain of the previous atom
 //and returns the written line, the chain of the just-written atom, and error or nil.
-func writePDBLine(atom *Atom, coord *CoordMatrix, bfact float64, chainprev string) (string, string, error) {
+func writePDBLine(atom *Atom, coord *VecMatrix, bfact float64, chainprev string) (string, string, error) {
 	var ter string
 	var out string
 	if atom.Chain != chainprev {
@@ -365,15 +363,7 @@ func writePDBLine(atom *Atom, coord *CoordMatrix, bfact float64, chainprev strin
 
 //PDBWrite writes a PDB for the molecule mol and the coordinates Coords. It is just a wrapper for
 //PDBStringWrite. Returns error or nil.
-func PDBWrite(pdbname string, mol Atomer, CandB ...*CoordMatrix) error {
-	coords := CandB[0]
-	var Bfactors *CoordMatrix
-	if len(CandB) > 1 {
-		Bfactors = CandB[1] //any other element is just ignored
-	} else {
-		Bfactors = nil
-	}
-
+func PDBWrite(pdbname string, mol Atomer, coords *VecMatrix, Bfactors []float64) error {
 	out, err := os.Create(pdbname)
 	if err != nil {
 		return err
@@ -394,12 +384,12 @@ func PDBWrite(pdbname string, mol Atomer, CandB ...*CoordMatrix) error {
 
 //PDBStringWrite writes a string in PDB format for a given reference, coordinate set and bfactor set, which must match each other
 //returns the written string and error or nil.
-func PDBStringWrite(mol Atomer, coords, bfact *CoordMatrix) (string, error) {
+func PDBStringWrite(mol Atomer, coords *VecMatrix, bfact []float64) (string, error) {
 	if bfact == nil {
-		bfact = Zeros(mol.Len(), 1)
+		bfact = make([]float64,mol.Len())
 	}
 	cr, _ := coords.Dims()
-	br, _ := bfact.Dims()
+	br    := len(bfact)
 	if cr != mol.Len() || cr != br {
 		return "", fmt.Errorf("Ref and Coords and/or Bfactors dont have the same number of atoms")
 	}
@@ -408,9 +398,9 @@ func PDBStringWrite(mol Atomer, coords, bfact *CoordMatrix) (string, error) {
 	var outstring string
 	var err error
 	for i := 0; i < mol.Len(); i++ {
-		writecoord := EmptyCoords()
-		writecoord.RowView(coords, i)
-		outline, chainprev, err = writePDBLine(mol.Atom(i), writecoord, bfact.At(i, 0), chainprev)
+		writecoord := EmptyVecs()
+		writecoord.VecView(coords, i)
+		outline, chainprev, err = writePDBLine(mol.Atom(i), writecoord, bfact[i], chainprev)
 		if err != nil {
 			return "", fmt.Errorf("Could not print PDB line: %d", i)
 		}
@@ -424,15 +414,9 @@ func PDBStringWrite(mol Atomer, coords, bfact *CoordMatrix) (string, error) {
 //CandB is a list of lists of *matrix.DenseMatrix. If it has 2 elements or more, the second will be used as
 //Bfactors. If it has one element, all b-factors will be zero.
 //Returns an error if fails, or nil if succeeds.
-func MultiPDBWrite(pdbname string, mol Atomer, CandB ...[]*CoordMatrix) error {
-	Coords := CandB[0]
-	var Bfactors []*CoordMatrix
-	if len(CandB) > 1 && correctBfactors(Coords, CandB[1]) {
-		Bfactors = CandB[1] //any other element is just ignored
-	} else {
-		for _, _ = range Coords {
-			Bfactors = append(Bfactors, nil) //nil bfactors are taken care of by the PDBStringWrite function
-		}
+func MultiPDBWrite(pdbname string, mol Atomer, Coords []*VecMatrix, Bfactors [][]float64) error {
+	if !correctBfactors(Coords, Bfactors) {
+		Bfactors:=make([][]float64,0,len(Coords))
 	}
 
 	out, err := os.Create(pdbname)
@@ -490,7 +474,7 @@ func xyzBufIORead(xyz *bufio.Reader) (*Molecule, error) {
 	var err error
 	var top *Topology
 	var molecule []*Atom
-	Coords := make([]*CoordMatrix, 1, 1)
+	Coords := make([]*VecMatrix, 1, 1)
 
 	for {
 		//When we read the first snapshot we collect also the topology data, later
@@ -515,9 +499,9 @@ func xyzBufIORead(xyz *bufio.Reader) (*Molecule, error) {
 		}
 		Coords = append(Coords, tmpcoords)
 	}
-	bfactors := make([]*CoordMatrix, len(Coords), len(Coords))
+	bfactors := make([][]float64, len(Coords), len(Coords))
 	for key, _ := range bfactors {
-		bfactors[key] = Zeros(top.Len(), 1)
+		bfactors[key] = make([]float64,top.Len())
 	}
 	returned, err := MakeMolecule(top, Coords, bfactors)
 	return returned, err
@@ -525,7 +509,7 @@ func xyzBufIORead(xyz *bufio.Reader) (*Molecule, error) {
 
 //xyzReadSnap reads an xyz file snapshot from a bufio.Reader, returns a slice of Atom objects, which will be nil if ReadTopol is false,
 // a slice of matrix.DenseMatrix and an error or nil.
-func xyzReadSnap(xyz *bufio.Reader, ReadTopol bool) (*CoordMatrix, []*Atom, error) {
+func xyzReadSnap(xyz *bufio.Reader, ReadTopol bool) (*VecMatrix, []*Atom, error) {
 	line, err := xyz.ReadString('\n')
 	if err != nil {
 		return nil, nil, fmt.Errorf("Ill formatted XYZ file")
@@ -572,13 +556,13 @@ func xyzReadSnap(xyz *bufio.Reader, ReadTopol bool) (*CoordMatrix, []*Atom, erro
 			return nil, nil, i
 		}
 	}
-	mcoords := NewCoords(coords)
+	mcoords := NewVecs(coords)
 	return mcoords, molecule, err
 }
 
 //XYZWrite writes the mol Ref and the Coord coordinates in an XYZ file with name xyzname which will
 //be created fot that. If the file exist it will be overwritten.
-func XYZWrite(xyzname string, mol Atomer, Coords *CoordMatrix) error {
+func XYZWrite(xyzname string, mol Atomer, Coords *VecMatrix) error {
 	out, err := os.Create(xyzname)
 	if err != nil {
 		return err
@@ -593,7 +577,7 @@ func XYZWrite(xyzname string, mol Atomer, Coords *CoordMatrix) error {
 }
 
 //XYZStringWrite writes the mol Ref and the Coord coordinates in an XYZ-formatted string.
-func XYZStringWrite(mol Atomer, Coords *CoordMatrix) (string, error) {
+func XYZStringWrite(mol Atomer, Coords *VecMatrix) (string, error) {
 	var out string
 	if mol.Len() != Coords.Rows() {
 		return "", fmt.Errorf("Ref and Coords dont have the same number of atoms")

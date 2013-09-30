@@ -42,7 +42,7 @@ type IntConstraint struct {
 
 type PointCharge struct {
 	Charge float64
-	Coords *CoordMatrix
+	Coords *VecMatrix
 }
 
 type IConstraint struct {
@@ -142,7 +142,7 @@ func (O *OrcaRunner) SetDefaults() {
 
 //BuildInput builds an input for ORCA based int the data in atoms, coords and C.
 //returns only error.
-func (O *OrcaRunner) BuildInput(atoms ReadRef, coords *CoordMatrix, Q *QMCalc) error {
+func (O *OrcaRunner) BuildInput(atoms ReadRef, coords *VecMatrix, Q *QMCalc) error {
 	//Only error so far
 	if atoms == nil || coords == nil {
 		return fmt.Errorf("Missing charges or coordinates")
@@ -416,7 +416,7 @@ var orcaDisp = map[string]string{
   geometry or error. Returns the geometry AND error if the geometry read
   is not the product of a correctly ended ORCA calculation. In this case
   the error is "probable problem in calculation"*/
-func (O *OrcaRunner) GetGeometry(atoms Ref) (*CoordMatrix, error) {
+func (O *OrcaRunner) GetGeometry(atoms Ref) (*VecMatrix, error) {
 	var err error
 	geofile := fmt.Sprintf("%s.xyz", O.inputname)
 	//Here any error of orcaNormal... or false means the same, so the error can be ignored.
