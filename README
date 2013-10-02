@@ -1,9 +1,10 @@
 To the long life of the Ven. Khenpo Phuntzok Tenzin Rinpoche.
 
 
-biochemistry, in go. It provides structures for handling atoms and 
-molecules, reading/writing some common formats (currently xyz, PDB, 
-xtc and dcd) and a few functions for geometrical manipulation of 
+Gochem is a library for computational chemitry/biochemistry, in go. 
+It provides structures for handling atoms and molecules, 
+reading/writing some common formats (currently xyz, PDB, xtc and 
+dcd) and a few functions for geometrical manipulation of 
 molecules.
 
 In gochem the Atom container contains all information about an atom that
@@ -34,11 +35,9 @@ Gochem also supports dcd trajectories if the flag 'dcd' is given
 during the build. In this case the implementation is go-native, not
 requiring external libraries.
 
-Trajectories can be read "in one go", 
-saving each frame in memory (optionally skipping frames); sequentially, 
-where one frame is saved in memory at a time; or concurrently, where 
-several frames are read at each time and returned as go channels to be
-processed in parallel.
+Trajectories can be read  sequentially, where one frame is saved in 
+memory at a time; or concurrently, where several frames are read at 
+each time and returned as go channels to be processed in parallel.
 
 The library includes a few tests that can also used as examples. 
 
