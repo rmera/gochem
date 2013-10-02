@@ -51,7 +51,7 @@ func Molecules2Atoms(mol Atomer, residues []int, chains []string) []int {
 //This matrix can be used as a dummy mass matrix
 //for geometric calculations.
 func OnesMass(lenght int) *VecMatrix {
-	return gnOnes(lenght, 1)
+	return Dense2VecMatrix(gnOnes(lenght, 1))
 }
 
 //Super determines the best rotation and translations to superimpose the coords in test
@@ -78,7 +78,7 @@ func Super(test, templa *VecMatrix, testlst, templalst []int) (*VecMatrix, error
 		return nil, err1
 	}
 	test.AddVec(test, trans1)
-	test = gnMul(test, rotation)
+	test.Mul(test, rotation)
 	test.AddVec(test, trans2)
 	return test, nil
 }
@@ -87,11 +87,12 @@ func Super(test, templa *VecMatrix, testlst, templalst []int) (*VecMatrix, error
 //given by the vector axis. It returns the rotated coordsorig, since the original is not affected.
 //Uses Clifford algebra.
 func RotateAbout(coordsorig, ax1, ax2 *VecMatrix, angle float64) (*VecMatrix, error) {
-	coords := gnClone(coordsorig)
-	translation := gnClone(ax1)
-	axis := gnClone(ax2)
-	axis.Sub(axis, ax1) //now it became the rotation axis
-	f := func() { coords.SubVec(coords, translation) }
+	coords:=ZeroVecs(coordsorig.NVecs())
+	translation:=ZeroVecs(ax1.NVecs())
+	translation.Clone(ax1)
+	axis:=ZeroVecs(ax2.NVecs())
+	axis.Sub(ax2, ax1) // the rotation axis
+	f := func() { coords.SubVec(coordsorig, translation) }
 	if err := gnMaybe(gnPanicker(f)); err != nil {
 		return nil, err
 	}
@@ -108,28 +109,30 @@ func RotateAbout(coordsorig, ax1, ax2 *VecMatrix, angle float64) (*VecMatrix, er
 //since the original is not affected. It seems more clunky than the RotateAbout, which uses Clifford algebra.
 //I leave it for benchmark, mostly, and might remove it later.
 func EulerRotateAbout(coordsorig, ax1, ax2 *VecMatrix, angle float64) (*VecMatrix, error) {
-	coords := gnClone(coordsorig)
-	translation := gnClone(ax1)
-	axis := gnClone(ax2)
-	axis.Sub(axis, ax1) //now it became the rotation axis
-	f := func() { coords.SubVec(coords, translation) }
+	r,_:=coordsorig.Dims()
+	coords:=ZeroVecs(r)
+	translation:=ZeroVecs(ax1.NVecs())
+	translation.Clone(ax1)
+	axis:=ZeroVecs(ax2.NVecs())
+	axis.Sub(ax2, ax1) //now it became the rotation axis
+	f := func() { coords.SubVec(coordsorig, translation) }
 	if err := gnMaybe(gnPanicker(f)); err != nil {
 		return nil, err
 	}
 	Zswitch := GetSwitchZ(axis)
-	coords = gnMul(coords, Zswitch) //rotated
+	coords.Mul(coords, Zswitch) //rotated
 	Zrot, err := GetRotateAroundZ(angle)
 	if err != nil {
 		return nil, err
 	}
-	Zsr, Zsc := Zswitch.Dims()
-	RevZ := ZeroVecs(Zsr, Zsc)
+	Zsr, _ := Zswitch.Dims()
+	RevZ := ZeroVecs(Zsr)
 	g := func() { RevZ.Inv(Zswitch) }
 	if err := gnMaybe(gnPanicker(g)); err != nil {
 		return nil, err
 	}
-	coords = gnMul(coords, Zrot) //rotated
-	coords = gnMul(coords, RevZ)
+	coords.Mul(coords, Zrot) //rotated
+	coords.Mul(coords, RevZ)
 	coords.AddVec(coords, translation)
 	return coords, err
 }

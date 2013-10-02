@@ -37,7 +37,7 @@ import (
 
 
 
-const appzero float64 = 0.00000000000001 //used to correct floating point
+const appzero float64 = 0.000000000001 //used to correct floating point
 //errors. Everything equal or less than this is considered zero.
 
 
@@ -99,17 +99,18 @@ func (F *VecMatrix) AddVec(A, vec *VecMatrix) {
 		panic(gnErrShape)
 	}
 	j := EmptyVecs()
+	f:=EmptyVecs()
 	for i := 0; i < ar; i++ {
 		j.VecView(A, i)
-		j.Add(j, vec)
+		f.VecView(F,i)
+		f.Add(j, vec)
 	}
 }
 
 
 //Puts a view of the given vector of the matrix in the receiver
 func (F *VecMatrix) VecView(A *VecMatrix, i int) {
-	_, ac := A.Dims()
-	F.View2(A, i, 0, 1, ac)
+	F.View2(A, i, 0, 1, 3)
 }
 
 

@@ -488,7 +488,7 @@ func (M *Molecule) Swap(i, j int) {
 		t1:=M.Bfactors[k][i]
 		t2:=M.Bfactors[k][j]
 		M.Bfactors[k][i]=t2
-		M.Bfactors[k][j]=t2
+		M.Bfactors[k][j]=t1
 	}
 }
 

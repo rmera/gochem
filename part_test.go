@@ -68,7 +68,7 @@ func TestChangeAxis(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
-	PDBWrite("test/2c9v-Readtest.pdb", mol, mol.Coords[0])
+	PDBWrite("test/2c9v-Readtest.pdb", mol, mol.Coords[0],nil)
 	//The selection thing
 	orient_atoms := [2]int{0, 0}
 	for index := 0; index < mol.Len(); index++ {
@@ -86,12 +86,12 @@ func TestChangeAxis(Te *testing.T) {
 	ov2 := mol.Coord(orient_atoms[1], 0)
 	//now we center the thing in the beta carbon of D124
 	mol.Coords[0].SubVec(mol.Coords[0], ov2)
-	PDBWrite("test/2c9v-translated.pdb", mol, mol.Coords[0])
+	PDBWrite("test/2c9v-translated.pdb", mol, mol.Coords[0],nil)
 	//Now the rotation
 	ov1 := mol.Coord(orient_atoms[0], 0) //make sure we have the correct versions
 	ov2 = mol.Coord(orient_atoms[1], 0)  //same
-	orient := gnClone(ov2)
-	orient.Sub(orient, ov1)
+	orient := ZeroVecs(ov2.NVecs())
+	orient.Sub(ov2, ov1)
 	//	PDBWrite(mol,"test/2c9v-124centered.pdb")
 	Z := NewVecs([]float64{0, 0, 1})
 	axis, _ := Cross3D(orient, Z)
@@ -100,7 +100,7 @@ func TestChangeAxis(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
-	PDBWrite("test/2c9v-aligned.pdb", mol, mol.Coords[0])
+	PDBWrite("test/2c9v-aligned.pdb", mol, mol.Coords[0],nil)
 	fmt.Println("bench1")
 }
 
@@ -132,16 +132,16 @@ func TestOldChangeAxis(Te *testing.T) {
 	//Now the rotation
 	ov1 = mol.Coord(orient_atoms[0], 0) //make sure we have the correct versions
 	ov2 = mol.Coord(orient_atoms[1], 0) //same
-	orient := gnClone(ov2)
-	orient.Sub(orient, ov1)
+	orient := ZeroVecs(ov2.NVecs())
+	orient.Sub(ov2, ov1)
 	rotation := GetSwitchZ(orient)
 	//	fmt.Println("rotation: ",rotation)
-	mol.Coords[0] = gnMul(mol.Coords[0], rotation)
+	mol.Coords[0].Mul(mol.Coords[0], rotation)
 	//	fmt.Println(orient_atoms[1], mol.Atom(orient_atoms[1]),mol.Atom(orient_atoms[0]))
 	if err != nil {
 		Te.Error(err)
 	}
-	PDBWrite("test/2c9v-old-aligned.pdb", mol, mol.Coords[0])
+	PDBWrite("test/2c9v-old-aligned.pdb", mol, mol.Coords[0],nil)
 	fmt.Println("bench2")
 }
 
@@ -167,16 +167,19 @@ func TestPutInXYPlane(Te *testing.T) {
 	}
 	z := NewVecs([]float64{0, 0, 1})
 	zero := NewVecs([]float64{0, 0, 0})
+	fmt.Println("beees", best, z)
 	axis, err := Cross3D(best, z)
 	if err != nil {
 		Te.Error(err)
 	}
 	//The main part of the program, where the rotation actually happens. Note that we rotate the whole
 	//molecule, not just the planar subset, this is only used to calculate the rotation angle.
+	fmt.Println("DAAATAAA", mol.Coords[0], zero, axis, AngleInVectors(best,z))
 	mol.Coords[0], err = RotateAbout(mol.Coords[0], zero, axis, AngleInVectors(best, z))
 	if err != nil {
 		Te.Error(err)
 	}
+	fmt.Println("after!", mol.Coords[0], err)
 	//Now we write the rotated result.
 	XYZWrite("test/Rotated.xyz", mol, mol.Coords[0])
 }
@@ -325,8 +328,8 @@ func TestWater(Te *testing.T) {
 	}
 	mol.SetCharge(1)
 	mol.SetUnpaired(0)
-	c2 := ZeroVecs(mol.Len(), 3)
-	v := ZeroVecs(6, 3)
+	c2 := ZeroVecs(mol.Len())
+	v := ZeroVecs(6)
 	l, _ := mol.Coords[0].Dims()
 	fmt.Println(l, mol.Len())
 	c2.Stack(mol.Coords[0], v)
@@ -335,11 +338,11 @@ func TestWater(Te *testing.T) {
 	h1 := EmptyVecs()
 	c.VecView(mol.Coords[0], 43)
 	h1.VecView(mol.Coords[0], 42)
-	coords := ZeroVecs(mol.Len(), 3)
+	coords := ZeroVecs(mol.Len())
 	coords.Clone(mol.Coords[0])
 	w1 := MakeWater(c, h1, 2, Deg2Rad*30, true)
 	w2 := MakeWater(c, h1, 2, Deg2Rad*-30, false)
-	tmp := ZeroVecs(6, 3)
+	tmp := ZeroVecs(6)
 	tmp.Stack(w1, w2)
 	coords.SetMatrix(mol.Len()-6, 0, tmp)
 	XYZWrite("test/WithWater.xyz", mol, coords)
@@ -351,7 +354,7 @@ func TesSSStFixPDB(Te *testing.T) {
 		Te.Error(err)
 	}
 	FixNumbering(mol)
-	PDBWrite("test/2c9vfixed.pdb", mol, mol.Coords[0])
+	PDBWrite("test/2c9vfixed.pdb", mol, mol.Coords[0],nil)
 }
 
 func TestChemShell(Te *testing.T) {
@@ -419,5 +422,5 @@ func TestReduce(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
-	PDBWrite("test/2c9vHReduce.pdb", mol2, mol2.Coords[0])
+	PDBWrite("test/2c9vHReduce.pdb", mol2, mol2.Coords[0],nil)
 }

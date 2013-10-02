@@ -29,7 +29,7 @@
 package chem
 
 import "math"
-import "fmt"
+
 
 //These gnOnes are basic math, belonging more to the go.matrix package
 //If there is something similar already made
@@ -43,24 +43,8 @@ import "fmt"
 //vector, respectively, with the Cross product of them.
 //should panic
 func Cross3D(a, b *VecMatrix) (*VecMatrix, error) {
-	ar, ac := a.Dims()
-	br, bc := b.Dims()
-	if ac != bc || ar != br || (ac != 3 && ar != 3) {
-		return nil, fmt.Errorf("Malformed vectors for cross product")
-	}
-	if ac != 3 {
-		c := ZeroVecs(ac, ar)
-		c.T(a)
-		d := ZeroVecs(bc, br)
-		d.T(b)
-		e := Cross3DRow(c, d)
-		a.T(e) //careful here, may need testing
-		return a, nil
-	}
-	if ar != 3 {
+
 		return Cross3DRow(a, b), nil
-	}
-	panic("Unreachable")
 }
 
 //Cross3DRow returns the cross product of 2 row vectors. Panics if error.
@@ -74,7 +58,7 @@ func Cross3DRow(a, b *VecMatrix) *VecMatrix {
 	vec[0] = a.At(0, 1)*b.At(0, 2) - a.At(0, 2)*b.At(0, 1)
 	vec[1] = a.At(0, 2)*b.At(0, 0) - a.At(0, 0)*b.At(0, 2)
 	vec[2] = a.At(0, 0)*b.At(0, 1) - a.At(0, 1)*b.At(0, 0)
-	return NewVecMatrix(vec, 1, 3)
+	return NewVecs(vec)
 }
 
 //InvSqrt return the inverse of the square root of val, or zero if

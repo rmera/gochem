@@ -256,7 +256,7 @@ func EncodeAtoms2JSON(mol Atomer, enc *json.Encoder) *JSONError {
 func EncodeCoords2JSON(coords *VecMatrix, enc *json.Encoder) *JSONError {
 	c := new(jSONCoords)
 	t := make([]float64, 3, 3)
-	for i := 0; i < coords.NumVec(); i++ {
+	for i := 0; i < coords.NVecs(); i++ {
 		c.Coords = coords.Row(t, i)
 		if err := enc.Encode(c); err != nil {
 			return MakeJSONError("postprocess", "EncodeCoords2JSON", err)

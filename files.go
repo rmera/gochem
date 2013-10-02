@@ -397,8 +397,9 @@ func PDBStringWrite(mol Atomer, coords *VecMatrix, bfact []float64) (string, err
 	var outline string
 	var outstring string
 	var err error
+	writecoord:=EmptyVecs()
 	for i := 0; i < mol.Len(); i++ {
-		writecoord := EmptyVecs()
+	//	fmt.Println("IIIIIIIIIIIi", i,coords, "lllllll")
 		writecoord.VecView(coords, i)
 		outline, chainprev, err = writePDBLine(mol.Atom(i), writecoord, bfact[i], chainprev)
 		if err != nil {
@@ -416,7 +417,7 @@ func PDBStringWrite(mol Atomer, coords *VecMatrix, bfact []float64) (string, err
 //Returns an error if fails, or nil if succeeds.
 func MultiPDBWrite(pdbname string, mol Atomer, Coords []*VecMatrix, Bfactors [][]float64) error {
 	if !correctBfactors(Coords, Bfactors) {
-		Bfactors:=make([][]float64,0,len(Coords))
+		Bfactors=make([][]float64,0,len(Coords))
 	}
 
 	out, err := os.Create(pdbname)

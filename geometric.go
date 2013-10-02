@@ -328,11 +328,14 @@ func BestPlane(mol ReadRef, coords *VecMatrix) (*VecMatrix, error) {
 	if err != nil {
 		return nil, err
 	}
-	evecs, _, err := gnEigen(VecMatrix2Dense(moment), appzero)
+	evecs, _, err := gnEigen(moment, appzero)
 	if err != nil {
 		return nil, err
 	}
-	normal, err := BestPlaneP(Dense2VecMatrix(evecs))
+	normal, err := BestPlaneP(evecs)
+	if err!=nil{
+		return nil, err
+		}
 	//MomentTensor(, mass)
 	return normal, err
 }
@@ -343,7 +346,7 @@ func CenterOfMass(geometry *VecMatrix, mass *Dense) (*VecMatrix, error) {
 	if geometry == nil {
 		return nil, fmt.Errorf("nil matrix to get the center of mass")
 	}
-	gr, gc := geometry.Dims()
+	gr,_ := geometry.Dims()
 	if mass == nil { //just obtain the geometric center
 		mass = gnOnes(gr, 1)
 	}
@@ -359,8 +362,8 @@ func CenterOfMass(geometry *VecMatrix, mass *Dense) (*VecMatrix, error) {
 //MassCentrate centers in in the center of mass of oref. Mass must be
 //A column vector. Returns the centered matrix and the displacement matrix.
 func MassCentrate(in, oref *VecMatrix, mass *Dense) (*VecMatrix, *VecMatrix, error) {
-	or, oc := oref.Dims()
-	ir, ic := in.Dims()
+	or,_ := oref.Dims()
+	ir,_ := in.Dims()
 	if mass == nil { //just obtain the geometric center
 		mass = gnOnes(or, 1)
 	}
