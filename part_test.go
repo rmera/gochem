@@ -273,7 +273,7 @@ func TestQM(Te *testing.T) {
 //TestTurbo tests the QM functionality. It prepares input for Turbomole
 //Notice that 2 TM inputs cannot be in the same directory. Notice that TMRunner
 //supports ECPs
-func TestTurbo(Te *testing.T) {
+func TesssstTurbo(Te *testing.T) {
 	mol, err := XYZRead("test/sample.xyz")
 	if err != nil {
 		Te.Error(err)
@@ -423,4 +423,31 @@ func TestReduce(Te *testing.T) {
 		Te.Error(err)
 	}
 	PDBWrite("test/2c9vHReduce.pdb", mol2, mol2.Coords[0],nil)
+}
+
+func TestSuper(Te *testing.T) {
+	backbone := []string{"C", "CA", "N"} //The PDB name of the atoms in the backbone.
+	mol1, err := PDBRead("test/2c9v.pdb", true) //true means that we try to read the symbol from the PDB file.
+	mol2, err2 := PDBRead("test/1uxm.pdb", true)
+	if err != nil || err2 != nil {
+		panic("Unable to open input files!")
+	}
+	mols := []*Molecule{mol1, mol2}
+	superlist := make([][]int, 2, 2)
+	//We collect the atoms that are part of the backbone.
+	for molnumber, mol := range mols {
+		for atomindex, atom := range mol.Atoms {
+			if isInString(backbone,atom.Name) && atom.Chain=="A"{
+				superlist[molnumber] = append(superlist[molnumber], atomindex)
+			}
+		}
+	}
+	fmt.Println("superlists!!", len(superlist[0]), len(superlist[1]))
+	mol1.Coords[0], err = Super(mol1.Coords[0], mol2.Coords[0], superlist[0], superlist[1])
+	if err != nil {
+		panic(err.Error())
+	}
+	newname := "test/2c9v_super.pdb"
+	PDBWrite(newname,mol1,mol1.Coords[0],nil)
+
 }

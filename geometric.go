@@ -151,8 +151,10 @@ func GetSuper(test, templa *VecMatrix) (*VecMatrix, *VecMatrix, *VecMatrix, *Vec
 	jT := gnT(j)
 	ScaledjProd := gnMul(j, jT)
 	ScaledjProd.Scale(Scal, ScaledjProd)
-	Maux :=  ZeroVecs(ctempla.NVecs())
-	Maux.Mul(gnMul(gnT(ctempla), Mid), ctest)
+	aux2:=gnMul(gnT(ctempla), Mid)
+	r,_:=aux2.Dims()
+	Maux :=  ZeroVecs(r)
+	Maux.Mul(aux2, ctest)
 	Maux.T(Maux) //Dont understand why this is needed
 	U, _, Vt, err := gnSVD(VecMatrix2Dense(Maux))
 	if err != nil {

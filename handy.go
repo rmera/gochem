@@ -61,7 +61,9 @@ func OnesMass(lenght int) *VecMatrix {
 func Super(test, templa *VecMatrix, testlst, templalst []int) (*VecMatrix, error) {
 	//_, testcols := test.Dims()
 	//_, templacols := templa.Dims()
-
+	if len(testlst)!=len(templalst){
+		return nil, fmt.Errorf("testlst and templalst must have the same lenght. testlst: %d, templalst %d",len(testlst),len(templalst))
+	}
 	ctest := ZeroVecs(len(testlst))
 	if len(testlst) != 0 {
 		ctest.SomeVecs(test, testlst)
