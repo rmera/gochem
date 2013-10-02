@@ -44,7 +44,7 @@ func TestXTC(Te *testing.T) {
 		Te.Error(err)
 	}
 	i := 0
-	coords := ZeroVecs(traj.Len(), 3)
+	coords := ZeroVecs(traj.Len())
 	for ; ; i++ {
 		err := traj.Next(coords)
 		if err != nil && err.Error() != "No more frames" {
@@ -86,7 +86,7 @@ func TestFrameXTCConc(Te *testing.T) {
 	}
 	frames := make([]*VecMatrix, 3, 3)
 	for i, _ := range frames {
-		frames[i] = ZeroVecs(traj.Len(), 3)
+		frames[i] = ZeroVecs(traj.Len())
 	}
 	results := make([][]chan *VecMatrix, 0, 0)
 	for i := 0; ; i++ {
@@ -132,7 +132,7 @@ func SecondRow(channelin, channelout chan *VecMatrix, current, other int) {
 	if channelin != nil {
 		temp := <-channelin
 		vector := EmptyVecs()
-		viej := ZeroVecs(1, 3)
+		viej := ZeroVecs(1)
 		vector.VecView(temp, 2)
 		viej.Clone(vector)
 		fmt.Println("sending througt", channelin, channelout, viej, current, other)
