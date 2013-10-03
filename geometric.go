@@ -252,9 +252,9 @@ func Dihedral(a, b, c, d *VecMatrix) float64 {
 	cmb.Sub(c, b)
 	dmc.Sub(d, c)
 	bmascaled.Scale(cmb.Norm(2), bma)
-	first := bmascaled.Dot(Cross3DRow(cmb,dmc))
-	v1 := Cross3DRow(bma, cmb)
-	v2 := Cross3DRow(cmb, dmc)
+	first := bmascaled.Dot(cross(cmb,dmc))
+	v1 := cross(bma, cmb)
+	v2 := cross(cmb, dmc)
 	second := v1.Dot(v2)
 	dihedral := math.Atan2(first, second)
 	return dihedral
@@ -305,7 +305,7 @@ func BestPlaneP(evecs *VecMatrix) (*VecMatrix, error) {
 	v2 := EmptyVecs()
 	v1.VecView(evecs, 2)
 	v2.VecView(evecs, 1)
-	normal := Cross3DRow(v1, v2)
+	normal := cross(v1, v2)
 	return normal, nil
 }
 

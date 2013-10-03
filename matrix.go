@@ -39,27 +39,15 @@ import "math"
 //Some of this functions don't return error messages because they are meant to
 //Be inserted in mathematical expressions and thus they need to return only one value.
 
-//Cross3D Takes 2 3-len column or row vectors and returns a column or a row
+//cross Takes 2 3-len column or row vectors and returns a column or a row
 //vector, respectively, with the Cross product of them.
 //should panic
-func Cross3D(a, b *VecMatrix) (*VecMatrix, error) {
-
-		return Cross3DRow(a, b), nil
+func cross(a, b *VecMatrix) *VecMatrix {
+		c:=ZeroVecs(1)
+		c.Cross(a,b)
+		return c
 }
 
-//Cross3DRow returns the cross product of 2 row vectors. Panics if error.
-func Cross3DRow(a, b *VecMatrix) *VecMatrix {
-	vec := make([]float64, 3, 3)
-	_, ac := a.Dims()
-	_, bc := b.Dims()
-	if ac > 3 || bc < 3 {
-		panic("Malformed row vectors for cross product!")
-	}
-	vec[0] = a.At(0, 1)*b.At(0, 2) - a.At(0, 2)*b.At(0, 1)
-	vec[1] = a.At(0, 2)*b.At(0, 0) - a.At(0, 0)*b.At(0, 2)
-	vec[2] = a.At(0, 0)*b.At(0, 1) - a.At(0, 1)*b.At(0, 0)
-	return NewVecs(vec)
-}
 
 //InvSqrt return the inverse of the square root of val, or zero if
 //|val|<appzero. Returns -1 if val is negative

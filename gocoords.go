@@ -228,6 +228,18 @@ func (F *VecMatrix) SubVec(A, vec *VecMatrix) {
 
 
 
+//Cross puts the cross product of the first vecs of a and b in the first vec of F. Panics if error.
+func (F *VecMatrix) Cross(a, b *VecMatrix)  {
+	if a.NVecs() < 1 || b.NVecs() < 1 || F.NVecs()<1 {
+		panic("Invalid  VecMatrix!")
+	}
+	//I ask for VecMatrix instead of Matrix, even though  I only need the At method.
+	//This is so I dont need to ensure that the rows are taken, and thus I dont need to break the
+	//API if the matrices become col-major.
+	F.Set(0,0,a.At(0, 1)*b.At(0, 2) - a.At(0, 2)*b.At(0, 1))
+	F.Set(0,1,a.At(0, 2)*b.At(0, 0) - a.At(0, 0)*b.At(0, 2))
+	F.Set(0,2,a.At(0, 0)*b.At(0, 1) - a.At(0, 1)*b.At(0, 0))
+}
 
 
 

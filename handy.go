@@ -204,7 +204,7 @@ func MakeWater(a1, a2 *VecMatrix, distance, angle float64, oxygen bool) *VecMatr
 		w.Unit(w)
 		w.Scale(WaterOHDist+distance, w)
 		o.Sub(o, a2)
-		upp, _ := Cross3D(w, NewVecs([]float64{0, 0, 1}))
+		upp := cross(w, NewVecs([]float64{0, 0, 1}))
 		upp.Add(upp, o)
 		upp.Add(upp, a2)
 		//water.SetMatrix(3,0,upp)
@@ -224,7 +224,7 @@ func MakeWater(a1, a2 *VecMatrix, distance, angle float64, oxygen bool) *VecMatr
 		v1.Sub(a2, a1)
 		v2.Clone(v1)
 		v2.Set(0, 2, v2.At(0, 2)+1) //a "random" modification. The idea is that its not colinear with v1
-		v3, _ := Cross3D(v1, v2)
+		v3 := cross(v1, v2)
 		v3.Add(v3, a2)
 		water, _ = RotateAbout(water, a2, v3, angle)
 	}
@@ -246,7 +246,7 @@ func MakeWater(a1, a2 *VecMatrix, distance, angle float64, oxygen bool) *VecMatr
 	}
 	v1.Sub(e2, e1)
 	v2.Sub(e3, e1)
-	axis, _ := Cross3D(v1, v2)
+	axis := cross(v1, v2)
 	axis.Add(axis, e1)
 	water, _ = RotateAbout(water, e1, axis, deg2rad*(180-WaterAngle))
 	v1.Sub(e1, a2)
