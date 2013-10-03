@@ -87,11 +87,11 @@ type Topology struct {
 	unpaired int
 }
 
-//MakeTopology makes a molecule with ats atoms, coords coordinates, bfactors b-factors
-//charge charge and unpaired unpaired electrons, and returns it. It returns error if
-//one of the slices is nil. It doesnt check for consitensy across slices or correct charge
+//NewTopology makes a topology with ats atoms
+//charge charge and unpaired unpaired electrons, and returns it. 
+// It doesnt check for consitency across slices or correct charge
 //or unpaired electrons.
-func MakeTopology(ats []*Atom, charge, unpaired int) (*Topology, error) {
+func NewTopology(ats []*Atom, charge, unpaired int) (*Topology, error) {
 	//	if ats == nil {
 	//		return nil, fmt.Errorf("Supplied a nil Topology")
 	//	}
@@ -254,11 +254,11 @@ type Molecule struct {
 	current  int
 }
 
-//MakeMolecule makes a molecule with ats atoms, coords coordinates, bfactors b-factors
+//NewMolecule makes a molecule with ats atoms, coords coordinates, bfactors b-factors
 //charge charge and unpaired unpaired electrons, and returns it. It returns error if
 //one of the slices is nil. It doesnt check for consitensy across slices or correct charge
 //or unpaired electrons.
-func MakeMolecule(ats Ref, coords []*VecMatrix, bfactors [][]float64) (*Molecule, error) {
+func NewMolecule(ats Ref, coords []*VecMatrix, bfactors [][]float64) (*Molecule, error) {
 	if ats == nil {
 		return nil, fmt.Errorf("Supplied a nil Reference")
 	}

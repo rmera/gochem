@@ -28,6 +28,9 @@
 
 package chem
 
+//This provides useful conversion factors and other constants
+
+//Conversions
 const (
 	Deg2Rad = 0.0174533
 	Rad2Deg = 1 / 0.0174533
@@ -37,4 +40,9 @@ const (
 	Kcal2KJ = 4.184
 	A2Bohr  = 1.889725989
 	Bohr2A  = 1 / 1.889725989
+)
+
+//Others
+const(
+	CHDist = 1.098  //C(sp3)--H distance in A
 )

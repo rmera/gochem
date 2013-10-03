@@ -298,7 +298,7 @@ func pdbBufIORead(pdb *bufio.Reader, read_additional bool) (*Molecule, error) {
 	}
 	//This could be done faster if done in the same loop where the coords are read
 	//Instead of having another loop just for them.
-	top, err := MakeTopology(molecule, 0, 0)
+	top, err := NewTopology(molecule, 0, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -311,7 +311,7 @@ func pdbBufIORead(pdb *bufio.Reader, read_additional bool) (*Molecule, error) {
 	if err != nil {
 		return nil, err
 	}
-	returned, err := MakeMolecule(top, mcoords, bfactors)
+	returned, err := NewMolecule(top, mcoords, bfactors)
 	return returned, err
 }
 
@@ -485,7 +485,7 @@ func xyzBufIORead(xyz *bufio.Reader) (*Molecule, error) {
 			if err != nil {
 				return nil, err
 			}
-			top, err = MakeTopology(molecule, 0, 0)
+			top, err = NewTopology(molecule, 0, 0)
 			if err != nil {
 				return nil, err
 			}
@@ -504,7 +504,7 @@ func xyzBufIORead(xyz *bufio.Reader) (*Molecule, error) {
 	for key, _ := range bfactors {
 		bfactors[key] = make([]float64,top.Len())
 	}
-	returned, err := MakeMolecule(top, Coords, bfactors)
+	returned, err := NewMolecule(top, Coords, bfactors)
 	return returned, err
 }
 
