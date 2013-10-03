@@ -207,8 +207,9 @@ func rmsd_fail(test, template *matrix.DenseMatrix) (float64, error) {
 */
 
 //RMSD returns the RSMD (root of the mean square deviation) for the sets of cartesian
-//coordinates in test and template
+//coordinates in test and template. 
 func RMSD(test, template *VecMatrix) (float64, error) {
+	//This is a VERY naive implementation.
 	if template.Rows() != test.Rows() || template.Cols() != 3 || test.Cols() != 3 {
 		return 0, fmt.Errorf("Ill formed matrices for RMSD calculation")
 	}
@@ -311,7 +312,7 @@ func BestPlaneP(evecs *VecMatrix) (*VecMatrix, error) {
 
 //BestPlane returns a row vector that is normal to the plane that best contains the molecule
 //if passed a nil Ref, it will simply set all masses to 1.
-func BestPlane(mol ReadRef, coords *VecMatrix) (*VecMatrix, error) {
+func BestPlane(coords *VecMatrix, mol ReadRef) (*VecMatrix, error) {
 	var err error
 	var Mmass []float64
 	cr, _ := coords.Dims()
@@ -447,7 +448,7 @@ func SelCone(B, selection *VecMatrix, angle, distance, thickness, initial float6
 		panic(err.Error())
 	}
 	selection, _, _ = MassCentrate(selection, selection, nil) //Centrate the selection as well
-	plane, err := BestPlane(nil, selection)                   //I have NO idea which direction will this vector point. We might need its negative.
+	plane, err := BestPlane(selection, nil)                   //I have NO idea which direction will this vector point. We might need its negative.
 	if err != nil {
 		panic(err.Error())
 	}
