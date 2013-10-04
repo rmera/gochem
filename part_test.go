@@ -197,7 +197,7 @@ func TestQM(Te *testing.T) {
 	calc := new(QMCalc)
 	calc.SCFTightness = 2 //very demanding
 	calc.Optimize = true
-	calc.Method = "BLYP"
+	calc.Method = "TPSS"
 	calc.Dielectric = 4
 	calc.Basis = "def2-SVP"
 	calc.HighBasis = "def2-TZVP"
@@ -205,9 +205,8 @@ func TestQM(Te *testing.T) {
 	calc.Memory = 1000
 	calc.HBAtoms = []int{3, 10, 12}
 	calc.HBElements = []string{"Cu", "Zn"}
-	calc.RI = true
-	calc.Disperssion = "D3"
 	calc.CConstraints = []int{0, 10, 20}
+	calc.SetDefaults()
 	orca := MakeOrcaRunner()
 	orca.SetnCPU(16) /////////////////////
 	atoms, _ := mol.Next(true)
@@ -215,6 +214,16 @@ func TestQM(Te *testing.T) {
 	if err = os.Chdir("./test"); err != nil {
 		Te.Error(err)
 	}
+	_ = orca.BuildInput(mol, atoms, calc)
+	//Now anothertest with HF-3c
+	calc.HBAtoms=nil
+	calc.HBElements=nil
+	calc.RI=false
+	calc.Grid=-1
+	calc.Dielectric=0
+	calc.Method="HF-3c"
+	orca.SetName("HF3c")
+	orca.SetnCPU(8)
 	_ = orca.BuildInput(mol, atoms, calc)
 	path, _ := os.Getwd()
 	//	if err:=orca.Run(false); err!=nil{
@@ -270,7 +279,7 @@ func TestQM(Te *testing.T) {
 //TestTurbo tests the QM functionality. It prepares input for Turbomole
 //Notice that 2 TM inputs cannot be in the same directory. Notice that TMRunner
 //supports ECPs
-func TesssstTurbo(Te *testing.T) {
+func TestTurbo(Te *testing.T) {
 	mol, err := XYZRead("test/sample.xyz")
 	if err != nil {
 		Te.Error(err)

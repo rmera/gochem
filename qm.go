@@ -71,7 +71,7 @@ type QMCalc struct {
 	//	IConstraints []IntConstraint //internal constraints
 	Dielectric float64
 	//	Solventmethod string
-	Disperssion string //D, D2, D3
+	Disperssion string //D2, D3, etc.
 	Others      string //analysis methods, etc
 	//	PCharges []PointCharge
 	Guess        string //initial guess
@@ -85,11 +85,22 @@ type QMCalc struct {
 	Memory       int //Max memory to be used in MB (the effect depends on the QM program)
 }
 
+
+func (Q *QMCalc) SetDefaults(){
+	Q.RI=true
+	Q.BSSE="gcp"
+	Q.Disperssion="D3"
+}
+
+
+//Note that the default methods and basis vary with each program, and even 
+//for a given program they are NOT considered part of the API, so they can always change.
 type OrcaRunner struct {
 	defmethod   string
 	defbasis    string
 	defauxbasis string
 	previousMO  string
+	bsse        string
 	command     string
 	inputname   string
 	nCPU        int
@@ -161,7 +172,7 @@ func (O *OrcaRunner) BuildInput(atoms ReadRef, coords *VecMatrix, Q *QMCalc) err
 	//Set RI or RIJCOSX if needed
 	ri := ""
 	if Q.RI && Q.RIJ {
-		return fmt.Errorf("RI and RIJ cannot be activate at the same time")
+		return fmt.Errorf("RI and RIJ cannot be activated at the same time")
 	}
 	if Q.RI {
 		Q.auxBasis = Q.Basis + "/J"
@@ -175,7 +186,7 @@ func (O *OrcaRunner) BuildInput(atoms ReadRef, coords *VecMatrix, Q *QMCalc) err
 		ri = "RIJCOSX"
 	}
 
-	disp := "VDW3"
+	disp := "D3"
 	if Q.Disperssion != "" {
 		disp = orcaDisp[Q.Disperssion]
 	}
@@ -232,20 +243,32 @@ func (O *OrcaRunner) BuildInput(atoms ReadRef, coords *VecMatrix, Q *QMCalc) err
 	if O.nCPU > 1 {
 		if O.nCPU > 8 {
 			palbig = fmt.Sprintf("%%pal nprocs %d\n   end\n", O.nCPU) //fmt.Fprintf(os.Stderr, "CPU number of %d for ORCA calculations currently not supported, maximun 8", O.nCPU)
-			O.nCPU = 8
 		} else {
 			pal = fmt.Sprintf("PAL%d", O.nCPU)
 		}
 	}
 	grid := ""
-	if Q.Grid != 0 && Q.Grid <= 9 {
+	if Q.Grid > 0 && Q.Grid <= 9 {
 		final := ""
 		if Q.Grid > 3 {
 			final = "NoFinalGrid"
 		}
 		grid = fmt.Sprintf("Grid%d %s", Q.Grid, final)
 	}
-	MainOptions := []string{"!", hfuhf, Q.Method, Q.Basis, Q.auxBasis, Q.auxColBasis, tight, disp, conv, Q.Guess, opt, Q.Others, grid, ri, pal, "\n"}
+	var err error
+	var bsse string
+	if bsse,err=O.buildgCP(Q);err!=nil{
+		fmt.Fprintln(os.Stderr, err.Error())
+	}
+	if Q.Method=="HF-3c"{ //This method includes its own basis sets and corrections, so previous choices are overwritten.
+		Q.Basis=""
+		Q.auxBasis=""
+		Q.auxColBasis=""
+		Q.Guess=""
+		bsse=""
+		disp=""
+	}
+	MainOptions := []string{"!", hfuhf, Q.Method, Q.Basis, Q.auxBasis, Q.auxColBasis, tight, disp, conv, Q.Guess, opt, Q.Others, grid, ri, bsse, pal, "\n"}
 	mainline := strings.Join(MainOptions, " ")
 	constraints := O.buildCConstraints(Q.CConstraints)
 	iconstraints, err := O.buildIConstraints(Q.IConstraints)
@@ -392,6 +415,26 @@ func (O *OrcaRunner) buildCConstraints(C []int) string {
 	return final
 }
 
+//Only DFT is supported. Also, only Karlsruhe's basis sets. If you are using Pople's, 
+//please come back from the sixties :-)
+func (O *OrcaRunner) buildgCP(Q *QMCalc) (string,error){
+	ret:=""
+	var err error
+	if strings.ToLower(Q.BSSE)=="gcp"{
+		switch  strings.ToLower(Q.Basis){
+			case "def2-svp":
+				ret="GCP(DFT/SVP)"
+			case "def2-tzvp":
+				ret="GCP(DFT/TZ)"
+			case "def2-sv(p)":
+				ret="GCP(DFT/SV(P))"
+			default:
+				err=fmt.Errorf("Method/basis combination for gCP unavailable, will skip the correction")
+		}
+	}
+	return ret, err
+}
+
 var orcaSCFTight = map[int]string{
 	0: "",
 	1: "TightSCF",
@@ -406,11 +449,17 @@ var orcaSCFConv = map[int]string{
 
 var orcaDisp = map[string]string{
 	"nodisp": "",
-	"D":      "VDW04",
-	"D2":     "VDW06",
-	"D3":     "VDW10",
-	"VV10":   "VV10",
+	"D2":     "D2",
+	"D3":     "D3BJ",
+	"D3ZERO":  "D3ZERO",
+	"D3Zero":  "D3ZERO",
+	"D3zero":  "D3ZERO",
+	"VV10":   "NL",     //for these methods only the default integration grid is supported.
+	"SCVV10": "SCNL",
+	"NL":   "NL",
+	"SCNL": "SCNL",
 }
+
 
 /*Reads the latest geometry from an ORCA optimization. Returns the
   geometry or error. Returns the geometry AND error if the geometry read
