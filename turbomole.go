@@ -33,7 +33,7 @@ import "io"
 import "strings"
 import "log"
 
-//import "strconv"
+import "strconv"
 import "bufio"
 import "fmt"
 import "os/exec"
@@ -348,7 +348,7 @@ var tMMethods = map[string]string{
 var tMDisp = map[string]string{
 	"":       "",
 	"nodisp": "",
-	"D":      "$disp",
+	"D":      "$olddisp",
 	"D2":     "$disp2",
 	"D3":     "$disp3",
 }
@@ -368,13 +368,61 @@ func (O *TMRunner) Run(wait bool) (err error) {
 	return err
 }
 
-//GetEnergy is NOT working yet
+//GetEnergy returns the energy from the corresponding calculation, in kcal/mol. 
+//NOT tested
 func (O *TMRunner) GetEnergy() (float64, error) {
-	return 0, nil
+	os.Chdir(O.inputname)
+	defer os.Chdir("..")
+	f, err := os.Open("energy")
+	if err != nil {
+		return 0, err
+	}
+	defer f.Close()
+	fio := bufio.NewReader(f)
+	line, err:=getSecondToLastLine(fio)
+	if err!=nil{
+		return 0, err
+	}
+	en:=strings.Fields(line)[1]
+	energy, err:=strconv.ParseFloat(en,64)
+	return energy*H2Kcal, err
 }
 
-//GetGeometry is NOT working yet
+//GetGeometry returns the coordinates for the optimized structure. Works only in Unix, requires bash
+//NOT tested
 func (O *TMRunner) GetGeometry(atoms Ref) (*VecMatrix, error) {
-	return nil, nil
+	os.Chdir(O.inputname)
+	defer os.Chdir("..")
+	com:=exec.Command("bash", "x2t > file2.xyz")
+	if err:=com.Run();err!=nil{
+		return nil, err
+	}
+	mol,err:=XYZRead("file2.xyz")
+	if err!=nil{
+		return nil, err
+	}
+	return mol.Coords[len(mol.Coords)-1], nil
 
 }
+
+//Gets the second to last line in a turbomole energy file given as a bufio.Reader.
+//expensive on the CPU but rather easy on the memory, as the file is read line by line.
+func getSecondToLastLine(f *bufio.Reader)(string, error){
+	prevline:=""
+	line:=""
+	var err error
+	for {
+		line,err=f.ReadString('\n')
+		if err!=nil{
+			break
+		}
+		if !strings.Contains(line,"$end"){
+			prevline=line
+		}else{
+			break
+		}
+	}
+	return prevline, err
+}
+
+
