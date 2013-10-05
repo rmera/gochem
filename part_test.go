@@ -1,4 +1,4 @@
-// +build part
+/// +build part
 
 /*
  * part_test.go
@@ -280,7 +280,7 @@ func TestQM(Te *testing.T) {
 //Notice that 2 TM inputs cannot be in the same directory. Notice that TMRunner
 //supports ECPs
 func TestTurbo(Te *testing.T) {
-	mol, err := XYZRead("test/sample.xyz")
+	mol, err := XYZRead("test/ethanol.xyz")
 	if err != nil {
 		Te.Error(err)
 	}
@@ -288,33 +288,47 @@ func TestTurbo(Te *testing.T) {
 		Te.Error(err)
 	}
 	mol.Del(mol.Len() - 1)
-	mol.SetCharge(1)
+	mol.SetCharge(0)
 	mol.SetUnpaired(0)
 	calc := new(QMCalc)
 	calc.SCFConvHelp = 1 //very demanding
 	calc.Memory = 1000
 	calc.ECP = "ecp-10-mdf"
-	calc.ECPElements = []string{"Zn", "Cu"}
+	calc.ECPElements = []string{"O"}
 	calc.Grid = 4
 	calc.Optimize = true
 	calc.Method = "BP86"
 	calc.Dielectric = 4
 	calc.Basis = "def2-SVP"
 	calc.HighBasis = "def2-TZVP"
-	calc.HBElements = []string{"Zn"}
+	calc.HBElements = []string{"O"}
 	calc.RI = true
 	calc.Disperssion = "D3"
-	calc.CConstraints = []int{0, 10, 20}
+	calc.CConstraints = []int{0,3}
 	tm := MakeTMRunner()
 	atoms, _ := mol.Next(true)
-	original_dir, _ := os.Getwd() //will check in a few lines
-	if err = os.Chdir("./test"); err != nil {
-		Te.Error(err)
-	}
+	//original_dir, _ := os.Getwd() //will check in a few lines
+	//if err = os.Chdir("./test"); err != nil {
+	//	Te.Error(err)
+	//}
 	if err := tm.BuildInput(mol, atoms, calc); err != nil {
 		Te.Error(err)
 	}
-	os.Chdir(original_dir)
+	//os.Chdir(original_dir)
+	if err:=tm.Run(true);err!=nil{
+		Te.Error(err)
+	}
+	energy,err:=tm.GetEnergy()
+	if err!=nil{
+		Te.Error(err)
+	}
+	fmt.Println("energy", energy)
+	geo,err:=tm.GetGeometry(mol)
+	if err!=nil{
+		Te.Error(err)
+	}
+	fmt.Println("GEO", geo)
+	XYZWrite("optiethanol.xyz", mol, geo)
 	fmt.Println("end TurboTest!")
 }
 

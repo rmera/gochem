@@ -213,6 +213,7 @@ func (O *TMRunner) BuildInput(atoms ReadRef, coords *VecMatrix, Q *QMCalc) error
 		}
 	}
 	_ = os.Chdir(O.inputname)
+	defer os.Chdir("..")
 	//Set the coordinates in a slightly stupid way.
 	XYZWrite("file.xyz", atoms, coords)
 	x2t := exec.Command("x2t", "file.xyz")
@@ -325,7 +326,6 @@ func (O *TMRunner) BuildInput(atoms ReadRef, coords *VecMatrix, Q *QMCalc) error
 	}
 	//Finally the cosmo business.
 	err = O.addCosmo(Q.Dielectric)
-	os.Chdir("../")
 	return err
 }
 
@@ -357,6 +357,8 @@ var tMDisp = map[string]string{
 //it waits or not for the result depending on wait.
 //This is a Unix-only function.
 func (O *TMRunner) Run(wait bool) (err error) {
+	os.Chdir(O.inputname)
+	defer os.Chdir("..")
 	filename := strings.Fields(O.command)
 	fmt.Println("nohup " + O.command + " > " + filename[0] + ".out")
 	command := exec.Command("sh", "-c", "nohup "+O.command+" >"+filename[0]+".out")
@@ -369,7 +371,6 @@ func (O *TMRunner) Run(wait bool) (err error) {
 }
 
 //GetEnergy returns the energy from the corresponding calculation, in kcal/mol. 
-//NOT tested
 func (O *TMRunner) GetEnergy() (float64, error) {
 	os.Chdir(O.inputname)
 	defer os.Chdir("..")
@@ -388,16 +389,20 @@ func (O *TMRunner) GetEnergy() (float64, error) {
 	return energy*H2Kcal, err
 }
 
-//GetGeometry returns the coordinates for the optimized structure. Works only in Unix, requires bash
-//NOT tested
+//GetGeometry returns the coordinates for the optimized structure.
 func (O *TMRunner) GetGeometry(atoms Ref) (*VecMatrix, error) {
 	os.Chdir(O.inputname)
 	defer os.Chdir("..")
-	com:=exec.Command("bash", "x2t > file2.xyz")
-	if err:=com.Run();err!=nil{
-		return nil, err
+	x2t := exec.Command("t2x")
+	stdout, err := x2t.StdoutPipe()
+	if err != nil {
+		return nil, fmt.Errorf("Unable to run t2x: %s", err.Error())
 	}
-	mol,err:=XYZRead("file2.xyz")
+	if err := x2t.Start(); err != nil {
+		return nil, fmt.Errorf("Unable to run t2x: %s", err.Error())
+	}
+	xyz:=bufio.NewReader(stdout)
+	mol,err:=xyzBufIORead(xyz)
 	if err!=nil{
 		return nil, err
 	}
