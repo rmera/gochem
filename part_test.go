@@ -193,7 +193,7 @@ func TestQM(Te *testing.T) {
 	}
 	mol.Del(mol.Len() - 1)
 	mol.SetCharge(1)
-	mol.SetUnpaired(0)
+	mol.SetMulti(1)
 	calc := new(QMCalc)
 	calc.SCFTightness = 2 //very demanding
 	calc.Optimize = true
@@ -281,6 +281,8 @@ func TestQM(Te *testing.T) {
 //supports ECPs
 func TestTurbo(Te *testing.T) {
 	mol, err := XYZRead("test/ethanol.xyz")
+	os.Chdir("test")
+	defer os.Chdir("..")
 	if err != nil {
 		Te.Error(err)
 	}
@@ -289,7 +291,7 @@ func TestTurbo(Te *testing.T) {
 	}
 	mol.Del(mol.Len() - 1)
 	mol.SetCharge(0)
-	mol.SetUnpaired(0)
+	mol.SetMulti(1)
 	calc := new(QMCalc)
 	calc.SCFConvHelp = 1 //very demanding
 	calc.Memory = 1000
@@ -347,7 +349,7 @@ func TestWater(Te *testing.T) {
 		mol.AppendAtom(s)
 	}
 	mol.SetCharge(1)
-	mol.SetUnpaired(0)
+	mol.SetMulti(1)
 	c2 := ZeroVecs(mol.Len())
 	v := ZeroVecs(6)
 	l, _ := mol.Coords[0].Dims()
@@ -387,7 +389,7 @@ func TestChemShell(Te *testing.T) {
 	}
 	mol.Del(mol.Len() - 1)
 	mol.SetCharge(1)
-	mol.SetUnpaired(0)
+	mol.SetMulti(1)
 	calc := new(QMCalc)
 	calc.Optimize = true
 	calc.Method = "BLYP"

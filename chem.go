@@ -84,34 +84,34 @@ func (N *Atom) Clone(A *Atom) {
 type Topology struct {
 	Atoms    []*Atom
 	charge   int
-	unpaired int
+	multi int
 }
 
-//NewTopology makes a topology with ats atoms
-//charge charge and unpaired unpaired electrons, and returns it. 
+//NewTopology returns topology with ats atoms
+//charge charge and multi multiplicity. 
 // It doesnt check for consitency across slices or correct charge
 //or unpaired electrons.
-func NewTopology(ats []*Atom, charge, unpaired int) (*Topology, error) {
+func NewTopology(ats []*Atom, charge, multi int) (*Topology, error) {
 	//	if ats == nil {
 	//		return nil, fmt.Errorf("Supplied a nil Topology")
 	//	}
 	top := new(Topology)
 	top.Atoms = ats
 	top.charge = charge
-	top.unpaired = unpaired
+	top.multi =  multi
 	return top, nil
 }
 
 /*Topology methods*/
 
-//Charge gets the total charge of the topology
+//Charge returns the total charge of the topology
 func (T *Topology) Charge() int {
 	return T.charge
 }
 
-//Unpaired gets the number of unpaired electrons in the topology
-func (T *Topology) Unpaired() int {
-	return T.unpaired
+//Unpaired returns the multiplicity in the topology
+func (T *Topology) Multi() int {
+	return T.multi
 }
 
 //SetCharge sets the total charge of the topology to i
@@ -119,9 +119,9 @@ func (T *Topology) SetCharge(i int) {
 	T.charge = i
 }
 
-//SetUnpaired sets the number of unpaired electrons in the topology to i
-func (T *Topology) SetUnpaired(i int) {
-	T.unpaired = i
+//SetUnpaired sets the multiplicity in the topology to i
+func (T *Topology) SetMulti(i int) {
+	T.multi = i
 }
 
 //Sets the current order of atoms as Id and the order of molecules as

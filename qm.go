@@ -197,7 +197,7 @@ func (O *OrcaRunner) BuildInput(atoms ReadRef, coords *VecMatrix, Q *QMCalc) err
 	//If this flag is set we'll look for a suitable MO file.
 	//If not found, we'll just use the default ORCA guess
 	hfuhf := "RHF"
-	if atoms.Unpaired() != 0 {
+	if atoms.Multi() != 1 {
 		hfuhf = "UHF"
 	}
 	moinp := ""
@@ -232,7 +232,7 @@ func (O *OrcaRunner) BuildInput(atoms ReadRef, coords *VecMatrix, Q *QMCalc) err
 	conv := ""
 	if Q.SCFConvHelp == 0 {
 		//The default for this is nothing for RHF and SlowConv for UHF
-		if atoms.Unpaired() > 0 {
+		if atoms.Multi() > 1 {
 			conv = "SlowConv"
 		}
 	} else {
@@ -319,7 +319,7 @@ func (O *OrcaRunner) BuildInput(atoms ReadRef, coords *VecMatrix, Q *QMCalc) err
 	fmt.Fprint(file, cosmo)
 	fmt.Fprint(file, "\n")
 	//Now the type of coords, charge and multiplicity
-	fmt.Fprintf(file, "* xyz %d %d\n", atoms.Charge(), atoms.Unpaired()+1)
+	fmt.Fprintf(file, "* xyz %d %d\n", atoms.Charge(), atoms.Multi())
 	//now the coordinates
 	//	fmt.Println(atoms.Len(), coords.Rows()) ///////////////
 	for i := 0; i < atoms.Len(); i++ {

@@ -83,7 +83,7 @@ type ReadRef interface {
 	Charge() int
 
 	//Unpaired gets the number of unpaired electrons in the topology
-	Unpaired() int
+	Multi() int
 
 	//Puts the atoms of Ref that are marked in the list of ints in the received.
 	//Changes to these atoms affect the original molecule.
@@ -104,7 +104,7 @@ type WriteRef interface {
 	SetCharge(i int)
 
 	//SetUnpaired sets the number of unpaired electrons in the topology to i
-	SetUnpaired(i int)
+	SetMulti(i int)
 
 	//SetAtom sets the (i+1)th Atom of the topology to atm.
 	//Panics if out of range

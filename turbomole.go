@@ -38,6 +38,7 @@ import "bufio"
 import "fmt"
 import "os/exec"
 
+//This imlpementation supports only singlets and doublets.
 type TMRunner struct {
 	defmethod   string
 	defbasis    string
