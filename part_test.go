@@ -161,7 +161,7 @@ func TestPutInXYPlane(Te *testing.T) {
 	some.SomeVecs(mol.Coords[0], indexes)
 	//The strategy is: Take the normal to the plane of the molecule (os molecular subset), and rotate it until it matches the Z-axis
 	//This will mean that the plane of the molecule will now match the XY-plane.
-	best, err := BestPlane(nil, some)
+	best, err := BestPlane(some, nil)
 	if err != nil {
 		Te.Error(err)
 	}
