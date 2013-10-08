@@ -486,7 +486,7 @@ func (O *OrcaRunner) GetGeometry(atoms Ref) (*VecMatrix, error) {
 //in calculation")
 func (O *OrcaRunner) GetEnergy() (float64, error) {
 	err := fmt.Errorf("Probable problem in calculation")
-	f, err1 := os.Open(fmt.Sprintf("%s.xyz", O.inputname))
+	f, err1 := os.Open(fmt.Sprintf("%s.out", O.inputname))
 	if err1 != nil {
 		return 0, err1
 	}
@@ -499,6 +499,10 @@ func (O *OrcaRunner) GetEnergy() (float64, error) {
 		if err1 != nil {
 			return 0.0, err1
 		}
+
+		if i<20 {   ////////////////
+			fmt.Fprintln(os.Stderr, "liiine", line) /////////////////////////////
+		}////////////////////
 		if strings.Contains(line, "**ORCA TERMINATED NORMALLY**") {
 			err = nil
 		}
@@ -515,10 +519,10 @@ func (O *OrcaRunner) GetEnergy() (float64, error) {
 	if !found {
 		return 0.0, fmt.Errorf("Output does not contain energy")
 	}
-	return energy, err
+	return energy*H2Kcal, err
 }
 
-//Gets previous line of the file f
+//Gets previous line of the file f BUGGY
 func getTailLine(f *os.File) (line string, err error) {
 	var i int64 = 1
 	buf := make([]byte, 1)
@@ -532,6 +536,10 @@ func getTailLine(f *os.File) (line string, err error) {
 		if _, err := f.Read(buf); err != nil {
 			return "", err
 		}
+
+		if _, err := f.Seek(-1, 1); err != nil {  //one more to compensate for the Read()
+			return "", err
+		}
 		if buf[0] == byte('\n') && end == 0 {
 			end = i
 		} else if buf[0] == byte('\n') && ini == 0 {
@@ -539,11 +547,15 @@ func getTailLine(f *os.File) (line string, err error) {
 			break
 		}
 	}
-	if _, err := f.Seek(-1*ini, 2); err != nil {
+	if _, err := f.Seek(-1*(ini), 1); err != nil {
 		return "", err
 	}
-	bufF := make([]byte, ini-end)
+	bufF := make([]byte, ini-end+1)
 	f.Read(bufF)
+
+	if _, err := f.Seek(-1, 1); err != nil {  //making up for the read
+		return "", err
+	}
 	return string(bufF), nil
 }
 
