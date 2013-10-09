@@ -491,7 +491,7 @@ func (O *OrcaRunner) GetEnergy() (float64, error) {
 		return 0, err1
 	}
 	defer f.Close()
-	f.Seek(0, 2) //We start at the end of the file
+	f.Seek(-1, 2) //We start at the end of the file
 	energy := 0.0
 	var found bool
 	for i := 0; ; i++ {
@@ -499,10 +499,6 @@ func (O *OrcaRunner) GetEnergy() (float64, error) {
 		if err1 != nil {
 			return 0.0, err1
 		}
-
-		if i<20 {   ////////////////
-			fmt.Fprintln(os.Stderr, "liiine", line) /////////////////////////////
-		}////////////////////
 		if strings.Contains(line, "**ORCA TERMINATED NORMALLY**") {
 			err = nil
 		}
@@ -526,34 +522,24 @@ func (O *OrcaRunner) GetEnergy() (float64, error) {
 func getTailLine(f *os.File) (line string, err error) {
 	var i int64 = 1
 	buf := make([]byte, 1)
-	var ini int64 = 0
-	var end int64 = 0
+	var ini int64 = -1
 	for ; ; i++ {
 		//move the pointer back one byte per cycle
-		if _, err := f.Seek(-1, 1); err != nil {
+		if _, err := f.Seek(-2, 1); err != nil {
 			return "", err
 		}
 		if _, err := f.Read(buf); err != nil {
 			return "", err
 		}
-
-		if _, err := f.Seek(-1, 1); err != nil {  //one more to compensate for the Read()
-			return "", err
-		}
-		if buf[0] == byte('\n') && end == 0 {
-			end = i
-		} else if buf[0] == byte('\n') && ini == 0 {
+		if buf[0] == byte('\n') && ini == -1 {
 			ini = i
 			break
 		}
 	}
-	if _, err := f.Seek(-1*(ini), 1); err != nil {
-		return "", err
-	}
-	bufF := make([]byte, ini-end+1)
+	bufF := make([]byte, ini)
 	f.Read(bufF)
 
-	if _, err := f.Seek(-1, 1); err != nil {  //making up for the read
+	if _, err := f.Seek(int64(-1*(len(bufF))), 1); err != nil {  //making up for the read
 		return "", err
 	}
 	return string(bufF), nil
