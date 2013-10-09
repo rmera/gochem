@@ -30,8 +30,8 @@ package chem
 
 import (
 	"bufio"
-	"io"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -218,7 +218,6 @@ func PDBStringRead(pdb string, read_additional bool) (*Molecule, error) {
 	return mol, err
 }
 
-
 func PDBReaderRead(pdb io.Reader, read_additional bool) (*Molecule, error) {
 	bufiopdb := bufio.NewReader(pdb)
 	mol, err := pdbBufIORead(bufiopdb, read_additional)
@@ -386,10 +385,10 @@ func PDBWrite(pdbname string, mol Atomer, coords *VecMatrix, Bfactors []float64)
 //returns the written string and error or nil.
 func PDBStringWrite(mol Atomer, coords *VecMatrix, bfact []float64) (string, error) {
 	if bfact == nil {
-		bfact = make([]float64,mol.Len())
+		bfact = make([]float64, mol.Len())
 	}
 	cr, _ := coords.Dims()
-	br    := len(bfact)
+	br := len(bfact)
 	if cr != mol.Len() || cr != br {
 		return "", fmt.Errorf("Ref and Coords and/or Bfactors dont have the same number of atoms")
 	}
@@ -397,9 +396,9 @@ func PDBStringWrite(mol Atomer, coords *VecMatrix, bfact []float64) (string, err
 	var outline string
 	var outstring string
 	var err error
-	writecoord:=EmptyVecs()
+	writecoord := EmptyVecs()
 	for i := 0; i < mol.Len(); i++ {
-	//	fmt.Println("IIIIIIIIIIIi", i,coords, "lllllll")
+		//	fmt.Println("IIIIIIIIIIIi", i,coords, "lllllll")
 		writecoord.VecView(coords, i)
 		outline, chainprev, err = writePDBLine(mol.Atom(i), writecoord, bfact[i], chainprev)
 		if err != nil {
@@ -417,7 +416,7 @@ func PDBStringWrite(mol Atomer, coords *VecMatrix, bfact []float64) (string, err
 //Returns an error if fails, or nil if succeeds.
 func MultiPDBWrite(pdbname string, mol Atomer, Coords []*VecMatrix, Bfactors [][]float64) error {
 	if !correctBfactors(Coords, Bfactors) {
-		Bfactors=make([][]float64,0,len(Coords))
+		Bfactors = make([][]float64, 0, len(Coords))
 	}
 
 	out, err := os.Create(pdbname)
@@ -502,7 +501,7 @@ func xyzBufIORead(xyz *bufio.Reader) (*Molecule, error) {
 	}
 	bfactors := make([][]float64, len(Coords), len(Coords))
 	for key, _ := range bfactors {
-		bfactors[key] = make([]float64,top.Len())
+		bfactors[key] = make([]float64, top.Len())
 	}
 	returned, err := NewMolecule(top, Coords, bfactors)
 	return returned, err
@@ -583,12 +582,12 @@ func XYZStringWrite(mol Atomer, Coords *VecMatrix) (string, error) {
 	if mol.Len() != Coords.Rows() {
 		return "", fmt.Errorf("Ref and Coords dont have the same number of atoms")
 	}
-	c:=make([]float64,3,3)
+	c := make([]float64, 3, 3)
 	out = fmt.Sprintf("%-4d\n\n", mol.Len())
 	//towrite := Coords.Arrays() //An array of array with the data in the matrix
 	for i := 0; i < mol.Len(); i++ {
 		//c := towrite[i] //coordinates for the corresponding atoms
-		c = Coords.Row(c,i)
+		c = Coords.Row(c, i)
 		temp := fmt.Sprintf("%-2s  %12.6f%12.6f%12.6f \n", mol.Atom(i).Symbol, c[0], c[1], c[2])
 		out = strings.Join([]string{out, temp}, "")
 	}

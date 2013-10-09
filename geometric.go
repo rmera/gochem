@@ -138,7 +138,7 @@ func GetSuper(test, templa *VecMatrix) (*VecMatrix, *VecMatrix, *VecMatrix, *Vec
 	}
 	var Scal float64
 	Scal = float64(1.0) / float64(tmr)
-	j := gnOnes(tmr,1) //Mass is not important for this matter so we'll just use this.
+	j := gnOnes(tmr, 1) //Mass is not important for this matter so we'll just use this.
 	ctest, distest, err := MassCentrate(test, test, j)
 	if err != nil {
 		return nil, nil, nil, nil, err
@@ -151,9 +151,9 @@ func GetSuper(test, templa *VecMatrix) (*VecMatrix, *VecMatrix, *VecMatrix, *Vec
 	jT := gnT(j)
 	ScaledjProd := gnMul(j, jT)
 	ScaledjProd.Scale(Scal, ScaledjProd)
-	aux2:=gnMul(gnT(ctempla), Mid)
-	r,_:=aux2.Dims()
-	Maux :=  ZeroVecs(r)
+	aux2 := gnMul(gnT(ctempla), Mid)
+	r, _ := aux2.Dims()
+	Maux := ZeroVecs(r)
 	Maux.Mul(aux2, ctest)
 	Maux.T(Maux) //Dont understand why this is needed
 	U, _, Vt, err := gnSVD(VecMatrix2Dense(Maux))
@@ -165,8 +165,8 @@ func GetSuper(test, templa *VecMatrix) (*VecMatrix, *VecMatrix, *VecMatrix, *Vec
 	//SVD gives different results here than in numpy. U and Vt are multiplide by -1 in one of them
 	//and gomatrix gives as Vt the transpose of the matrix given as Vt by numpy. I guess is not an
 	//error, but don't know for sure.
-	vtr,_ :=Vt.Dims()
-	Rotation:=ZeroVecs(vtr)
+	vtr, _ := Vt.Dims()
+	Rotation := ZeroVecs(vtr)
 	Rotation.Mul(Vt, gnT(U))
 	Rotation.T(Rotation) //Don't know why does this work :(
 	if Rotation.Det() < 0 {
@@ -178,12 +178,12 @@ func GetSuper(test, templa *VecMatrix) (*VecMatrix, *VecMatrix, *VecMatrix, *Vec
 	sub := ZeroVecs(ctest.NVecs())
 	sub.Mul(ctest, Rotation)
 	subtempla.Sub(subtempla, sub)
-	jtr,_:=jT.Dims()
-	Translation:=ZeroVecs(jtr)
+	jtr, _ := jT.Dims()
+	Translation := ZeroVecs(jtr)
 	Translation.Mul(jT, subtempla)
 	Translation.Add(Translation, distempla)
 	//This allings the transformed with the original template, not the mean centrate one
-	transformed := ZeroVecs(ctest.NVecs()) 
+	transformed := ZeroVecs(ctest.NVecs())
 	transformed.Mul(ctest, Rotation)
 	transformed.AddVec(transformed, Translation)
 	//end transformed
@@ -213,7 +213,7 @@ func RMSD(test, template *VecMatrix) (float64, error) {
 		return 0, fmt.Errorf("Ill formed matrices for RMSD calculation")
 	}
 	tr, _ := template.Dims()
-	ctempla:=ZeroVecs(template.NVecs())
+	ctempla := ZeroVecs(template.NVecs())
 	ctempla.Clone(template)
 	//the maybe thing might not be needed since we check the dimensions before.
 	f := func() { ctempla.Sub(ctempla, test) }
@@ -244,15 +244,15 @@ func Dihedral(a, b, c, d *VecMatrix) float64 {
 		}
 	}
 	//bma=b minus a
-	bma:=ZeroVecs(1)
-	cmb:=ZeroVecs(1)
-	dmc:=ZeroVecs(1)
-	bmascaled:=ZeroVecs(1)
+	bma := ZeroVecs(1)
+	cmb := ZeroVecs(1)
+	dmc := ZeroVecs(1)
+	bmascaled := ZeroVecs(1)
 	bma.Sub(b, a)
 	cmb.Sub(c, b)
 	dmc.Sub(d, c)
 	bmascaled.Scale(cmb.Norm(2), bma)
-	first := bmascaled.Dot(cross(cmb,dmc))
+	first := bmascaled.Dot(cross(cmb, dmc))
 	v1 := cross(bma, cmb)
 	v2 := cross(cmb, dmc)
 	second := v1.Dot(v2)
@@ -335,9 +335,9 @@ func BestPlane(coords *VecMatrix, mol ReadRef) (*VecMatrix, error) {
 		return nil, err
 	}
 	normal, err := BestPlaneP(evecs)
-	if err!=nil{
+	if err != nil {
 		return nil, err
-		}
+	}
 	//MomentTensor(, mass)
 	return normal, err
 }
@@ -348,7 +348,7 @@ func CenterOfMass(geometry *VecMatrix, mass *Dense) (*VecMatrix, error) {
 	if geometry == nil {
 		return nil, fmt.Errorf("nil matrix to get the center of mass")
 	}
-	gr,_ := geometry.Dims()
+	gr, _ := geometry.Dims()
 	if mass == nil { //just obtain the geometric center
 		mass = gnOnes(gr, 1)
 	}
@@ -364,8 +364,8 @@ func CenterOfMass(geometry *VecMatrix, mass *Dense) (*VecMatrix, error) {
 //MassCentrate centers in in the center of mass of oref. Mass must be
 //A column vector. Returns the centered matrix and the displacement matrix.
 func MassCentrate(in, oref *VecMatrix, mass *Dense) (*VecMatrix, *VecMatrix, error) {
-	or,_ := oref.Dims()
-	ir,_ := in.Dims()
+	or, _ := oref.Dims()
+	ir, _ := in.Dims()
 	if mass == nil { //just obtain the geometric center
 		mass = gnOnes(or, 1)
 	}
@@ -401,14 +401,14 @@ func MomentTensor(A *VecMatrix, massslice []float64) (*VecMatrix, error) {
 	var mass *Dense
 	if massslice == nil {
 		mass = gnOnes(ar, 1)
-	}else{
-		mass = NewDense(massslice,ar,1)
+	} else {
+		mass = NewDense(massslice, ar, 1)
 	}
 	center, _, err := MassCentrate(A, Dense2VecMatrix(gnClone(A)), mass)
 	if err != nil {
 		return nil, err
 	}
-	sqrmass := gnZeros(ar,1)
+	sqrmass := gnZeros(ar, 1)
 	sqrmass.Pow(mass, 0.5)
 	//	fmt.Println(center,sqrmass) ////////////////////////
 	center.ScaleByCol(center, sqrmass)
@@ -436,7 +436,7 @@ func Projection(test, ref *VecMatrix) *VecMatrix {
 //if whatcone<0, only the cone opposite to the plane vector direction. If whatcone>0, only the cone in the plane vector direction.
 //the 'initial' argument  allows the construction of a truncate cone with a radius of initial.
 func SelCone(B, selection *VecMatrix, angle, distance, thickness, initial float64, whatcone int) []int {
-	A:=ZeroVecs(B.NVecs())
+	A := ZeroVecs(B.NVecs())
 	A.Clone(B) //We will be altering the input so its better to work with a copy.
 	ar, _ := A.Dims()
 	selected := make([]int, 0, 3)

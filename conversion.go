@@ -43,6 +43,6 @@ const (
 )
 
 //Others
-const(
-	CHDist = 1.098  //C(sp3)--H distance in A
+const (
+	CHDist = 1.098 //C(sp3)--H distance in A
 )

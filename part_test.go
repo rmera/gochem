@@ -68,7 +68,7 @@ func TestChangeAxis(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
-	PDBWrite("test/2c9v-Readtest.pdb", mol, mol.Coords[0],nil)
+	PDBWrite("test/2c9v-Readtest.pdb", mol, mol.Coords[0], nil)
 	//The selection thing
 	orient_atoms := [2]int{0, 0}
 	for index := 0; index < mol.Len(); index++ {
@@ -86,7 +86,7 @@ func TestChangeAxis(Te *testing.T) {
 	ov2 := mol.Coord(orient_atoms[1], 0)
 	//now we center the thing in the beta carbon of D124
 	mol.Coords[0].SubVec(mol.Coords[0], ov2)
-	PDBWrite("test/2c9v-translated.pdb", mol, mol.Coords[0],nil)
+	PDBWrite("test/2c9v-translated.pdb", mol, mol.Coords[0], nil)
 	//Now the rotation
 	ov1 := mol.Coord(orient_atoms[0], 0) //make sure we have the correct versions
 	ov2 = mol.Coord(orient_atoms[1], 0)  //same
@@ -100,7 +100,7 @@ func TestChangeAxis(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
-	PDBWrite("test/2c9v-aligned.pdb", mol, mol.Coords[0],nil)
+	PDBWrite("test/2c9v-aligned.pdb", mol, mol.Coords[0], nil)
 	fmt.Println("bench1")
 }
 
@@ -141,7 +141,7 @@ func TestOldChangeAxis(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
-	PDBWrite("test/2c9v-old-aligned.pdb", mol, mol.Coords[0],nil)
+	PDBWrite("test/2c9v-old-aligned.pdb", mol, mol.Coords[0], nil)
 	fmt.Println("bench2")
 }
 
@@ -171,7 +171,7 @@ func TestPutInXYPlane(Te *testing.T) {
 	axis := cross(best, z)
 	//The main part of the program, where the rotation actually happens. Note that we rotate the whole
 	//molecule, not just the planar subset, this is only used to calculate the rotation angle.
-	fmt.Println("DATA", mol.Coords[0], zero, axis, AngleInVectors(best,z))
+	fmt.Println("DATA", mol.Coords[0], zero, axis, AngleInVectors(best, z))
 	mol.Coords[0], err = RotateAbout(mol.Coords[0], zero, axis, AngleInVectors(best, z))
 	if err != nil {
 		Te.Error(err)
@@ -216,12 +216,12 @@ func TestQM(Te *testing.T) {
 	}
 	_ = orca.BuildInput(mol, atoms, calc)
 	//Now anothertest with HF-3c
-	calc.HBAtoms=nil
-	calc.HBElements=nil
-	calc.RI=false
-	calc.Grid=-1
-	calc.Dielectric=0
-	calc.Method="HF-3c"
+	calc.HBAtoms = nil
+	calc.HBElements = nil
+	calc.RI = false
+	calc.Grid = -1
+	calc.Dielectric = 0
+	calc.Method = "HF-3c"
 	orca.SetName("HF3c")
 	orca.SetnCPU(8)
 	_ = orca.BuildInput(mol, atoms, calc)
@@ -306,7 +306,7 @@ func TessstTurbo(Te *testing.T) {
 	calc.HBElements = []string{"O"}
 	calc.RI = true
 	calc.Disperssion = "D3"
-	calc.CConstraints = []int{0,3}
+	calc.CConstraints = []int{0, 3}
 	tm := MakeTMRunner()
 	atoms, _ := mol.Next(true)
 	//original_dir, _ := os.Getwd() //will check in a few lines
@@ -317,16 +317,16 @@ func TessstTurbo(Te *testing.T) {
 		Te.Error(err)
 	}
 	//os.Chdir(original_dir)
-	if err:=tm.Run(true);err!=nil{
+	if err := tm.Run(true); err != nil {
 		Te.Error(err)
 	}
-	energy,err:=tm.GetEnergy()
-	if err!=nil{
+	energy, err := tm.GetEnergy()
+	if err != nil {
 		Te.Error(err)
 	}
 	fmt.Println("energy", energy)
-	geo,err:=tm.GetGeometry(mol)
-	if err!=nil{
+	geo, err := tm.GetGeometry(mol)
+	if err != nil {
 		Te.Error(err)
 	}
 	fmt.Println("GEO", geo)
@@ -376,7 +376,7 @@ func TesSSStFixPDB(Te *testing.T) {
 		Te.Error(err)
 	}
 	FixNumbering(mol)
-	PDBWrite("test/2c9vfixed.pdb", mol, mol.Coords[0],nil)
+	PDBWrite("test/2c9vfixed.pdb", mol, mol.Coords[0], nil)
 }
 
 func TestChemShell(Te *testing.T) {
@@ -436,19 +436,19 @@ func TestReduce(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
-	logger,err:=os.Create("test/reducereport.log")
-	if err!=nil{
+	logger, err := os.Create("test/reducereport.log")
+	if err != nil {
 		Te.Error(err)
-		}
+	}
 	mol2, err := Reduce(mol, mol.Coords[0], 2, logger)
 	if err != nil {
 		Te.Error(err)
 	}
-	PDBWrite("test/2c9vHReduce.pdb", mol2, mol2.Coords[0],nil)
+	PDBWrite("test/2c9vHReduce.pdb", mol2, mol2.Coords[0], nil)
 }
 
 func TestSuper(Te *testing.T) {
-	backbone := []string{"C", "CA", "N"} //The PDB name of the atoms in the backbone.
+	backbone := []string{"C", "CA", "N"}        //The PDB name of the atoms in the backbone.
 	mol1, err := PDBRead("test/2c9v.pdb", true) //true means that we try to read the symbol from the PDB file.
 	mol2, err2 := PDBRead("test/1uxm.pdb", true)
 	if err != nil || err2 != nil {
@@ -459,7 +459,7 @@ func TestSuper(Te *testing.T) {
 	//We collect the atoms that are part of the backbone.
 	for molnumber, mol := range mols {
 		for atomindex, atom := range mol.Atoms {
-			if isInString(backbone,atom.Name) && atom.Chain=="A"{
+			if isInString(backbone, atom.Name) && atom.Chain == "A" {
 				superlist[molnumber] = append(superlist[molnumber], atomindex)
 			}
 		}
@@ -470,6 +470,6 @@ func TestSuper(Te *testing.T) {
 		panic(err.Error())
 	}
 	newname := "test/2c9v_super.pdb"
-	PDBWrite(newname,mol1,mol1.Coords[0],nil)
+	PDBWrite(newname, mol1, mol1.Coords[0], nil)
 
 }

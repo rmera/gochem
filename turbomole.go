@@ -250,18 +250,18 @@ func (O *TMRunner) BuildInput(atoms ReadRef, coords *VecMatrix, Q *QMCalc) error
 	defstring = defstring + "\n\n\n\n*\n"
 	//This is because the %$$#%^ define interface ask some $#%&&# questions in the eht setup when encounters some atoms.
 	//so i have to add an additional newline for each of these types. So far I know only that copper causes this.
-	stupid:=""
-	stupidatoms:="Cu" //if you want to add more stupid atoms jsut add then to the string: "Cu Zn"
-	for i:=0;i<atoms.Len();i++{
-		if stupidatoms==""{
+	stupid := ""
+	stupidatoms := "Cu" //if you want to add more stupid atoms jsut add then to the string: "Cu Zn"
+	for i := 0; i < atoms.Len(); i++ {
+		if stupidatoms == "" {
 			break
 		}
-		if strings.Contains(stupidatoms,atoms.Atom(i).Symbol){
-			stupidatoms=strings.Replace(stupidatoms,atoms.Atom(i).Symbol,"",-1)
-			stupid=stupid+"\n"
+		if strings.Contains(stupidatoms, atoms.Atom(i).Symbol) {
+			stupidatoms = strings.Replace(stupidatoms, atoms.Atom(i).Symbol, "", -1)
+			stupid = stupid + "\n"
 		}
 	}
-	defstring = fmt.Sprintf("%seht\n%s\n%d\n\n", defstring,stupid,atoms.Charge())
+	defstring = fmt.Sprintf("%seht\n%s\n%d\n\n", defstring, stupid, atoms.Charge())
 	method, ok := tMMethods[Q.Method]
 	if !ok {
 		fmt.Fprintf(os.Stderr, "no method assigned for TM calculation, will used the default %s, \n", O.defmethod)
@@ -371,7 +371,7 @@ func (O *TMRunner) Run(wait bool) (err error) {
 	return err
 }
 
-//GetEnergy returns the energy from the corresponding calculation, in kcal/mol. 
+//GetEnergy returns the energy from the corresponding calculation, in kcal/mol.
 func (O *TMRunner) GetEnergy() (float64, error) {
 	os.Chdir(O.inputname)
 	defer os.Chdir("..")
@@ -381,13 +381,13 @@ func (O *TMRunner) GetEnergy() (float64, error) {
 	}
 	defer f.Close()
 	fio := bufio.NewReader(f)
-	line, err:=getSecondToLastLine(fio)
-	if err!=nil{
+	line, err := getSecondToLastLine(fio)
+	if err != nil {
 		return 0, err
 	}
-	en:=strings.Fields(line)[1]
-	energy, err:=strconv.ParseFloat(en,64)
-	return energy*H2Kcal, err
+	en := strings.Fields(line)[1]
+	energy, err := strconv.ParseFloat(en, 64)
+	return energy * H2Kcal, err
 }
 
 //GetGeometry returns the coordinates for the optimized structure.
@@ -402,9 +402,9 @@ func (O *TMRunner) GetGeometry(atoms Ref) (*VecMatrix, error) {
 	if err := x2t.Start(); err != nil {
 		return nil, fmt.Errorf("Unable to run t2x: %s", err.Error())
 	}
-	xyz:=bufio.NewReader(stdout)
-	mol,err:=xyzBufIORead(xyz)
-	if err!=nil{
+	xyz := bufio.NewReader(stdout)
+	mol, err := xyzBufIORead(xyz)
+	if err != nil {
 		return nil, err
 	}
 	return mol.Coords[len(mol.Coords)-1], nil
@@ -413,22 +413,20 @@ func (O *TMRunner) GetGeometry(atoms Ref) (*VecMatrix, error) {
 
 //Gets the second to last line in a turbomole energy file given as a bufio.Reader.
 //expensive on the CPU but rather easy on the memory, as the file is read line by line.
-func getSecondToLastLine(f *bufio.Reader)(string, error){
-	prevline:=""
-	line:=""
+func getSecondToLastLine(f *bufio.Reader) (string, error) {
+	prevline := ""
+	line := ""
 	var err error
 	for {
-		line,err=f.ReadString('\n')
-		if err!=nil{
+		line, err = f.ReadString('\n')
+		if err != nil {
 			break
 		}
-		if !strings.Contains(line,"$end"){
-			prevline=line
-		}else{
+		if !strings.Contains(line, "$end") {
+			prevline = line
+		} else {
 			break
 		}
 	}
 	return prevline, err
 }
-
-
