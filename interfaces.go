@@ -60,7 +60,6 @@ type ConcTraj interface {
 	Len() int
 }
 
-
 type Atomer interface {
 
 	//Atom returns the Atom corresponding to the index i
@@ -72,7 +71,6 @@ type Atomer interface {
 }
 
 type ReadRef interface {
-
 	Atomer
 
 	//Returns a column vector with the massess of all atoms
@@ -90,14 +88,9 @@ type ReadRef interface {
 	//The charge and multiplicity (unpaired electrons) for the molecule is just the one
 	//for the parent reference and its not guarranteed to be correct.
 	SomeAtoms(Atomer, []int)
-
 }
 
-
-
-
 type WriteRef interface {
-
 	CloneAtoms(A Atomer)
 
 	//SetCharge sets the total charge of the topology to i
@@ -118,20 +111,15 @@ type WriteRef interface {
 
 	//Changes the Ids and Molids of atoms for ones matching their current order
 	ResetIds()
-
 }
-
 
 //Ref (reference) is an interface for any description of the type of atoms in a molecule,
 //i.e. every characteristic of them, except for the coordinates and b-factors.
 //Read-write reference
 type Ref interface {
-
 	ReadRef
 	WriteRef
 }
-
-
 
 //This allows to set QM calculations using different programs.
 //Currently ORCA and MOPAC (2009/2012) are supported.
@@ -171,4 +159,3 @@ type QMRunner interface {
 	//end properly*
 	GetGeometry(atoms Ref) (*VecMatrix, error)
 }
-

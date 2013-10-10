@@ -30,7 +30,6 @@ package chem
 
 import "math"
 
-
 //These gnOnes are basic math, belonging more to the go.matrix package
 //If there is something similar already made
 //in go.matrix this functions will be deleted. Otherwise they could be
@@ -43,11 +42,10 @@ import "math"
 //vector, respectively, with the Cross product of them.
 //should panic
 func cross(a, b *VecMatrix) *VecMatrix {
-		c:=ZeroVecs(1)
-		c.Cross(a,b)
-		return c
+	c := ZeroVecs(1)
+	c.Cross(a, b)
+	return c
 }
-
 
 //InvSqrt return the inverse of the square root of val, or zero if
 //|val|<appzero. Returns -1 if val is negative

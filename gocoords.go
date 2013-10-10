@@ -34,12 +34,8 @@ import (
 	"math"
 )
 
-
-
-
 const appzero float64 = 0.000000000001 //used to correct floating point
 //errors. Everything equal or less than this is considered zero.
-
 
 func VecMatrix2Dense(A *VecMatrix) *Dense {
 	return A.Dense
@@ -57,36 +53,30 @@ func NewVecs(data []float64) *VecMatrix {
 	if l%cols != 0 {
 		panic(fmt.Sprintf("Input slice lenght %d not divisible by %d: %d", rows, cols, rows%cols))
 	}
-	return &VecMatrix{NewDense(data,  rows, cols)}
+	return &VecMatrix{NewDense(data, rows, cols)}
 }
 
-
 //Returns a view of the ith Vecinate. Note that the allocation is minimal
-func VecView(a *VecMatrix, i int) *VecMatrix{
-	ret:=EmptyVecs()
-	ret.VecView(a,i)
+func VecView(a *VecMatrix, i int) *VecMatrix {
+	ret := EmptyVecs()
+	ret.VecView(a, i)
 	return ret
 }
 
 func EmptyVecs() *VecMatrix {
-	dens:=EmptyDense()
+	dens := EmptyDense()
 	return &VecMatrix{dens}
 
 }
-
 
 //Returns a zero-filled VecMatrix with cos vectors and 3 in the other dimension.
 func ZeroVecs(cos int) *VecMatrix {
 	const cols int = 3
-	dens:=gnZeros(cos, cols)
+	dens := gnZeros(cos, cols)
 	return &VecMatrix{dens}
 }
 
-
-
 //METHODS
-
-
 
 //Adds a vector to the  coordmatrix A putting the result on the received.
 //depending on whether the underlying matrix to coordmatrix
@@ -99,20 +89,18 @@ func (F *VecMatrix) AddVec(A, vec *VecMatrix) {
 		panic(gnErrShape)
 	}
 	j := EmptyVecs()
-	f:=EmptyVecs()
+	f := EmptyVecs()
 	for i := 0; i < ar; i++ {
 		j.VecView(A, i)
-		f.VecView(F,i)
+		f.VecView(F, i)
 		f.Add(j, vec)
 	}
 }
-
 
 //Puts a view of the given vector of the matrix in the receiver
 func (F *VecMatrix) VecView(A *VecMatrix, i int) {
 	F.View2(A, i, 0, 1, 3)
 }
-
 
 //puts a copy of matrix A without the vector i
 //in the received. Vector could be a col or row vector depending
@@ -120,8 +108,6 @@ func (F *VecMatrix) VecView(A *VecMatrix, i int) {
 func (F *VecMatrix) DelVec(A *VecMatrix, i int) {
 	F.DelRow(A, i)
 }
-
-
 
 func (F *VecMatrix) DelRow(A *VecMatrix, i int) {
 	ar, ac := A.Dims()
@@ -142,9 +128,6 @@ func (F *VecMatrix) DelRow(A *VecMatrix, i int) {
 	tempF2.Clone(tempA2)
 }
 
-
-
-
 //return the number of vecs in F. Panics if the
 //other dimmension is not 3.
 func (F *VecMatrix) NVecs() int {
@@ -156,13 +139,11 @@ func (F *VecMatrix) NVecs() int {
 
 }
 
-
-//Scale each coordinates in A by the coordinate in coord. 
-//The result is put in F.  
+//Scale each coordinates in A by the coordinate in coord.
+//The result is put in F.
 func (F *VecMatrix) ScaleByVec(A, coord *VecMatrix) {
 	F.ScaleByVec(A, coord)
 }
-
 
 //Set the vectors whith index n = each value on clist, in the received to the
 //n vector of A.
@@ -178,9 +159,6 @@ func (F *VecMatrix) SetVecs(A *VecMatrix, clist []int) {
 		}
 	}
 }
-
-
-
 
 //Returns a matrix contaning all the ith rows of matrix A,
 //where i are the numbers in clist. The rows are in the same order
@@ -198,8 +176,6 @@ func (F *VecMatrix) SomeVecs(A *VecMatrix, clist []int) {
 	}
 }
 
-
-
 //Returns a matrix contaning all the ith vectors of matrix A,
 //where i are the numbers in clist. The vectors are in the same order
 //than the clist. Returns an error instead of panicking.
@@ -208,14 +184,11 @@ func (F *VecMatrix) SomeVecsSafe(A *VecMatrix, clist []int) (err error) {
 	return gnMaybe(gnPanicker(f))
 }
 
-
 //puts in F a matrix consistent of A over B or A to the left of B.
 //DELCAN
 func (F *VecMatrix) StackVec(A, B *VecMatrix) {
 	F.Stack(A, B)
 }
-
-
 
 //SubRow subtracts the vector  to each vector of the matrix A, putting
 //the result on the receiver. Panics if matrices are mismatched.  It will not
@@ -226,28 +199,20 @@ func (F *VecMatrix) SubVec(A, vec *VecMatrix) {
 	vec.Scale(-1, vec)
 }
 
-
-
 //Cross puts the cross product of the first vecs of a and b in the first vec of F. Panics if error.
-func (F *VecMatrix) Cross(a, b *VecMatrix)  {
-	if a.NVecs() < 1 || b.NVecs() < 1 || F.NVecs()<1 {
+func (F *VecMatrix) Cross(a, b *VecMatrix) {
+	if a.NVecs() < 1 || b.NVecs() < 1 || F.NVecs() < 1 {
 		panic("Invalid  VecMatrix!")
 	}
 	//I ask for VecMatrix instead of Matrix, even though  I only need the At method.
 	//This is so I dont need to ensure that the rows are taken, and thus I dont need to break the
 	//API if the matrices become col-major.
-	F.Set(0,0,a.At(0, 1)*b.At(0, 2) - a.At(0, 2)*b.At(0, 1))
-	F.Set(0,1,a.At(0, 2)*b.At(0, 0) - a.At(0, 0)*b.At(0, 2))
-	F.Set(0,2,a.At(0, 0)*b.At(0, 1) - a.At(0, 1)*b.At(0, 0))
+	F.Set(0, 0, a.At(0, 1)*b.At(0, 2)-a.At(0, 2)*b.At(0, 1))
+	F.Set(0, 1, a.At(0, 2)*b.At(0, 0)-a.At(0, 0)*b.At(0, 2))
+	F.Set(0, 2, a.At(0, 0)*b.At(0, 1)-a.At(0, 1)*b.At(0, 0))
 }
 
-
-
-
-
-
 //METHODS Not Vec specific.
-
 
 //Puts a view of the given col of the matrix on the receiver
 func (F *VecMatrix) ColView(A *VecMatrix, i int) {
@@ -276,7 +241,6 @@ func (F *VecMatrix) AddRow(A, row *VecMatrix) {
 	F.AddVec(A, row)
 }
 
-
 //Puts A**exp on the receiver. This function could probably
 //be written in a concurrent way
 func (F *Dense) Pow(A Matrix, exp float64) {
@@ -292,7 +256,6 @@ func (F *Dense) Pow(A Matrix, exp float64) {
 
 	}
 }
-
 
 //ScaleByCol scales each column of matrix A by Col, putting the result
 //in the received.
@@ -314,7 +277,6 @@ func (F *VecMatrix) ScaleByCol(A, Col Matrix) {
 
 }
 
-
 //ScaleByRow scales each column of matrix A by Col, putting the result
 //in the received.
 func (F *VecMatrix) ScaleByRow(A, Row *VecMatrix) {
@@ -334,12 +296,10 @@ func (F *VecMatrix) ScaleByRow(A, Row *VecMatrix) {
 	}
 }
 
-
 //Puts a view of the given row of the matrix in the receiver
 func (F *VecMatrix) RowView(A *VecMatrix, i int) {
 	F.VecView(A, i)
 }
-
 
 //SubRow subtracts the row vector row to each row of the matrix A, putting
 //the result on the receiver. Panics if matrices are mismatched.  It will not
@@ -347,5 +307,3 @@ func (F *VecMatrix) RowView(A *VecMatrix, i int) {
 func (F *VecMatrix) SubRow(A, row *VecMatrix) {
 	F.SubVec(A, row)
 }
-
-

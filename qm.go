@@ -85,15 +85,13 @@ type QMCalc struct {
 	Memory       int //Max memory to be used in MB (the effect depends on the QM program)
 }
 
-
-func (Q *QMCalc) SetDefaults(){
-	Q.RI=true
-	Q.BSSE="gcp"
-	Q.Disperssion="D3"
+func (Q *QMCalc) SetDefaults() {
+	Q.RI = true
+	Q.BSSE = "gcp"
+	Q.Disperssion = "D3"
 }
 
-
-//Note that the default methods and basis vary with each program, and even 
+//Note that the default methods and basis vary with each program, and even
 //for a given program they are NOT considered part of the API, so they can always change.
 type OrcaRunner struct {
 	defmethod   string
@@ -257,16 +255,16 @@ func (O *OrcaRunner) BuildInput(atoms ReadRef, coords *VecMatrix, Q *QMCalc) err
 	}
 	var err error
 	var bsse string
-	if bsse,err=O.buildgCP(Q);err!=nil{
+	if bsse, err = O.buildgCP(Q); err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 	}
-	if Q.Method=="HF-3c"{ //This method includes its own basis sets and corrections, so previous choices are overwritten.
-		Q.Basis=""
-		Q.auxBasis=""
-		Q.auxColBasis=""
-		Q.Guess=""
-		bsse=""
-		disp=""
+	if Q.Method == "HF-3c" { //This method includes its own basis sets and corrections, so previous choices are overwritten.
+		Q.Basis = ""
+		Q.auxBasis = ""
+		Q.auxColBasis = ""
+		Q.Guess = ""
+		bsse = ""
+		disp = ""
 	}
 	MainOptions := []string{"!", hfuhf, Q.Method, Q.Basis, Q.auxBasis, Q.auxColBasis, tight, disp, conv, Q.Guess, opt, Q.Others, grid, ri, bsse, pal, "\n"}
 	mainline := strings.Join(MainOptions, " ")
@@ -415,21 +413,21 @@ func (O *OrcaRunner) buildCConstraints(C []int) string {
 	return final
 }
 
-//Only DFT is supported. Also, only Karlsruhe's basis sets. If you are using Pople's, 
+//Only DFT is supported. Also, only Karlsruhe's basis sets. If you are using Pople's,
 //please come back from the sixties :-)
-func (O *OrcaRunner) buildgCP(Q *QMCalc) (string,error){
-	ret:=""
+func (O *OrcaRunner) buildgCP(Q *QMCalc) (string, error) {
+	ret := ""
 	var err error
-	if strings.ToLower(Q.BSSE)=="gcp"{
-		switch  strings.ToLower(Q.Basis){
-			case "def2-svp":
-				ret="GCP(DFT/SVP)"
-			case "def2-tzvp":
-				ret="GCP(DFT/TZ)"
-			case "def2-sv(p)":
-				ret="GCP(DFT/SV(P))"
-			default:
-				err=fmt.Errorf("Method/basis combination for gCP unavailable, will skip the correction")
+	if strings.ToLower(Q.BSSE) == "gcp" {
+		switch strings.ToLower(Q.Basis) {
+		case "def2-svp":
+			ret = "GCP(DFT/SVP)"
+		case "def2-tzvp":
+			ret = "GCP(DFT/TZ)"
+		case "def2-sv(p)":
+			ret = "GCP(DFT/SV(P))"
+		default:
+			err = fmt.Errorf("Method/basis combination for gCP unavailable, will skip the correction")
 		}
 	}
 	return ret, err
@@ -451,15 +449,14 @@ var orcaDisp = map[string]string{
 	"nodisp": "",
 	"D2":     "D2",
 	"D3":     "D3BJ",
-	"D3ZERO":  "D3ZERO",
-	"D3Zero":  "D3ZERO",
-	"D3zero":  "D3ZERO",
-	"VV10":   "NL",     //for these methods only the default integration grid is supported.
+	"D3ZERO": "D3ZERO",
+	"D3Zero": "D3ZERO",
+	"D3zero": "D3ZERO",
+	"VV10":   "NL", //for these methods only the default integration grid is supported.
 	"SCVV10": "SCNL",
-	"NL":   "NL",
-	"SCNL": "SCNL",
+	"NL":     "NL",
+	"SCNL":   "SCNL",
 }
-
 
 /*Reads the latest geometry from an ORCA optimization. Returns the
   geometry or error. Returns the geometry AND error if the geometry read
@@ -486,12 +483,12 @@ func (O *OrcaRunner) GetGeometry(atoms Ref) (*VecMatrix, error) {
 //in calculation")
 func (O *OrcaRunner) GetEnergy() (float64, error) {
 	err := fmt.Errorf("Probable problem in calculation")
-	f, err1 := os.Open(fmt.Sprintf("%s.xyz", O.inputname))
+	f, err1 := os.Open(fmt.Sprintf("%s.out", O.inputname))
 	if err1 != nil {
 		return 0, err1
 	}
 	defer f.Close()
-	f.Seek(0, 2) //We start at the end of the file
+	f.Seek(-1, 2) //We start at the end of the file
 	energy := 0.0
 	var found bool
 	for i := 0; ; i++ {
@@ -515,35 +512,33 @@ func (O *OrcaRunner) GetEnergy() (float64, error) {
 	if !found {
 		return 0.0, fmt.Errorf("Output does not contain energy")
 	}
-	return energy, err
+	return energy * H2Kcal, err
 }
 
 //Gets previous line of the file f
 func getTailLine(f *os.File) (line string, err error) {
 	var i int64 = 1
 	buf := make([]byte, 1)
-	var ini int64 = 0
-	var end int64 = 0
+	var ini int64 = -1
 	for ; ; i++ {
 		//move the pointer back one byte per cycle
-		if _, err := f.Seek(-1, 1); err != nil {
+		if _, err := f.Seek(-2, 1); err != nil {
 			return "", err
 		}
 		if _, err := f.Read(buf); err != nil {
 			return "", err
 		}
-		if buf[0] == byte('\n') && end == 0 {
-			end = i
-		} else if buf[0] == byte('\n') && ini == 0 {
+		if buf[0] == byte('\n') && ini == -1 {
 			ini = i
 			break
 		}
 	}
-	if _, err := f.Seek(-1*ini, 2); err != nil {
+	bufF := make([]byte, ini)
+	f.Read(bufF)
+
+	if _, err := f.Seek(int64(-1*(len(bufF))), 1); err != nil { //making up for the read
 		return "", err
 	}
-	bufF := make([]byte, ini-end)
-	f.Read(bufF)
 	return string(bufF), nil
 }
 

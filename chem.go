@@ -52,7 +52,7 @@ type Atom struct {
 	Vdw       float64 //radius
 	Charge    float64 //Partial charge on an atom
 	Symbol    string
-	Het       bool   // is the atom an hetatm in the pdb file? (if applicable)
+	Het       bool // is the atom an hetatm in the pdb file? (if applicable)
 }
 
 //Atom methods
@@ -82,13 +82,13 @@ func (N *Atom) Clone(A *Atom) {
 
 //Topology contains information about a molecule which is not expected to change in time (i.e. everything except for coordinates and b-factors)
 type Topology struct {
-	Atoms    []*Atom
-	charge   int
-	multi int
+	Atoms  []*Atom
+	charge int
+	multi  int
 }
 
 //NewTopology returns topology with ats atoms
-//charge charge and multi multiplicity. 
+//charge charge and multi multiplicity.
 // It doesnt check for consitency across slices or correct charge
 //or unpaired electrons.
 func NewTopology(ats []*Atom, charge, multi int) (*Topology, error) {
@@ -98,7 +98,7 @@ func NewTopology(ats []*Atom, charge, multi int) (*Topology, error) {
 	top := new(Topology)
 	top.Atoms = ats
 	top.charge = charge
-	top.multi =  multi
+	top.multi = multi
 	return top, nil
 }
 
@@ -324,7 +324,7 @@ func (M *Molecule) Clone(A *Molecule) {
 		tmp := ZeroVecs(r)
 		tmp.Clone(val)
 		mol.Coords = append(mol.Coords, tmp)
-		tmp2 :=  cloneB(M.Bfactors[key])
+		tmp2 := cloneB(M.Bfactors[key])
 		mol.Bfactors = append(mol.Bfactors, tmp2)
 	}
 	if err := mol.Corrupted(); err != nil {
@@ -332,10 +332,10 @@ func (M *Molecule) Clone(A *Molecule) {
 	}
 }
 
-func cloneB(b []float64) []float64{
-	r:=make([]float64,len(b),len(b))
-	for k,v:=range(b){
-		r[k]=v
+func cloneB(b []float64) []float64 {
+	r := make([]float64, len(b), len(b))
+	for k, v := range b {
+		r[k] = v
 	}
 	return r
 }
@@ -448,7 +448,7 @@ func (M *Molecule) Corrupted() error {
 	var err error
 	if M.Bfactors == nil {
 		M.Bfactors = make([][]float64, 0, len(M.Coords))
-		M.Bfactors = append(M.Bfactors, make([]float64,M.Len()))
+		M.Bfactors = append(M.Bfactors, make([]float64, M.Len()))
 	}
 	lastbfac := len(M.Bfactors) - 1
 	for i := range M.Coords {
@@ -461,12 +461,12 @@ func (M *Molecule) Corrupted() error {
 		//zeroes anything that is lacking or incomplete instead of returning an error.
 
 		if lastbfac < i {
-			bfacs := make([]float64,M.Len())
+			bfacs := make([]float64, M.Len())
 			M.Bfactors = append(M.Bfactors, bfacs)
 		}
-		bfr:= len(M.Bfactors[i])
+		bfr := len(M.Bfactors[i])
 		if bfr < M.Len() {
-			M.Bfactors[i] = make([]float64,M.Len(), 1)
+			M.Bfactors[i] = make([]float64, M.Len(), 1)
 		}
 	}
 	return err
@@ -485,10 +485,10 @@ func (M *Molecule) Swap(i, j int) {
 	M.Atoms[i], M.Atoms[j] = M.Atoms[j], M.Atoms[i]
 	for k := 0; k < len(M.Coords); k++ {
 		M.Coords[k].SwapRows(i, j)
-		t1:=M.Bfactors[k][i]
-		t2:=M.Bfactors[k][j]
-		M.Bfactors[k][i]=t2
-		M.Bfactors[k][j]=t1
+		t1 := M.Bfactors[k][i]
+		t2 := M.Bfactors[k][j]
+		M.Bfactors[k][i] = t2
+		M.Bfactors[k][j] = t1
 	}
 }
 

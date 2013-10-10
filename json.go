@@ -84,6 +84,7 @@ type JSONInfo struct {
 	FloatInfo         [][]float64
 	StringInfo        [][]string
 	IntInfo           [][]int
+	Energies          []float64
 }
 
 func (J *JSONInfo) Send(out io.Writer) *JSONError {

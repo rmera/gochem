@@ -49,16 +49,16 @@ import (
 
 // Matrix is the basic matrix interface type.
 type Matrix interface {
-// Dims returns the dimensions of a Matrix.
-Dims() (r, c int)
+	// Dims returns the dimensions of a Matrix.
+	Dims() (r, c int)
 
-// At returns the value of a matrix element at (r, c). It will panic if r or c are
-// out of bounds for the matrix.
-At(r, c int) float64
+	// At returns the value of a matrix element at (r, c). It will panic if r or c are
+	// out of bounds for the matrix.
+	At(r, c int) float64
 }
 
 type Normer interface {
-Norm(o float64) float64
+	Norm(o float64) float64
 }
 
 type NormerMatrix interface {
@@ -66,20 +66,10 @@ type NormerMatrix interface {
 	Matrix
 }
 
-
-
-
-
-
-
-
-
-
-
 //The main container, must be able to implement any
 //gonum interface.
 //VecMatrix is a set of vectors in 3D space. The underlying implementation varies.
-type VecMatrix struct{
+type VecMatrix struct {
 	*Dense
 }
 
@@ -87,11 +77,6 @@ type VecMatrix struct{
 type Dense struct {
 	*matrix.DenseMatrix
 }
-
-
-
-
-
 
 //Generate and returns a CoorMatrix with arbitrary shape from data.
 func NewDense(data []float64, rows, cols int) *Dense {
@@ -102,8 +87,6 @@ func NewDense(data []float64, rows, cols int) *Dense {
 
 }
 
-
-
 //Returns and empty, but not nil, Dense. It barely allocates memory
 func EmptyDense() *Dense {
 	var a *matrix.DenseMatrix
@@ -111,15 +94,11 @@ func EmptyDense() *Dense {
 
 }
 
-
-
-
 //Returns an zero-filled Dense with the given dimensions
 //It is to be substituted by the Gonum function.
 func gnZeros(rows, cols int) *Dense {
 	return &Dense{matrix.Zeros(rows, cols)}
 }
-
 
 //Returns an identity matrix spanning span cols and rows
 func gnEye(span int) *Dense {
@@ -159,10 +138,6 @@ func (E eigenpair) Swap(i, j int) {
 func (E eigenpair) Len() int {
 	return len(E.evals)
 }
-
-
-
-
 
 //gnEigen wraps the matrix.DenseMatrix.Eigen() function in order to guarantee
 //That the eigenvectors and eigenvalues are sorted according to the eigenvalues
@@ -284,7 +259,6 @@ func (F *Dense) Add(A, B Matrix) {
 
 }
 
-
 func (F *Dense) At(A, B int) float64 {
 	return F.Get(A, B)
 }
@@ -305,18 +279,17 @@ func (F *Dense) Clone(A Matrix) {
 
 }
 
-
 //Returns an array with the data in the ith row of F
 func (F *Dense) Col(a []float64, i int) []float64 {
 	r, c := F.Dims()
 	if i >= c {
 		panic("Matrix: Requested column out of bounds")
 	}
-	if a==nil{
+	if a == nil {
 		a = make([]float64, r, r)
 	}
 	for j := 0; j < r; j++ {
-		if j>=len(a){
+		if j >= len(a) {
 			break
 		}
 		a[j] = F.At(j, i)
@@ -324,15 +297,14 @@ func (F *Dense) Col(a []float64, i int) []float64 {
 	return a
 }
 
-
 func (F *Dense) Dims() (int, int) {
 	return F.Rows(), F.Cols()
 }
 
 //Dot returns the dot product between 2 vectors or matrices
 func (F *Dense) Dot(B Matrix) float64 {
-	frows,fcols:=F.Dims()
-	brows,bcols:=B.Dims()
+	frows, fcols := F.Dims()
+	brows, bcols := B.Dims()
 	if fcols != bcols || frows != brows {
 		panic(gnErrShape)
 	}
@@ -353,15 +325,15 @@ func (F *Dense) Inv(B Matrix) {
 	}
 	var ok bool
 	var A *VecMatrix
-	A,ok=B.(*VecMatrix)
-		if !ok{
-			C,ok:=B.(*Dense)
-			if !ok{
-				panic("Few types are allowed so far")
-			}
-			A=&VecMatrix{C}
-
+	A, ok = B.(*VecMatrix)
+	if !ok {
+		C, ok := B.(*Dense)
+		if !ok {
+			panic("Few types are allowed so far")
 		}
+		A = &VecMatrix{C}
+
+	}
 	augt, _ := A.Augment(matrix.Eye(ar))
 	aug := &Dense{augt}
 	augr, _ := aug.Dims()
@@ -389,12 +361,10 @@ func (F *Dense) Inv(B Matrix) {
 	F.SubMatrix(aug, 0, ac, ar, ac)
 }
 
-
-
 //A slightly modified version of John Asmuth's ParalellProduct function.
 func (F *Dense) Mul(A, B Matrix) {
-	Arows,Acols:=A.Dims()
-	Brows,Bcols:=B.Dims()
+	Arows, Acols := A.Dims()
+	Brows, Bcols := B.Dims()
 	if Acols != Brows {
 		panic(gnErrShape)
 	}
@@ -464,26 +434,23 @@ func (F *Dense) Norm(i float64) float64 {
 	return F.TwoNorm()
 }
 
-
-
 //Returns an array with the data in the ith row of F
 func (F *Dense) Row(a []float64, i int) []float64 {
 	r, c := F.Dims()
 	if i >= r {
 		panic("Matrix: Requested row out of bounds")
 	}
-	if a==nil{
+	if a == nil {
 		a = make([]float64, c, c)
 	}
 	for j := 0; j < c; j++ {
-		if j>=len(a){
+		if j >= len(a) {
 			break
 		}
 		a[j] = F.At(i, j)
 	}
 	return a
 }
-
 
 //Scale the matrix A by a number i, putting the result in the received.
 func (F *Dense) Scale(i float64, A Matrix) {
@@ -505,7 +472,6 @@ func (F *Dense) scaleAux(factor float64) {
 	}
 }
 
-
 //When go.matrix is abandoned it is necesary to implement SetMatrix
 //SetMatrix()
 //Copies A into F aligning A(0,0) with F(i,j)
@@ -521,10 +487,6 @@ func (F *Dense) SetMatrix(i, j int, A Matrix) {
 		}
 	}
 }
-
-
-
-
 
 //puts in F a matrix consisting in A over B
 func (F *Dense) Stack(A, B Matrix) {
@@ -573,8 +535,6 @@ func (F *Dense) SubMatrix(A *Dense, i, j, rows, cols int) {
 	F.Clone(&temp)
 }
 
-
-
 //Sum returns the sum of all elements in matrix A.
 func (F *Dense) Sum() float64 {
 	Rows, Cols := F.Dims()
@@ -595,33 +555,33 @@ func (F *Dense) T(A Matrix) {
 		panic(gnErrShape)
 	}
 	var B *Dense
-	B,ok:=A.(*Dense)
-	if !ok{
-		C,ok:=A.(*VecMatrix)
-		if !ok{
+	B, ok := A.(*Dense)
+	if !ok {
+		C, ok := A.(*VecMatrix)
+		if !ok {
 			panic("Only Dense and VecMatrix are currently accepted")
 		}
-		B=C.Dense
+		B = C.Dense
 	}
 	//we do it in a different way if you pass the received as the argument
 	//(transpose in place) We could use continue for i==j
 	if F == B {
-/*		for i := 0; i < ar; i++ {
-			for j := 0; j < i; j++ {
-				tmp := A.At(i, j)
-				F.Set(i, j, A.At(j, i))
-				F.Set(j, i, tmp)
+		/*		for i := 0; i < ar; i++ {
+				for j := 0; j < i; j++ {
+					tmp := A.At(i, j)
+					F.Set(i, j, A.At(j, i))
+					F.Set(j, i, tmp)
+				}
+		*/F.TransposeInPlace()
+	} else {
+		F.DenseMatrix = B.Transpose()
+		/*
+			for i := 0; i < ar; i++ {
+				for j := 0; j < ac; j++ {
+					F.Set(j, i, A.At(i, j))
+				}
 			}
-*/		F.TransposeInPlace()
-		}else {
-			F.DenseMatrix=B.Transpose()
-/*
-		for i := 0; i < ar; i++ {
-			for j := 0; j < ac; j++ {
-				F.Set(j, i, A.At(i, j))
-			}
-		}
-*/
+		*/
 	}
 }
 
@@ -633,10 +593,8 @@ func (F *Dense) Unit(A NormerMatrix) {
 	F.Scale(norm, A)
 }
 
-
-
 func (F *VecMatrix) View2(A *VecMatrix, i, j, rows, cols int) {
-	F.Dense=&Dense{A.GetMatrix(i, j, rows, cols)}
+	F.Dense = &Dense{A.GetMatrix(i, j, rows, cols)}
 }
 
 /**These are from the current proposal for gonum, by Dan Kortschak. It will be taken out
