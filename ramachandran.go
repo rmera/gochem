@@ -1,4 +1,4 @@
-// +build plot
+ // +build plot
 
 /*
  * Rama.go, part of gochem
@@ -115,7 +115,69 @@ func RamaPlotParts(data [][][]float64, tag [][]int, title, plotname string) erro
 	return err
 }
 
+
+//takes h (0-360), v and s (0-1), returns r,g,b (0-255)
+func iHVS2RGB(h,v,s float64) (uint8,uint8,uint8){
+	var i, f, p, q, t float64
+	var r,g,b float64
+	maxcolor:=255.0
+	conversion:=maxcolor*v
+	if s==0.0{
+		return uint8(conversion),uint8(conversion),uint8(conversion)
+	}
+	//conversion:=math.Sqrt(3*math.Pow(maxcolor,2))*v
+	h=h/60
+	i=math.Floor(h)
+	f = h -i
+	p = v*(1-s)
+	q = v*(1-s*f)
+	t = v*(1-s*(1-f))
+	switch int(i){
+	case 0:
+		r = v
+		g = t
+		b = p
+	case 1:
+		r = q
+		g = v
+		b = p
+	case 2:
+		r = p
+		g = v
+		b = t
+	case 3:
+		r = p
+		g = q
+		b = v
+	case 4:
+		r = t
+		g = p
+		b = v
+	default: //case 5
+		r = v
+		g = p
+		b = q
+	}
+
+	r=r*conversion
+	g=g*conversion
+	b=b*conversion
+	return uint8(r),uint8(g),uint8(b)
+}
+
+
+
 func colors(key, steps int) (r, g, b uint8) {
+	norm := 240.0/float64(steps)
+	h:=float64(float64(key)*norm)
+	s:=1.0
+	v:=1.0
+	r,g,b=iHVS2RGB(h,v,s)
+	return r, g, b
+}
+
+
+func colorsOld(key, steps int) (r, g, b uint8) {
 	norm := (2 * 255.0 / (steps - 1))
 	b = uint8(key * norm)
 	r = uint8(255) - b

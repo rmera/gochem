@@ -515,7 +515,7 @@ func (O *OrcaRunner) GetEnergy() (float64, error) {
 	return energy * H2Kcal, err
 }
 
-//Gets previous line of the file f BUGGY
+//Gets previous line of the file f
 func getTailLine(f *os.File) (line string, err error) {
 	var i int64 = 1
 	buf := make([]byte, 1)
