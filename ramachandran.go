@@ -168,8 +168,15 @@ func iHVS2RGB(h,v,s float64) (uint8,uint8,uint8){
 
 
 func colors(key, steps int) (r, g, b uint8) {
-	norm := 240.0/float64(steps)
-	h:=float64(float64(key)*norm)
+	norm := 200.0/float64(steps)
+	hp:=float64((float64(key)*norm)+20.0)
+	var h float64
+	if hp<55{
+		h=hp-20.0
+	}else{
+		h=hp+20.0
+	}
+	fmt.Println("HUE", h, hp)
 	s:=1.0
 	v:=1.0
 	r,g,b=iHVS2RGB(h,v,s)

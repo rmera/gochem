@@ -104,7 +104,7 @@ type OrcaRunner struct {
 	nCPU        int
 }
 
-func MakeOrcaRunner() *OrcaRunner {
+func NewOrcaRunner() *OrcaRunner {
 	run := new(OrcaRunner)
 	run.SetDefaults()
 	return run

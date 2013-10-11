@@ -45,7 +45,7 @@ type MopacRunner struct {
 
 //Creates and initialized a new instance of MopacRuner, with values set
 //to its defaults.
-func MakeMopacRunner() *MopacRunner {
+func NewMopacRunner() *MopacRunner {
 	run := new(MopacRunner)
 	run.SetDefaults()
 	return run

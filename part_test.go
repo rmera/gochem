@@ -207,7 +207,7 @@ func TestQM(Te *testing.T) {
 	calc.HBElements = []string{"Cu", "Zn"}
 	calc.CConstraints = []int{0, 10, 20}
 	calc.SetDefaults()
-	orca := MakeOrcaRunner()
+	orca := NewOrcaRunner()
 	orca.SetnCPU(16) /////////////////////
 	atoms, _ := mol.Next(true)
 	original_dir, _ := os.Getwd() //will check in a few lines
@@ -231,7 +231,7 @@ func TestQM(Te *testing.T) {
 	//		}
 	fmt.Println(path)
 	//Now a MOPAC optimization with the same configuration.
-	mopac := MakeMopacRunner()
+	mopac := NewMopacRunner()
 	mopac.BuildInput(mol, atoms, calc)
 	mopaccommand := os.Getenv("MOPAC_LICENSE") + "/MOPAC2012.exe"
 	mopac.SetCommand(mopaccommand)
@@ -307,7 +307,7 @@ func TessstTurbo(Te *testing.T) {
 	calc.RI = true
 	calc.Disperssion = "D3"
 	calc.CConstraints = []int{0, 3}
-	tm := MakeTMRunner()
+	tm := NewTMRunner()
 	atoms, _ := mol.Next(true)
 	//original_dir, _ := os.Getwd() //will check in a few lines
 	//if err = os.Chdir("./test"); err != nil {
@@ -398,7 +398,7 @@ func TestChemShell(Te *testing.T) {
 	calc.Grid = 4 //not supported yet, coming sun
 	calc.Disperssion = "D3"
 	calc.CConstraints = []int{0, 10, 20}
-	cs := MakeCSRunner()
+	cs := NewCSRunner()
 	atoms, _ := mol.Next(true)
 	original_dir, _ := os.Getwd() //will check in a few lines
 	if err = os.Chdir("./test"); err != nil {

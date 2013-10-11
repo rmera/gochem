@@ -51,7 +51,7 @@ type CSRunner struct {
 
 //Creates and initialized a new instance of QCCSRuner, with values set
 //to its defaults.
-func MakeCSRunner() *CSRunner {
+func NewCSRunner() *CSRunner {
 	run := new(CSRunner)
 	run.SetDefaults()
 	return run

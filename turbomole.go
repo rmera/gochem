@@ -51,7 +51,7 @@ type TMRunner struct {
 
 //Creates and initialized a new instance of TMRuner, with values set
 //to its defaults.
-func MakeTMRunner() *TMRunner {
+func NewTMRunner() *TMRunner {
 	run := new(TMRunner)
 	run.SetDefaults()
 	return run
