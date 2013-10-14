@@ -152,12 +152,13 @@ func (T *Topology) ResetIds() {
 	}
 }
 
-//Copy atoms into a topology
+//Copy atoms into a topology. This is a deep copy, so T must have 
+//at least as many atoms as A.
 func (T *Topology) CloneAtoms(A Atomer) {
 	//T := new(Topology)
 	T.Atoms = make([]*Atom, A.Len())
 	for key := 0; key < A.Len(); key++ {
-		T.Atoms[key] = A.Atom(key)
+		T.Atoms[key].Clone(A.Atom(key))
 	}
 }
 

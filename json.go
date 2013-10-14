@@ -84,6 +84,7 @@ type JSONInfo struct {
 	FloatInfo         [][]float64
 	StringInfo        [][]string
 	IntInfo           [][]int
+	BoolInfo          [][]bool
 	Energies          []float64
 }
 

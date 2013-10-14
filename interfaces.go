@@ -80,7 +80,7 @@ type ReadRef interface {
 	//Charge gets the total charge of the topology
 	Charge() int
 
-	//Unpaired gets the number of unpaired electrons in the topology
+	//Multi returns the multiplicity of the topology
 	Multi() int
 
 	//Puts the atoms of Ref that are marked in the list of ints in the received.
@@ -91,6 +91,7 @@ type ReadRef interface {
 }
 
 type WriteRef interface {
+	//Clone atoms in A into the received. This is a deep copy, so the received must have at least as many atoms as A
 	CloneAtoms(A Atomer)
 
 	//SetCharge sets the total charge of the topology to i

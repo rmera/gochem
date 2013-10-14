@@ -478,3 +478,30 @@ func ScaleBond(C, H *VecMatrix, bond float64) {
 	Odist.Scale((distance-bond)/distance, Odist)
 	H.Sub(H, Odist)
 }
+
+
+func MergeAtomers(A, B Atomer) (*Topology, error){
+	al:=A.Len()
+	l:=al+B.Len()
+	full:=make([]*Atom,l,l)
+	for k,_:=range(full){
+		if k<al{
+			full[k]=A.Atom(k)
+		}else{
+			full[k]=B.Atom(k-al)
+		}
+	}
+	a,aok:=A.(ReadRef)
+	b,bok:=B.(ReadRef)
+	var charge, multi int
+	if aok && bok{
+		charge=a.Charge()+b.Charge()
+		multi=(a.Multi()-1+b.Multi()) //Not TOO sure about this.
+	}else{
+			multi=1
+	}
+	r,err:=NewTopology(full,charge,multi)
+	return r, err
+}
+
+
