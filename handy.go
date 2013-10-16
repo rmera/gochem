@@ -279,8 +279,11 @@ func FixNumbering(r Ref) {
 //the residues on each sublist should be contiguous to each other.
 //for instance, {6,7,8} is a valid sublist, {6,8,9} is not.
 //This is NOT currently checked by the function!. It returns the list of kept atoms
-func CutBackRef(r Atomer, chain string, list [][]int) ([]int, error) {
+func CutBackRef(r Atomer, chains []string, list [][]int) ([]int, error) {
 	//i:=r.Len()
+	if len(chains)!=len(list){
+		return nil, fmt.Errorf("Mismatched chains (%d) and list (%d) slices",len(chains),len(list))
+	}
 	var ret []int //This will be filled with the atoms that are kept, and will be returned.
 	for k, v := range list {
 		nter := v[0]
@@ -288,7 +291,7 @@ func CutBackRef(r Atomer, chain string, list [][]int) ([]int, error) {
 		nresname := ""
 		cresname := ""
 		for j := 0; j < r.Len(); j++ {
-			if r.Atom(j).Molid == nter && r.Atom(j).Chain == chain {
+			if r.Atom(j).Molid == nter && r.Atom(j).Chain == chains[k] {
 				nresname = r.Atom(j).Molname
 				break
 			}
@@ -300,7 +303,7 @@ func CutBackRef(r Atomer, chain string, list [][]int) ([]int, error) {
 		}
 		for j := 0; j < r.Len(); j++ {
 			curr := r.Atom(j)
-			if curr.Chain != chain {
+			if curr.Chain != chains[k] {
 				continue
 			}
 			if curr.Molid == cter {
@@ -315,8 +318,8 @@ func CutBackRef(r Atomer, chain string, list [][]int) ([]int, error) {
 		}
 	}
 	for _, i := range list {
-		t := Molecules2Atoms(r, i, []string{chain})
-		fmt.Println("t", len(t))
+		t := Molecules2Atoms(r, i, chains)
+	//	fmt.Println("t", len(t))
 		ret = append(ret, t...)
 	}
 	//	j:=0
@@ -340,10 +343,10 @@ func makeNcap(at *Atom, resname string) {
 	at.Molid = at.Molid + 1
 	at.Molname = resname
 	if at.Name == "C" {
-		at.Name = "CT"
+		at.Name = "CTZ"
 	}
 	if at.Name == "CA" {
-		at.Name = "HC"
+		at.Name = "HCZ"
 		at.Symbol = "H"
 	}
 }
@@ -355,10 +358,10 @@ func makeCcap(at *Atom, resname string) {
 	at.Molid = at.Molid - 1
 	at.Molname = resname
 	if at.Name == "N" {
-		at.Name = "NT"
+		at.Name = "NTZ"
 	}
 	if at.Name == "CA" {
-		at.Name = "HN2"
+		at.Name = "HNZ"
 		at.Symbol = "H"
 	}
 }
@@ -480,7 +483,7 @@ func ScaleBond(C, H *VecMatrix, bond float64) {
 }
 
 
-func MergeAtomers(A, B Atomer) (*Topology, error){
+func MergeAtomers(A, B Atomer, ) (*Topology, error){
 	al:=A.Len()
 	l:=al+B.Len()
 	full:=make([]*Atom,l,l)
