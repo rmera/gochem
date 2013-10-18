@@ -75,7 +75,7 @@ func (O *MopacRunner) SetCommand(name string) {
   If other system or using MOPAC2009 the command Must be set with the
   SetCommand function. */
 func (O *MopacRunner) SetDefaults() {
-	O.defmethod = "PM6-D3H4"
+	O.defmethod = "PM6-D3H4 NOMM"
 	O.command = os.ExpandEnv("${MOPAC_LICENSE}/MOPAC2012.exe")
 }
 
