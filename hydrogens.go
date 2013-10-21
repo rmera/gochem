@@ -44,7 +44,7 @@ func Reduce(mol Atomer, coords *VecMatrix, build int, report *os.File) (*Molecul
 	/*Unfortunately, I need to write each pdb to be protonated to disk. I just couldnt possibly make it work passing a PDB string
 	  to reduce with a pipe. For some reason I only got a part of the PDB. It is something that should be fixed.*/
 	pdbname := "gochemreducetmp.pdb"
-	err := PDBWrite(pdbname, mol, coords, nil)
+	err := PDBWrite(pdbname, coords, mol, nil)
 
 	if err != nil {
 		return nil, err

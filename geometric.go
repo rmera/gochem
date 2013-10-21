@@ -207,7 +207,7 @@ func rmsd_fail(test, template *matrix.DenseMatrix) (float64, error) {
 */
 
 //RMSD returns the RSMD (root of the mean square deviation) for the sets of cartesian
-//coordinates in test and template. 
+//coordinates in test and template.
 func RMSD(test, template *VecMatrix) (float64, error) {
 	//This is a VERY naive implementation.
 	if template.Rows() != test.Rows() || template.Cols() != 3 || test.Cols() != 3 {

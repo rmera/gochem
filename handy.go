@@ -140,7 +140,7 @@ func EulerRotateAbout(coordsorig, ax1, ax2 *VecMatrix, angle float64) (*VecMatri
 }
 
 //Corrupted is a convenience function to check that a reference and a trajectory have the same number of atoms
-func Corrupted(R Atomer, X Traj) error {
+func Corrupted(X Traj, R Atomer) error {
 	if X.Len() != R.Len() {
 		return fmt.Errorf("Mismatched number of atoms/coordinates")
 	}
@@ -281,8 +281,8 @@ func FixNumbering(r Ref) {
 //This is NOT currently checked by the function!. It returns the list of kept atoms
 func CutBackRef(r Atomer, chains []string, list [][]int) ([]int, error) {
 	//i:=r.Len()
-	if len(chains)!=len(list){
-		return nil, fmt.Errorf("Mismatched chains (%d) and list (%d) slices",len(chains),len(list))
+	if len(chains) != len(list) {
+		return nil, fmt.Errorf("Mismatched chains (%d) and list (%d) slices", len(chains), len(list))
 	}
 	var ret []int //This will be filled with the atoms that are kept, and will be returned.
 	for k, v := range list {
@@ -319,7 +319,7 @@ func CutBackRef(r Atomer, chains []string, list [][]int) ([]int, error) {
 	}
 	for _, i := range list {
 		t := Molecules2Atoms(r, i, chains)
-	//	fmt.Println("t", len(t))
+		//	fmt.Println("t", len(t))
 		ret = append(ret, t...)
 	}
 	//	j:=0
@@ -482,29 +482,26 @@ func ScaleBond(C, H *VecMatrix, bond float64) {
 	H.Sub(H, Odist)
 }
 
-
-func MergeAtomers(A, B Atomer, ) (*Topology, error){
-	al:=A.Len()
-	l:=al+B.Len()
-	full:=make([]*Atom,l,l)
-	for k,_:=range(full){
-		if k<al{
-			full[k]=A.Atom(k)
-		}else{
-			full[k]=B.Atom(k-al)
+func MergeAtomers(A, B Atomer) (*Topology, error) {
+	al := A.Len()
+	l := al + B.Len()
+	full := make([]*Atom, l, l)
+	for k, _ := range full {
+		if k < al {
+			full[k] = A.Atom(k)
+		} else {
+			full[k] = B.Atom(k - al)
 		}
 	}
-	a,aok:=A.(ReadRef)
-	b,bok:=B.(ReadRef)
+	a, aok := A.(ReadRef)
+	b, bok := B.(ReadRef)
 	var charge, multi int
-	if aok && bok{
-		charge=a.Charge()+b.Charge()
-		multi=(a.Multi()-1+b.Multi()) //Not TOO sure about this.
-	}else{
-			multi=1
+	if aok && bok {
+		charge = a.Charge() + b.Charge()
+		multi = (a.Multi() - 1 + b.Multi()) //Not TOO sure about this.
+	} else {
+		multi = 1
 	}
-	r,err:=NewTopology(full,charge,multi)
+	r, err := NewTopology(full, charge, multi)
 	return r, err
 }
-
-

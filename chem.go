@@ -152,7 +152,7 @@ func (T *Topology) ResetIds() {
 	}
 }
 
-//Copy atoms into a topology. This is a deep copy, so T must have 
+//Copy atoms into a topology. This is a deep copy, so T must have
 //at least as many atoms as A.
 func (T *Topology) CloneAtoms(A Atomer) {
 	//T := new(Topology)
@@ -259,7 +259,7 @@ type Molecule struct {
 //charge charge and unpaired unpaired electrons, and returns it. It returns error if
 //one of the slices is nil. It doesnt check for consitensy across slices or correct charge
 //or unpaired electrons.
-func NewMolecule(ats Ref, coords []*VecMatrix, bfactors [][]float64) (*Molecule, error) {
+func NewMolecule(coords []*VecMatrix, ats Ref, bfactors [][]float64) (*Molecule, error) {
 	if ats == nil {
 		return nil, fmt.Errorf("Supplied a nil Reference")
 	}

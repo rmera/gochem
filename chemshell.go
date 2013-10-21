@@ -135,11 +135,11 @@ func (O *CSRunner) BuildInput(atoms ReadRef, coords *VecMatrix, Q *QMCalc) error
 	}
 	coordline := ""
 	if O.coordformat == "pdb" {
-		PDBWrite(fmt.Sprintf("%s.pdb", O.inputname), atoms, coords, nil)
+		PDBWrite(fmt.Sprintf("%s.pdb", O.inputname), coords, atoms, nil)
 		coordline = fmt.Sprintf("set residues [ pdb_to_res %s.pdb ] \nread_pdb file=%s.pdb coords=%s.crd\n", O.inputname, O.inputname, O.inputname)
 
 	} else {
-		XYZWrite(fmt.Sprintf("%s.xyz", O.inputname), atoms, coords)
+		XYZWrite(fmt.Sprintf("%s.xyz", O.inputname), coords, atoms)
 		coordline = fmt.Sprintf("read_xyz %s.xyz coords=%s.crd \nset residues [ res_selectall coords=%s.crd ]\n", O.inputname, O.inputname, O.inputname)
 	}
 	frozen := ""
