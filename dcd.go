@@ -58,7 +58,7 @@ type DCDObj struct {
 	endian     binary.ByteOrder
 }
 
-func MakeDCD(filename string) (*DCDObj, error) {
+func NewDCD(filename string) (*DCDObj, error) {
 	traj := new(DCDObj)
 	if err := traj.initRead(filename); err != nil {
 		return nil, err

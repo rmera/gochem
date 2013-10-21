@@ -39,7 +39,7 @@ import "testing"
  * read frames at the end.*/
 func estDCD(Te *testing.T) {
 	fmt.Println("Fist test!")
-	traj, err := MakeDCD("test/test.dcd")
+	traj, err := NewDCD("test/test.dcd")
 	if err != nil {
 		Te.Error(err)
 	}
@@ -60,7 +60,7 @@ func estDCD(Te *testing.T) {
 }
 
 func TestFrameDCDConc(Te *testing.T) {
-	traj, err := MakeDCD("test/test.dcd")
+	traj, err := NewDCD("test/test.dcd")
 	if err != nil {
 		Te.Error(err)
 	}
@@ -129,7 +129,7 @@ func SecondRow(channelin, channelout chan *VecMatrix, current, other int) {
 // coordinates of the forth atom of the last read frame
 func TestFrameDCD(Te *testing.T) {
 	fmt.Println("Second test!")
-	traj,err:=MakeDCD("test/test.dcd")
+	traj,err:=NewDCD("test/test.dcd")
 	if err != nil {
 		Te.Error(err)
 	}
@@ -143,7 +143,7 @@ func TestFrameDCD(Te *testing.T) {
 
 func TestFrameDCDConc(Te *testing.T) {
 	fmt.Println("Third test!")
-	traj,err:=MakeDCD("test/test.dcd")
+	traj,err:=NewDCD("test/test.dcd")
 	if err != nil {
 		Te.Error(err)
 	}

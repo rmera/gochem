@@ -39,7 +39,7 @@ import "testing"
  * read frames at the end.*/
 func TestXTC(Te *testing.T) {
 	fmt.Println("First test")
-	traj, err := MakeXTC("test/test.xtc")
+	traj, err := NewXTC("test/test.xtc")
 	if err != nil {
 		Te.Error(err)
 	}
@@ -68,7 +68,7 @@ func TestXTC(Te *testing.T) {
 // coordinates of the forth atom of the last read frame
 func TestFrameXTC(Te *testing.T) {
 	fmt.Println("Second test!")
-	traj,err:=MakeXTC("test/test.xtc")
+	traj,err:=NewXTC("test/test.xtc")
 	if err != nil {
 		Te.Error(err)
 	}
@@ -80,7 +80,7 @@ func TestFrameXTC(Te *testing.T) {
 }
 */
 func TestFrameXTCConc(Te *testing.T) {
-	traj, err := MakeXTC("test/test.xtc")
+	traj, err := NewXTC("test/test.xtc")
 	if err != nil {
 		Te.Error(err)
 	}

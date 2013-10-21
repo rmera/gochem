@@ -55,7 +55,7 @@ type XTCObj struct {
 	buffSize   int
 }
 
-func MakeXTC(filename string) (*XTCObj, error) {
+func NewXTC(filename string) (*XTCObj, error) {
 	traj := new(XTCObj)
 	if err := traj.initRead(filename); err != nil {
 		return nil, err
