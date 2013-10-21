@@ -45,7 +45,7 @@ func Dense2VecMatrix(A *Dense) *VecMatrix {
 	return &VecMatrix{A}
 }
 
-//Generate and returns a CoorMatrix with 3 columns from data.
+//Generate and returns a VecMatrix with 3 columns from data.
 func NewVecs(data []float64) *VecMatrix {
 	const cols int = 3
 	l := len(data)
@@ -99,6 +99,9 @@ func (F *VecMatrix) AddVec(A, vec *VecMatrix) {
 
 //Puts a view of the given vector of the matrix in the receiver
 func (F *VecMatrix) VecView(A *VecMatrix, i int) {
+//	b:=A.BlasMatrix()
+//	r:=(i*3)+3
+//	Fb.Data[i*3:r])
 	F.View2(A, i, 0, 1, 3)
 }
 

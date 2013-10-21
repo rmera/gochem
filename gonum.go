@@ -65,6 +65,15 @@ type NormerMatrix interface {
 	Matrix
 }
 
+
+// BlasMatrix represents a cblas native representation of a matrix.
+type BlasMatrix struct {
+	Rows, Cols int
+	Stride     int
+	Data       []float64
+}
+
+
 //The main container, must be able to implement any
 //gonum interface.
 //VecMatrix is a set of vectors in 3D space. The underlying implementation varies.
@@ -256,6 +265,16 @@ func (F *Dense) Add(A, B Matrix) {
 		}
 	}
 
+}
+
+func (F *Dense)BlasMatrix() BlasMatrix{
+	b:=new(BlasMatrix)
+	r,c:=F.Dims()
+	b.Rows=r
+	b.Cols=c
+	b.Stride=0 //not really
+	b.Data=F.Array()
+	return *b
 }
 
 func (F *Dense) At(A, B int) float64 {
@@ -619,6 +638,9 @@ func gnMaybe(fn gnPanicker) (err error) {
 	fn()
 	return
 }
+
+
+
 
 // Type Error represents matrix package errors. These errors can be recovered by Maybe wrappers.
 type gnError string
