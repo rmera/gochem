@@ -58,16 +58,15 @@ func NewVecs(data []float64) *VecMatrix {
 
 //Returns a view of the ith Vecinate. Note that the allocation is minimal
 func VecView(a *VecMatrix, i int) *VecMatrix {
-	ret := EmptyVecs()
-	ret.VecView(a, i)
+	ret:=a.VecView(i)
 	return ret
 }
 
-func EmptyVecs() *VecMatrix {
-	dens := EmptyDense()
-	return &VecMatrix{dens}
-
-}
+//func EmptyVecs() *VecMatrix {
+//	dens := EmptyDense()
+//	return &VecMatrix{dens}
+//
+//}
 
 //Returns a zero-filled VecMatrix with cos vectors and 3 in the other dimension.
 func ZeroVecs(cos int) *VecMatrix {
@@ -88,21 +87,22 @@ func (F *VecMatrix) AddVec(A, vec *VecMatrix) {
 	if ac != rc || rr != 1 || ac != fc || ar != fr {
 		panic(gnErrShape)
 	}
-	j := EmptyVecs()
-	f := EmptyVecs()
 	for i := 0; i < ar; i++ {
-		j.VecView(A, i)
-		f.VecView(F, i)
+		j:=A.VecView(i)
+		f:=F.VecView(i)
 		f.Add(j, vec)
 	}
 }
 
-//Puts a view of the given vector of the matrix in the receiver
-func (F *VecMatrix) VecView(A *VecMatrix, i int) {
+//Returns view of the given vector of the matrix in the receiver
+func (F *VecMatrix) VecView(i int) *VecMatrix {
 //	b:=A.BlasMatrix()
 //	r:=(i*3)+3
 //	Fb.Data[i*3:r])
-	F.View2(A, i, 0, 1, 3)
+	r :=new(VecMatrix)
+	*r=*F
+	r.View(i, 0, 1, 3)
+	return r
 }
 
 //puts a copy of matrix A without the vector i
@@ -118,16 +118,20 @@ func (F *VecMatrix) DelRow(A *VecMatrix, i int) {
 	if i > ar || fc != ac || fr != (ar-1) {
 		panic(gnErrShape)
 	}
-	tempA1 := EmptyVecs()
-	tempF1 := EmptyVecs()
-	tempA1.View2(A, 0, 0, i, ac)
-	tempF1.View2(F, 0, 0, i, ac)
+	tempA1 := new(VecMatrix)
+	tempF1 := new(VecMatrix)
+	*tempA1=*A
+	*tempF1=*F
+	tempA1.View(0, 0, i, ac)
+	tempF1.View(0, 0, i, ac)
 	tempF1.Clone(tempA1)
 	//now the other part
-	tempA2 := EmptyVecs()
-	tempF2 := EmptyVecs()
-	tempA2.View2(A, i+1, 0, ar-i-1, ac) //The magic happens here
-	tempF2.View2(F, i, 0, ar-i-1, fc)
+	tempA2 := new(VecMatrix)
+	tempF2 := new(VecMatrix)
+	*tempA2=*A
+	*tempF2=*F
+	tempA2.View(i+1, 0, ar-i-1, ac) //The magic happens here
+	tempF2.View(i, 0, ar-i-1, fc)
 	tempF2.Clone(tempA2)
 }
 
@@ -218,9 +222,12 @@ func (F *VecMatrix) Cross(a, b *VecMatrix) {
 //METHODS Not Vec specific.
 
 //Puts a view of the given col of the matrix on the receiver
-func (F *VecMatrix) ColView(A *VecMatrix, i int) {
-	ar, _ := A.Dims()
-	F.View2(A, 0, i, ar, 1)
+func (F *VecMatrix) ColView(i int) *VecMatrix {
+	r:=new(VecMatrix)
+	*r=*F
+	Fr, _ := F.Dims()
+	r.View(0, i, Fr, 1)
+	return r
 }
 
 //AddFloat puts in the receiver a matrix which elements are
@@ -272,9 +279,8 @@ func (F *VecMatrix) ScaleByCol(A, Col Matrix) {
 	if F != A {
 		F.Clone(A)
 	}
-	temp := EmptyVecs()
 	for i := 0; i < ac; i++ {
-		temp.ColView(F, i)
+		temp:=F.ColView(i)
 		temp.MulElem(temp, Col)
 	}
 
@@ -292,16 +298,15 @@ func (F *VecMatrix) ScaleByRow(A, Row *VecMatrix) {
 	if F != A {
 		F.Clone(A)
 	}
-	temp := EmptyVecs()
 	for i := 0; i < ac; i++ {
-		temp.RowView(F, i)
+		temp:=F.RowView(i)
 		temp.MulElem(temp, Row)
 	}
 }
 
 //Puts a view of the given row of the matrix in the receiver
-func (F *VecMatrix) RowView(A *VecMatrix, i int) {
-	F.VecView(A, i)
+func (F *VecMatrix) RowView(i int) *VecMatrix{
+	return F.VecView(i)
 }
 
 //SubRow subtracts the row vector row to each row of the matrix A, putting

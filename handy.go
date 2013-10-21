@@ -185,20 +185,18 @@ func MakeWater(a1, a2 *VecMatrix, distance, angle float64, oxygen bool) *VecMatr
 	WaterOHDist := 0.96
 	WaterAngle := 52.25
 	deg2rad := 0.0174533
-	w := EmptyVecs()
-	w.VecView(water, 0) //we first set the O coordinates
+	w:=water.VecView(0) //we first set the O coordinates
 	w.Clone(a2)
 	w.Sub(w, a1)
 	w.Unit(w)
 	dist := ZeroVecs(1)
 	dist.Sub(a1, a2)
-	a1a2dist := dist.Norm(2)
+	a1a2dist := dist.Norm(0)
 	w.Scale(distance+a1a2dist, w)
 	w.Add(w, a1)
 	for i := 0; i <= 1; i++ {
-		o := EmptyVecs()
-		o.VecView(water, 0)
-		w.VecView(water, i+1)
+		o:=water.VecView(0)
+		w=water.VecView(i+1)
 		w.Clone(o)
 		w.Sub(w, a2)
 		w.Unit(w)
@@ -232,12 +230,9 @@ func MakeWater(a1, a2 *VecMatrix, distance, angle float64, oxygen bool) *VecMatr
 		return water
 	}
 	//we move things so an hydrogen points to a2 and modify the distance acordingly.
-	e1 := EmptyVecs()
-	e2 := EmptyVecs()
-	e3 := EmptyVecs()
-	e1.VecView(water, 0)
-	e2.VecView(water, 1)
-	e3.VecView(water, 2)
+	e1:=water.VecView(0)
+	e2:=water.VecView(1)
+	e3:=water.VecView(2)
 	if v1 == nil {
 		v1 = ZeroVecs(1)
 	}
@@ -456,16 +451,14 @@ func TagName(r Atomer, name string, list []int) int {
 func ScaleBonds(coords *VecMatrix, mol Atomer, n1, n2 string, finallenght float64) {
 	for i := 0; i < mol.Len(); i++ {
 		c1 := mol.Atom(i)
-		A := EmptyVecs()
-		B := EmptyVecs()
 		if c1.Name != n1 {
 			continue
 		}
 		for j := 0; j < mol.Len(); j++ {
 			c2 := mol.Atom(j)
 			if c1.Molid == c2.Molid && c1.Name == n1 && c2.Name == n2 {
-				A.VecView(coords, i)
-				B.VecView(coords, j)
+				A:=coords.VecView(i)
+				B:=coords.VecView(j)
 				ScaleBond(A, B, finallenght)
 			}
 		}
@@ -477,7 +470,7 @@ func ScaleBonds(coords *VecMatrix, mol Atomer, n1, n2 string, finallenght float6
 func ScaleBond(C, H *VecMatrix, bond float64) {
 	Odist := ZeroVecs(1)
 	Odist.Sub(H, C)
-	distance := Odist.Norm(2)
+	distance := Odist.Norm(0)
 	Odist.Scale((distance-bond)/distance, Odist)
 	H.Sub(H, Odist)
 }

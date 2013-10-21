@@ -1,4 +1,4 @@
-/// +build part
+// +build part
 
 /*
  * part_test.go
@@ -279,7 +279,7 @@ func TestQM(Te *testing.T) {
 //TestTurbo tests the QM functionality. It prepares input for Turbomole
 //Notice that 2 TM inputs cannot be in the same directory. Notice that TMRunner
 //supports ECPs
-func TestTurbo(Te *testing.T) {
+func TesstTurbo(Te *testing.T) {
 	mol, err := XYZRead("test/ethanol.xyz")
 	os.Chdir("test")
 	defer os.Chdir("..")
@@ -356,10 +356,8 @@ func TestWater(Te *testing.T) {
 	fmt.Println(l, mol.Len())
 	c2.Stack(mol.Coords[0], v)
 	mol.Coords[0] = c2
-	c := EmptyVecs()
-	h1 := EmptyVecs()
-	c.VecView(mol.Coords[0], 43)
-	h1.VecView(mol.Coords[0], 42)
+	c:=mol.Coords[0].VecView(43)
+	h1:=mol.Coords[0].VecView(42)
 	coords := ZeroVecs(mol.Len())
 	coords.Clone(mol.Coords[0])
 	w1 := MakeWater(c, h1, 2, Deg2Rad*30, true)

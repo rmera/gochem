@@ -171,17 +171,15 @@ func gnEigen(in *VecMatrix, epsilon float64) (*VecMatrix, []float64, error) {
 	//I think orthonormality is guaranteed by  DenseMatrix.Eig() If it is, Ill delete all this
 	//If not I'll add ortonormalization routines.
 	eigrows, _ := eig.evecs.Dims()
-	vectori := EmptyVecs()
-	vectorj := EmptyVecs()
 	for i := 0; i < eigrows; i++ {
-		vectori.ColView(eig.evecs, i)
+		vectori:=eig.evecs.ColView(i)
 		for j := i + 1; j < eigrows; j++ {
-			vectorj.ColView(eig.evecs, j)
+			vectorj:=eig.evecs.ColView(j)
 			if math.Abs(vectori.Dot(vectorj)) > epsilon && i != j {
 				return eig.evecs, evals[:], NotOrthogonal
 			}
 		}
-		if math.Abs(vectori.Norm(2)-1) > epsilon {
+		if math.Abs(vectori.Norm(0)-1) > epsilon {
 			//Of course I could just normalize the vectors instead of complaining.
 			//err= fmt.Errorf("Vectors not normalized %s",err.Error())
 
@@ -444,10 +442,13 @@ func (F *Dense) MulElem(A, B Matrix) {
 	}
 }
 
+
+
+
 func (F *Dense) Norm(i float64) float64 {
 	//temporary hack
-	if i != 2 {
-		panic("only 2-norm is implemented")
+	if i != 0 {
+		panic("only Euclidian norm is implemented")
 	}
 	return F.TwoNorm()
 }
@@ -607,13 +608,14 @@ func (F *Dense) T(A Matrix) {
 //thus obtaining an unitary vector pointing in the same direction as
 //vector.
 func (F *Dense) Unit(A NormerMatrix) {
-	norm := 1.0 / A.Norm(2)
+	norm := 1.0 / A.Norm(0)
 	F.Scale(norm, A)
 }
 
-func (F *VecMatrix) View2(A *VecMatrix, i, j, rows, cols int) {
-	F.Dense = &Dense{A.GetMatrix(i, j, rows, cols)}
+func (F *VecMatrix) View(i, j, rows, cols int) {
+	F.Dense = &Dense{F.GetMatrix(i, j, rows, cols)}
 }
+
 
 /**These are from the current proposal for gonum, by Dan Kortschak. It will be taken out
  * from here when gonum is implemented. The gn prefix is appended to the names to make them

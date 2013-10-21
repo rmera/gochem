@@ -389,8 +389,7 @@ func (M *Molecule) Coord(atom, frame int) *VecMatrix {
 		panic(fmt.Sprintf("Requested coordinate (%d) out of bounds (%d)", atom, M.Coords[frame].Rows()))
 	}
 	ret := ZeroVecs(1)
-	empt := EmptyVecs()
-	empt.VecView(M.Coords[frame], atom)
+	empt:=M.Coords[frame].VecView(atom)
 	ret.Clone(empt)
 	return ret
 }

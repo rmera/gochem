@@ -173,8 +173,7 @@ func RotateSer(Target, axis *VecMatrix, angle float64) *VecMatrix {
 	Rrev := R.reverse()
 	Res := ZeroVecs(tarr)
 	for i := 0; i < tarr; i++ {
-		rowvec := EmptyVecs()
-		rowvec.VecView(Target, i)
+		rowvec:=Target.VecView(i)
 		tmp := cliProduct(Rrev, paravectorFromVector(rowvec))
 		Rotated := cliProduct(tmp, R)
 		Res.SetMatrix(i, 0, Rotated.Vreal)
@@ -200,8 +199,7 @@ func Rotate(Target, axis *VecMatrix, angle float64) *VecMatrix {
 	for i := 0; i < rows; i++ {
 		go func(i int) {
 			//Here we simply do R^dagger A R, and assign to the corresponding row.
-			targetrow := EmptyVecs()
-			targetrow.VecView(Target, i)
+			targetrow:=Target.VecView(i)
 			tmp := cliProduct(Rrev, paravectorFromVector(targetrow))
 			Rotated := cliProduct(tmp, R)
 			//a,b:=Res.Dims() //debug

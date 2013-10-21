@@ -95,7 +95,7 @@ int get_coords(XDRFILE *fp, float *coordbuffer, int natoms){
 	float time=0;
 	coords=(rvec *)coordbuffer; /*This is the type the GROMACS function wants*/
 	if (coords==NULL){
-		return NULL;
+		return 1;
 		}
 	success=read_xtc(fp,natoms,&step,&time,box,
                         coords,&prec);

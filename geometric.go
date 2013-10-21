@@ -47,7 +47,7 @@ import "sort"
 //AngleInVectors takes 2 vectors and calculate the angle in radians between them
 //It does not check for correctness or return errors!
 func AngleInVectors(v1, v2 *VecMatrix) float64 {
-	normproduct := v1.Norm(2) * v2.Norm(2)
+	normproduct := v1.Norm(0) * v2.Norm(0)
 	dotprod := v1.Dot(v2)
 	argument := dotprod / normproduct
 	//Take care of floating point math errors
@@ -224,7 +224,7 @@ func RMSD(test, template *VecMatrix) (float64, error) {
 	var RMSD float64
 	for i := 0; i < ctempla.Rows(); i++ {
 		temp := VecView(ctempla, i)
-		RMSD += math.Pow(temp.Norm(2), 2)
+		RMSD += math.Pow(temp.Norm(0), 2)
 	}
 	RMSD = RMSD / float64(tr)
 	RMSD = math.Sqrt(RMSD)
@@ -252,7 +252,7 @@ func Dihedral(a, b, c, d *VecMatrix) float64 {
 	bma.Sub(b, a)
 	cmb.Sub(c, b)
 	dmc.Sub(d, c)
-	bmascaled.Scale(cmb.Norm(2), bma)
+	bmascaled.Scale(cmb.Norm(0), bma)
 	first := bmascaled.Dot(cross(cmb, dmc))
 	v1 := cross(bma, cmb)
 	v2 := cross(cmb, dmc)
@@ -302,10 +302,8 @@ func BestPlaneP(evecs *VecMatrix) (*VecMatrix, error) {
 	if evecs.Rows() != 3 || evecs.Cols() != 3 {
 		return evecs, fmt.Errorf("Eigenvectors matrix must be 3x3")
 	}
-	v1 := EmptyVecs()
-	v2 := EmptyVecs()
-	v1.VecView(evecs, 2)
-	v2.VecView(evecs, 1)
+	v1:=evecs.VecView(2)
+	v2:=evecs.VecView(1)
 	normal := cross(v1, v2)
 	return normal, nil
 }
@@ -458,10 +456,9 @@ func SelCone(B, selection *VecMatrix, angle, distance, thickness, initial float6
 			if isInInt(selected, j) || isInInt(neverselected, j) { //we dont scan things that we have already selected, or are too far
 				continue
 			}
-			atom := EmptyVecs()
-			atom.VecView(A, j)
+			atom:=A.VecView(j)
 			proj := Projection(atom, plane)
-			norm := proj.Norm(2)
+			norm := proj.Norm(0)
 			//Now at what side of the plane is the atom?
 			angle := AngleInVectors(atom, plane)
 			if whatcone > 0 {
@@ -477,7 +474,7 @@ func SelCone(B, selection *VecMatrix, angle, distance, thickness, initial float6
 				continue
 			}
 			proj.Sub(proj, atom)
-			projnorm := proj.Norm(2)
+			projnorm := proj.Norm(0)
 			if projnorm <= maxdist {
 				selected = append(selected, j)
 			}

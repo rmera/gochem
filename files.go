@@ -396,10 +396,9 @@ func PDBStringWrite(coords *VecMatrix, mol Atomer, bfact []float64) (string, err
 	var outline string
 	var outstring string
 	var err error
-	writecoord := EmptyVecs()
 	for i := 0; i < mol.Len(); i++ {
 		//	fmt.Println("IIIIIIIIIIIi", i,coords, "lllllll")
-		writecoord.VecView(coords, i)
+		writecoord:=coords.VecView(i)
 		outline, chainprev, err = writePDBLine(mol.Atom(i), writecoord, bfact[i], chainprev)
 		if err != nil {
 			return "", fmt.Errorf("Could not print PDB line: %d", i)
