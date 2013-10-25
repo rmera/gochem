@@ -185,7 +185,7 @@ func MakeWater(a1, a2 *VecMatrix, distance, angle float64, oxygen bool) *VecMatr
 	WaterOHDist := 0.96
 	WaterAngle := 52.25
 	deg2rad := 0.0174533
-	w:=water.VecView(0) //we first set the O coordinates
+	w := water.VecView(0) //we first set the O coordinates
 	w.Clone(a2)
 	w.Sub(w, a1)
 	w.Unit(w)
@@ -195,8 +195,8 @@ func MakeWater(a1, a2 *VecMatrix, distance, angle float64, oxygen bool) *VecMatr
 	w.Scale(distance+a1a2dist, w)
 	w.Add(w, a1)
 	for i := 0; i <= 1; i++ {
-		o:=water.VecView(0)
-		w=water.VecView(i+1)
+		o := water.VecView(0)
+		w = water.VecView(i + 1)
 		w.Clone(o)
 		w.Sub(w, a2)
 		w.Unit(w)
@@ -230,9 +230,9 @@ func MakeWater(a1, a2 *VecMatrix, distance, angle float64, oxygen bool) *VecMatr
 		return water
 	}
 	//we move things so an hydrogen points to a2 and modify the distance acordingly.
-	e1:=water.VecView(0)
-	e2:=water.VecView(1)
-	e3:=water.VecView(2)
+	e1 := water.VecView(0)
+	e2 := water.VecView(1)
+	e3 := water.VecView(2)
 	if v1 == nil {
 		v1 = ZeroVecs(1)
 	}
@@ -457,8 +457,8 @@ func ScaleBonds(coords *VecMatrix, mol Atomer, n1, n2 string, finallenght float6
 		for j := 0; j < mol.Len(); j++ {
 			c2 := mol.Atom(j)
 			if c1.Molid == c2.Molid && c1.Name == n1 && c2.Name == n2 {
-				A:=coords.VecView(i)
-				B:=coords.VecView(j)
+				A := coords.VecView(i)
+				B := coords.VecView(j)
 				ScaleBond(A, B, finallenght)
 			}
 		}

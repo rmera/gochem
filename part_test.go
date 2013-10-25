@@ -356,8 +356,8 @@ func TestWater(Te *testing.T) {
 	fmt.Println(l, mol.Len())
 	c2.Stack(mol.Coords[0], v)
 	mol.Coords[0] = c2
-	c:=mol.Coords[0].VecView(43)
-	h1:=mol.Coords[0].VecView(42)
+	c := mol.Coords[0].VecView(43)
+	h1 := mol.Coords[0].VecView(42)
 	coords := ZeroVecs(mol.Len())
 	coords.Clone(mol.Coords[0])
 	w1 := MakeWater(c, h1, 2, Deg2Rad*30, true)

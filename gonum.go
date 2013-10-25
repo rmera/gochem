@@ -65,14 +65,12 @@ type NormerMatrix interface {
 	Matrix
 }
 
-
 // BlasMatrix represents a cblas native representation of a matrix.
 type BlasMatrix struct {
 	Rows, Cols int
 	Stride     int
 	Data       []float64
 }
-
 
 //The main container, must be able to implement any
 //gonum interface.
@@ -172,9 +170,9 @@ func gnEigen(in *VecMatrix, epsilon float64) (*VecMatrix, []float64, error) {
 	//If not I'll add ortonormalization routines.
 	eigrows, _ := eig.evecs.Dims()
 	for i := 0; i < eigrows; i++ {
-		vectori:=eig.evecs.ColView(i)
+		vectori := eig.evecs.ColView(i)
 		for j := i + 1; j < eigrows; j++ {
-			vectorj:=eig.evecs.ColView(j)
+			vectorj := eig.evecs.ColView(j)
 			if math.Abs(vectori.Dot(vectorj)) > epsilon && i != j {
 				return eig.evecs, evals[:], NotOrthogonal
 			}
@@ -265,13 +263,13 @@ func (F *Dense) Add(A, B Matrix) {
 
 }
 
-func (F *Dense)BlasMatrix() BlasMatrix{
-	b:=new(BlasMatrix)
-	r,c:=F.Dims()
-	b.Rows=r
-	b.Cols=c
-	b.Stride=0 //not really
-	b.Data=F.Array()
+func (F *Dense) BlasMatrix() BlasMatrix {
+	b := new(BlasMatrix)
+	r, c := F.Dims()
+	b.Rows = r
+	b.Cols = c
+	b.Stride = 0 //not really
+	b.Data = F.Array()
 	return *b
 }
 
@@ -441,9 +439,6 @@ func (F *Dense) MulElem(A, B Matrix) {
 
 	}
 }
-
-
-
 
 func (F *Dense) Norm(i float64) float64 {
 	//temporary hack
@@ -616,7 +611,6 @@ func (F *VecMatrix) View(i, j, rows, cols int) {
 	F.Dense = &Dense{F.GetMatrix(i, j, rows, cols)}
 }
 
-
 /**These are from the current proposal for gonum, by Dan Kortschak. It will be taken out
  * from here when gonum is implemented. The gn prefix is appended to the names to make them
  * unimported and to allow easy use of search/replace to add the "num" prefix when I change to
@@ -640,9 +634,6 @@ func gnMaybe(fn gnPanicker) (err error) {
 	fn()
 	return
 }
-
-
-
 
 // Type Error represents matrix package errors. These errors can be recovered by Maybe wrappers.
 type gnError string

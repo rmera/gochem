@@ -58,7 +58,7 @@ func NewVecs(data []float64) *VecMatrix {
 
 //Returns a view of the ith Vecinate. Note that the allocation is minimal
 func VecView(a *VecMatrix, i int) *VecMatrix {
-	ret:=a.VecView(i)
+	ret := a.VecView(i)
 	return ret
 }
 
@@ -88,19 +88,19 @@ func (F *VecMatrix) AddVec(A, vec *VecMatrix) {
 		panic(gnErrShape)
 	}
 	for i := 0; i < ar; i++ {
-		j:=A.VecView(i)
-		f:=F.VecView(i)
+		j := A.VecView(i)
+		f := F.VecView(i)
 		f.Add(j, vec)
 	}
 }
 
 //Returns view of the given vector of the matrix in the receiver
 func (F *VecMatrix) VecView(i int) *VecMatrix {
-//	b:=A.BlasMatrix()
-//	r:=(i*3)+3
-//	Fb.Data[i*3:r])
-	r :=new(VecMatrix)
-	*r=*F
+	//	b:=A.BlasMatrix()
+	//	r:=(i*3)+3
+	//	Fb.Data[i*3:r])
+	r := new(VecMatrix)
+	*r = *F
 	r.View(i, 0, 1, 3)
 	return r
 }
@@ -120,16 +120,16 @@ func (F *VecMatrix) DelRow(A *VecMatrix, i int) {
 	}
 	tempA1 := new(VecMatrix)
 	tempF1 := new(VecMatrix)
-	*tempA1=*A
-	*tempF1=*F
+	*tempA1 = *A
+	*tempF1 = *F
 	tempA1.View(0, 0, i, ac)
 	tempF1.View(0, 0, i, ac)
 	tempF1.Clone(tempA1)
 	//now the other part
 	tempA2 := new(VecMatrix)
 	tempF2 := new(VecMatrix)
-	*tempA2=*A
-	*tempF2=*F
+	*tempA2 = *A
+	*tempF2 = *F
 	tempA2.View(i+1, 0, ar-i-1, ac) //The magic happens here
 	tempF2.View(i, 0, ar-i-1, fc)
 	tempF2.Clone(tempA2)
@@ -223,8 +223,8 @@ func (F *VecMatrix) Cross(a, b *VecMatrix) {
 
 //Puts a view of the given col of the matrix on the receiver
 func (F *VecMatrix) ColView(i int) *VecMatrix {
-	r:=new(VecMatrix)
-	*r=*F
+	r := new(VecMatrix)
+	*r = *F
 	Fr, _ := F.Dims()
 	r.View(0, i, Fr, 1)
 	return r
@@ -280,7 +280,7 @@ func (F *VecMatrix) ScaleByCol(A, Col Matrix) {
 		F.Clone(A)
 	}
 	for i := 0; i < ac; i++ {
-		temp:=F.ColView(i)
+		temp := F.ColView(i)
 		temp.MulElem(temp, Col)
 	}
 
@@ -299,13 +299,13 @@ func (F *VecMatrix) ScaleByRow(A, Row *VecMatrix) {
 		F.Clone(A)
 	}
 	for i := 0; i < ac; i++ {
-		temp:=F.RowView(i)
+		temp := F.RowView(i)
 		temp.MulElem(temp, Row)
 	}
 }
 
 //Puts a view of the given row of the matrix in the receiver
-func (F *VecMatrix) RowView(i int) *VecMatrix{
+func (F *VecMatrix) RowView(i int) *VecMatrix {
 	return F.VecView(i)
 }
 

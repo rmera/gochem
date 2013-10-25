@@ -447,7 +447,7 @@ var orcaSCFConv = map[int]string{
 
 var orcaDisp = map[string]string{
 	"nodisp": "",
-	"D3OLD" : "VDW10",  //compatibility with ORCA 2.9
+	"D3OLD":  "VDW10", //compatibility with ORCA 2.9
 	"D2":     "D2",
 	"D3":     "D3BJ",
 	"D3ZERO": "D3ZERO",

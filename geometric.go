@@ -302,8 +302,8 @@ func BestPlaneP(evecs *VecMatrix) (*VecMatrix, error) {
 	if evecs.Rows() != 3 || evecs.Cols() != 3 {
 		return evecs, fmt.Errorf("Eigenvectors matrix must be 3x3")
 	}
-	v1:=evecs.VecView(2)
-	v2:=evecs.VecView(1)
+	v1 := evecs.VecView(2)
+	v2 := evecs.VecView(1)
 	normal := cross(v1, v2)
 	return normal, nil
 }
@@ -456,7 +456,7 @@ func SelCone(B, selection *VecMatrix, angle, distance, thickness, initial float6
 			if isInInt(selected, j) || isInInt(neverselected, j) { //we dont scan things that we have already selected, or are too far
 				continue
 			}
-			atom:=A.VecView(j)
+			atom := A.VecView(j)
 			proj := Projection(atom, plane)
 			norm := proj.Norm(0)
 			//Now at what side of the plane is the atom?

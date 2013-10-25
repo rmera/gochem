@@ -161,8 +161,8 @@ func read_full_pdb_line(line string, read_additional bool, contlines int) (*Atom
 	// just ommit it
 	if read_additional && len(line) >= 80 {
 		atom.Symbol = strings.TrimSpace(line[76:78])
-		atom.Symbol = strings.Title(strings.ToLower(atom.Symbol)) //Not too efficient I guess
-		atom.Charge = float64(line[78])                           //strconv.ParseFloat(strings.TrimSpace(line[78:78]),64)
+		atom.Symbol = strings.Title(atom.Symbol)
+		atom.Charge = float64(line[78]) //strconv.ParseFloat(strings.TrimSpace(line[78:78]),64)
 		if strings.Contains(line[79:79], "-") {
 			atom.Charge = -1.0 * atom.Charge
 		}
@@ -398,7 +398,7 @@ func PDBStringWrite(coords *VecMatrix, mol Atomer, bfact []float64) (string, err
 	var err error
 	for i := 0; i < mol.Len(); i++ {
 		//	fmt.Println("IIIIIIIIIIIi", i,coords, "lllllll")
-		writecoord:=coords.VecView(i)
+		writecoord := coords.VecView(i)
 		outline, chainprev, err = writePDBLine(mol.Atom(i), writecoord, bfact[i], chainprev)
 		if err != nil {
 			return "", fmt.Errorf("Could not print PDB line: %d", i)
@@ -539,7 +539,7 @@ func xyzReadSnap(xyz *bufio.Reader, ReadTopol bool) (*VecMatrix, []*Atom, error)
 		}
 		if ReadTopol {
 			molecule[i] = new(Atom)
-			molecule[i].Symbol = strings.ToTitle(strings.ToLower(fields[0]))
+			molecule[i].Symbol = strings.Title(fields[0])
 			molecule[i].Mass = symbolMass[molecule[i].Symbol]
 			molecule[i].Molname = "UNK"
 			molecule[i].Name = molecule[i].Symbol
