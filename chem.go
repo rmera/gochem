@@ -352,7 +352,7 @@ func (M *Molecule) AddFrame(newframe *VecMatrix) {
 		panic("Malformed coord matrix!")
 	}
 	if M.Len() != r {
-		panic(gnError(fmt.Sprintf("Wrong number of coordinates (%d)", newframe.Rows())))
+		panic(gnError(fmt.Sprintf("Wrong number of coordinates (%d)", newframe.NVecs())))
 	}
 	if M.Coords == nil {
 		M.Coords = make([]*VecMatrix, 1, 1)
@@ -386,7 +386,7 @@ func (M *Molecule) Coord(atom, frame int) *VecMatrix {
 	}
 	r, _ := M.Coords[frame].Dims()
 	if atom >= r {
-		panic(fmt.Sprintf("Requested coordinate (%d) out of bounds (%d)", atom, M.Coords[frame].Rows()))
+		panic(fmt.Sprintf("Requested coordinate (%d) out of bounds (%d)", atom, M.Coords[frame].NVecs()))
 	}
 	ret := ZeroVecs(1)
 	empt := M.Coords[frame].VecView(atom)
@@ -454,7 +454,7 @@ func (M *Molecule) Corrupted() error {
 	for i := range M.Coords {
 		r, c := M.Coords[i].Dims()
 		if M.Len() != r || c != 3 {
-			err = fmt.Errorf("Inconsistent coordinates/atoms in frame %d: Atoms %d, coords: %d", i, M.Len(), M.Coords[i].Rows())
+			err = fmt.Errorf("Inconsistent coordinates/atoms in frame %d: Atoms %d, coords: %d", i, M.Len(), M.Coords[i].NVecs())
 			break
 		}
 		//Since bfactors are not as important as coordinates, we will just fill with
@@ -484,7 +484,7 @@ func (M *Molecule) LenFrames() int {
 func (M *Molecule) Swap(i, j int) {
 	M.Atoms[i], M.Atoms[j] = M.Atoms[j], M.Atoms[i]
 	for k := 0; k < len(M.Coords); k++ {
-		M.Coords[k].SwapRows(i, j)
+		M.Coords[k].SwapVecs(i, j)
 		t1 := M.Bfactors[k][i]
 		t2 := M.Bfactors[k][j]
 		M.Bfactors[k][i] = t2

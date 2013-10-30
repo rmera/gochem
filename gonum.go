@@ -32,7 +32,8 @@
 package chem
 
 import (
-	"github.com/skelterjohn/go.matrix"
+	"github.com/gonum/matrix/mat64"
+	"github.com/gonum/matrix/mat64/la"
 	"math"
 	"sort"
 )
@@ -46,68 +47,120 @@ import (
 
 //INTERFACES  This part is from GONUM, copyright, the gonum authors.
 
-// Matrix is the basic matrix interface type.
-type Matrix interface {
-	// Dims returns the dimensions of a Matrix.
-	Dims() (r, c int)
-
-	// At returns the value of a matrix element at (r, c). It will panic if r or c are
-	// out of bounds for the matrix.
-	At(r, c int) float64
-}
-
-type Normer interface {
-	Norm(o float64) float64
-}
-
-type NormerMatrix interface {
-	Normer
-	Matrix
-}
-
-// BlasMatrix represents a cblas native representation of a matrix.
-type BlasMatrix struct {
-	Rows, Cols int
-	Stride     int
-	Data       []float64
-}
-
 //The main container, must be able to implement any
 //gonum interface.
 //VecMatrix is a set of vectors in 3D space. The underlying implementation varies.
 type VecMatrix struct {
-	*Dense
+	*mat64.Dense
 }
 
-//For the pure-go implementation I must implement Dense on top of go.matrix
-type Dense struct {
-	*matrix.DenseMatrix
+func VecMatrix2Dense(A *VecMatrix) *mat64.Dense {
+	return A.Dense
 }
 
-//Generate and returns a CoorMatrix with arbitrary shape from data.
-func NewDense(data []float64, rows, cols int) *Dense {
-	if len(data) < cols*rows {
-		panic(NotEnoughElements)
+func Dense2VecMatrix(A *mat64.Dense) *VecMatrix {
+	return &VecMatrix{A}
+}
+
+func ChemDense2VecMatrix(A *ChemDense) *VecMatrix {
+	return &VecMatrix{A.Dense}
+}
+
+func VecMatrix2ChemDense(A *VecMatrix) *ChemDense {
+	return &ChemDense{A.Dense}
+}
+
+//Generate and returns a VecMatrix with 3 columns from data.
+func NewVecs(data []float64) (*VecMatrix, error) {
+	const cols int = 3
+	l := len(data)
+	rows := l / cols
+	//	if l%cols != 0 {
+	//		panic(fmt.Sprintf("Input slice lenght %d not divisible by %d: %d", rows, cols, rows%cols))
+	//	}
+	r, err := mat64.NewDense(rows, cols, data)
+	return &VecMatrix{r}, err
+}
+
+//Returns a view of the ith Vecinate. Note that the allocation is minimal
+func VecView(a *VecMatrix, i int) *VecMatrix {
+	ret := a.VecView(i)
+	return ret
+}
+
+
+func (F *VecMatrix)SwapVecs(i,j int){
+	if i>=F.NVecs() || j>=F.NVecs(){
+		panic("Indexes out of range")
 	}
-	return &Dense{matrix.MakeDenseMatrix(data, rows, cols)}
+	rowi := F.Row(nil, i)
+	rowj := F.Row(nil, j)
+	for k := 0; k < 3; k++ {
+		F.Set(i, k, rowj[k])
+		F.Set(j, k, rowi[k])
+	}
+}
 
+//puts A stacked over B in F
+func (F *VecMatrix) Stack(A, B *VecMatrix) {
+	b := F.BlasMatrix()
+	ar, _ := A.Dims()
+	br, _ := B.Dims()
+	if B.NVecs() < ar+br {
+		panic("Not enough space to stack")
+	}
+	for i := 0; i < ar; i++ {
+		A.Row(b.Data[i*3:i*3+3], i)
+	}
+
+	for i := ar; i < br; i++ {
+		A.Row(b.Data[i*3:i*3+3], i-ar)
+	}
+
+}
+
+//func EmptyVecs() *VecMatrix {
+//	dens := EmptyDense()
+//	return &VecMatrix{dens}
+//
+//}
+
+//Returns a zero-filled VecMatrix with cos vectors and 3 in the other dimension.
+func ZeroVecs(cos int) *VecMatrix {
+	const cols int = 3
+	dens := gnZeros(cos, cols)
+	return &VecMatrix{dens.Dense}
+}
+
+//Just a dense matrix to allow different implementations of gonum.
+//This might change to Dense at some point, but the API change should be barely noticeable.
+type ChemDense struct {
+	*mat64.Dense
+}
+
+func NewChemDense(data []float64, r, c int) (*ChemDense, error) {
+	d, err := mat64.NewDense(r, c, data)
+	return &ChemDense{d}, err
 }
 
 //Returns and empty, but not nil, Dense. It barely allocates memory
-func EmptyDense() *Dense {
-	var a *matrix.DenseMatrix
-	return &Dense{a}
+func emptyDense() (*mat64.Dense, error) {
+	a := make([]float64, 0, 0)
+	return mat64.NewDense(0, 0, a)
 
 }
 
 //Returns an zero-filled Dense with the given dimensions
 //It is to be substituted by the Gonum function.
-func gnZeros(rows, cols int) *Dense {
-	return &Dense{matrix.Zeros(rows, cols)}
+func gnZeros(r, c int) *ChemDense {
+	f := make([]float64, r*c, r*c)
+	ret, _ := mat64.NewDense(r, c, f)
+	return &ChemDense{ret}
+
 }
 
 //Returns an identity matrix spanning span cols and rows
-func gnEye(span int) *Dense {
+func gnEye(span int) *ChemDense {
 	A := gnZeros(span, span)
 	for i := 0; i < span; i++ {
 		A.Set(i, i, 1.0)
@@ -115,9 +168,9 @@ func gnEye(span int) *Dense {
 	return A
 }
 
-func Eye(span int) *Dense {
-	return gnEye(span)
-}
+//func Eye(span int) *ChemDense {
+//	return gnEye(span)
+//}
 
 //Some temporary support function.
 //func Eigen(in *Dense, epsilon float64) (*Dense, []float64, error) {
@@ -139,7 +192,8 @@ func (E eigenpair) Less(i, j int) bool {
 func (E eigenpair) Swap(i, j int) {
 	E.evals.Swap(i, j)
 	//	E.evecs[i],E.evecs[j]=E.evecs[j],E.evecs[i]
-	E.evecs.SwapRows(i, j)
+	E.evecs.SwapVecs(i,j)
+
 }
 func (E eigenpair) Len() int {
 	return len(E.evals)
@@ -155,11 +209,10 @@ func gnEigen(in *VecMatrix, epsilon float64) (*VecMatrix, []float64, error) {
 	if epsilon < 0 {
 		epsilon = appzero
 	}
-	evecsDM, vals, _ := in.Eigen()
-	temp := VecMatrix{&Dense{evecsDM}}
-	evecs := &temp
-	evals := [3]float64{vals.Get(0, 0), vals.Get(1, 1), vals.Get(2, 2)} //go.matrix specific code here.
-	f := func() { evecs.T(evecs) }
+	evals, _, vecs := la.Eigen(in.Dense, epsilon)
+	evecs := &VecMatrix{vecs}
+	//evals := [3]float64{vals.At(0, 0), vals.At(1, 1), vals.At(2, 2)} //go.matrix specific code here.
+	f := func() { evecs.TCopy(evecs) }
 	if err = gnMaybe(gnPanicker(f)); err != nil {
 		return nil, nil, err
 	}
@@ -185,8 +238,8 @@ func gnEigen(in *VecMatrix, epsilon float64) (*VecMatrix, []float64, error) {
 	}
 	//Checking and fixing the handness of the matrix.This if-else is Jannes idea,
 	//I don't really know whether it works.
-	eig.evecs.T(eig.evecs)
-	if eig.evecs.Det() < 0 {
+	eig.evecs.TCopy(eig.evecs)
+	if det(eig.evecs) < 0 { //Right now, this will fail if the matrix is not 3x3 (30/10/2013)
 		eig.evecs.Scale(-1, eig.evecs) //SSC
 	} else {
 		/*
@@ -197,22 +250,25 @@ func gnEigen(in *VecMatrix, epsilon float64) (*VecMatrix, []float64, error) {
 		*/
 		//	fmt.Println("all good, I guess")
 	}
-	eig.evecs.T(eig.evecs)
+	eig.evecs.TCopy(eig.evecs)
 	return eig.evecs, eig.evals, err //Returns a slice of evals
 }
 
 //Returns the singular value decomposition of matrix A
-func gnSVD(A *Dense) (*Dense, *Dense, *Dense, error) {
-	U, s, V, err := A.SVD()
-	theU := Dense{U}
-	sigma := Dense{s}
-	theV := Dense{V}
-	return &theU, &sigma, &theV, err
+func gnSVD(A *ChemDense) (*ChemDense, *ChemDense, *ChemDense) {
+	s,U, V := la.SVD(A.Dense, appzero, appzero, true, true) //I am not sure that the second appzero is appropiate
+	//make sigma a matrix
+	lens:=len(s)
+	Sigma, _ := mat64.NewDense(lens, lens, make([]float64, lens*lens)) //the slice is hardcoded, no error
+	for i := 0; i < lens; i++ {
+		Sigma.Set(i, i, s[i])
+	}
+	return &ChemDense{U}, &ChemDense{Sigma}, &ChemDense{V}
 
 }
 
 //returns a rows,cols matrix filled with gnOnes.
-func gnOnes(rows, cols int) *Dense {
+func gnOnes(rows, cols int) *ChemDense {
 	gnOnes := gnZeros(rows, cols)
 	for i := 0; i < rows; i++ {
 		for j := 0; j < cols; j++ {
@@ -222,7 +278,7 @@ func gnOnes(rows, cols int) *Dense {
 	return gnOnes
 }
 
-func gnMul(A, B Matrix) *Dense {
+func gnMul(A, B mat64.Matrix) *ChemDense {
 	ar, _ := A.Dims()
 	_, bc := B.Dims()
 	C := gnZeros(ar, bc)
@@ -230,385 +286,27 @@ func gnMul(A, B Matrix) *Dense {
 	return C
 }
 
-func gnClone(A Matrix) *Dense {
+func gnClone(A mat64.Matrix) *ChemDense {
 	r, c := A.Dims()
 	B := gnZeros(r, c)
 	B.Clone(A)
 	return B
 }
 
-func gnT(A Matrix) *Dense {
+func gnT(A mat64.Matrix) *ChemDense {
 	r, c := A.Dims()
 	B := gnZeros(c, r)
-	B.T(A)
+	B.TCopy(A)
 	return B
 }
 
-//Methods
-/* When gonum is ready, all this functions will take a num.Matrix interface as an argument, instead of a
- * Dense*/
-
-func (F *Dense) Add(A, B Matrix) {
-	ar, ac := A.Dims()
-	br, bc := B.Dims()
-	fr, fc := F.Dims()
-	if ac != bc || br != ar || ac != fc || ar != fr {
-		panic(gnErrShape)
+//This is a temporal function. It returns the determinant of a 3x3 matrix. Panics if the matrix is not 3x3
+func det(A Matrix) float64 {
+	r, c := A.Dims()
+	if r != 3 || c != 3 {
+		panic("Determinants are for now only available for 3x3 matrices")
 	}
-	for i := 0; i < fr; i++ {
-		for j := 0; j < fc; j++ {
-			F.Set(i, j, A.At(i, j)+B.At(i, j))
-		}
-	}
-
-}
-
-func (F *Dense) BlasMatrix() BlasMatrix {
-	b := new(BlasMatrix)
-	r, c := F.Dims()
-	b.Rows = r
-	b.Cols = c
-	b.Stride = 0 //not really
-	b.Data = F.Array()
-	return *b
-}
-
-func (F *Dense) At(A, B int) float64 {
-	return F.Get(A, B)
-}
-
-func (F *Dense) Clone(A Matrix) {
-	ar, ac := A.Dims()
-	fr, fc := F.Dims()
-	if ac != fc || ar != fr {
-		panic(gnErrShape)
-	}
-
-	for i := 0; i < ar; i++ {
-		for j := 0; j < ac; j++ {
-			F.Set(i, j, A.At(i, j))
-		}
-
-	}
-
-}
-
-//Returns an array with the data in the ith row of F
-func (F *Dense) Col(a []float64, i int) []float64 {
-	r, c := F.Dims()
-	if i >= c {
-		panic("Matrix: Requested column out of bounds")
-	}
-	if a == nil {
-		a = make([]float64, r, r)
-	}
-	for j := 0; j < r; j++ {
-		if j >= len(a) {
-			break
-		}
-		a[j] = F.At(j, i)
-	}
-	return a
-}
-
-func (F *Dense) Dims() (int, int) {
-	return F.Rows(), F.Cols()
-}
-
-//Dot returns the dot product between 2 vectors or matrices
-func (F *Dense) Dot(B Matrix) float64 {
-	frows, fcols := F.Dims()
-	brows, bcols := B.Dims()
-	if fcols != bcols || frows != brows {
-		panic(gnErrShape)
-	}
-	a, b := F.Dims()
-	A := gnZeros(a, b)
-	A.MulElem(F, B)
-	return A.Sum()
-}
-
-//puts the inverse of B in F or panics if F is non-singular.
-//its just a dirty minor adaptation from the code in go.matrix from John Asmuth
-//it will be replaced by the gonum implementation when the library is ready.
-func (F *Dense) Inv(B Matrix) {
-	//fr,fc:=F.Dims()
-	ar, ac := B.Dims()
-	if ac != ar {
-		panic(gnErrSquare)
-	}
-	var ok bool
-	var A *VecMatrix
-	A, ok = B.(*VecMatrix)
-	if !ok {
-		C, ok := B.(*Dense)
-		if !ok {
-			panic("Few types are allowed so far")
-		}
-		A = &VecMatrix{C}
-
-	}
-	augt, _ := A.Augment(matrix.Eye(ar))
-	aug := &Dense{augt}
-	augr, _ := aug.Dims()
-	for i := 0; i < augr; i++ {
-		j := i
-		for k := i; k < augr; k++ {
-			if math.Abs(aug.Get(k, i)) > math.Abs(aug.Get(j, i)) {
-				j = k
-			}
-		}
-		if j != i {
-			aug.SwapRows(i, j)
-		}
-		if aug.Get(i, i) == 0 {
-			panic(gnErrSingular)
-		}
-		aug.ScaleRow(i, 1.0/aug.Get(i, i))
-		for k := 0; k < augr; k++ {
-			if k == i {
-				continue
-			}
-			aug.ScaleAddRow(k, i, -aug.Get(k, i))
-		}
-	}
-	F.SubMatrix(aug, 0, ac, ar, ac)
-}
-
-//A slightly modified version of John Asmuth's ParalellProduct function.
-func (F *Dense) Mul(A, B Matrix) {
-	Arows, Acols := A.Dims()
-	Brows, Bcols := B.Dims()
-	if Acols != Brows {
-		panic(gnErrShape)
-	}
-	if F == nil {
-		F = gnZeros(Arows, Bcols) //I don't know if the final API will allow this.
-	}
-
-	in := make(chan int)
-	quit := make(chan bool)
-
-	dotRowCol := func() {
-		for {
-			select {
-			case i := <-in:
-				sums := make([]float64, Bcols)
-				for k := 0; k < Acols; k++ {
-					for j := 0; j < Bcols; j++ {
-						sums[j] += A.At(i, k) * B.At(k, j)
-					}
-				}
-				for j := 0; j < Bcols; j++ {
-					F.Set(i, j, sums[j])
-				}
-			case <-quit:
-				return
-			}
-		}
-	}
-
-	threads := 2
-
-	for i := 0; i < threads; i++ {
-		go dotRowCol()
-	}
-
-	for i := 0; i < Arows; i++ {
-		in <- i
-	}
-
-	for i := 0; i < threads; i++ {
-		quit <- true
-	}
-
-	return
-}
-
-func (F *Dense) MulElem(A, B Matrix) {
-	arows, acols := A.Dims()
-	brows, bcols := B.Dims()
-	frows, fcols := F.Dims()
-	if arows != brows || acols != bcols || arows != frows || acols != fcols {
-		panic(gnErrShape)
-	}
-	for i := 0; i < arows; i++ {
-		for j := 0; j < acols; j++ {
-			F.Set(i, j, A.At(i, j)*B.At(i, j))
-		}
-
-	}
-}
-
-func (F *Dense) Norm(i float64) float64 {
-	//temporary hack
-	if i != 0 {
-		panic("only Euclidian norm is implemented")
-	}
-	return F.TwoNorm()
-}
-
-//Returns an array with the data in the ith row of F
-func (F *Dense) Row(a []float64, i int) []float64 {
-	r, c := F.Dims()
-	if i >= r {
-		panic("Matrix: Requested row out of bounds")
-	}
-	if a == nil {
-		a = make([]float64, c, c)
-	}
-	for j := 0; j < c; j++ {
-		if j >= len(a) {
-			break
-		}
-		a[j] = F.At(i, j)
-	}
-	return a
-}
-
-//Scale the matrix A by a number i, putting the result in the received.
-func (F *Dense) Scale(i float64, A Matrix) {
-	if A == F { //if A and F points to the same object.
-		F.scaleAux(i)
-	} else {
-		F.Clone(A)
-		F.scaleAux(i)
-	}
-}
-
-func (F *Dense) scaleAux(factor float64) {
-	fr, fc := F.Dims()
-	for i := 0; i < fr; i++ {
-		for j := 0; j < fc; j++ {
-			F.Set(i, j, F.At(i, j)*factor)
-		}
-
-	}
-}
-
-//When go.matrix is abandoned it is necesary to implement SetMatrix
-//SetMatrix()
-//Copies A into F aligning A(0,0) with F(i,j)
-func (F *Dense) SetMatrix(i, j int, A Matrix) {
-	fr, fc := F.Dims()
-	ar, ac := A.Dims()
-	if ar+i > fr || ac+j > fc {
-		panic(gnErrShape)
-	}
-	for l := 0; l < ar; l++ {
-		for m := 0; m < ac; m++ {
-			F.Set(l+i, m+j, A.At(l, m))
-		}
-	}
-}
-
-//puts in F a matrix consisting in A over B
-func (F *Dense) Stack(A, B Matrix) {
-	Arows, Acols := A.Dims()
-	Brows, Bcols := B.Dims()
-	Frows, Fcols := F.Dims()
-
-	if Acols != Bcols || Acols != Fcols || Arows+Brows != Frows {
-		panic(gnErrShape)
-	}
-
-	for i := 0; i < Arows+Brows; i++ {
-		for j := 0; j < Acols; j++ {
-			if i < Arows {
-				F.Set(i, j, A.At(i, j))
-			} else {
-				F.Set(i, j, B.At(i-Arows, j))
-			}
-		}
-	}
-
-	return
-}
-
-//Subtracts the matrix B from A putting the result in F
-func (F *Dense) Sub(A, B Matrix) {
-	ar, ac := A.Dims()
-	br, bc := B.Dims()
-	fr, fc := F.Dims()
-	if ac != bc || br != ar || ac != fc || ar != fr {
-		panic(gnErrShape)
-	}
-	for i := 0; i < fr; i++ {
-		for j := 0; j < fc; j++ {
-			F.Set(i, j, A.At(i, j)-B.At(i, j))
-		}
-	}
-
-}
-
-//not tested
-//returns a copy of the submatrix of A starting by the point i,j and
-//spanning rows rows and cols columns.
-func (F *Dense) SubMatrix(A *Dense, i, j, rows, cols int) {
-	temp := Dense{A.GetMatrix(i, j, rows, cols)}
-	F.Clone(&temp)
-}
-
-//Sum returns the sum of all elements in matrix A.
-func (F *Dense) Sum() float64 {
-	Rows, Cols := F.Dims()
-	var sum float64
-	for i := 0; i < Cols; i++ {
-		for j := 0; j < Rows; j++ {
-			sum += F.Get(j, i)
-		}
-	}
-	return sum
-}
-
-//Transpose
-func (F *Dense) T(A Matrix) {
-	ar, ac := A.Dims()
-	fr, fc := F.Dims()
-	if ar != fc || ac != fr {
-		panic(gnErrShape)
-	}
-	var B *Dense
-	B, ok := A.(*Dense)
-	if !ok {
-		C, ok := A.(*VecMatrix)
-		if !ok {
-			panic("Only Dense and VecMatrix are currently accepted")
-		}
-		B = C.Dense
-	}
-	//we do it in a different way if you pass the received as the argument
-	//(transpose in place) We could use continue for i==j
-	if F == B {
-		/*		for i := 0; i < ar; i++ {
-				for j := 0; j < i; j++ {
-					tmp := A.At(i, j)
-					F.Set(i, j, A.At(j, i))
-					F.Set(j, i, tmp)
-				}
-		*/F.TransposeInPlace()
-	} else {
-		F.DenseMatrix = B.Transpose()
-		/*
-			for i := 0; i < ar; i++ {
-				for j := 0; j < ac; j++ {
-					F.Set(j, i, A.At(i, j))
-				}
-			}
-		*/
-	}
-}
-
-//Unit takes a vector and divides it by its norm
-//thus obtaining an unitary vector pointing in the same direction as
-//vector.
-func (F *Dense) Unit(A NormerMatrix) {
-	norm := 1.0 / A.Norm(0)
-	F.Scale(norm, A)
-}
-
-func (F *VecMatrix) View(i, j, rows, cols int) {
-	F.Dense = &Dense{F.GetMatrix(i, j, rows, cols)}
+	return (A.At(0, 0)*(A.At(1, 1)*A.At(2, 2)-A.At(2, 1)*A.At(1, 2)) - A.At(1, 0)*(A.At(0, 1)*A.At(2, 2)-A.At(2, 1)*A.At(0, 2)) + A.At(2, 0)*(A.At(0, 1)*A.At(1, 2)-A.At(1, 1)*A.At(0, 2)))
 }
 
 /**These are from the current proposal for gonum, by Dan Kortschak. It will be taken out

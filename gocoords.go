@@ -30,50 +30,27 @@
 package chem
 
 import (
-	"fmt"
+	//"fmt"
 	"math"
 )
+
+
+
+// Matrix is the basic matrix interface type. This is redundant and exactly equivalent to the implementation in gonum
+type Matrix interface {
+	// Dims returns the dimensions of a Matrix.
+	Dims() (r, c int)
+
+	// At returns the value of a matrix element at (r, c). It will panic if r or c are
+	// out of bounds for the matrix.
+	At(r, c int) float64
+}
+
 
 const appzero float64 = 0.000000000001 //used to correct floating point
 //errors. Everything equal or less than this is considered zero.
 
-func VecMatrix2Dense(A *VecMatrix) *Dense {
-	return A.Dense
-}
 
-func Dense2VecMatrix(A *Dense) *VecMatrix {
-	return &VecMatrix{A}
-}
-
-//Generate and returns a VecMatrix with 3 columns from data.
-func NewVecs(data []float64) *VecMatrix {
-	const cols int = 3
-	l := len(data)
-	rows := l / cols
-	if l%cols != 0 {
-		panic(fmt.Sprintf("Input slice lenght %d not divisible by %d: %d", rows, cols, rows%cols))
-	}
-	return &VecMatrix{NewDense(data, rows, cols)}
-}
-
-//Returns a view of the ith Vecinate. Note that the allocation is minimal
-func VecView(a *VecMatrix, i int) *VecMatrix {
-	ret := a.VecView(i)
-	return ret
-}
-
-//func EmptyVecs() *VecMatrix {
-//	dens := EmptyDense()
-//	return &VecMatrix{dens}
-//
-//}
-
-//Returns a zero-filled VecMatrix with cos vectors and 3 in the other dimension.
-func ZeroVecs(cos int) *VecMatrix {
-	const cols int = 3
-	dens := gnZeros(cos, cols)
-	return &VecMatrix{dens}
-}
 
 //METHODS
 
@@ -162,7 +139,7 @@ func (F *VecMatrix) SetVecs(A *VecMatrix, clist []int) {
 	}
 	for key, val := range clist {
 		for j := 0; j < ac; j++ {
-			F.Set(val, j, A.Get(key, j))
+			F.Set(val, j, A.At(key, j))
 		}
 	}
 }
@@ -190,6 +167,7 @@ func (F *VecMatrix) SomeVecsSafe(A *VecMatrix, clist []int) (err error) {
 	f := func() { F.SomeVecs(A, clist) }
 	return gnMaybe(gnPanicker(f))
 }
+
 
 //puts in F a matrix consistent of A over B or A to the left of B.
 //DELCAN
@@ -253,7 +231,7 @@ func (F *VecMatrix) AddRow(A, row *VecMatrix) {
 
 //Puts A**exp on the receiver. This function could probably
 //be written in a concurrent way
-func (F *Dense) Pow(A Matrix, exp float64) {
+func (F *ChemDense) Pow(A Matrix, exp float64) {
 	ar, ac := A.Dims()
 	fr, fc := F.Dims()
 	if ar != fr || ac != fc {
@@ -315,3 +293,10 @@ func (F *VecMatrix) RowView(i int) *VecMatrix {
 func (F *VecMatrix) SubRow(A, row *VecMatrix) {
 	F.SubVec(A, row)
 }
+
+func (F *VecMatrix) Unit(A Matrix){
+	F.Clone(A)
+	norm:=F.Norm(0)
+	F.Scale(norm,F)
+}
+
