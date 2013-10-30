@@ -110,6 +110,7 @@ func RotateAbout(coordsorig, ax1, ax2 *VecMatrix, angle float64) (*VecMatrix, er
 //radians around the axis given by the vector axis. It returns the rotated coordsorig,
 //since the original is not affected. It seems more clunky than the RotateAbout, which uses Clifford algebra.
 //I leave it for benchmark, mostly, and might remove it later.
+/*
 func EulerRotateAbout(coordsorig, ax1, ax2 *VecMatrix, angle float64) (*VecMatrix, error) {
 	r, _ := coordsorig.Dims()
 	coords := ZeroVecs(r)
@@ -146,7 +147,7 @@ func Corrupted(X Traj, R Atomer) error {
 	}
 	return nil
 }
-
+*/
 //Some internal convenience functions.
 
 //isIn is a helper for the RamaList function,
@@ -202,7 +203,8 @@ func MakeWater(a1, a2 *VecMatrix, distance, angle float64, oxygen bool) *VecMatr
 		w.Unit(w)
 		w.Scale(WaterOHDist+distance, w)
 		o.Sub(o, a2)
-		upp := cross(w, NewVecs([]float64{0, 0, 1}))
+		t,_:=NewVecs([]float64{0, 0, 1})
+		upp := cross(w,t)
 		upp.Add(upp, o)
 		upp.Add(upp, a2)
 		//water.SetMatrix(3,0,upp)

@@ -89,6 +89,20 @@ func VecView(a *VecMatrix, i int) *VecMatrix {
 }
 
 
+//Puts the matrix A in the received starting from the ith row and jth col
+//of the receiver.
+func (F *VecMatrix)SetMatrix(i,j int,A *VecMatrix){
+	b:=F.BlasMatrix()
+	ar,ac:=A.Dims()
+	fc:=3
+	r:=make([]float64,ac,ac)
+	for k:=0;k<ac;k++{
+		A.Row(r,k)
+		startpoint:=fc*(k+i)+j
+		copy(b.Data[startpoint:startpoint+fc],r)
+	}
+}
+
 func (F *VecMatrix)SwapVecs(i,j int){
 	if i>=F.NVecs() || j>=F.NVecs(){
 		panic("Indexes out of range")

@@ -304,7 +304,10 @@ func pdbBufIORead(pdb *bufio.Reader, read_additional bool) (*Molecule, error) {
 	frames := len(coords)
 	mcoords := make([]*VecMatrix, frames, frames) //Final thing to return
 	for i := 0; i < frames; i++ {
-		mcoords[i] = NewVecs(coords[i])
+		mcoords[i],err = NewVecs(coords[i])
+		if err!=nil{
+			return nil , err
+		}
 	}
 	//if something happened during the process
 	if err != nil {
@@ -555,7 +558,7 @@ func xyzReadSnap(xyz *bufio.Reader, ReadTopol bool) (*VecMatrix, []*Atom, error)
 			return nil, nil, i
 		}
 	}
-	mcoords := NewVecs(coords)
+	mcoords,err := NewVecs(coords)
 	return mcoords, molecule, err
 }
 
@@ -578,7 +581,7 @@ func XYZWrite(xyzname string, Coords *VecMatrix, mol Atomer) error {
 //XYZStringWrite writes the mol Ref and the Coord coordinates in an XYZ-formatted string.
 func XYZStringWrite(Coords *VecMatrix, mol Atomer) (string, error) {
 	var out string
-	if mol.Len() != Coords.Rows() {
+	if mol.Len() != Coords.NVecs() {
 		return "", fmt.Errorf("Ref and Coords dont have the same number of atoms")
 	}
 	c := make([]float64, 3, 3)
