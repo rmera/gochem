@@ -278,11 +278,11 @@ func (O *MopacRunner) GetGeometry(atoms Ref) (*VecMatrix, error) {
 	if err != nil {
 		return nil, err
 	}
-	mcoords := NewVecs(coords)
+	mcoords, err := NewVecs(coords)
 	if trust_radius_warning {
 		return mcoords, fmt.Errorf("Probable problem in calculation")
 	}
-	return mcoords, nil
+	return mcoords, err
 }
 
 //Support function, gets a slice of errors and returns the first

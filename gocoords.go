@@ -71,16 +71,7 @@ func (F *VecMatrix) AddVec(A, vec *VecMatrix) {
 	}
 }
 
-//Returns view of the given vector of the matrix in the receiver
-func (F *VecMatrix) VecView(i int) *VecMatrix {
-	//	b:=A.BlasMatrix()
-	//	r:=(i*3)+3
-	//	Fb.Data[i*3:r])
-	r := new(VecMatrix)
-	*r = *F
-	r.View(i, 0, 1, 3)
-	return r
-}
+
 
 //puts a copy of matrix A without the vector i
 //in the received. Vector could be a col or row vector depending
@@ -199,14 +190,6 @@ func (F *VecMatrix) Cross(a, b *VecMatrix) {
 
 //METHODS Not Vec specific.
 
-//Puts a view of the given col of the matrix on the receiver
-func (F *VecMatrix) ColView(i int) *VecMatrix {
-	r := new(VecMatrix)
-	*r = *F
-	Fr, _ := F.Dims()
-	r.View(0, i, Fr, 1)
-	return r
-}
 
 //AddFloat puts in the receiver a matrix which elements are
 //those of matrix A plus the float B.

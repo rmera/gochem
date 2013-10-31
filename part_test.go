@@ -1,4 +1,4 @@
-// +build part
+/// +build part
 
 /*
  * part_test.go
@@ -93,7 +93,7 @@ func TestChangeAxis(Te *testing.T) {
 	orient := ZeroVecs(ov2.NVecs())
 	orient.Sub(ov2, ov1)
 	//	PDBWrite(mol,"test/2c9v-124centered.pdb")
-	Z := NewVecs([]float64{0, 0, 1})
+	Z,_ := NewVecs([]float64{0, 0, 1})
 	axis := cross(orient, Z)
 	angle := AngleInVectors(orient, Z)
 	mol.Coords[0] = Rotate(mol.Coords[0], axis, angle)
@@ -135,8 +135,9 @@ func TestOldChangeAxis(Te *testing.T) {
 	orient := ZeroVecs(ov2.NVecs())
 	orient.Sub(ov2, ov1)
 	rotation := GetSwitchZ(orient)
-	//	fmt.Println("rotation: ",rotation)
-	mol.Coords[0].Mul(mol.Coords[0], rotation)
+	cr,cc:=mol.Coords[0].Dims()
+	fmt.Println("rotation: ",rotation.Dense, cr, cc) ////////////////////////////////////////////////////////
+	mol.Coords[0].Mul(mol.Coords[0],rotation)
 	//	fmt.Println(orient_atoms[1], mol.Atom(orient_atoms[1]),mol.Atom(orient_atoms[0]))
 	if err != nil {
 		Te.Error(err)
@@ -165,8 +166,8 @@ func TestPutInXYPlane(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
-	z := NewVecs([]float64{0, 0, 1})
-	zero := NewVecs([]float64{0, 0, 0})
+	z,_ := NewVecs([]float64{0, 0, 1})
+	zero,_ := NewVecs([]float64{0, 0, 0})
 	fmt.Println("beees", best, z)
 	axis := cross(best, z)
 	//The main part of the program, where the rotation actually happens. Note that we rotate the whole

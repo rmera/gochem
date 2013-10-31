@@ -35,6 +35,7 @@ import (
 	"github.com/gonum/matrix/mat64"
 	"github.com/gonum/matrix/mat64/la"
 	"math"
+	"fmt"
 	"sort"
 )
 
@@ -75,19 +76,49 @@ func NewVecs(data []float64) (*VecMatrix, error) {
 	const cols int = 3
 	l := len(data)
 	rows := l / cols
-	//	if l%cols != 0 {
-	//		panic(fmt.Sprintf("Input slice lenght %d not divisible by %d: %d", rows, cols, rows%cols))
-	//	}
+		if l%cols != 0 {
+			return nil, fmt.Errorf("Input slice lenght %d not divisible by %d: %d", rows, cols, rows%cols)
+		}
 	r, err := mat64.NewDense(rows, cols, data)
 	return &VecMatrix{r}, err
 }
 
 //Returns a view of the ith Vecinate. Note that the allocation is minimal
+//REMOVE!!!!
 func VecView(a *VecMatrix, i int) *VecMatrix {
 	ret := a.VecView(i)
 	return ret
 }
 
+
+//Puts a view of the given col of the matrix on the receiver
+func (F *VecMatrix) ColView(i int) *VecMatrix {
+	r := new(mat64.Dense)
+	*r = *F.Dense
+	Fr, _ := F.Dims()
+	r.View(0, i, Fr, 1)
+	return &VecMatrix{r}
+}
+
+//Returns view of the given vector of the matrix in the receiver
+func (F *VecMatrix) VecView(i int) *VecMatrix {
+	r := new(mat64.Dense)
+	*r = *F.Dense
+	r.View(i, 0, 1, 3)
+	return &VecMatrix{r}
+}
+
+//View returns a view of F starting from i,j and spanning r rows and
+//c columns. Changes in the view are reflected in F and vice-versa
+//This view has the wrong signature for the interface mat64.Viewer,
+//But the right signatur was not possible to implement. Notice that very little
+//memory allocation happens, only a couple of ints and pointers.
+func (F *VecMatrix)View(i,j,r,c int) *VecMatrix{
+	ret := new(mat64.Dense)
+	*ret = *F.Dense
+	ret.View(i,j,r,c)
+	return &VecMatrix{ret}
+}
 
 //Puts the matrix A in the received starting from the ith row and jth col
 //of the receiver.
@@ -95,8 +126,11 @@ func (F *VecMatrix)SetMatrix(i,j int,A *VecMatrix){
 	b:=F.BlasMatrix()
 	ar,ac:=A.Dims()
 	fc:=3
+	if ar+i>F.NVecs() || ac+j>fc{
+		panic("SetMatrix: Dimmension mismatch")
+	}
 	r:=make([]float64,ac,ac)
-	for k:=0;k<ac;k++{
+	for k:=0;k<ar;k++{
 		A.Row(r,k)
 		startpoint:=fc*(k+i)+j
 		copy(b.Data[startpoint:startpoint+fc],r)
@@ -223,13 +257,20 @@ func gnEigen(in *VecMatrix, epsilon float64) (*VecMatrix, []float64, error) {
 	if epsilon < 0 {
 		epsilon = appzero
 	}
-	evals, _, vecs := la.Eigen(in.Dense, epsilon)
-	evecs := &VecMatrix{vecs}
+	efacs := la.Eigen(in.Dense, epsilon)
+	evecs := &VecMatrix{efacs.V}
+	evalsmat:=efacs.D()
+	d,_:=evalsmat.Dims()
+	evals:=make([]float64,d,d)
+	for k,_:=range(evals){
+		evals[k]=evalsmat.At(k,k)
+	}
 	//evals := [3]float64{vals.At(0, 0), vals.At(1, 1), vals.At(2, 2)} //go.matrix specific code here.
 	f := func() { evecs.TCopy(evecs) }
 	if err = gnMaybe(gnPanicker(f)); err != nil {
 		return nil, nil, err
 	}
+
 	eig := eigenpair{evecs, evals[:]}
 	sort.Sort(eig)
 	//Here I should orthonormalize vectors if needed instead of just complaining.
@@ -270,14 +311,14 @@ func gnEigen(in *VecMatrix, epsilon float64) (*VecMatrix, []float64, error) {
 
 //Returns the singular value decomposition of matrix A
 func gnSVD(A *ChemDense) (*ChemDense, *ChemDense, *ChemDense) {
-	s,U, V := la.SVD(A.Dense, appzero, appzero, true, true) //I am not sure that the second appzero is appropiate
+	facts:= la.SVD(A.Dense, appzero, appzero, true, true) //I am not sure that the second appzero is appropiate
 	//make sigma a matrix
-	lens:=len(s)
-	Sigma, _ := mat64.NewDense(lens, lens, make([]float64, lens*lens)) //the slice is hardcoded, no error
-	for i := 0; i < lens; i++ {
-		Sigma.Set(i, i, s[i])
-	}
-	return &ChemDense{U}, &ChemDense{Sigma}, &ChemDense{V}
+//	lens:=len(s)
+//	Sigma, _ := mat64.NewDense(lens, lens, make([]float64, lens*lens)) //the slice is hardcoded, no error
+//	for i := 0; i < lens; i++ {
+//		Sigma.Set(i, i, s[i])
+//	}
+	return &ChemDense{facts.U}, &ChemDense{facts.S()}, &ChemDense{facts.V}
 
 }
 
