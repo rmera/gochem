@@ -1,3 +1,5 @@
+// +build !purego
+
 /*
  * gonum.go, part of gochem.
  *
@@ -32,19 +34,20 @@
 package chem
 
 import (
+	"fmt"
+	"github.com/gonum/blas/cblas"
 	"github.com/gonum/matrix/mat64"
 	"github.com/gonum/matrix/mat64/la"
 	"math"
-	"fmt"
 	"sort"
 )
 
-/*Here I make a -very incomplete- implementation of the gonum api backed by go.matrix, which will enable me to port gochem to gonum.
- * Since the agreement in the gonum community was NOT to build a temporary implementation, I just build the functions that
- * gochem uses, on my own type (which should implement all the relevant gonum interfaces).
- * all the gonum-owned names will start with gn (i.e. RandomFunc becomes gnRandomFunc) so its latter easy to use search and replace to set the
- * correct import path when gonum is implemented (such as gonum.RandomFunc)
- */
+//For now this is here as we do not have other blas engine options.
+//When we do, there will be several files with different inits,
+//That will be chosen with compiler flags.
+func init() {
+	mat64.Register(cblas.Blas{})
+}
 
 //INTERFACES  This part is from GONUM, copyright, the gonum authors.
 
@@ -63,22 +66,14 @@ func Dense2VecMatrix(A *mat64.Dense) *VecMatrix {
 	return &VecMatrix{A}
 }
 
-func ChemDense2VecMatrix(A *ChemDense) *VecMatrix {
-	return &VecMatrix{A.Dense}
-}
-
-func VecMatrix2ChemDense(A *VecMatrix) *ChemDense {
-	return &ChemDense{A.Dense}
-}
-
 //Generate and returns a VecMatrix with 3 columns from data.
 func NewVecs(data []float64) (*VecMatrix, error) {
 	const cols int = 3
 	l := len(data)
 	rows := l / cols
-		if l%cols != 0 {
-			return nil, fmt.Errorf("Input slice lenght %d not divisible by %d: %d", rows, cols, rows%cols)
-		}
+	if l%cols != 0 {
+		return nil, fmt.Errorf("Input slice lenght %d not divisible by %d: %d", rows, cols, rows%cols)
+	}
 	r, err := mat64.NewDense(rows, cols, data)
 	return &VecMatrix{r}, err
 }
@@ -89,7 +84,6 @@ func VecView(a *VecMatrix, i int) *VecMatrix {
 	ret := a.VecView(i)
 	return ret
 }
-
 
 //Puts a view of the given col of the matrix on the receiver
 func (F *VecMatrix) ColView(i int) *VecMatrix {
@@ -113,39 +107,27 @@ func (F *VecMatrix) VecView(i int) *VecMatrix {
 //This view has the wrong signature for the interface mat64.Viewer,
 //But the right signatur was not possible to implement. Notice that very little
 //memory allocation happens, only a couple of ints and pointers.
-func (F *VecMatrix)View(i,j,r,c int) *VecMatrix{
+func (F *VecMatrix) View(i, j, r, c int) *VecMatrix {
 	ret := new(mat64.Dense)
 	*ret = *F.Dense
-	ret.View(i,j,r,c)
+	ret.View(i, j, r, c)
 	return &VecMatrix{ret}
 }
 
 //Puts the matrix A in the received starting from the ith row and jth col
 //of the receiver.
-func (F *VecMatrix)SetMatrix(i,j int,A *VecMatrix){
-	b:=F.BlasMatrix()
-	ar,ac:=A.Dims()
-	fc:=3
-	if ar+i>F.NVecs() || ac+j>fc{
+func (F *VecMatrix) SetMatrix(i, j int, A *VecMatrix) {
+	b := F.BlasMatrix()
+	ar, ac := A.Dims()
+	fc := 3
+	if ar+i > F.NVecs() || ac+j > fc {
 		panic("SetMatrix: Dimmension mismatch")
 	}
-	r:=make([]float64,ac,ac)
-	for k:=0;k<ar;k++{
-		A.Row(r,k)
-		startpoint:=fc*(k+i)+j
-		copy(b.Data[startpoint:startpoint+fc],r)
-	}
-}
-
-func (F *VecMatrix)SwapVecs(i,j int){
-	if i>=F.NVecs() || j>=F.NVecs(){
-		panic("Indexes out of range")
-	}
-	rowi := F.Row(nil, i)
-	rowj := F.Row(nil, j)
-	for k := 0; k < 3; k++ {
-		F.Set(i, k, rowj[k])
-		F.Set(j, k, rowi[k])
+	r := make([]float64, ac, ac)
+	for k := 0; k < ar; k++ {
+		A.Row(r, k)
+		startpoint := fc*(k+i) + j
+		copy(b.Data[startpoint:startpoint+fc], r)
 	}
 }
 
@@ -172,13 +154,6 @@ func (F *VecMatrix) Stack(A, B *VecMatrix) {
 //	return &VecMatrix{dens}
 //
 //}
-
-//Returns a zero-filled VecMatrix with cos vectors and 3 in the other dimension.
-func ZeroVecs(cos int) *VecMatrix {
-	const cols int = 3
-	dens := gnZeros(cos, cols)
-	return &VecMatrix{dens.Dense}
-}
 
 //Just a dense matrix to allow different implementations of gonum.
 //This might change to Dense at some point, but the API change should be barely noticeable.
@@ -240,7 +215,7 @@ func (E eigenpair) Less(i, j int) bool {
 func (E eigenpair) Swap(i, j int) {
 	E.evals.Swap(i, j)
 	//	E.evecs[i],E.evecs[j]=E.evecs[j],E.evecs[i]
-	E.evecs.SwapVecs(i,j)
+	E.evecs.SwapVecs(i, j)
 
 }
 func (E eigenpair) Len() int {
@@ -257,30 +232,34 @@ func gnEigen(in *VecMatrix, epsilon float64) (*VecMatrix, []float64, error) {
 	if epsilon < 0 {
 		epsilon = appzero
 	}
-	efacs := la.Eigen(in.Dense, epsilon)
+	efacs := la.Eigen(mat64.DenseCopyOf(in.Dense), epsilon)
 	evecs := &VecMatrix{efacs.V}
-	evalsmat:=efacs.D()
-	d,_:=evalsmat.Dims()
-	evals:=make([]float64,d,d)
-	for k,_:=range(evals){
-		evals[k]=evalsmat.At(k,k)
+	evalsmat := efacs.D()
+	d, _ := evalsmat.Dims()
+	evals := make([]float64, d, d)
+	for k, _ := range evals {
+		evals[k] = evalsmat.At(k, k)
 	}
+	//	fmt.Println("evecs fresh", evecs) ///////
 	//evals := [3]float64{vals.At(0, 0), vals.At(1, 1), vals.At(2, 2)} //go.matrix specific code here.
 	f := func() { evecs.TCopy(evecs) }
-	if err = gnMaybe(gnPanicker(f)); err != nil {
+	if err = mat64.Maybe(mat64.Panicker(f)); err != nil {
 		return nil, nil, err
 	}
-
+	//evecs.TCopy(evecs.Dense)
+	//	fmt.Println("evecs presort", evecs) /////////
 	eig := eigenpair{evecs, evals[:]}
+
 	sort.Sort(eig)
 	//Here I should orthonormalize vectors if needed instead of just complaining.
 	//I think orthonormality is guaranteed by  DenseMatrix.Eig() If it is, Ill delete all this
 	//If not I'll add ortonormalization routines.
 	eigrows, _ := eig.evecs.Dims()
+	//	fmt.Println("evecs", eig.evecs) /////////
 	for i := 0; i < eigrows; i++ {
-		vectori := eig.evecs.ColView(i)
+		vectori := eig.evecs.RowView(i)
 		for j := i + 1; j < eigrows; j++ {
-			vectorj := eig.evecs.ColView(j)
+			vectorj := eig.evecs.RowView(j)
 			if math.Abs(vectori.Dot(vectorj)) > epsilon && i != j {
 				return eig.evecs, evals[:], NotOrthogonal
 			}
@@ -293,7 +272,7 @@ func gnEigen(in *VecMatrix, epsilon float64) (*VecMatrix, []float64, error) {
 	}
 	//Checking and fixing the handness of the matrix.This if-else is Jannes idea,
 	//I don't really know whether it works.
-	eig.evecs.TCopy(eig.evecs)
+	//	eig.evecs.TCopy(eig.evecs)
 	if det(eig.evecs) < 0 { //Right now, this will fail if the matrix is not 3x3 (30/10/2013)
 		eig.evecs.Scale(-1, eig.evecs) //SSC
 	} else {
@@ -305,21 +284,29 @@ func gnEigen(in *VecMatrix, epsilon float64) (*VecMatrix, []float64, error) {
 		*/
 		//	fmt.Println("all good, I guess")
 	}
-	eig.evecs.TCopy(eig.evecs)
+//	eig.evecs.TCopy(eig.evecs)
 	return eig.evecs, eig.evals, err //Returns a slice of evals
 }
 
 //Returns the singular value decomposition of matrix A
 func gnSVD(A *ChemDense) (*ChemDense, *ChemDense, *ChemDense) {
-	facts:= la.SVD(A.Dense, appzero, appzero, true, true) //I am not sure that the second appzero is appropiate
+	facts := la.SVD(A.Dense, appzero, appzero, true, true) //I am not sure that the second appzero is appropiate
 	//make sigma a matrix
-//	lens:=len(s)
-//	Sigma, _ := mat64.NewDense(lens, lens, make([]float64, lens*lens)) //the slice is hardcoded, no error
-//	for i := 0; i < lens; i++ {
-//		Sigma.Set(i, i, s[i])
-//	}
+	//	lens:=len(s)
+	//	Sigma, _ := mat64.NewDense(lens, lens, make([]float64, lens*lens)) //the slice is hardcoded, no error
+	//	for i := 0; i < lens; i++ {
+	//		Sigma.Set(i, i, s[i])
+	//	}
 	return &ChemDense{facts.U}, &ChemDense{facts.S()}, &ChemDense{facts.V}
 
+}
+
+func (F *VecMatrix) TCopy(A Matrix) {
+	if A, ok := A.(*VecMatrix); ok {
+		F.Dense.TCopy(A.Dense)
+	} else {
+		F.Dense.TCopy(A)
+	}
 }
 
 //returns a rows,cols matrix filled with gnOnes.

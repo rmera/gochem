@@ -304,9 +304,9 @@ func pdbBufIORead(pdb *bufio.Reader, read_additional bool) (*Molecule, error) {
 	frames := len(coords)
 	mcoords := make([]*VecMatrix, frames, frames) //Final thing to return
 	for i := 0; i < frames; i++ {
-		mcoords[i],err = NewVecs(coords[i])
-		if err!=nil{
-			return nil , err
+		mcoords[i], err = NewVecs(coords[i])
+		if err != nil {
+			return nil, err
 		}
 	}
 	//if something happened during the process
@@ -356,8 +356,6 @@ func writePDBLine(atom *Atom, coord *VecMatrix, bfact float64, chainprev string)
 		return "", chainprev, fmt.Errorf("Cant print PDB line")
 	}
 	//"%-6s%5d  %-3s %3s %1c%4d    %8.3f%8.3f%8.3f%6.2f%6.2f          %2s  \n"
-	r,c:=coord.Dims() ////////////7
-	fmt.Println("RCCC", r,c, coord.Dense) ///////////
 	out = fmt.Sprintf(formatstring, first, atom.Id, atom.Name, atom.Molname, atom.Chain,
 		atom.Molid, coord.At(0, 0), coord.At(0, 1), coord.At(0, 2), atom.Occupancy, bfact, atom.Symbol)
 
@@ -402,8 +400,8 @@ func PDBStringWrite(coords *VecMatrix, mol Atomer, bfact []float64) (string, err
 	var outstring string
 	var err error
 	for i := 0; i < mol.Len(); i++ {
-	//	r,c:=coords.Dims()
-	//	fmt.Println("IIIIIIIIIIIi", i,coords,r,c, "lllllll")
+		//	r,c:=coords.Dims()
+		//	fmt.Println("IIIIIIIIIIIi", i,coords,r,c, "lllllll")
 		writecoord := coords.VecView(i)
 		outline, chainprev, err = writePDBLine(mol.Atom(i), writecoord, bfact[i], chainprev)
 		if err != nil {
@@ -561,7 +559,7 @@ func xyzReadSnap(xyz *bufio.Reader, ReadTopol bool) (*VecMatrix, []*Atom, error)
 			return nil, nil, i
 		}
 	}
-	mcoords,err := NewVecs(coords)
+	mcoords, err := NewVecs(coords)
 	return mcoords, molecule, err
 }
 

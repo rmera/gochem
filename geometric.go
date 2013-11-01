@@ -102,7 +102,7 @@ func GetRotateAroundZ(gamma float64) (*VecMatrix, error) {
 //It returns a linear operator such that, when applied to a matrix mol ( with the operator on the right side)
 //it will rotate mol such that the z axis is aligned with newz.
 func GetSwitchZ(newz *VecMatrix) *VecMatrix {
-	r,c:=newz.Dims()
+	r, c := newz.Dims()
 	if c != 3 || r != 1 {
 		panic("Wrong newz vector")
 	}
@@ -119,7 +119,7 @@ func GetSwitchZ(newz *VecMatrix) *VecMatrix {
 	operator := []float64{cosphi*costheta*cospsi - sinphi*sinpsi, -sinphi*cospsi - cosphi*costheta*sinpsi, cosphi * sintheta,
 		sinphi*costheta*cospsi + cosphi*sinpsi, -sinphi*costheta*sinpsi + cosphi*cospsi, sintheta * sinphi,
 		-sintheta * cospsi, sintheta * sinpsi, costheta}
-	finalop,_ := NewVecs(operator) //we are hardcoding opperator so it must have the right dimensions.
+	finalop, _ := NewVecs(operator) //we are hardcoding opperator so it must have the right dimensions.
 	return finalop
 
 }
@@ -211,12 +211,12 @@ func rmsd_fail(test, template *matrix.DenseMatrix) (float64, error) {
 //coordinates in test and template.
 func RMSD(test, template *VecMatrix) (float64, error) {
 	//This is a VERY naive implementation.
-	tmr,tmc:=template.Dims()
-	tsr,tsc:=test.Dims()
+	tmr, tmc := template.Dims()
+	tsr, tsc := test.Dims()
 	if tmr != tsr || tmc != 3 || tsc != 3 {
 		return 0, fmt.Errorf("Ill formed matrices for RMSD calculation")
 	}
-	tr:=tmr
+	tr := tmr
 	ctempla := ZeroVecs(template.NVecs())
 	ctempla.Clone(template)
 	//the maybe thing might not be needed since we check the dimensions before.
@@ -226,7 +226,7 @@ func RMSD(test, template *VecMatrix) (float64, error) {
 	}
 	var RMSD float64
 	for i := 0; i < template.NVecs(); i++ {
-		temp := VecView(ctempla, i)
+		temp := ctempla.VecView(i)
 		RMSD += math.Pow(temp.Norm(0), 2)
 	}
 	RMSD = RMSD / float64(tr)
@@ -302,13 +302,14 @@ func Rhos(evals []float64) ([]float64, error) {
 //That the vectors are sorted!. The P at the end of the name is for Performance. If
 //That is not an issue it is safer to use the BestPlane function that wraps this one.
 func BestPlaneP(evecs *VecMatrix) (*VecMatrix, error) {
-	evr,evc:=evecs.Dims()
+	evr, evc := evecs.Dims()
 	if evr != 3 || evc != 3 {
 		return evecs, fmt.Errorf("Eigenvectors matrix must be 3x3")
 	}
 	v1 := evecs.VecView(2)
 	v2 := evecs.VecView(1)
-	normal := cross(v1, v2)
+	normal:=ZeroVecs(1)
+	normal.Cross(v1, v2)
 	return normal, nil
 }
 
@@ -406,8 +407,8 @@ func MomentTensor(A *VecMatrix, massslice []float64) (*VecMatrix, error) {
 	if massslice == nil {
 		mass = gnOnes(ar, 1)
 	} else {
-		mass,err = NewChemDense(massslice, ar, 1)
-		if err!=nil{
+		mass, err = NewChemDense(massslice, ar, 1)
+		if err != nil {
 			return nil, err
 		}
 	}

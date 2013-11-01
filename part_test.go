@@ -93,7 +93,7 @@ func TestChangeAxis(Te *testing.T) {
 	orient := ZeroVecs(ov2.NVecs())
 	orient.Sub(ov2, ov1)
 	//	PDBWrite(mol,"test/2c9v-124centered.pdb")
-	Z,_ := NewVecs([]float64{0, 0, 1})
+	Z, _ := NewVecs([]float64{0, 0, 1})
 	axis := cross(orient, Z)
 	angle := AngleInVectors(orient, Z)
 	mol.Coords[0] = Rotate(mol.Coords[0], axis, angle)
@@ -135,9 +135,9 @@ func TestOldChangeAxis(Te *testing.T) {
 	orient := ZeroVecs(ov2.NVecs())
 	orient.Sub(ov2, ov1)
 	rotation := GetSwitchZ(orient)
-	cr,cc:=mol.Coords[0].Dims()
-	fmt.Println("rotation: ",rotation.Dense, cr, cc) ////////////////////////////////////////////////////////
-	mol.Coords[0].Mul(mol.Coords[0],rotation)
+	cr, cc := mol.Coords[0].Dims()
+	fmt.Println("rotation: ", rotation, cr, cc) ////////////////////////////////////////////////////////
+	mol.Coords[0].Mul(mol.Coords[0], rotation)
 	//	fmt.Println(orient_atoms[1], mol.Atom(orient_atoms[1]),mol.Atom(orient_atoms[0]))
 	if err != nil {
 		Te.Error(err)
@@ -165,19 +165,22 @@ func TestPutInXYPlane(Te *testing.T) {
 	best, err := BestPlane(some, nil)
 	if err != nil {
 		Te.Error(err)
+		panic(err.Error())
 	}
-	z,_ := NewVecs([]float64{0, 0, 1})
-	zero,_ := NewVecs([]float64{0, 0, 0})
-	fmt.Println("beees", best, z)
-	axis := cross(best, z)
+	z, _ := NewVecs([]float64{0, 0, 1})
+	zero, _ := NewVecs([]float64{0, 0, 0})
+	fmt.Println("Best  Plane", best, z)
+	axis:=ZeroVecs(1)
+	axis.Cross(best, z)
+	fmt.Println("axis", axis)
 	//The main part of the program, where the rotation actually happens. Note that we rotate the whole
 	//molecule, not just the planar subset, this is only used to calculate the rotation angle.
-	fmt.Println("DATA", mol.Coords[0], zero, axis, AngleInVectors(best, z))
+	//	fmt.Println("DATA", mol.Coords[0], zero, axis, AngleInVectors(best, z))
 	mol.Coords[0], err = RotateAbout(mol.Coords[0], zero, axis, AngleInVectors(best, z))
 	if err != nil {
 		Te.Error(err)
 	}
-	fmt.Println("after!", mol.Coords[0], err)
+	//	fmt.Println("after!", mol.Coords[0], err)
 	//Now we write the rotated result.
 	XYZWrite("test/Rotated.xyz", mol.Coords[0], mol)
 }

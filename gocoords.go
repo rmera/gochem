@@ -30,11 +30,10 @@
 package chem
 
 import (
-	//"fmt"
+	"fmt"
 	"math"
+	"strings"
 )
-
-
 
 // Matrix is the basic matrix interface type. This is redundant and exactly equivalent to the implementation in gonum
 type Matrix interface {
@@ -46,13 +45,37 @@ type Matrix interface {
 	At(r, c int) float64
 }
 
-
 const appzero float64 = 0.000000000001 //used to correct floating point
 //errors. Everything equal or less than this is considered zero.
 
+//Returns a zero-filled VecMatrix with cos vectors and 3 in the other dimension.
+func ZeroVecs(cos int) *VecMatrix {
+	const cols int = 3
+	dens := gnZeros(cos, cols)
+	return &VecMatrix{dens.Dense}
+}
 
+func ChemDense2VecMatrix(A *ChemDense) *VecMatrix {
+	return &VecMatrix{A.Dense}
+}
+
+func VecMatrix2ChemDense(A *VecMatrix) *ChemDense {
+	return &ChemDense{A.Dense}
+}
 
 //METHODS
+
+func (F *VecMatrix) SwapVecs(i, j int) {
+	if i >= F.NVecs() || j >= F.NVecs() {
+		panic("Indexes out of range")
+	}
+	rowi := F.Row(nil, i)
+	rowj := F.Row(nil, j)
+	for k := 0; k < 3; k++ {
+		F.Set(i, k, rowj[k])
+		F.Set(j, k, rowi[k])
+	}
+}
 
 //Adds a vector to the  coordmatrix A putting the result on the received.
 //depending on whether the underlying matrix to coordmatrix
@@ -71,8 +94,6 @@ func (F *VecMatrix) AddVec(A, vec *VecMatrix) {
 	}
 }
 
-
-
 //puts a copy of matrix A without the vector i
 //in the received. Vector could be a col or row vector depending
 //on the majorship of the implementation.
@@ -86,20 +107,12 @@ func (F *VecMatrix) DelRow(A *VecMatrix, i int) {
 	if i > ar || fc != ac || fr != (ar-1) {
 		panic(gnErrShape)
 	}
-	tempA1 := new(VecMatrix)
-	tempF1 := new(VecMatrix)
-	*tempA1 = *A
-	*tempF1 = *F
-	tempA1.View(0, 0, i, ac)
-	tempF1.View(0, 0, i, ac)
+	tempA1 := A.View(0, 0, i, ac)
+	tempF1 := F.View(0, 0, i, ac)
 	tempF1.Clone(tempA1)
 	//now the other part
-	tempA2 := new(VecMatrix)
-	tempF2 := new(VecMatrix)
-	*tempA2 = *A
-	*tempF2 = *F
-	tempA2.View(i+1, 0, ar-i-1, ac) //The magic happens here
-	tempF2.View(i, 0, ar-i-1, fc)
+	tempA2 := A.View(i+1, 0, ar-i-1, ac) //The magic happens here
+	tempF2 := F.View(i, 0, ar-i-1, fc)
 	tempF2.Clone(tempA2)
 }
 
@@ -159,14 +172,36 @@ func (F *VecMatrix) SomeVecsSafe(A *VecMatrix, clist []int) (err error) {
 	return gnMaybe(gnPanicker(f))
 }
 
-
 //puts in F a matrix consistent of A over B or A to the left of B.
 //DELCAN
 func (F *VecMatrix) StackVec(A, B *VecMatrix) {
 	F.Stack(A, B)
 }
 
-//SubRow subtracts the vector  to each vector of the matrix A, putting
+//Returns a neat string representation of a VecMatrix
+func (F *VecMatrix) String() string {
+	r, c := F.Dims()
+	v := make([]string, r+2, r+2)
+	v[0] = "\n["
+	v[len(v)-1] = " ]"
+	row := make([]float64, c, c)
+	for i := 0; i < r; i++ {
+		F.Row(row, i) //now row has a slice witht he row i
+		if i == 0 {
+			v[i+1] = fmt.Sprintf("%6.2f %6.2f %6.2f\n", row[0], row[1], row[2])
+			continue
+		} else if i == r-1 {
+			v[i+1] = fmt.Sprintf(" %6.2f %6.2f %6.2f", row[0], row[1], row[2])
+			continue
+		} else {
+			v[i+1] = fmt.Sprintf(" %6.2f %6.2f %6.2f\n", row[0], row[1], row[2])
+		}
+	}
+	v[len(v)-2] = strings.Replace(v[len(v)-2], "\n", "", 1)
+	return strings.Join(v, "")
+}
+
+//SubVec subtracts the vector  to each vector of the matrix A, putting
 //the result on the receiver. Panics if matrices are mismatched.  It will not
 //work if A and row reference to the same VecMatrix.
 func (F *VecMatrix) SubVec(A, vec *VecMatrix) {
@@ -189,7 +224,6 @@ func (F *VecMatrix) Cross(a, b *VecMatrix) {
 }
 
 //METHODS Not Vec specific.
-
 
 //AddFloat puts in the receiver a matrix which elements are
 //those of matrix A plus the float B.
@@ -277,9 +311,8 @@ func (F *VecMatrix) SubRow(A, row *VecMatrix) {
 	F.SubVec(A, row)
 }
 
-func (F *VecMatrix) Unit(A Matrix){
+func (F *VecMatrix) Unit(A Matrix) {
 	F.Clone(A)
-	norm:=F.Norm(0)
-	F.Scale(norm,F)
+	norm := F.Norm(0)
+	F.Scale(norm, F)
 }
-
