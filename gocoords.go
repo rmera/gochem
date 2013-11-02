@@ -104,16 +104,19 @@ func (F *VecMatrix) DelVec(A *VecMatrix, i int) {
 func (F *VecMatrix) DelRow(A *VecMatrix, i int) {
 	ar, ac := A.Dims()
 	fr, fc := F.Dims()
-	if i > ar || fc != ac || fr != (ar-1) {
+	if i >= ar || fc != ac || fr != (ar-1) {
 		panic(gnErrShape)
 	}
-	tempA1 := A.View(0, 0, i, ac)
-	tempF1 := F.View(0, 0, i, ac)
+	tempA1 := A.View(0, 0, i-1, ac)
+	tempF1 := F.View(0, 0, i-1, ac)
 	tempF1.Clone(tempA1)
+	fmt.Println("A1 F1", F, tempF1, "F1 after clone") //////////////////////////////////////////
 	//now the other part
-	tempA2 := A.View(i+1, 0, ar-i-1, ac) //The magic happens here
-	tempF2 := F.View(i, 0, ar-i-1, fc)
-	tempF2.Clone(tempA2)
+	if i != ar-1 {
+		tempA2 := A.View(i+1, 0, ar-i-1, ac) //The magic happens here
+		tempF2 := F.View(i, 0, ar-i-1, fc)
+		tempF2.Clone(tempA2)
+	}
 }
 
 //return the number of vecs in F. Panics if the
@@ -311,8 +314,21 @@ func (F *VecMatrix) SubRow(A, row *VecMatrix) {
 	F.SubVec(A, row)
 }
 
-func (F *VecMatrix) Unit(A Matrix) {
-	F.Clone(A)
+func (F *VecMatrix) Unit(A *VecMatrix) {
+	if A.Dense != F.Dense {
+		F.Clone(A)
+	}
 	norm := F.Norm(0)
 	F.Scale(norm, F)
+}
+
+func (F *VecMatrix) Clone(A Matrix) {
+	switch A := A.(type) {
+	case *VecMatrix:
+		F.Dense.Clone(A.Dense)
+	case *ChemDense:
+		F.Dense.Clone(A.Dense)
+	default:
+		F.Dense.Clone(A)
+	}
 }

@@ -497,8 +497,12 @@ func xyzBufIORead(xyz *bufio.Reader) (*Molecule, error) {
 		tmpcoords, _, err := xyzReadSnap(xyz, false)
 		if err != nil {
 			//An error here simply means that there are no more snapshots
-			err = nil
-			break
+			errm:=err.Error()
+			if strings.Contains(errm,"Empty") || strings.Contains(errm,"header"){
+				err = nil
+				break
+			}
+			return nil, err
 		}
 		Coords = append(Coords, tmpcoords)
 	}
@@ -515,11 +519,11 @@ func xyzBufIORead(xyz *bufio.Reader) (*Molecule, error) {
 func xyzReadSnap(xyz *bufio.Reader, ReadTopol bool) (*VecMatrix, []*Atom, error) {
 	line, err := xyz.ReadString('\n')
 	if err != nil {
-		return nil, nil, fmt.Errorf("Ill formatted XYZ file")
+		return nil, nil, fmt.Errorf("Empty XYZ File: %s",err.Error())
 	}
 	natoms, err := strconv.Atoi(strings.TrimSpace(line))
 	if err != nil {
-		return nil, nil, fmt.Errorf("Ill formatted XYZ file")
+		return nil, nil, fmt.Errorf("Wrong header for an XYZ file %s",err.Error())
 	}
 	var molecule []*Atom
 	if ReadTopol {
@@ -528,13 +532,17 @@ func xyzReadSnap(xyz *bufio.Reader, ReadTopol bool) (*VecMatrix, []*Atom, error)
 	coords := make([]float64, natoms*3, natoms*3)
 	_, err = xyz.ReadString('\n') //We dont care about this line
 	if err != nil {
-		return nil, nil, fmt.Errorf("Ill formatted XYZ file")
+		return nil, nil, fmt.Errorf("Ill formatted XYZ file: %s", err.Error())
 	}
 	errs := make([]error, 3, 3)
 	for i := 0; i < natoms; i++ {
 		line, errs[0] = xyz.ReadString('\n')
 		if errs[0] != nil { //inefficient, (errs[1] can be checked once before), but clearer.
-			break
+			if strings.Contains(errs[0].Error(),"EOF") && i==natoms-1{  //This allows that an XYZ ends without a newline
+				errs[0]=nil
+			}else{
+				break
+			}
 		}
 		fields := strings.Fields(line)
 		if len(fields) < 4 {
@@ -554,8 +562,9 @@ func xyzReadSnap(xyz *bufio.Reader, ReadTopol bool) (*VecMatrix, []*Atom, error)
 	}
 	//This could be done faster if done in the same loop where the coords are read
 	//Instead of having another loop just for them.
-	for _, i := range errs {
+	for k, i := range errs {
 		if i != nil {
+			fmt.Println("line", line,k)
 			return nil, nil, i
 		}
 	}

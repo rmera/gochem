@@ -39,7 +39,7 @@ import "testing"
 func TestXYZIO(Te *testing.T) {
 	mol, err := XYZRead("test/sample.xyz")
 	if err != nil {
-		fmt.Println("There was an error!")
+		fmt.Println("There was an error!",err.Error())
 		Te.Error(err)
 	}
 	fmt.Println("XYZ read!")
@@ -189,13 +189,19 @@ func TestPutInXYPlane(Te *testing.T) {
 //In the case of MOPAC it reads a previously prepared output and gets the energy.
 func TestQM(Te *testing.T) {
 	mol, err := XYZRead("test/sample.xyz")
+
+	fmt.Println(mol.Coords[0],len(mol.Coords),"LOS JUIMOS CTM",err)
 	if err != nil {
 		Te.Error(err)
+
 	}
 	if err := mol.Corrupted(); err != nil {
 		Te.Error(err)
 	}
+
+	fmt.Println(mol.Coords[0],len(mol.Coords),"LOS JUIMOS CTM  II")
 	mol.Del(mol.Len() - 1)
+//	fmt.Println(mol.Coords[0],len(mol.Coords),"LOS JUIMOS CTM  II")
 	mol.SetCharge(1)
 	mol.SetMulti(1)
 	calc := new(QMCalc)
@@ -213,7 +219,8 @@ func TestQM(Te *testing.T) {
 	calc.SetDefaults()
 	orca := NewOrcaRunner()
 	orca.SetnCPU(16) /////////////////////
-	atoms, _ := mol.Next(true)
+	atoms:=ZeroVecs(mol.Len())
+//	mol.Next(atoms)
 	original_dir, _ := os.Getwd() //will check in a few lines
 	if err = os.Chdir("./test"); err != nil {
 		Te.Error(err)
@@ -228,6 +235,7 @@ func TestQM(Te *testing.T) {
 	calc.Method = "HF-3c"
 	orca.SetName("HF3c")
 	orca.SetnCPU(8)
+//	fmt.Println(mol.Coords[0], "vieja") 
 	_ = orca.BuildInput(mol, atoms, calc)
 	path, _ := os.Getwd()
 	//	if err:=orca.Run(false); err!=nil{
@@ -312,7 +320,7 @@ func TesstTurbo(Te *testing.T) {
 	calc.Disperssion = "D3"
 	calc.CConstraints = []int{0, 3}
 	tm := NewTMRunner()
-	atoms, _ := mol.Next(true)
+	atoms := mol.Coords[0]
 	//original_dir, _ := os.Getwd() //will check in a few lines
 	//if err = os.Chdir("./test"); err != nil {
 	//	Te.Error(err)
@@ -338,7 +346,7 @@ func TesstTurbo(Te *testing.T) {
 	fmt.Println("end TurboTest!")
 }
 
-func TestWater(Te *testing.T) {
+func TesstWater(Te *testing.T) {
 	mol, err := XYZRead("test/sample.xyz")
 	if err != nil {
 		Te.Error(err)
@@ -381,7 +389,7 @@ func TesstFixPDB(Te *testing.T) {
 	PDBWrite("test/2c9vfixed.pdb", mol.Coords[0], mol, nil)
 }
 
-func TestChemShell(Te *testing.T) {
+func TesstChemShell(Te *testing.T) {
 	mol, err := XYZRead("test/sample.xyz")
 	if err != nil {
 		Te.Error(err)
@@ -401,7 +409,7 @@ func TestChemShell(Te *testing.T) {
 	calc.Disperssion = "D3"
 	calc.CConstraints = []int{0, 10, 20}
 	cs := NewCSRunner()
-	atoms, _ := mol.Next(true)
+	atoms:= mol.Coords[0]
 	original_dir, _ := os.Getwd() //will check in a few lines
 	if err = os.Chdir("./test"); err != nil {
 		Te.Error(err)
@@ -433,7 +441,7 @@ func qderror_handler(err error, Te *testing.T) {
 	}
 }
 
-func TestReduce(Te *testing.T) {
+func TesstReduce(Te *testing.T) {
 	mol, err := PDBRead("test/2c9v.pdb", true)
 	if err != nil {
 		Te.Error(err)
@@ -449,7 +457,7 @@ func TestReduce(Te *testing.T) {
 	PDBWrite("test/2c9vHReduce.pdb", mol2.Coords[0], mol2, nil)
 }
 
-func TestSuper(Te *testing.T) {
+func TesstSuper(Te *testing.T) {
 	backbone := []string{"C", "CA", "N"}        //The PDB name of the atoms in the backbone.
 	mol1, err := PDBRead("test/2c9v.pdb", true) //true means that we try to read the symbol from the PDB file.
 	mol2, err2 := PDBRead("test/1uxm.pdb", true)

@@ -136,7 +136,7 @@ func (F *VecMatrix) Stack(A, B *VecMatrix) {
 	b := F.BlasMatrix()
 	ar, _ := A.Dims()
 	br, _ := B.Dims()
-	if B.NVecs() < ar+br {
+	if F.NVecs() < ar+br {
 		panic("Not enough space to stack")
 	}
 	for i := 0; i < ar; i++ {

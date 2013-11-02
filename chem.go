@@ -518,15 +518,16 @@ func (M *Molecule) Readable() bool {
 }
 
 //Returns the  next frame and an error
-func (M *Molecule) Next(a bool) (*VecMatrix, error) {
+func (M *Molecule) Next(V *VecMatrix) error {
 	if M.current >= len(M.Coords) {
-		return nil, fmt.Errorf("No more frames")
+		fmt.Errorf("No more frames")
 	}
 	M.current++
-	if a == false {
-		return nil, nil
+	if  V == nil {
+		return nil
 	}
-	return M.Coords[M.current-1], nil
+	V.Clone(M.Coords[M.current-1])
+	return nil
 }
 
 //Initializes molecule to be read as a traj (not tested!)
