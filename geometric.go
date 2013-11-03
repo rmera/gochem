@@ -175,7 +175,7 @@ func GetSuper(test, templa *VecMatrix) (*VecMatrix, *VecMatrix, *VecMatrix, *Vec
 	}
 	jT.Scale(Scal, jT)
 	subtempla := ZeroVecs(tmr)
-	subtempla.Clone(ctempla)
+	subtempla.Copy(ctempla)
 	sub := ZeroVecs(ctest.NVecs())
 	sub.Mul(ctest, Rotation)
 	subtempla.Sub(subtempla, sub)
@@ -218,7 +218,7 @@ func RMSD(test, template *VecMatrix) (float64, error) {
 	}
 	tr := tmr
 	ctempla := ZeroVecs(template.NVecs())
-	ctempla.Clone(template)
+	ctempla.Copy(template)
 	//the maybe thing might not be needed since we check the dimensions before.
 	f := func() { ctempla.Sub(ctempla, test) }
 	if err := gnMaybe(gnPanicker(f)); err != nil {
@@ -374,7 +374,7 @@ func MassCentrate(in, oref *VecMatrix, mass *ChemDense) (*VecMatrix, *VecMatrix,
 		mass = gnOnes(or, 1)
 	}
 	ref := ZeroVecs(or)
-	ref.Clone(oref)
+	ref.Copy(oref)
 	gnOnesvector := gnOnes(1, or)
 	f := func() { ref.ScaleByCol(ref, mass) }
 	if err := gnMaybe(gnPanicker(f)); err != nil {
@@ -387,7 +387,7 @@ func MassCentrate(in, oref *VecMatrix, mass *ChemDense) (*VecMatrix, *VecMatrix,
 	}
 	ref2.Scale(1.0/mass.Sum(), ref2)
 	returned := ZeroVecs(ir)
-	returned.Clone(in)
+	returned.Copy(in)
 	returned.SubVec(returned, ref2)
 	/*	for i := 0; i < ir; i++ {
 			if err := returned.GetRowVector(i).Subtract(ref2); err != nil {
@@ -412,7 +412,7 @@ func MomentTensor(A *VecMatrix, massslice []float64) (*VecMatrix, error) {
 			return nil, err
 		}
 	}
-	center, _, err := MassCentrate(A, ChemDense2VecMatrix(gnClone(A)), mass)
+	center, _, err := MassCentrate(A, ChemDense2VecMatrix(gnCopy(A)), mass)
 	if err != nil {
 		return nil, err
 	}
@@ -445,7 +445,7 @@ func Projection(test, ref *VecMatrix) *VecMatrix {
 //the 'initial' argument  allows the construction of a truncate cone with a radius of initial.
 func SelCone(B, selection *VecMatrix, angle, distance, thickness, initial float64, whatcone int) []int {
 	A := ZeroVecs(B.NVecs())
-	A.Clone(B) //We will be altering the input so its better to work with a copy.
+	A.Copy(B) //We will be altering the input so its better to work with a copy.
 	ar, _ := A.Dims()
 	selected := make([]int, 0, 3)
 	neverselected := make([]int, 0, 30000)       //waters that are too far to ever be selected

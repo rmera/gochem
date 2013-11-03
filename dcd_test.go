@@ -113,7 +113,7 @@ func SecondRow(channelin, channelout chan *VecMatrix, current, other int) {
 		temp := <-channelin
 		viej := ZeroVecs(1)
 		vector := temp.VecView(2)
-		viej.Clone(vector)
+		viej.Copy(vector)
 		fmt.Println("sending througt", channelin, channelout, viej, current, other)
 		channelout <- vector
 	} else {

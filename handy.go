@@ -91,7 +91,7 @@ func Super(test, templa *VecMatrix, testlst, templalst []int) (*VecMatrix, error
 func RotateAbout(coordsorig, ax1, ax2 *VecMatrix, angle float64) (*VecMatrix, error) {
 	coords := ZeroVecs(coordsorig.NVecs())
 	translation := ZeroVecs(ax1.NVecs())
-	translation.Clone(ax1)
+	translation.Copy(ax1)
 	axis := ZeroVecs(ax2.NVecs())
 	axis.Sub(ax2, ax1) // the rotation axis
 	f := func() { coords.SubVec(coordsorig, translation) }
@@ -115,7 +115,7 @@ func EulerRotateAbout(coordsorig, ax1, ax2 *VecMatrix, angle float64) (*VecMatri
 	r, _ := coordsorig.Dims()
 	coords := ZeroVecs(r)
 	translation := ZeroVecs(ax1.NVecs())
-	translation.Clone(ax1)
+	translation.Copy(ax1)
 	axis := ZeroVecs(ax2.NVecs())
 	axis.Sub(ax2, ax1) //now it became the rotation axis
 	f := func() { coords.SubVec(coordsorig, translation) }
@@ -187,24 +187,31 @@ func MakeWater(a1, a2 *VecMatrix, distance, angle float64, oxygen bool) *VecMatr
 	WaterAngle := 52.25
 	deg2rad := 0.0174533
 	w := water.VecView(0) //we first set the O coordinates
-	w.Clone(a2)
+	w.Copy(a2)
 	w.Sub(w, a1)
 	w.Unit(w)
 	dist := ZeroVecs(1)
 	dist.Sub(a1, a2)
 	a1a2dist := dist.Norm(0)
+	fmt.Println("ala2dist",a1a2dist, distance) ////////////////7777
 	w.Scale(distance+a1a2dist, w)
 	w.Add(w, a1)
 	for i := 0; i <= 1; i++ {
 		o := water.VecView(0)
 		w = water.VecView(i + 1)
-		w.Clone(o)
+		w.Copy(o)
+		fmt.Println("w1",w) ////////
 		w.Sub(w, a2)
+		fmt.Println("w12",w) ///////////////
 		w.Unit(w)
+		fmt.Println("w4",w)
 		w.Scale(WaterOHDist+distance, w)
+		fmt.Println("w3",w, WaterOHDist,distance)
 		o.Sub(o, a2)
 		t, _ := NewVecs([]float64{0, 0, 1})
-		upp := cross(w, t)
+		upp:=ZeroVecs(1)
+		upp.Cross(w, t)
+		fmt.Println("upp",upp,w,t)
 		upp.Add(upp, o)
 		upp.Add(upp, a2)
 		//water.SetMatrix(3,0,upp)
@@ -222,7 +229,7 @@ func MakeWater(a1, a2 *VecMatrix, distance, angle float64, oxygen bool) *VecMatr
 		v1 = ZeroVecs(1)
 		v2 = ZeroVecs(1)
 		v1.Sub(a2, a1)
-		v2.Clone(v1)
+		v2.Copy(v1)
 		v2.Set(0, 2, v2.At(0, 2)+1) //a "random" modification. The idea is that its not colinear with v1
 		v3 := cross(v1, v2)
 		v3.Add(v3, a2)

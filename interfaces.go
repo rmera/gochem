@@ -91,8 +91,8 @@ type ReadRef interface {
 }
 
 type WriteRef interface {
-	//Clone atoms in A into the received. This is a deep copy, so the received must have at least as many atoms as A
-	CloneAtoms(A Atomer)
+	//Copy atoms in A into the received. This is a deep copy, so the received must have at least as many atoms as A
+	CopyAtoms(A Atomer)
 
 	//SetCharge sets the total charge of the topology to i
 	SetCharge(i int)

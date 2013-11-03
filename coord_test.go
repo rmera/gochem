@@ -35,7 +35,7 @@ func TestGeo(Te *testing.T) {
 	T := ZeroVecs(ar)
 	T.T(A)
 	B := gnEye(ar)
-	//B.Clone(A)
+	//B.Copy(A)
 	T.Mul(A, B)
 	E := ZeroVecs(ar)
 	E.MulElem(A, B)

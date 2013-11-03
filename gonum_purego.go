@@ -261,10 +261,10 @@ func gnMul(A, B Matrix) *ChemDense {
 	return C
 }
 
-func gnClone(A Matrix) *ChemDense {
+func gnCopy(A Matrix) *ChemDense {
 	r, c := A.Dims()
 	B := gnZeros(r, c)
-	B.Clone(A)
+	B.Copy(A)
 	return B
 }
 
@@ -308,7 +308,7 @@ func (F *Dense) At(A, B int) float64 {
 	return F.Get(A, B)
 }
 
-func (F *Dense) Clone(A Matrix) {
+func (F *Dense) Copy(A Matrix) {
 	ar, ac := A.Dims()
 	fr, fc := F.Dims()
 	if ac > fc || ar > fr {
@@ -503,7 +503,7 @@ func (F *Dense) Scale(i float64, A Matrix) {
 	if A == F { //if A and F points to the same object.
 		F.scaleAux(i)
 	} else {
-		F.Clone(A)
+		F.Copy(A)
 		F.scaleAux(i)
 	}
 }
@@ -607,7 +607,7 @@ func (F *Dense) Sub(A, B Matrix) {
 //spanning rows rows and cols columns.
 func (F *Dense) SubMatrix(A *Dense, i, j, rows, cols int) {
 	temp := Dense{A.GetMatrix(i, j, rows, cols)}
-	F.Clone(&temp)
+	F.Copy(&temp)
 }
 
 //Sum returns the sum of all elements in matrix A.

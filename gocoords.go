@@ -107,16 +107,15 @@ func (F *VecMatrix) DelRow(A *VecMatrix, i int) {
 	if i >= ar || fc != ac || fr != (ar-1) {
 		panic(gnErrShape)
 	}
-	tempA1 := A.View(0, 0, i-1, ac)
-	tempF1 := F.View(0, 0, i-1, ac)
-	tempF1.Clone(tempA1)
-	fmt.Println("A1 F1", F, tempF1, "F1 after clone") //////////////////////////////////////////
+	tempA1 := A.View(0, 0, i, ac)
+	tempF1 := F.View(0, 0, i, ac)
+	tempF1.Copy(tempA1)
 	//now the other part
-	if i != ar-1 {
+//	if i != ar-1 {
 		tempA2 := A.View(i+1, 0, ar-i-1, ac) //The magic happens here
 		tempF2 := F.View(i, 0, ar-i-1, fc)
-		tempF2.Clone(tempA2)
-	}
+		tempF2.Copy(tempA2)
+//	}
 }
 
 //return the number of vecs in F. Panics if the
@@ -233,7 +232,7 @@ func (F *VecMatrix) Cross(a, b *VecMatrix) {
 func (F *VecMatrix) AddFloat(A *VecMatrix, B float64) {
 	ar, ac := A.Dims()
 	if F != A {
-		F.Clone(A)
+		F.Copy(A)
 	}
 	for i := 0; i < ar; i++ {
 		for j := 0; j < ac; j++ {
@@ -275,7 +274,7 @@ func (F *VecMatrix) ScaleByCol(A, Col Matrix) {
 		panic(gnErrShape)
 	}
 	if F != A {
-		F.Clone(A)
+		F.Copy(A)
 	}
 	for i := 0; i < ac; i++ {
 		temp := F.ColView(i)
@@ -294,7 +293,7 @@ func (F *VecMatrix) ScaleByRow(A, Row *VecMatrix) {
 		panic(gnErrShape)
 	}
 	if F != A {
-		F.Clone(A)
+		F.Copy(A)
 	}
 	for i := 0; i < ac; i++ {
 		temp := F.RowView(i)
@@ -316,19 +315,10 @@ func (F *VecMatrix) SubRow(A, row *VecMatrix) {
 
 func (F *VecMatrix) Unit(A *VecMatrix) {
 	if A.Dense != F.Dense {
-		F.Clone(A)
+		F.Copy(A)
 	}
-	norm := F.Norm(0)
+	norm := 1.0/F.Norm(0)
 	F.Scale(norm, F)
 }
 
-func (F *VecMatrix) Clone(A Matrix) {
-	switch A := A.(type) {
-	case *VecMatrix:
-		F.Dense.Clone(A.Dense)
-	case *ChemDense:
-		F.Dense.Clone(A.Dense)
-	default:
-		F.Dense.Clone(A)
-	}
-}
+

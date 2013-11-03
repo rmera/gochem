@@ -62,20 +62,20 @@ func paravectorFromVector(A *VecMatrix) *paravector {
 }
 
 //Returns a copy of the paravector.
-func (P *paravector) clone() *paravector {
+func (P *paravector) Copy() *paravector {
 	R := new(paravector)
 	R.Real = P.Real
 	R.Imag = P.Imag
 	R.Vreal = ZeroVecs(1)
 	R.Vimag = ZeroVecs(1)
-	R.Vreal.Clone(P.Vreal)
-	R.Vimag.Clone(P.Vimag)
+	R.Vreal.Copy(P.Vreal)
+	R.Vimag.Copy(P.Vimag)
 	return R
 }
 
 //Returns the reverse of the paravector.
 func (P *paravector) reverse() *paravector {
-	R := P.clone()
+	R := P.Copy()
 	R.Vimag.Scale(-1, R.Vimag)
 	return R
 }

@@ -57,9 +57,9 @@ type Atom struct {
 
 //Atom methods
 
-//Clone returns a copy of the Atom object.
+//Copy returns a copy of the Atom object.
 //puts the copy into the
-func (N *Atom) Clone(A *Atom) {
+func (N *Atom) Copy(A *Atom) {
 	if A == nil || N == nil {
 		panic("Attempted to copy from or to a nil atom")
 	}
@@ -154,11 +154,11 @@ func (T *Topology) ResetIds() {
 
 //Copy atoms into a topology. This is a deep copy, so T must have
 //at least as many atoms as A.
-func (T *Topology) CloneAtoms(A Atomer) {
+func (T *Topology) CopyAtoms(A Atomer) {
 	//T := new(Topology)
 	T.Atoms = make([]*Atom, A.Len())
 	for key := 0; key < A.Len(); key++ {
-		T.Atoms[key].Clone(A.Atom(key))
+		T.Atoms[key].Copy(A.Atom(key))
 	}
 }
 
@@ -275,7 +275,7 @@ func NewMolecule(coords []*VecMatrix, ats Ref, bfactors [][]float64) (*Molecule,
 		mol.Topology = top
 	} else {
 		mol.Topology = new(Topology)
-		mol.CloneAtoms(ats) // = make([]*Atom, ats.Len())
+		mol.CopyAtoms(ats) // = make([]*Atom, ats.Len())
 
 	}
 	mol.Coords = coords
@@ -310,22 +310,22 @@ func (M *Molecule) Del(i int) error {
 	return err
 }
 
-//Clone puts in the receiver a copy of the molecule  A including coordinates
-func (M *Molecule) Clone(A *Molecule) {
+//Copy puts in the receiver a copy of the molecule  A including coordinates
+func (M *Molecule) Copy(A *Molecule) {
 	if err := A.Corrupted(); err != nil {
 		panic(err.Error())
 	}
 	r, _ := A.Coords[0].Dims()
 	mol := new(Molecule)
 	mol.Topology = new(Topology)
-	mol.CloneAtoms(A)
+	mol.CopyAtoms(A)
 	mol.Coords = make([]*VecMatrix, 0, len(M.Coords))
 	mol.Bfactors = make([][]float64, 0, len(M.Bfactors))
 	for key, val := range M.Coords {
 		tmp := ZeroVecs(r)
-		tmp.Clone(val)
+		tmp.Copy(val)
 		mol.Coords = append(mol.Coords, tmp)
-		tmp2 := cloneB(M.Bfactors[key])
+		tmp2 := CopyB(M.Bfactors[key])
 		mol.Bfactors = append(mol.Bfactors, tmp2)
 	}
 	if err := mol.Corrupted(); err != nil {
@@ -333,7 +333,7 @@ func (M *Molecule) Clone(A *Molecule) {
 	}
 }
 
-func cloneB(b []float64) []float64 {
+func CopyB(b []float64) []float64 {
 	r := make([]float64, len(b), len(b))
 	for k, v := range b {
 		r[k] = v
@@ -390,7 +390,7 @@ func (M *Molecule) Coord(atom, frame int) *VecMatrix {
 	}
 	ret := ZeroVecs(1)
 	empt := M.Coords[frame].VecView(atom)
-	ret.Clone(empt)
+	ret.Copy(empt)
 	return ret
 }
 
@@ -526,7 +526,7 @@ func (M *Molecule) Next(V *VecMatrix) error {
 	if  V == nil {
 		return nil
 	}
-	V.Clone(M.Coords[M.current-1])
+	V.Copy(M.Coords[M.current-1])
 	return nil
 }
 

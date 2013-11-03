@@ -131,20 +131,78 @@ func (F *VecMatrix) SetMatrix(i, j int, A *VecMatrix) {
 	}
 }
 
+//The following functions are here because directly calling the method
+//on the embeded mat64.Dense gives wrong behavior.
+
+/*
+
+func (F *VecMatrix) Copy(A Matrix) {
+	switch A := A.(type) {
+	case *VecMatrix:
+		F.Dense.Copy(A.Dense)
+	case *ChemDense:
+		F.Dense.Copy(A.Dense)
+	default:
+		F.Dense.Copy(A)
+	}
+}
+
+
+func (F *VecMatrix)Add(A *VecMatrix, B Matrix){
+	switch B := B.(type) {
+	case *VecMatrix:
+		F.Dense.Add(A.Dense,B.Dense)
+	case *ChemDense:
+		F.Dense.Add(A.Dense,B.Dense)
+	default:
+		F.Dense.Add(A.Dense,B)
+	}
+}
+
+func (F *VecMatrix)Scale(i float64, A Matrix){
+	switch A := A.(type) {
+	case *VecMatrix:
+		F.Dense.Scale(i,A.Dense)
+	case *ChemDense:
+		F.Dense.Scale(i,A.Dense)
+	default:
+		F.Dense.Scale(i,A)
+	}
+}
+
+
+func (F *VecMatrix) Sub(A *VecMatrix, B Matrix){
+	switch B := B.(type) {
+	case *VecMatrix:
+		F.Dense.Sub(A.Dense,B.Dense)
+	case *ChemDense:
+		F.Dense.Sub(A.Dense,B.Dense)
+	default:
+		F.Dense.Sub(A.Dense,B)
+	}
+}
+
+*/
+
+
+
+
+
+
 //puts A stacked over B in F
 func (F *VecMatrix) Stack(A, B *VecMatrix) {
-	b := F.BlasMatrix()
+	f := F.BlasMatrix()
 	ar, _ := A.Dims()
 	br, _ := B.Dims()
 	if F.NVecs() < ar+br {
 		panic("Not enough space to stack")
 	}
 	for i := 0; i < ar; i++ {
-		A.Row(b.Data[i*3:i*3+3], i)
+		A.Row(f.Data[i*3:i*3+3], i)
 	}
 
-	for i := ar; i < br; i++ {
-		A.Row(b.Data[i*3:i*3+3], i-ar)
+	for i := ar; i < ar+br; i++ {
+		B.Row(f.Data[i*3:i*3+3], i-ar)
 	}
 
 }
@@ -328,10 +386,10 @@ func gnMul(A, B mat64.Matrix) *ChemDense {
 	return C
 }
 
-func gnClone(A mat64.Matrix) *ChemDense {
+func gnCopy(A mat64.Matrix) *ChemDense {
 	r, c := A.Dims()
 	B := gnZeros(r, c)
-	B.Clone(A)
+	B.Copy(A)
 	return B
 }
 

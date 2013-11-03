@@ -198,10 +198,7 @@ func TestQM(Te *testing.T) {
 	if err := mol.Corrupted(); err != nil {
 		Te.Error(err)
 	}
-
-	fmt.Println(mol.Coords[0],len(mol.Coords),"LOS JUIMOS CTM  II")
 	mol.Del(mol.Len() - 1)
-//	fmt.Println(mol.Coords[0],len(mol.Coords),"LOS JUIMOS CTM  II")
 	mol.SetCharge(1)
 	mol.SetMulti(1)
 	calc := new(QMCalc)
@@ -220,7 +217,7 @@ func TestQM(Te *testing.T) {
 	orca := NewOrcaRunner()
 	orca.SetnCPU(16) /////////////////////
 	atoms:=ZeroVecs(mol.Len())
-//	mol.Next(atoms)
+	mol.Next(atoms)
 	original_dir, _ := os.Getwd() //will check in a few lines
 	if err = os.Chdir("./test"); err != nil {
 		Te.Error(err)
@@ -288,6 +285,16 @@ func TestQM(Te *testing.T) {
 	fmt.Println("end mopac and orca test!")
 }
 
+func TestDelete(Te *testing.T){
+	mol,err:=XYZRead("test/ethanol.xyz")
+	if err!=nil{
+		Te.Error(err)
+	}
+	mol.Del(4)
+	XYZWrite("test/ethanolDel.xyz",mol.Coords[0],mol)
+
+}
+
 //TestTurbo tests the QM functionality. It prepares input for Turbomole
 //Notice that 2 TM inputs cannot be in the same directory. Notice that TMRunner
 //supports ECPs
@@ -346,7 +353,7 @@ func TesstTurbo(Te *testing.T) {
 	fmt.Println("end TurboTest!")
 }
 
-func TesstWater(Te *testing.T) {
+func TestWater(Te *testing.T) {
 	mol, err := XYZRead("test/sample.xyz")
 	if err != nil {
 		Te.Error(err)
@@ -371,11 +378,12 @@ func TesstWater(Te *testing.T) {
 	c := mol.Coords[0].VecView(43)
 	h1 := mol.Coords[0].VecView(42)
 	coords := ZeroVecs(mol.Len())
-	coords.Clone(mol.Coords[0])
+	coords.Copy(mol.Coords[0])
 	w1 := MakeWater(c, h1, 2, Deg2Rad*30, true)
 	w2 := MakeWater(c, h1, 2, Deg2Rad*-30, false)
 	tmp := ZeroVecs(6)
 	tmp.Stack(w1, w2)
+	fmt.Println("tmp water",w1,w2, tmp,c,h1)
 	coords.SetMatrix(mol.Len()-6, 0, tmp)
 	XYZWrite("test/WithWater.xyz", coords, mol)
 }
@@ -389,7 +397,7 @@ func TesstFixPDB(Te *testing.T) {
 	PDBWrite("test/2c9vfixed.pdb", mol.Coords[0], mol, nil)
 }
 
-func TesstChemShell(Te *testing.T) {
+func TestChemShell(Te *testing.T) {
 	mol, err := XYZRead("test/sample.xyz")
 	if err != nil {
 		Te.Error(err)
@@ -441,7 +449,7 @@ func qderror_handler(err error, Te *testing.T) {
 	}
 }
 
-func TesstReduce(Te *testing.T) {
+func TestReduce(Te *testing.T) {
 	mol, err := PDBRead("test/2c9v.pdb", true)
 	if err != nil {
 		Te.Error(err)
@@ -457,7 +465,7 @@ func TesstReduce(Te *testing.T) {
 	PDBWrite("test/2c9vHReduce.pdb", mol2.Coords[0], mol2, nil)
 }
 
-func TesstSuper(Te *testing.T) {
+func TestSuper(Te *testing.T) {
 	backbone := []string{"C", "CA", "N"}        //The PDB name of the atoms in the backbone.
 	mol1, err := PDBRead("test/2c9v.pdb", true) //true means that we try to read the symbol from the PDB file.
 	mol2, err2 := PDBRead("test/1uxm.pdb", true)
