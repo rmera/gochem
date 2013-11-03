@@ -140,7 +140,7 @@ func (F *VecMatrix) Copy(A Matrix) {
 	switch A := A.(type) {
 	case *VecMatrix:
 		F.Dense.Copy(A.Dense)
-	case *ChemDense:
+	case *chemDense:
 		F.Dense.Copy(A.Dense)
 	default:
 		F.Dense.Copy(A)
@@ -152,7 +152,7 @@ func (F *VecMatrix)Add(A *VecMatrix, B Matrix){
 	switch B := B.(type) {
 	case *VecMatrix:
 		F.Dense.Add(A.Dense,B.Dense)
-	case *ChemDense:
+	case *chemDense:
 		F.Dense.Add(A.Dense,B.Dense)
 	default:
 		F.Dense.Add(A.Dense,B)
@@ -163,7 +163,7 @@ func (F *VecMatrix)Scale(i float64, A Matrix){
 	switch A := A.(type) {
 	case *VecMatrix:
 		F.Dense.Scale(i,A.Dense)
-	case *ChemDense:
+	case *chemDense:
 		F.Dense.Scale(i,A.Dense)
 	default:
 		F.Dense.Scale(i,A)
@@ -175,7 +175,7 @@ func (F *VecMatrix) Sub(A *VecMatrix, B Matrix){
 	switch B := B.(type) {
 	case *VecMatrix:
 		F.Dense.Sub(A.Dense,B.Dense)
-	case *ChemDense:
+	case *chemDense:
 		F.Dense.Sub(A.Dense,B.Dense)
 	default:
 		F.Dense.Sub(A.Dense,B)
@@ -203,16 +203,16 @@ func (F *VecMatrix) Mul(A, B Matrix) {
 		switch B := B.(type) {
 		case *VecMatrix:
 			F.Dense.Mul(C.Dense, B.Dense)
-		case *ChemDense:
+		case *chemDense:
 			F.Dense.Mul(C.Dense, B.Dense)
 		default:
 			F.Dense.Mul(C.Dense, B)
 		}
-	} else if C,ok:=A.(*ChemDense); ok {
+	} else if C,ok:=A.(*chemDense); ok {
 		switch B := B.(type) {
 		case *VecMatrix:
 			F.Dense.Mul(C.Dense, B.Dense)
-		case *ChemDense:
+		case *chemDense:
 			F.Dense.Mul(C.Dense, B.Dense)
 		default:
 			F.Dense.Mul(C.Dense, B)
@@ -249,13 +249,13 @@ func (F *VecMatrix) Stack(A, B *VecMatrix) {
 
 //Just a dense matrix to allow different implementations of gonum.
 //This might change to Dense at some point, but the API change should be barely noticeable.
-type ChemDense struct {
+type chemDense struct {
 	*mat64.Dense
 }
 
-func NewChemDense(data []float64, r, c int) (*ChemDense, error) {
+func NewchemDense(data []float64, r, c int) (*chemDense, error) {
 	d, err := mat64.NewDense(r, c, data)
-	return &ChemDense{d}, err
+	return &chemDense{d}, err
 }
 
 //Returns and empty, but not nil, Dense. It barely allocates memory
@@ -267,15 +267,15 @@ func emptyDense() (*mat64.Dense, error) {
 
 //Returns an zero-filled Dense with the given dimensions
 //It is to be substituted by the Gonum function.
-func gnZeros(r, c int) *ChemDense {
+func gnZeros(r, c int) *chemDense {
 	f := make([]float64, r*c, r*c)
 	ret, _ := mat64.NewDense(r, c, f)
-	return &ChemDense{ret}
+	return &chemDense{ret}
 
 }
 
 //Returns an identity matrix spanning span cols and rows
-func gnEye(span int) *ChemDense {
+func gnEye(span int) *chemDense {
 	A := gnZeros(span, span)
 	for i := 0; i < span; i++ {
 		A.Set(i, i, 1.0)
@@ -283,7 +283,7 @@ func gnEye(span int) *ChemDense {
 	return A
 }
 
-//func Eye(span int) *ChemDense {
+//func Eye(span int) *chemDense {
 //	return gnEye(span)
 //}
 
@@ -381,7 +381,7 @@ func gnEigen(in *VecMatrix, epsilon float64) (*VecMatrix, []float64, error) {
 }
 
 //Returns the singular value decomposition of matrix A
-func gnSVD(A *ChemDense) (*ChemDense, *ChemDense, *ChemDense) {
+func gnSVD(A *chemDense) (*chemDense, *chemDense, *chemDense) {
 	facts := la.SVD(A.Dense, appzero, appzero, true, true) //I am not sure that the second appzero is appropiate
 	//make sigma a matrix
 	//	lens:=len(s)
@@ -389,7 +389,7 @@ func gnSVD(A *ChemDense) (*ChemDense, *ChemDense, *ChemDense) {
 	//	for i := 0; i < lens; i++ {
 	//		Sigma.Set(i, i, s[i])
 	//	}
-	return &ChemDense{facts.U}, &ChemDense{facts.S()}, &ChemDense{facts.V}
+	return &chemDense{facts.U}, &chemDense{facts.S()}, &chemDense{facts.V}
 
 }
 
@@ -402,7 +402,7 @@ func (F *VecMatrix) TCopy(A Matrix) {
 }
 
 //returns a rows,cols matrix filled with gnOnes.
-func gnOnes(rows, cols int) *ChemDense {
+func gnOnes(rows, cols int) *chemDense {
 	gnOnes := gnZeros(rows, cols)
 	for i := 0; i < rows; i++ {
 		for j := 0; j < cols; j++ {
@@ -412,7 +412,7 @@ func gnOnes(rows, cols int) *ChemDense {
 	return gnOnes
 }
 
-func gnMul(A, B mat64.Matrix) *ChemDense {
+func gnMul(A, B mat64.Matrix) *chemDense {
 	ar, _ := A.Dims()
 	_, bc := B.Dims()
 	C := gnZeros(ar, bc)
@@ -420,14 +420,14 @@ func gnMul(A, B mat64.Matrix) *ChemDense {
 	return C
 }
 
-func gnCopy(A mat64.Matrix) *ChemDense {
+func gnCopy(A mat64.Matrix) *chemDense {
 	r, c := A.Dims()
 	B := gnZeros(r, c)
 	B.Copy(A)
 	return B
 }
 
-func gnT(A mat64.Matrix) *ChemDense {
+func gnT(A mat64.Matrix) *chemDense {
 	r, c := A.Dims()
 	B := gnZeros(c, r)
 	B.TCopy(A)

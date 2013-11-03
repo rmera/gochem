@@ -157,7 +157,7 @@ func GetSuper(test, templa *VecMatrix) (*VecMatrix, *VecMatrix, *VecMatrix, *Vec
 	Maux := ZeroVecs(r)
 	Maux.Mul(aux2, ctest)
 	Maux.TCopy(Maux) //Dont understand why this is needed
-	U, _, Vt := gnSVD(VecMatrix2ChemDense(Maux))
+	U, _, Vt := gnSVD(VecMatrix2chemDense(Maux))
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -348,7 +348,7 @@ func BestPlane(coords *VecMatrix, mol ReadRef) (*VecMatrix, error) {
 
 //CenterOfMass returns the center of mass the atoms represented by the coordinates in geometry
 //and the masses in mass, and an error. If mass is nil, it calculates the geometric center
-func CenterOfMass(geometry *VecMatrix, mass *ChemDense) (*VecMatrix, error) {
+func CenterOfMass(geometry *VecMatrix, mass *chemDense) (*VecMatrix, error) {
 	if geometry == nil {
 		return nil, fmt.Errorf("nil matrix to get the center of mass")
 	}
@@ -367,7 +367,7 @@ func CenterOfMass(geometry *VecMatrix, mass *ChemDense) (*VecMatrix, error) {
 
 //MassCentrate centers in in the center of mass of oref. Mass must be
 //A column vector. Returns the centered matrix and the displacement matrix.
-func MassCentrate(in, oref *VecMatrix, mass *ChemDense) (*VecMatrix, *VecMatrix, error) {
+func MassCentrate(in, oref *VecMatrix, mass *chemDense) (*VecMatrix, *VecMatrix, error) {
 	or, _ := oref.Dims()
 	ir, _ := in.Dims()
 	if mass == nil { //just obtain the geometric center
@@ -403,16 +403,16 @@ func MassCentrate(in, oref *VecMatrix, mass *ChemDense) (*VecMatrix, *VecMatrix,
 func MomentTensor(A *VecMatrix, massslice []float64) (*VecMatrix, error) {
 	ar, ac := A.Dims()
 	var err error
-	var mass *ChemDense
+	var mass *chemDense
 	if massslice == nil {
 		mass = gnOnes(ar, 1)
 	} else {
-		mass, err = NewChemDense(massslice, ar, 1)
+		mass, err = NewchemDense(massslice, ar, 1)
 		if err != nil {
 			return nil, err
 		}
 	}
-	center, _, err := MassCentrate(A, ChemDense2VecMatrix(gnCopy(A)), mass)
+	center, _, err := MassCentrate(A, chemDense2VecMatrix(gnCopy(A)), mass)
 	if err != nil {
 		return nil, err
 	}
@@ -424,7 +424,7 @@ func MomentTensor(A *VecMatrix, massslice []float64) (*VecMatrix, error) {
 	centerT := gnZeros(ac, ar)
 	centerT.TCopy(center)
 	moment := gnMul(centerT, center)
-	return ChemDense2VecMatrix(moment), err
+	return chemDense2VecMatrix(moment), err
 }
 
 //The projection of test in ref.

@@ -55,12 +55,12 @@ func ZeroVecs(cos int) *VecMatrix {
 	return &VecMatrix{dens.Dense}
 }
 
-func ChemDense2VecMatrix(A *ChemDense) *VecMatrix {
+func chemDense2VecMatrix(A *chemDense) *VecMatrix {
 	return &VecMatrix{A.Dense}
 }
 
-func VecMatrix2ChemDense(A *VecMatrix) *ChemDense {
-	return &ChemDense{A.Dense}
+func VecMatrix2chemDense(A *VecMatrix) *chemDense {
+	return &chemDense{A.Dense}
 }
 
 //METHODS
@@ -250,7 +250,7 @@ func (F *VecMatrix) AddRow(A, row *VecMatrix) {
 
 //Puts A**exp on the receiver. This function could probably
 //be written in a concurrent way
-func (F *ChemDense) Pow(A Matrix, exp float64) {
+func (F *chemDense) Pow(A Matrix, exp float64) {
 	ar, ac := A.Dims()
 	fr, fc := F.Dims()
 	if ar != fr || ac != fc {

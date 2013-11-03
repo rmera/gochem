@@ -73,7 +73,7 @@ type VecMatrix struct {
 }
 
 //For the pure-go implementation I must implement Dense on top of go.matrix
-type ChemDense struct {
+type chemDense struct {
 	*Dense
 }
 
@@ -97,11 +97,11 @@ func det(A *VecMatrix) float64 {
 }
 
 //Generate and returns a CoorMatrix with arbitrary shape from data.
-func NewChemDense(data []float64, rows, cols int) (*ChemDense, error) {
+func NewchemDense(data []float64, rows, cols int) (*chemDense, error) {
 	if len(data) < cols*rows {
 		return nil, fmt.Errorf(string(NotEnoughElements))
 	}
-	return &ChemDense{newDense(data, rows, cols)}, nil
+	return &chemDense{newDense(data, rows, cols)}, nil
 
 }
 
@@ -126,12 +126,12 @@ func EmptyDense() *Dense {
 
 //Returns an zero-filled Dense with the given dimensions
 //It is to be substituted by the Gonum function.
-func gnZeros(rows, cols int) *ChemDense {
-	return &ChemDense{&Dense{matrix.Zeros(rows, cols)}}
+func gnZeros(rows, cols int) *chemDense {
+	return &chemDense{&Dense{matrix.Zeros(rows, cols)}}
 }
 
 //Returns an identity matrix spanning span cols and rows
-func gnEye(span int) *ChemDense {
+func gnEye(span int) *chemDense {
 	A := gnZeros(span, span)
 	for i := 0; i < span; i++ {
 		A.Set(i, i, 1.0)
@@ -139,7 +139,7 @@ func gnEye(span int) *ChemDense {
 	return A
 }
 
-func Eye(span int) *ChemDense {
+func Eye(span int) *chemDense {
 	return gnEye(span)
 }
 
@@ -230,20 +230,20 @@ func gnEigen(in *VecMatrix, epsilon float64) (*VecMatrix, []float64, error) {
 }
 
 //Returns the singular value decomposition of matrix A
-func gnSVD(A *ChemDense) (*ChemDense, *ChemDense, *ChemDense) {
+func gnSVD(A *chemDense) (*chemDense, *chemDense, *chemDense) {
 	U, s, V, err := A.SVD()
 	if err != nil {
 		panic(err.Error())
 	}
-	theU := ChemDense{&Dense{U}}
-	sigma := ChemDense{&Dense{s}}
-	theV := ChemDense{&Dense{V}}
+	theU := chemDense{&Dense{U}}
+	sigma := chemDense{&Dense{s}}
+	theV := chemDense{&Dense{V}}
 	return &theU, &sigma, &theV
 
 }
 
 //returns a rows,cols matrix filled with gnOnes.
-func gnOnes(rows, cols int) *ChemDense {
+func gnOnes(rows, cols int) *chemDense {
 	gnOnes := gnZeros(rows, cols)
 	for i := 0; i < rows; i++ {
 		for j := 0; j < cols; j++ {
@@ -253,7 +253,7 @@ func gnOnes(rows, cols int) *ChemDense {
 	return gnOnes
 }
 
-func gnMul(A, B Matrix) *ChemDense {
+func gnMul(A, B Matrix) *chemDense {
 	ar, _ := A.Dims()
 	_, bc := B.Dims()
 	C := gnZeros(ar, bc)
@@ -261,14 +261,14 @@ func gnMul(A, B Matrix) *ChemDense {
 	return C
 }
 
-func gnCopy(A Matrix) *ChemDense {
+func gnCopy(A Matrix) *chemDense {
 	r, c := A.Dims()
 	B := gnZeros(r, c)
 	B.Copy(A)
 	return B
 }
 
-func gnT(A Matrix) *ChemDense {
+func gnT(A Matrix) *chemDense {
 	r, c := A.Dims()
 	B := gnZeros(c, r)
 	B.TCopy(A)
@@ -634,10 +634,10 @@ func (F *Dense) TCopy(A Matrix) {
 	if B, ok = A.(*Dense);!ok {
 		if C, ok := A.(*VecMatrix);ok {
 			B=C.Dense
-		}else if D,ok:=A.(*ChemDense);ok{
+		}else if D,ok:=A.(*chemDense);ok{
 			B=D.Dense
 		}else{
-			panic("Only Dense, ChemDense and VecMatrix are currently accepted")
+			panic("Only Dense, chemDense and VecMatrix are currently accepted")
 		}
 	}
 	//we do it in a different way if you pass the received as the argument

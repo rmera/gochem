@@ -51,7 +51,7 @@ func Molecules2Atoms(mol Atomer, residues []int, chains []string) []int {
 //This matrix can be used as a dummy mass matrix
 //for geometric calculations.
 func OnesMass(lenght int) *VecMatrix {
-	return ChemDense2VecMatrix(gnOnes(lenght, 1))
+	return chemDense2VecMatrix(gnOnes(lenght, 1))
 }
 
 //Super determines the best rotation and translations to superimpose the coords in test
