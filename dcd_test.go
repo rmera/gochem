@@ -51,7 +51,7 @@ func estDCD(Te *testing.T) {
 			Te.Error(err)
 			break
 		} else if err == nil {
-			fmt.Println(VecView(mat, 2))
+			fmt.Println(mat.VecView(2))
 		} else {
 			break
 		}

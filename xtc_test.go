@@ -52,7 +52,7 @@ func TestXTC(Te *testing.T) {
 			fmt.Println(err)
 			break
 		} else if err == nil {
-			fmt.Println(VecView(coords, 2))
+			fmt.Println(coords.VecView(2))
 		} else {
 			fmt.Println("no more!")
 			break
