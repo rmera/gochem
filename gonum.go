@@ -182,12 +182,46 @@ func (F *VecMatrix) Sub(A *VecMatrix, B Matrix){
 	}
 }
 
+
 */
 
 
-
-
-
+//Mul Wrapps mat64.Mul to take care of the case when one of the
+//argumenst is also the receiver.
+func (F *VecMatrix) Mul(A, B Matrix) {
+	if F == A {
+		A := A.(*VecMatrix)
+		F.Dense.Mul(A.Dense, B)
+	}else if F==B{
+		B:=B.(*VecMatrix)
+		F.Dense.Mul(A,B.Dense)
+	}else{
+		F.Dense.Mul(A,B)
+	}
+	/*
+	if C, ok := A.(*VecMatrix); ok {
+		switch B := B.(type) {
+		case *VecMatrix:
+			F.Dense.Mul(C.Dense, B.Dense)
+		case *ChemDense:
+			F.Dense.Mul(C.Dense, B.Dense)
+		default:
+			F.Dense.Mul(C.Dense, B)
+		}
+	} else if C,ok:=A.(*ChemDense); ok {
+		switch B := B.(type) {
+		case *VecMatrix:
+			F.Dense.Mul(C.Dense, B.Dense)
+		case *ChemDense:
+			F.Dense.Mul(C.Dense, B.Dense)
+		default:
+			F.Dense.Mul(C.Dense, B)
+		}
+	} else {
+		F.Dense.Mul(A, B)
+	}
+*/
+}
 
 //puts A stacked over B in F
 func (F *VecMatrix) Stack(A, B *VecMatrix) {
@@ -342,7 +376,7 @@ func gnEigen(in *VecMatrix, epsilon float64) (*VecMatrix, []float64, error) {
 		*/
 		//	fmt.Println("all good, I guess")
 	}
-//	eig.evecs.TCopy(eig.evecs)
+	//	eig.evecs.TCopy(eig.evecs)
 	return eig.evecs, eig.evals, err //Returns a slice of evals
 }
 

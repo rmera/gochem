@@ -1,4 +1,4 @@
-/// +build part
+// +build part
 
 /*
  * part_test.go
@@ -298,7 +298,7 @@ func TestDelete(Te *testing.T){
 //TestTurbo tests the QM functionality. It prepares input for Turbomole
 //Notice that 2 TM inputs cannot be in the same directory. Notice that TMRunner
 //supports ECPs
-func TesstTurbo(Te *testing.T) {
+func TestTurbo(Te *testing.T) {
 	mol, err := XYZRead("test/ethanol.xyz")
 	os.Chdir("test")
 	defer os.Chdir("..")
@@ -308,7 +308,6 @@ func TesstTurbo(Te *testing.T) {
 	if err := mol.Corrupted(); err != nil {
 		Te.Error(err)
 	}
-	mol.Del(mol.Len() - 1)
 	mol.SetCharge(0)
 	mol.SetMulti(1)
 	calc := new(QMCalc)

@@ -630,13 +630,15 @@ func (F *Dense) TCopy(A Matrix) {
 		panic(gnErrShape)
 	}
 	var B *Dense
-	B, ok := A.(*Dense)
-	if !ok {
-		C, ok := A.(*VecMatrix)
-		if !ok {
-			panic("Only Dense and VecMatrix are currently accepted")
+	var ok bool
+	if B, ok = A.(*Dense);!ok {
+		if C, ok := A.(*VecMatrix);ok {
+			B=C.Dense
+		}else if D,ok:=A.(*ChemDense);ok{
+			B=D.Dense
+		}else{
+			panic("Only Dense, ChemDense and VecMatrix are currently accepted")
 		}
-		B = C.Dense
 	}
 	//we do it in a different way if you pass the received as the argument
 	//(transpose in place) We could use continue for i==j

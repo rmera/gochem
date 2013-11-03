@@ -80,8 +80,11 @@ func Super(test, templa *VecMatrix, testlst, templalst []int) (*VecMatrix, error
 		return nil, err1
 	}
 	test.AddVec(test, trans1)
+	fmt.Println("test1",test, rotation) /////////////77
 	test.Mul(test, rotation)
+	fmt.Println("test2",test) ///////////
 	test.AddVec(test, trans2)
+//	fmt.Println("test3",test) ///////
 	return test, nil
 }
 
