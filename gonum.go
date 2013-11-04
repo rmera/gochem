@@ -185,6 +185,11 @@ func (F *VecMatrix) Sub(A *VecMatrix, B Matrix){
 
 */
 
+func gnInverse(F *VecMatrix) *VecMatrix {
+	a := la.Inverse(F.Dense)
+	return &VecMatrix{a}
+
+}
 
 //Mul Wrapps mat64.Mul to take care of the case when one of the
 //argumenst is also the receiver.
@@ -192,35 +197,35 @@ func (F *VecMatrix) Mul(A, B Matrix) {
 	if F == A {
 		A := A.(*VecMatrix)
 		F.Dense.Mul(A.Dense, B)
-	}else if F==B{
-		B:=B.(*VecMatrix)
-		F.Dense.Mul(A,B.Dense)
-	}else{
-		F.Dense.Mul(A,B)
-	}
-	/*
-	if C, ok := A.(*VecMatrix); ok {
-		switch B := B.(type) {
-		case *VecMatrix:
-			F.Dense.Mul(C.Dense, B.Dense)
-		case *chemDense:
-			F.Dense.Mul(C.Dense, B.Dense)
-		default:
-			F.Dense.Mul(C.Dense, B)
-		}
-	} else if C,ok:=A.(*chemDense); ok {
-		switch B := B.(type) {
-		case *VecMatrix:
-			F.Dense.Mul(C.Dense, B.Dense)
-		case *chemDense:
-			F.Dense.Mul(C.Dense, B.Dense)
-		default:
-			F.Dense.Mul(C.Dense, B)
-		}
+	} else if F == B {
+		B := B.(*VecMatrix)
+		F.Dense.Mul(A, B.Dense)
 	} else {
 		F.Dense.Mul(A, B)
 	}
-*/
+	/*
+		if C, ok := A.(*VecMatrix); ok {
+			switch B := B.(type) {
+			case *VecMatrix:
+				F.Dense.Mul(C.Dense, B.Dense)
+			case *chemDense:
+				F.Dense.Mul(C.Dense, B.Dense)
+			default:
+				F.Dense.Mul(C.Dense, B)
+			}
+		} else if C,ok:=A.(*chemDense); ok {
+			switch B := B.(type) {
+			case *VecMatrix:
+				F.Dense.Mul(C.Dense, B.Dense)
+			case *chemDense:
+				F.Dense.Mul(C.Dense, B.Dense)
+			default:
+				F.Dense.Mul(C.Dense, B)
+			}
+		} else {
+			F.Dense.Mul(A, B)
+		}
+	*/
 }
 
 //puts A stacked over B in F

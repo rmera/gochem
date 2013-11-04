@@ -363,12 +363,13 @@ func (F *Dense) Dot(B Matrix) float64 {
 //puts the inverse of B in F or panics if F is non-singular.
 //its just a dirty minor adaptation from the code in go.matrix from John Asmuth
 //it will be replaced by the gonum implementation when the library is ready.
-func (F *Dense) Inv(B Matrix) {
+func gnInverse(B Matrix) *VecMatrix {
 	//fr,fc:=F.Dims()
 	ar, ac := B.Dims()
 	if ac != ar {
 		panic(gnErrSquare)
 	}
+	F := ZeroVecs(ar)
 	var ok bool
 	var A *VecMatrix
 	A, ok = B.(*VecMatrix)
@@ -405,6 +406,7 @@ func (F *Dense) Inv(B Matrix) {
 		}
 	}
 	F.SubMatrix(aug, 0, ac, ar, ac)
+	return F
 }
 
 //A slightly modified version of John Asmuth's ParalellProduct function.
@@ -631,12 +633,12 @@ func (F *Dense) TCopy(A Matrix) {
 	}
 	var B *Dense
 	var ok bool
-	if B, ok = A.(*Dense);!ok {
-		if C, ok := A.(*VecMatrix);ok {
-			B=C.Dense
-		}else if D,ok:=A.(*chemDense);ok{
-			B=D.Dense
-		}else{
+	if B, ok = A.(*Dense); !ok {
+		if C, ok := A.(*VecMatrix); ok {
+			B = C.Dense
+		} else if D, ok := A.(*chemDense); ok {
+			B = D.Dense
+		} else {
 			panic("Only Dense, chemDense and VecMatrix are currently accepted")
 		}
 	}

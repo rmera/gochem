@@ -308,7 +308,7 @@ func BestPlaneP(evecs *VecMatrix) (*VecMatrix, error) {
 	}
 	v1 := evecs.VecView(2)
 	v2 := evecs.VecView(1)
-	normal:=ZeroVecs(1)
+	normal := ZeroVecs(1)
 	normal.Cross(v1, v2)
 	return normal, nil
 }

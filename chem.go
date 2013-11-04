@@ -523,7 +523,7 @@ func (M *Molecule) Next(V *VecMatrix) error {
 		fmt.Errorf("No more frames")
 	}
 	M.current++
-	if  V == nil {
+	if V == nil {
 		return nil
 	}
 	V.Copy(M.Coords[M.current-1])

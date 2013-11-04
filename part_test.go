@@ -39,7 +39,7 @@ import "testing"
 func TestXYZIO(Te *testing.T) {
 	mol, err := XYZRead("test/sample.xyz")
 	if err != nil {
-		fmt.Println("There was an error!",err.Error())
+		fmt.Println("There was an error!", err.Error())
 		Te.Error(err)
 	}
 	fmt.Println("XYZ read!")
@@ -170,7 +170,7 @@ func TestPutInXYPlane(Te *testing.T) {
 	z, _ := NewVecs([]float64{0, 0, 1})
 	zero, _ := NewVecs([]float64{0, 0, 0})
 	fmt.Println("Best  Plane", best, z)
-	axis:=ZeroVecs(1)
+	axis := ZeroVecs(1)
 	axis.Cross(best, z)
 	fmt.Println("axis", axis)
 	//The main part of the program, where the rotation actually happens. Note that we rotate the whole
@@ -190,7 +190,7 @@ func TestPutInXYPlane(Te *testing.T) {
 func TestQM(Te *testing.T) {
 	mol, err := XYZRead("test/sample.xyz")
 
-	fmt.Println(mol.Coords[0],len(mol.Coords),"LOS JUIMOS CTM",err)
+	fmt.Println(mol.Coords[0], len(mol.Coords), "LOS JUIMOS CTM", err)
 	if err != nil {
 		Te.Error(err)
 
@@ -216,7 +216,7 @@ func TestQM(Te *testing.T) {
 	calc.SetDefaults()
 	orca := NewOrcaRunner()
 	orca.SetnCPU(16) /////////////////////
-	atoms:=ZeroVecs(mol.Len())
+	atoms := ZeroVecs(mol.Len())
 	mol.Next(atoms)
 	original_dir, _ := os.Getwd() //will check in a few lines
 	if err = os.Chdir("./test"); err != nil {
@@ -232,7 +232,7 @@ func TestQM(Te *testing.T) {
 	calc.Method = "HF-3c"
 	orca.SetName("HF3c")
 	orca.SetnCPU(8)
-//	fmt.Println(mol.Coords[0], "vieja") 
+	//	fmt.Println(mol.Coords[0], "vieja")
 	_ = orca.BuildInput(mol, atoms, calc)
 	path, _ := os.Getwd()
 	//	if err:=orca.Run(false); err!=nil{
@@ -285,20 +285,20 @@ func TestQM(Te *testing.T) {
 	fmt.Println("end mopac and orca test!")
 }
 
-func TestDelete(Te *testing.T){
-	mol,err:=XYZRead("test/ethanol.xyz")
-	if err!=nil{
+func TestDelete(Te *testing.T) {
+	mol, err := XYZRead("test/ethanol.xyz")
+	if err != nil {
 		Te.Error(err)
 	}
 	mol.Del(4)
-	XYZWrite("test/ethanolDel.xyz",mol.Coords[0],mol)
+	XYZWrite("test/ethanolDel.xyz", mol.Coords[0], mol)
 
 }
 
 //TestTurbo tests the QM functionality. It prepares input for Turbomole
 //Notice that 2 TM inputs cannot be in the same directory. Notice that TMRunner
 //supports ECPs
-func TestTurbo(Te *testing.T) {
+func TesstTurbo(Te *testing.T) {
 	mol, err := XYZRead("test/ethanol.xyz")
 	os.Chdir("test")
 	defer os.Chdir("..")
@@ -382,7 +382,7 @@ func TestWater(Te *testing.T) {
 	w2 := MakeWater(c, h1, 2, Deg2Rad*-30, false)
 	tmp := ZeroVecs(6)
 	tmp.Stack(w1, w2)
-	fmt.Println("tmp water",w1,w2, tmp,c,h1)
+	fmt.Println("tmp water", w1, w2, tmp, c, h1)
 	coords.SetMatrix(mol.Len()-6, 0, tmp)
 	XYZWrite("test/WithWater.xyz", coords, mol)
 }
@@ -416,7 +416,7 @@ func TestChemShell(Te *testing.T) {
 	calc.Disperssion = "D3"
 	calc.CConstraints = []int{0, 10, 20}
 	cs := NewCSRunner()
-	atoms:= mol.Coords[0]
+	atoms := mol.Coords[0]
 	original_dir, _ := os.Getwd() //will check in a few lines
 	if err = os.Chdir("./test"); err != nil {
 		Te.Error(err)

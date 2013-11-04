@@ -111,11 +111,11 @@ func (F *VecMatrix) DelRow(A *VecMatrix, i int) {
 	tempF1 := F.View(0, 0, i, ac)
 	tempF1.Copy(tempA1)
 	//now the other part
-//	if i != ar-1 {
-		tempA2 := A.View(i+1, 0, ar-i-1, ac) //The magic happens here
-		tempF2 := F.View(i, 0, ar-i-1, fc)
-		tempF2.Copy(tempA2)
-//	}
+	//	if i != ar-1 {
+	tempA2 := A.View(i+1, 0, ar-i-1, ac) //The magic happens here
+	tempF2 := F.View(i, 0, ar-i-1, fc)
+	tempF2.Copy(tempA2)
+	//	}
 }
 
 //return the number of vecs in F. Panics if the
@@ -317,8 +317,6 @@ func (F *VecMatrix) Unit(A *VecMatrix) {
 	if A.Dense != F.Dense {
 		F.Copy(A)
 	}
-	norm := 1.0/F.Norm(0)
+	norm := 1.0 / F.Norm(0)
 	F.Scale(norm, F)
 }
-
-
