@@ -449,7 +449,7 @@ func MultiPDBWrite(pdbname string, Coords []*VecMatrix, mol Atomer, Bfactors [][
 func XYZStringRead(xyz string) (*Molecule, error) {
 	xyzstringreader := strings.NewReader(xyz)
 	bufioxyz := bufio.NewReader(xyzstringreader)
-	mol, err := xyzBufIORead(bufioxyz)
+	mol, err := XYZBufIORead(bufioxyz)
 	return mol, err
 }
 
@@ -462,7 +462,7 @@ func XYZRead(xyzname string) (*Molecule, error) {
 	}
 	defer xyzfile.Close()
 	xyz := bufio.NewReader(xyzfile)
-	mol, err := xyzBufIORead(xyz)
+	mol, err := XYZBufIORead(xyz)
 	if err != nil {
 		errstr := err.Error()
 		err = fmt.Errorf(strings.Join([]string{errstr, " in file ", xyzname}, ""))
@@ -472,7 +472,7 @@ func XYZRead(xyzname string) (*Molecule, error) {
 }
 
 //Reads an xyz or multixyz formatted bufio.Reader (as produced by Turbomole). Returns a Molecule and error or nil.
-func xyzBufIORead(xyz *bufio.Reader) (*Molecule, error) {
+func XYZBufIORead(xyz *bufio.Reader) (*Molecule, error) {
 	snaps := 1
 	var err error
 	var top *Topology
