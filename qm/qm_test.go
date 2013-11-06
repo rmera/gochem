@@ -53,7 +53,7 @@ func TestQM(Te *testing.T) {
 	mol.Del(mol.Len() - 1)
 	mol.SetCharge(1)
 	mol.SetMulti(1)
-	calc := new(QMCalc)
+	calc := new(Calc)
 	calc.SCFTightness = 2 //very demanding
 	calc.Optimize = true
 	calc.Method = "TPSS"
@@ -153,7 +153,7 @@ func TesstTurbo(Te *testing.T) {
 	}
 	mol.SetCharge(0)
 	mol.SetMulti(1)
-	calc := new(QMCalc)
+	calc := new(Calc)
 	calc.SCFConvHelp = 1 //very demanding
 	calc.Memory = 1000
 	calc.ECP = "ecp-10-mdf"
@@ -208,7 +208,7 @@ func TestChemShell(Te *testing.T) {
 	mol.Del(mol.Len() - 1)
 	mol.SetCharge(1)
 	mol.SetMulti(1)
-	calc := new(QMCalc)
+	calc := new(Calc)
 	calc.Optimize = true
 	calc.Method = "BLYP"
 	calc.Dielectric = 4

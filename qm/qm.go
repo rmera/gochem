@@ -34,7 +34,7 @@ import "github.com/rmera/gochem"
 
 //This allows to set QM calculations using different programs.
 //Currently ORCA and MOPAC (2009/2012) are supported.
-type QMRunner interface {
+type Runner interface {
 	//Sets the number of  CPUs for the calculation, when possible
 	SetnCPU(cpu int)
 
@@ -51,7 +51,7 @@ type QMRunner interface {
 
 	//BuildInput builds an input for the QM program based int the data in
 	//atoms, coords and C. returns only error.
-	BuildInput(atoms chem.ReadRef, coords *chem.VecMatrix, Q *QMCalc) error
+	BuildInput(atoms chem.ReadRef, coords *chem.VecMatrix, Q *Calc) error
 
 	//Run runs the QM program for a calculation previously set.
 	//it waits or not for the result depending of the value of
@@ -89,7 +89,7 @@ type IConstraint struct {
 	Class  byte // B: distance, A: angle, D: Dihedral
 }
 
-type QMCalc struct {
+type Calc struct {
 	Method       string
 	Basis        string
 	RI           bool
@@ -123,7 +123,7 @@ type QMCalc struct {
 	Memory       int //Max memory to be used in MB (the effect depends on the QM program)
 }
 
-func (Q *QMCalc) SetDefaults() {
+func (Q *Calc) SetDefaults() {
 	Q.RI = true
 	Q.BSSE = "gcp"
 	Q.Disperssion = "D3"

@@ -98,7 +98,7 @@ func (O *OrcaRunner) SetDefaults() {
 
 //BuildInput builds an input for ORCA based int the data in atoms, coords and C.
 //returns only error.
-func (O *OrcaRunner) BuildInput(atoms chem.ReadRef, coords *chem.VecMatrix, Q *QMCalc) error {
+func (O *OrcaRunner) BuildInput(atoms chem.ReadRef, coords *chem.VecMatrix, Q *Calc) error {
 	//Only error so far
 	if atoms == nil || coords == nil {
 		return fmt.Errorf("Missing charges or coordinates")
@@ -362,7 +362,7 @@ func (O *OrcaRunner) buildCConstraints(C []int) string {
 
 //Only DFT is supported. Also, only Karlsruhe's basis sets. If you are using Pople's,
 //please come back from the sixties :-)
-func (O *OrcaRunner) buildgCP(Q *QMCalc) (string, error) {
+func (O *OrcaRunner) buildgCP(Q *Calc) (string, error) {
 	ret := ""
 	var err error
 	if strings.ToLower(Q.BSSE) == "gcp" {

@@ -90,7 +90,7 @@ func (O *TMRunner) SetDefaults() {
 }
 
 //Adds all the strings in toapend to the control file, just before the $symmetry keyword
-func (O *TMRunner) addToControl(toappend []string, Q *QMCalc) error {
+func (O *TMRunner) addToControl(toappend []string, Q *Calc) error {
 	f, err := os.Open("control")
 	if err != nil {
 		return err
@@ -204,7 +204,7 @@ func copy2pipe(pipe io.ReadCloser, file *os.File, end chan bool) {
 //returns only error.
 //Note that at this point the interface does not support multiplicities different from 1 and 2.
 //The number in atoms is simply ignored.
-func (O *TMRunner) BuildInput(atoms chem.ReadRef, coords *chem.VecMatrix, Q *QMCalc) error {
+func (O *TMRunner) BuildInput(atoms chem.ReadRef, coords *chem.VecMatrix, Q *Calc) error {
 	err := os.Mkdir(O.inputname, os.FileMode(0755))
 	for i := 0; err != nil; i++ {
 		if strings.Contains(err.Error(), "file exists") {

@@ -81,7 +81,7 @@ func (O *MopacRunner) SetDefaults() {
 
 //BuildInput builds an input for ORCA based int the data in atoms, coords and C.
 //returns only error.
-func (O *MopacRunner) BuildInput(atoms chem.ReadRef, coords *chem.VecMatrix, Q *QMCalc) error {
+func (O *MopacRunner) BuildInput(atoms chem.ReadRef, coords *chem.VecMatrix, Q *Calc) error {
 	if strings.Contains(Q.Others, "RI") {
 		Q.Others = ""
 	}
