@@ -38,7 +38,7 @@ import "github.com/rmera/gochem"
  * read frames at the end.*/
 func TestXTC(Te *testing.T) {
 	fmt.Println("First test")
-	traj, err := NewXTC("../test/test.xtc")
+	traj, err := New("../test/test.xtc")
 	if err != nil {
 		Te.Error(err)
 	}
@@ -79,7 +79,7 @@ func TestFrameXTC(Te *testing.T) {
 }
 */
 func TestFrameXTCConc(Te *testing.T) {
-	traj, err := NewXTC("../test/test.xtc")
+	traj, err := New("../test/test.xtc")
 	if err != nil {
 		Te.Error(err)
 	}

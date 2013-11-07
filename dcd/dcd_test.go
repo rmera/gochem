@@ -38,7 +38,7 @@ import "github.com/rmera/gochem"
  * read frames at the end.*/
 func estDCD(Te *testing.T) {
 	fmt.Println("Fist test!")
-	traj, err := NewDCD("../test/test.dcd")
+	traj, err := New("../test/test.dcd")
 	if err != nil {
 		Te.Error(err)
 	}
@@ -59,7 +59,7 @@ func estDCD(Te *testing.T) {
 }
 
 func TestFrameDCDConc(Te *testing.T) {
-	traj, err := NewDCD("../test/test.dcd")
+	traj, err := New("../test/test.dcd")
 	if err != nil {
 		Te.Error(err)
 	}
