@@ -79,7 +79,7 @@ func RamaPlotParts(data [][][]float64, tag [][]int, title, plotname string) erro
 	var tagged int
 	for key, val := range data {
 		temp := make(plotter.XYs, 1) //len(val))
-		fmt.Println(key, len(val))
+	//	fmt.Println(key, len(val))
 		for k, v := range val {
 			temp[0].X = v[0]
 			temp[0].Y = v[1]
@@ -99,6 +99,7 @@ func RamaPlotParts(data [][][]float64, tag [][]int, title, plotname string) erro
 			}
 			//set the colors
 			r, g, b := colors(key, len(data))
+			fmt.Println("DATA POINT", key, "color", r,g,b)
 			s.GlyphStyle.Color = color.RGBA{R: r, B: b, G: g, A: 255}
 			//The tagging procedure is a bit complex.
 			p.Add(s)
@@ -114,7 +115,7 @@ func RamaPlotParts(data [][][]float64, tag [][]int, title, plotname string) erro
 	return err
 }
 
-//takes h (0-360), v and s (0-1), returns r,g,b (0-255)
+//takes hue (0-360), v and s (0-1), returns r,g,b (0-255)
 func iHVS2RGB(h, v, s float64) (uint8, uint8, uint8) {
 	var i, f, p, q, t float64
 	var r, g, b float64
@@ -164,7 +165,7 @@ func iHVS2RGB(h, v, s float64) (uint8, uint8, uint8) {
 }
 
 func colors(key, steps int) (r, g, b uint8) {
-	norm := 200.0 / float64(steps)
+	norm := 260.0 / float64(steps)
 	hp := float64((float64(key) * norm) + 20.0)
 	var h float64
 	if hp < 55 {
@@ -172,7 +173,7 @@ func colors(key, steps int) (r, g, b uint8) {
 	} else {
 		h = hp + 20.0
 	}
-	fmt.Println("HUE", h, hp)
+//	fmt.Println("HUE", h, hp)
 	s := 1.0
 	v := 1.0
 	r, g, b = iHVS2RGB(h, v, s)
@@ -221,7 +222,6 @@ func RamaPlot(data [][]float64, tag []int, title, plotname string) error {
 	}
 	temp := make(plotter.XYs, 1)
 	var tagged int //How many residues have been tagged?
-	//Here we try to produce one color for each point. First e go from red to blue, and we continue with blue to green.
 	for key, val := range data {
 		temp[0].X = val[0]
 		temp[0].Y = val[1]
