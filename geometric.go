@@ -44,9 +44,9 @@ import "sort"
 */
 //func GetShadow()
 
-//AngleInVectors takes 2 vectors and calculate the angle in radians between them
+//Angle takes 2 vectors and calculate the angle in radians between them
 //It does not check for correctness or return errors!
-func AngleInVectors(v1, v2 *VecMatrix) float64 {
+func Angle(v1, v2 *VecMatrix) float64 {
 	normproduct := v1.Norm(0) * v2.Norm(0)
 	dotprod := v1.Dot(v2)
 	argument := dotprod / normproduct
@@ -469,7 +469,7 @@ func SelCone(B, selection *VecMatrix, angle, distance, thickness, initial float6
 			proj := Projection(atom, plane)
 			norm := proj.Norm(0)
 			//Now at what side of the plane is the atom?
-			angle := AngleInVectors(atom, plane)
+			angle := Angle(atom, plane)
 			if whatcone > 0 {
 				if angle > math.Pi/2 {
 					continue

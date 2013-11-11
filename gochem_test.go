@@ -88,7 +88,7 @@ func TestChangeAxis(Te *testing.T) {
 	//	PDBWrite(mol,"test/2c9v-124centered.pdb")
 	Z, _ := NewVecs([]float64{0, 0, 1})
 	axis := cross(orient, Z)
-	angle := AngleInVectors(orient, Z)
+	angle := Angle(orient, Z)
 	mol.Coords[0] = Rotate(mol.Coords[0], axis, angle)
 	if err != nil {
 		Te.Error(err)
@@ -168,8 +168,8 @@ func TestPutInXYPlane(Te *testing.T) {
 	fmt.Println("axis", axis)
 	//The main part of the program, where the rotation actually happens. Note that we rotate the whole
 	//molecule, not just the planar subset, this is only used to calculate the rotation angle.
-	//	fmt.Println("DATA", mol.Coords[0], zero, axis, AngleInVectors(best, z))
-	mol.Coords[0], err = RotateAbout(mol.Coords[0], zero, axis, AngleInVectors(best, z))
+	//	fmt.Println("DATA", mol.Coords[0], zero, axis, Angle(best, z))
+	mol.Coords[0], err = RotateAbout(mol.Coords[0], zero, axis, Angle(best, z))
 	if err != nil {
 		Te.Error(err)
 	}
