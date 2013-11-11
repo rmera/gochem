@@ -85,7 +85,7 @@ type Dense struct {
 //Generate and returns a CoorMatrix with arbitrary shape from data.
 func newDense(data []float64, rows, cols int) *Dense {
 	if len(data) < cols*rows {
-		panic(NotEnoughElements)
+		panic(notEnoughElements)
 	}
 	return &Dense{matrix.MakeDenseMatrix(data, rows, cols)}
 
@@ -99,7 +99,7 @@ func det(A *VecMatrix) float64 {
 //Generate and returns a CoorMatrix with arbitrary shape from data.
 func NewchemDense(data []float64, rows, cols int) (*chemDense, error) {
 	if len(data) < cols*rows {
-		return nil, fmt.Errorf(string(NotEnoughElements))
+		return nil, fmt.Errorf(string(notEnoughElements))
 	}
 	return &chemDense{newDense(data, rows, cols)}, nil
 
@@ -202,7 +202,7 @@ func gnEigen(in *VecMatrix, epsilon float64) (*VecMatrix, []float64, error) {
 		for j := i + 1; j < eigrows; j++ {
 			vectorj := eig.evecs.RowView(j)
 			if math.Abs(vectori.Dot(vectorj)) > epsilon && i != j {
-				return eig.evecs, evals[:], NotOrthogonal
+				return eig.evecs, evals[:], notOrthogonal
 			}
 		}
 		if math.Abs(vectori.Norm(0)-1) > epsilon {
@@ -707,9 +707,9 @@ func (err gnError) Error() string { return string(err) }
 
 const (
 	//RM
-	Not3xXMatrix      = gnError("matrix: The other dimmension should be 3")
-	NotOrthogonal     = gnError("matrix: Vectors nor orthogonal")
-	NotEnoughElements = gnError("matrix: not enough elements")
+	not3xXMatrix      = gnError("matrix: The other dimmension should be 3")
+	notOrthogonal     = gnError("matrix: Vectors nor orthogonal")
+	notEnoughElements = gnError("matrix: not enough elements")
 	//end RM
 	gnErrIndexOutOfRange = gnError("matrix: index out of range")
 	gnErrZeroLength      = gnError("matrix: zero length in matrix definition")

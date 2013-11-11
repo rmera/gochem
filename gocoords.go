@@ -123,7 +123,7 @@ func (F *VecMatrix) DelRow(A *VecMatrix, i int) {
 func (F *VecMatrix) NVecs() int {
 	r, c := F.Dims()
 	if c != 3 {
-		panic(Not3xXMatrix)
+		panic(not3xXMatrix)
 	}
 	return r
 
