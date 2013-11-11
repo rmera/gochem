@@ -90,7 +90,7 @@ func (O *MopacHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q *
 		return fmt.Errorf("Missing charges or coordinates")
 	}
 	ValidMethods := []string{"PM3", "PM6", "PM7", "AM1"}
-	if !isInString(ValidMethods, Q.Method[0:3]) { //not found
+	if Q.Method=="" || !isInString(ValidMethods, Q.Method[0:3]) { //not found
 		fmt.Fprintf(os.Stderr, "no method assigned for MOPAC calculation, will used the default %s, \n", O.defmethod)
 		Q.Method = O.defmethod
 	}

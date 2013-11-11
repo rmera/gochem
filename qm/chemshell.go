@@ -48,6 +48,7 @@ type CSHandle struct {
 	inputname   string
 	link        bool
 	gimic       bool
+	mpi			bool
 }
 
 //Creates and initialized a new instance of QCCSRuner, with values set
@@ -63,6 +64,10 @@ func NewCSHandle() *CSHandle {
 //Just to satisfy the interface. It does nothing
 func (O *CSHandle) SetnCPU(cpu int) {
 	//It does nothing! :-D
+}
+
+func (O *CSHandle) SetMPI(mpi bool){
+	O.mpi=mpi
 }
 
 //This set the name of the subdirectory, in the current directory
@@ -120,7 +125,7 @@ func (O *CSHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q *Cal
 	}
 	method, ok := chemShellMethods[Q.Method]
 	if !ok {
-		nonfatal = fmt.Errorf("NonFatal: Unavailable method requested, using default")
+		nonfatal = fmt.Errorf("NonFatal: Unavailable method requested: %s, using default: %s",Q.Method,O.defmethod)
 		method = O.defmethod
 	}
 	disp, ok := qcMineDisp[Q.Disperssion]
@@ -179,8 +184,12 @@ func (O *CSHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q *Cal
 	if O.link {
 		link = "1"
 	}
+	mpi:="] \\\n    "
+	if O.mpi{
+		mpi=fmt.Sprintf("%s mpi_nprocs=$::env(mpi_nprocs) %s mpi_mf=$::env(mpi_mf) %s mpi_omp=$::env(mpi_omp)] %s",b,b,b,sb)
+	}
 	//I admit the following is horrible. Just take a leap of faith
-	arguments := fmt.Sprintf("     theory= %s : [ list basis=%s %s hamiltonian=%s %s accuracy=high %s link=%s %s charge=%d %s jobname=%s %s useghosts=0 %s mpi_nprocs=$::env(mpi_nprocs) %s mpi_mf=$::env(mpi_mf) %s mpi_omp=$::env(mpi_omp)] %s coords=%s.crd %s %s list_option=full\n\n", O.program, basis, b, method, b, b, link, b, atoms.Charge(), b, O.inputname, b, b, b, b, sb, O.inputname, sb, optline)
+	arguments := fmt.Sprintf("     theory= %s : [ list basis=%s %s hamiltonian=%s %s accuracy=high %s link=%s %s charge=%d %s jobname=%s %s useghosts=0 %s coords=%s.crd %s %s list_option=full\n\n", O.program, basis, b, method, b, b, link, b, atoms.Charge(), b, O.inputname, b, mpi, O.inputname, sb, optline)
 	_, _ = fmt.Fprint(file, arguments)
 	_, _ = fmt.Fprint(file, writeline)
 	return nonfatal
