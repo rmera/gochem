@@ -40,7 +40,7 @@ import "github.com/rmera/gochem"
 
 //Note that the default methods and basis vary with each program, and even
 //for a given program they are NOT considered part of the API, so they can always change.
-type OrcaRunner struct {
+type OrcaHandle struct {
 	defmethod   string
 	defbasis    string
 	defauxbasis string
@@ -51,28 +51,28 @@ type OrcaRunner struct {
 	nCPU        int
 }
 
-func NewOrcaRunner() *OrcaRunner {
-	run := new(OrcaRunner)
+func NewOrcaHandle() *OrcaHandle {
+	run := new(OrcaHandle)
 	run.SetDefaults()
 	return run
 }
 
-//OrcaRunner methods
+//OrcaHandle methods
 
 //Sets the number of CPU to be used
-func (O *OrcaRunner) SetnCPU(cpu int) {
+func (O *OrcaHandle) SetnCPU(cpu int) {
 	O.nCPU = cpu
 }
 
-func (O *OrcaRunner) SetName(name string) {
+func (O *OrcaHandle) SetName(name string) {
 	O.inputname = name
 }
 
-func (O *OrcaRunner) SetCommand(name string) {
+func (O *OrcaHandle) SetCommand(name string) {
 	O.command = name
 }
 
-func (O *OrcaRunner) SetMOName(name string) {
+func (O *OrcaHandle) SetMOName(name string) {
 	O.previousMO = name
 }
 
@@ -80,7 +80,7 @@ func (O *OrcaRunner) SetMOName(name string) {
 revPBE/def2-SVP with RI, and all the available CPU with a max of
 8. The ORCA command is set to $ORCA_PATH/orca, at least in
 unix.*/
-func (O *OrcaRunner) SetDefaults() {
+func (O *OrcaHandle) SetDefaults() {
 	O.defmethod = "revPBE"
 	O.defbasis = "def2-SVP"
 	O.defauxbasis = "def2-SVP/J"
@@ -98,7 +98,7 @@ func (O *OrcaRunner) SetDefaults() {
 
 //BuildInput builds an input for ORCA based int the data in atoms, coords and C.
 //returns only error.
-func (O *OrcaRunner) BuildInput(atoms chem.ReadRef, coords *chem.VecMatrix, Q *Calc) error {
+func (O *OrcaHandle) BuildInput(atoms chem.ReadRef, coords *chem.VecMatrix, Q *Calc) error {
 	//Only error so far
 	if atoms == nil || coords == nil {
 		return fmt.Errorf("Missing charges or coordinates")
@@ -285,7 +285,7 @@ func (O *OrcaRunner) BuildInput(atoms chem.ReadRef, coords *chem.VecMatrix, Q *C
 //it waits or not for the result depending on wait.
 //Not waiting for results works
 //only for unix-compatible systems, as it uses bash and nohup.
-func (O *OrcaRunner) Run(wait bool) (err error) {
+func (O *OrcaHandle) Run(wait bool) (err error) {
 
 	if wait == true {
 		out, err := os.Create(fmt.Sprintf("%s.out", O.inputname))
@@ -307,7 +307,7 @@ func (O *OrcaRunner) Run(wait bool) (err error) {
 //buildIConstraints transforms the list of cartesian constrains in the QMCalc structre
 //into a string with ORCA-formatted internal constraints.
 
-func (O *OrcaRunner) buildIConstraints(C []*IConstraint) (string, error) {
+func (O *OrcaHandle) buildIConstraints(C []*IConstraint) (string, error) {
 	if C == nil {
 		return "\n", nil //no constraints
 	}
@@ -344,7 +344,7 @@ var iConstraintOrder = map[byte]int{
 
 //buildCConstraints transforms the list of cartesian constrains in the QMCalc structre
 //into a string with ORCA-formatted cartesian constraints
-func (O *OrcaRunner) buildCConstraints(C []int) string {
+func (O *OrcaHandle) buildCConstraints(C []int) string {
 	if C == nil {
 		return "\n" //no constraints
 	}
@@ -362,7 +362,7 @@ func (O *OrcaRunner) buildCConstraints(C []int) string {
 
 //Only DFT is supported. Also, only Karlsruhe's basis sets. If you are using Pople's,
 //please come back from the sixties :-)
-func (O *OrcaRunner) buildgCP(Q *Calc) (string, error) {
+func (O *OrcaHandle) buildgCP(Q *Calc) (string, error) {
 	ret := ""
 	var err error
 	if strings.ToLower(Q.BSSE) == "gcp" {
@@ -410,7 +410,7 @@ var orcaDisp = map[string]string{
   geometry or error. Returns the geometry AND error if the geometry read
   is not the product of a correctly ended ORCA calculation. In this case
   the error is "probable problem in calculation"*/
-func (O *OrcaRunner) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error) {
+func (O *OrcaHandle) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error) {
 	var err error
 	geofile := fmt.Sprintf("%s.xyz", O.inputname)
 	//Here any error of orcaNormal... or false means the same, so the error can be ignored.
@@ -429,7 +429,7 @@ func (O *OrcaRunner) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error) 
 //Returns error if problem, and also if the energy returned that is product of an
 //abnormally-terminated ORCA calculation. (in this case error is "Probable problem
 //in calculation")
-func (O *OrcaRunner) Energy() (float64, error) {
+func (O *OrcaHandle) Energy() (float64, error) {
 	err := fmt.Errorf("Probable problem in calculation")
 	f, err1 := os.Open(fmt.Sprintf("%s.out", O.inputname))
 	if err1 != nil {
@@ -492,7 +492,7 @@ func getTailLine(f *os.File) (line string, err error) {
 
 //This checks that an ORCA calculation has terminated normally
 //I know this duplicates code, I wrote this one first and then the other one.
-func (O *OrcaRunner) orcaNormalTermination() bool {
+func (O *OrcaHandle) orcaNormalTermination() bool {
 	var ini int64 = 0
 	var end int64 = 0
 	var first bool

@@ -33,8 +33,7 @@ import "github.com/rmera/gochem"
 
 
 //This allows to set QM calculations using different programs.
-//Currently ORCA and MOPAC (2009/2012) are supported.
-type Runner interface {
+type Handle interface {
 	//Sets the number of  CPUs for the calculation, when possible
 	SetnCPU(cpu int)
 

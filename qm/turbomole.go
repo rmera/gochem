@@ -40,7 +40,7 @@ import "os/exec"
 import "github.com/rmera/gochem"
 
 //This imlpementation supports only singlets and doublets.
-type TMRunner struct {
+type TMHandle struct {
 	defmethod   string
 	defbasis    string
 	defauxbasis string
@@ -52,35 +52,35 @@ type TMRunner struct {
 
 //Creates and initialized a new instance of TMRuner, with values set
 //to its defaults.
-func NewTMRunner() *TMRunner {
-	run := new(TMRunner)
+func NewTMHandle() *TMHandle {
+	run := new(TMHandle)
 	run.SetDefaults()
 	return run
 }
 
-//TMRunner methods
+//TMHandle methods
 
 //Just to satisfy the interface. It does nothing
-func (O *TMRunner) SetnCPU(cpu int) {
+func (O *TMHandle) SetnCPU(cpu int) {
 	//It does nothing! :-D
 }
 
 //This set the name of the subdirectory, in the current directory
 //where the calculation will be ran
-func (O *TMRunner) SetName(name string) {
+func (O *TMHandle) SetName(name string) {
 	O.inputname = name
 
 }
 
 //In TM the command is set according to the method. I just assume a normal installation.
 //This method doesnt do anything.
-func (O *TMRunner) SetCommand(name string) {
+func (O *TMHandle) SetCommand(name string) {
 	//Does nothing again
 }
 
-//Sets some defaults for TMRunner. default is an optimization at
+//Sets some defaults for TMHandle. default is an optimization at
 //  TPSS-D3 / def2-SVP
-func (O *TMRunner) SetDefaults() {
+func (O *TMHandle) SetDefaults() {
 	O.defmethod = "tpss"
 	O.defbasis = "def2-SVP"
 	O.defauxbasis = "def2-SVP"
@@ -90,7 +90,7 @@ func (O *TMRunner) SetDefaults() {
 }
 
 //Adds all the strings in toapend to the control file, just before the $symmetry keyword
-func (O *TMRunner) addToControl(toappend []string, Q *Calc) error {
+func (O *TMHandle) addToControl(toappend []string, Q *Calc) error {
 	f, err := os.Open("control")
 	if err != nil {
 		return err
@@ -133,7 +133,7 @@ func (O *TMRunner) addToControl(toappend []string, Q *Calc) error {
 	return nil
 }
 
-func (O *TMRunner) addCosmo(epsilon float64) error {
+func (O *TMHandle) addCosmo(epsilon float64) error {
 	//The ammount of newlines is wrong, must fix
 	cosmostring := "" //a few newlines before the epsilon
 	if epsilon == 0 {
@@ -154,7 +154,7 @@ func (O *TMRunner) addCosmo(epsilon float64) error {
 
 }
 
-func (O *TMRunner) addBasis(basisOrEcp string, basiselems []string, basis, defstring string) string {
+func (O *TMHandle) addBasis(basisOrEcp string, basiselems []string, basis, defstring string) string {
 	if basiselems == nil { //no atoms to add basis to, do nothing
 		return defstring
 	}
@@ -165,7 +165,7 @@ func (O *TMRunner) addBasis(basisOrEcp string, basiselems []string, basis, defst
 }
 
 //modifies the coord file such as to freeze the atoms in the slice frozen.
-func (O *TMRunner) addFrozen(frozen []int) error {
+func (O *TMHandle) addFrozen(frozen []int) error {
 	f, err := os.Open("coord")
 	if err != nil {
 		return err
@@ -204,7 +204,7 @@ func copy2pipe(pipe io.ReadCloser, file *os.File, end chan bool) {
 //returns only error.
 //Note that at this point the interface does not support multiplicities different from 1 and 2.
 //The number in atoms is simply ignored.
-func (O *TMRunner) BuildInput(atoms chem.ReadRef, coords *chem.VecMatrix, Q *Calc) error {
+func (O *TMHandle) BuildInput(atoms chem.ReadRef, coords *chem.VecMatrix, Q *Calc) error {
 	err := os.Mkdir(O.inputname, os.FileMode(0755))
 	for i := 0; err != nil; i++ {
 		if strings.Contains(err.Error(), "file exists") {
@@ -358,7 +358,7 @@ var tMDisp = map[string]string{
 //Run runs the command given by the string O.command
 //it waits or not for the result depending on wait.
 //This is a Unix-only function.
-func (O *TMRunner) Run(wait bool) (err error) {
+func (O *TMHandle) Run(wait bool) (err error) {
 	os.Chdir(O.inputname)
 	defer os.Chdir("..")
 	filename := strings.Fields(O.command)
@@ -373,7 +373,7 @@ func (O *TMRunner) Run(wait bool) (err error) {
 }
 
 //Energy returns the energy from the corresponding calculation, in kcal/mol.
-func (O *TMRunner) Energy() (float64, error) {
+func (O *TMHandle) Energy() (float64, error) {
 	os.Chdir(O.inputname)
 	defer os.Chdir("..")
 	f, err := os.Open("energy")
@@ -392,7 +392,7 @@ func (O *TMRunner) Energy() (float64, error) {
 }
 
 //OptimizedGeometry returns the coordinates for the optimized structure.
-func (O *TMRunner) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error) {
+func (O *TMHandle) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error) {
 	os.Chdir(O.inputname)
 	defer os.Chdir("..")
 	x2t := exec.Command("t2x")

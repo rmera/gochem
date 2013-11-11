@@ -66,7 +66,7 @@ func TestQM(Te *testing.T) {
 	calc.HBElements = []string{"Cu", "Zn"}
 	calc.CConstraints = []int{0, 10, 20}
 	calc.SetDefaults()
-	orca := NewOrcaRunner()
+	orca := NewOrcaHandle()
 	orca.SetnCPU(16) /////////////////////
 	atoms := chem.ZeroVecs(mol.Len())
 	mol.Next(atoms)
@@ -92,7 +92,7 @@ func TestQM(Te *testing.T) {
 	//		}
 	fmt.Println(path)
 	//Now a MOPAC optimization with the same configuration.
-	mopac := NewMopacRunner()
+	mopac := NewMopacHandle()
 	mopac.BuildInput(mol, atoms, calc)
 	mopaccommand := os.Getenv("MOPAC_LICENSE") + "/MOPAC2012.exe"
 	mopac.SetCommand(mopaccommand)
@@ -139,7 +139,7 @@ func TestQM(Te *testing.T) {
 
 
 //TestTurbo tests the QM functionality. It prepares input for Turbomole
-//Notice that 2 TM inputs cannot be in the same directory. Notice that TMRunner
+//Notice that 2 TM inputs cannot be in the same directory. Notice that TMHandle
 //supports ECPs
 func TesstTurbo(Te *testing.T) {
 	mol, err := chem.XYZRead("../test/ethanol.xyz")
@@ -168,7 +168,7 @@ func TesstTurbo(Te *testing.T) {
 	calc.RI = true
 	calc.Disperssion = "D3"
 	calc.CConstraints = []int{0, 3}
-	tm := NewTMRunner()
+	tm := NewTMHandle()
 	atoms := mol.Coords[0]
 	//original_dir, _ := os.Getwd() //will check in a few lines
 	//if err = os.Chdir("./test"); err != nil {
@@ -216,7 +216,7 @@ func TestChemShell(Te *testing.T) {
 	calc.Grid = 4 //not supported yet, coming sun
 	calc.Disperssion = "D3"
 	calc.CConstraints = []int{0, 10, 20}
-	cs := NewCSRunner()
+	cs := NewCSHandle()
 	atoms := mol.Coords[0]
 	original_dir, _ := os.Getwd() //will check in a few lines
 	if err = os.Chdir("../test"); err != nil {

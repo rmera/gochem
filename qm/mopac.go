@@ -37,7 +37,7 @@ import "os/exec"
 import "github.com/rmera/gochem"
 
 
-type MopacRunner struct {
+type MopacHandle struct {
 	defmethod string
 	command   string
 	inputname string
@@ -45,43 +45,43 @@ type MopacRunner struct {
 
 //Creates and initialized a new instance of MopacRuner, with values set
 //to its defaults.
-func NewMopacRunner() *MopacRunner {
-	run := new(MopacRunner)
+func NewMopacHandle() *MopacHandle {
+	run := new(MopacHandle)
 	run.SetDefaults()
 	return run
 }
 
-//MopacRunner methods
+//MopacHandle methods
 
 //Just to satisfy the interface. It does nothing
-func (O *MopacRunner) SetnCPU(cpu int) {
+func (O *MopacHandle) SetnCPU(cpu int) {
 	//It does nothing! :-D
 }
 
 //Sets the name for the job, used for input
 //and output files (ex. input will be name.inp).
-func (O *MopacRunner) SetName(name string) {
+func (O *MopacHandle) SetName(name string) {
 	O.inputname = name
 }
 
 //Sets the command to run the MOPAC program.
-func (O *MopacRunner) SetCommand(name string) {
+func (O *MopacHandle) SetCommand(name string) {
 	O.command = name
 }
 
-/*Sets some defaults for MopacRunner. default is an optimization at
+/*Sets some defaults for MopacHandle. default is an optimization at
   PM6-DH2X It tries to locate MOPAC2012 according to the
   $MOPAC_LICENSE environment variable, which might only work in UNIX.
   If other system or using MOPAC2009 the command Must be set with the
   SetCommand function. */
-func (O *MopacRunner) SetDefaults() {
+func (O *MopacHandle) SetDefaults() {
 	O.defmethod = "PM6-D3H4 NOMM"
 	O.command = os.ExpandEnv("${MOPAC_LICENSE}/MOPAC2012.exe")
 }
 
 //BuildInput builds an input for ORCA based int the data in atoms, coords and C.
 //returns only error.
-func (O *MopacRunner) BuildInput(atoms chem.ReadRef, coords *chem.VecMatrix, Q *Calc) error {
+func (O *MopacHandle) BuildInput(atoms chem.ReadRef, coords *chem.VecMatrix, Q *Calc) error {
 	if strings.Contains(Q.Others, "RI") {
 		Q.Others = ""
 	}
@@ -155,7 +155,7 @@ var mopacMultiplicity = map[int]string{
 //Run runs the command given by the string O.command
 //it waits or not for the result depending on wait. Not waiting for results works
 //only for unix-compatible systems, as it uses bash and nohup.
-func (O *MopacRunner) Run(wait bool) (err error) {
+func (O *MopacHandle) Run(wait bool) (err error) {
 	if wait == true {
 		command := exec.Command(O.command, fmt.Sprintf("%s.mop", O.inputname))
 		err = command.Run()
@@ -170,7 +170,7 @@ func (O *MopacRunner) Run(wait bool) (err error) {
   parsing the mopac output file. Return error if fail. Also returns
   Error ("Probable problem in calculation")
   if there is a energy but the calculation didnt end properly*/
-func (O *MopacRunner) Energy() (float64, error) {
+func (O *MopacHandle) Energy() (float64, error) {
 	var err error
 	var energy float64
 	file, err := os.Open(fmt.Sprintf("%s.out", O.inputname))
@@ -218,7 +218,7 @@ func (O *MopacRunner) Energy() (float64, error) {
 /*Get Geometry reads the optimized geometry from a MOPAC2009/2012 output.
   Return error if fail. Returns Error ("Probable problem in calculation")
   if there is a geometry but the calculation didnt end properly*/
-func (O *MopacRunner) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error) {
+func (O *MopacHandle) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error) {
 	var err error
 	natoms := atoms.Len()
 	coords := make([]float64, natoms*3, natoms*3) //will be used for return

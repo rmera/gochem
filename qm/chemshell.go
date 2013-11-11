@@ -38,7 +38,7 @@ import (
 	"github.com/rmera/gochem"
 )
 
-type CSRunner struct {
+type CSHandle struct {
 	program     string
 	defmethod   string
 	defbasis    string
@@ -52,27 +52,27 @@ type CSRunner struct {
 
 //Creates and initialized a new instance of QCCSRuner, with values set
 //to its defaults.
-func NewCSRunner() *CSRunner {
-	run := new(CSRunner)
+func NewCSHandle() *CSHandle {
+	run := new(CSHandle)
 	run.SetDefaults()
 	return run
 }
 
-//QCCSRunner methods
+//QCCSHandle methods
 
 //Just to satisfy the interface. It does nothing
-func (O *CSRunner) SetnCPU(cpu int) {
+func (O *CSHandle) SetnCPU(cpu int) {
 	//It does nothing! :-D
 }
 
 //This set the name of the subdirectory, in the current directory
 //where the calculation will be ran
-func (O *CSRunner) SetName(name string) {
+func (O *CSHandle) SetName(name string) {
 	O.inputname = name
 
 }
 
-func (O *CSRunner) SetCoordFormat(format string) {
+func (O *CSHandle) SetCoordFormat(format string) {
 	f, ok := chemShellFormats[format]
 	if !ok {
 		f = "xyz"
@@ -88,13 +88,13 @@ var chemShellFormats = map[string]string{
 }
 
 //SetCommand sets the command to run the ChemShell/QCMine calculation.
-func (O *CSRunner) SetCommand(name string) {
+func (O *CSHandle) SetCommand(name string) {
 	//Does nothing again
 }
 
-//Sets some defaults for QCCSRunner. default is an optimization at
+//Sets some defaults for QCCSHandle. default is an optimization at
 //  PBE0-D3-gCP / def2-SVP
-func (O *CSRunner) SetDefaults() {
+func (O *CSHandle) SetDefaults() {
 	O.defmethod = "pbe0-d"
 	O.defbasis = "def2-SVP"
 	O.link = true
@@ -104,7 +104,7 @@ func (O *CSRunner) SetDefaults() {
 }
 
 //BuildInput builds a ChemShell input (at this point only for pure QM calculations with QCMine). Returns error on failure.
-func (O *CSRunner) BuildInput(atoms chem.ReadRef, coords *chem.VecMatrix, Q *Calc) error {
+func (O *CSHandle) BuildInput(atoms chem.ReadRef, coords *chem.VecMatrix, Q *Calc) error {
 	var nonfatal error
 	if atoms.Multi() != 1 {
 		return fmt.Errorf("Only closed shell supported for ChemShell")
