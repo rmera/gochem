@@ -43,7 +43,7 @@ type Handle interface {
 
 	//BuildInput builds an input for the QM program based int the data in
 	//atoms, coords and C. returns only error.
-	BuildInput(atoms chem.ReadRef, coords *chem.VecMatrix, Q *Calc) error
+	BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q *Calc) error
 
 	//Run runs the QM program for a calculation previously set.
 	//it waits or not for the result depending of the value of

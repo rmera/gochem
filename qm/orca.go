@@ -98,7 +98,7 @@ func (O *OrcaHandle) SetDefaults() {
 
 //BuildInput builds an input for ORCA based int the data in atoms, coords and C.
 //returns only error.
-func (O *OrcaHandle) BuildInput(atoms chem.ReadRef, coords *chem.VecMatrix, Q *Calc) error {
+func (O *OrcaHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q *Calc) error {
 	//Only error so far
 	if atoms == nil || coords == nil {
 		return fmt.Errorf("Missing charges or coordinates")

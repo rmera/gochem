@@ -104,7 +104,7 @@ func (O *CSHandle) SetDefaults() {
 }
 
 //BuildInput builds a ChemShell input (at this point only for pure QM calculations with QCMine). Returns error on failure.
-func (O *CSHandle) BuildInput(atoms chem.ReadRef, coords *chem.VecMatrix, Q *Calc) error {
+func (O *CSHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q *Calc) error {
 	var nonfatal error
 	if atoms.Multi() != 1 {
 		return fmt.Errorf("Only closed shell supported for ChemShell")

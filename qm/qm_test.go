@@ -74,7 +74,7 @@ func TestQM(Te *testing.T) {
 	if err = os.Chdir("../test"); err != nil {
 		Te.Error(err)
 	}
-	_ = orca.BuildInput(mol, atoms, calc)
+	_ = orca.BuildInput(atoms, mol, calc)
 	//Now anothertest with HF-3c
 	calc.HBAtoms = nil
 	calc.HBElements = nil
@@ -85,7 +85,7 @@ func TestQM(Te *testing.T) {
 	orca.SetName("HF3c")
 	orca.SetnCPU(8)
 	//	fmt.Println(mol.Coords[0], "vieja")
-	_ = orca.BuildInput(mol, atoms, calc)
+	_ = orca.BuildInput(atoms, mol, calc)
 	path, _ := os.Getwd()
 	//	if err:=orca.Run(false); err!=nil{
 	//			Te.Error(err.Error())
@@ -93,7 +93,7 @@ func TestQM(Te *testing.T) {
 	fmt.Println(path)
 	//Now a MOPAC optimization with the same configuration.
 	mopac := NewMopacHandle()
-	mopac.BuildInput(mol, atoms, calc)
+	mopac.BuildInput(atoms, mol, calc)
 	mopaccommand := os.Getenv("MOPAC_LICENSE") + "/MOPAC2012.exe"
 	mopac.SetCommand(mopaccommand)
 	fmt.Println("command", mopaccommand)
@@ -174,7 +174,7 @@ func TesstTurbo(Te *testing.T) {
 	//if err = os.Chdir("./test"); err != nil {
 	//	Te.Error(err)
 	//}
-	if err := tm.BuildInput(mol, atoms, calc); err != nil {
+	if err := tm.BuildInput(atoms, mol, calc); err != nil {
 		Te.Error(err)
 	}
 	//os.Chdir(original_dir)
@@ -222,16 +222,16 @@ func TestChemShell(Te *testing.T) {
 	if err = os.Chdir("../test"); err != nil {
 		Te.Error(err)
 	}
-	err = cs.BuildInput(mol, atoms, calc)
+	err = cs.BuildInput(atoms, mol, calc)
 	qderror_handler(err, Te)
 	//now with a PDB
 	cs.SetCoordFormat("pdb")
 	cs.SetName("gochem_pdb")
-	err = cs.BuildInput(mol, atoms, calc)
+	err = cs.BuildInput(atoms, mol, calc)
 	qderror_handler(err, Te)
 	cs.SetName("gochem_sp")
 	calc.Optimize = false
-	err = cs.BuildInput(mol, atoms, calc)
+	err = cs.BuildInput(atoms, mol, calc)
 	qderror_handler(err, Te)
 	if err = os.Chdir(original_dir); err != nil {
 		Te.Error(err)
