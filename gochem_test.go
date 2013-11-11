@@ -127,7 +127,7 @@ func TestOldChangeAxis(Te *testing.T) {
 	ov2 = mol.Coord(orient_atoms[1], 0) //same
 	orient := ZeroVecs(ov2.NVecs())
 	orient.Sub(ov2, ov1)
-	rotation := GetSwitchZ(orient)
+	rotation := RotatorToNewZ(orient)
 	cr, cc := mol.Coords[0].Dims()
 	fmt.Println("rotation: ", rotation, cr, cc) ////////////////////////////////////////////////////////
 	mol.Coords[0].Mul(mol.Coords[0], rotation)

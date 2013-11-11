@@ -372,8 +372,8 @@ func (O *TMRunner) Run(wait bool) (err error) {
 	return err
 }
 
-//GetEnergy returns the energy from the corresponding calculation, in kcal/mol.
-func (O *TMRunner) GetEnergy() (float64, error) {
+//Energy returns the energy from the corresponding calculation, in kcal/mol.
+func (O *TMRunner) Energy() (float64, error) {
 	os.Chdir(O.inputname)
 	defer os.Chdir("..")
 	f, err := os.Open("energy")
@@ -391,8 +391,8 @@ func (O *TMRunner) GetEnergy() (float64, error) {
 	return energy * chem.H2Kcal, err
 }
 
-//GetGeometry returns the coordinates for the optimized structure.
-func (O *TMRunner) GetGeometry(atoms chem.Ref) (*chem.VecMatrix, error) {
+//OptimizedGeometry returns the coordinates for the optimized structure.
+func (O *TMRunner) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error) {
 	os.Chdir(O.inputname)
 	defer os.Chdir("..")
 	x2t := exec.Command("t2x")

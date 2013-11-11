@@ -42,13 +42,6 @@ type Runner interface {
 	//and output files. The extentions will depend on the program.
 	SetName(name string)
 
-	//Sets the command to run the QM  program.
-	SetCommand(name string)
-
-	//Sets the defaults for a QM calculation. Varies depending on the
-	// program,
-	SetDefaults()
-
 	//BuildInput builds an input for the QM program based int the data in
 	//atoms, coords and C. returns only error.
 	BuildInput(atoms chem.ReadRef, coords *chem.VecMatrix, Q *Calc) error
@@ -58,17 +51,17 @@ type Runner interface {
 	//wait.
 	Run(wait bool) (err error)
 
-	//GetEnergy gets the last energy for a  calculation by parsing the
+	//Energy gets the last energy for a  calculation by parsing the
 	//QM program's output file. Return error if fail. Also returns
 	//Error ("Probable problem in calculation")
 	//if there is a energy but the calculation didnt end properly.
-	GetEnergy() (float64, error)
+	Energy() (float64, error)
 
-	//Get Geometry reads the optimized geometry from a calculation
+	//OptimizedGeometry reads the optimized geometry from a calculation
 	//output. Returns error if fail. Returns Error ("Probable problem
 	//in calculation") if there is a geometry but the calculation didnt
 	//end properly*
-	GetGeometry(atoms chem.Ref) (*chem.VecMatrix, error)
+	OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error)
 }
 
 

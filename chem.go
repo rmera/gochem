@@ -325,7 +325,7 @@ func (M *Molecule) Copy(A *Molecule) {
 		tmp := ZeroVecs(r)
 		tmp.Copy(val)
 		mol.Coords = append(mol.Coords, tmp)
-		tmp2 := CopyB(M.Bfactors[key])
+		tmp2 := copyB(M.Bfactors[key])
 		mol.Bfactors = append(mol.Bfactors, tmp2)
 	}
 	if err := mol.Corrupted(); err != nil {
@@ -333,7 +333,7 @@ func (M *Molecule) Copy(A *Molecule) {
 	}
 }
 
-func CopyB(b []float64) []float64 {
+func copyB(b []float64) []float64 {
 	r := make([]float64, len(b), len(b))
 	for k, v := range b {
 		r[k] = v

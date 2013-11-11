@@ -104,7 +104,7 @@ func TestQM(Te *testing.T) {
 				Te.Error(err.Error())
 			}
 		}
-		energy, err := mopac.GetEnergy()
+		energy, err := mopac.Energy()
 		if err != nil {
 			if err.Error() == "Probable problem in calculation" {
 				fmt.Println(err.Error())
@@ -112,7 +112,7 @@ func TestQM(Te *testing.T) {
 				Te.Error(err)
 			}
 		}
-		geometry, err := mopac.GetGeometry(mol)
+		geometry, err := mopac.OptimizedGeometry(mol)
 		if err != nil {
 			if err.Error() == "Probable problem in calculation" {
 				fmt.Println(err.Error())
@@ -181,12 +181,12 @@ func TesstTurbo(Te *testing.T) {
 	if err := tm.Run(true); err != nil {
 		Te.Error(err)
 	}
-	energy, err := tm.GetEnergy()
+	energy, err := tm.Energy()
 	if err != nil {
 		Te.Error(err)
 	}
 	fmt.Println("energy", energy)
-	geo, err := tm.GetGeometry(mol)
+	geo, err := tm.OptimizedGeometry(mol)
 	if err != nil {
 		Te.Error(err)
 	}

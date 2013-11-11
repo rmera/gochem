@@ -75,7 +75,7 @@ func Super(test, templa *VecMatrix, testlst, templalst []int) (*VecMatrix, error
 	if len(templalst) != len(testlst) {
 		return nil, fmt.Errorf("Mismatched template and test atom numbers: %d, %d", len(templalst), len(testlst))
 	}
-	_, rotation, trans1, trans2, err1 := GetSuper(ctest, ctempla)
+	_, rotation, trans1, trans2, err1 := RotatorTranslatorToSuper(ctest, ctempla)
 	if err1 != nil {
 		return nil, err1
 	}
@@ -124,9 +124,9 @@ func EulerRotateAbout(coordsorig, ax1, ax2 *VecMatrix, angle float64) (*VecMatri
 	if err := gnMaybe(gnPanicker(f)); err != nil {
 		return nil, err
 	}
-	Zswitch := GetSwitchZ(axis)
+	Zswitch := RotatorToNewZ(axis)
 	coords.Mul(coords, Zswitch) //rotated
-	Zrot, err := GetRotateAroundZ(angle)
+	Zrot, err := RotatorAroundZ(angle)
 	if err != nil {
 		return nil, err
 	}
@@ -445,7 +445,7 @@ func CutAlphaRef(r Atomer, chain []string, list []int) []int {
 
 //This will tag all atoms with a given name in a given list of atoms.
 //return the number of tagged atoms
-func TagName(r Atomer, name string, list []int) int {
+func TagAtomsByName(r Atomer, name string, list []int) int {
 	tag := 0
 	for i := 0; i < r.Len(); i++ {
 		curr := r.Atom(i)

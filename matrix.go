@@ -47,9 +47,9 @@ func cross(a, b *VecMatrix) *VecMatrix {
 	return c
 }
 
-//InvSqrt return the inverse of the square root of val, or zero if
+//invSqrt return the inverse of the square root of val, or zero if
 //|val|<appzero. Returns -1 if val is negative
-func InvSqrt(val float64) float64 {
+func invSqrt(val float64) float64 {
 	if math.Abs(val) <= appzero { //Not sure if need the
 		return 0
 	} else if val < 0 { //negative

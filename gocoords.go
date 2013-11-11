@@ -59,7 +59,7 @@ func chemDense2VecMatrix(A *chemDense) *VecMatrix {
 	return &VecMatrix{A.Dense}
 }
 
-func VecMatrix2chemDense(A *VecMatrix) *chemDense {
+func vecMatrix2chemDense(A *VecMatrix) *chemDense {
 	return &chemDense{A.Dense}
 }
 

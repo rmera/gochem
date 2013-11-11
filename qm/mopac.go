@@ -166,11 +166,11 @@ func (O *MopacRunner) Run(wait bool) (err error) {
 	return err
 }
 
-/*GetEnergy gets the last energy for a MOPAC2009/2012 calculation by
+/*Energy gets the last energy for a MOPAC2009/2012 calculation by
   parsing the mopac output file. Return error if fail. Also returns
   Error ("Probable problem in calculation")
   if there is a energy but the calculation didnt end properly*/
-func (O *MopacRunner) GetEnergy() (float64, error) {
+func (O *MopacRunner) Energy() (float64, error) {
 	var err error
 	var energy float64
 	file, err := os.Open(fmt.Sprintf("%s.out", O.inputname))
@@ -218,7 +218,7 @@ func (O *MopacRunner) GetEnergy() (float64, error) {
 /*Get Geometry reads the optimized geometry from a MOPAC2009/2012 output.
   Return error if fail. Returns Error ("Probable problem in calculation")
   if there is a geometry but the calculation didnt end properly*/
-func (O *MopacRunner) GetGeometry(atoms chem.Ref) (*chem.VecMatrix, error) {
+func (O *MopacRunner) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error) {
 	var err error
 	natoms := atoms.Len()
 	coords := make([]float64, natoms*3, natoms*3) //will be used for return

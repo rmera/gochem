@@ -410,7 +410,7 @@ var orcaDisp = map[string]string{
   geometry or error. Returns the geometry AND error if the geometry read
   is not the product of a correctly ended ORCA calculation. In this case
   the error is "probable problem in calculation"*/
-func (O *OrcaRunner) GetGeometry(atoms chem.Ref) (*chem.VecMatrix, error) {
+func (O *OrcaRunner) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error) {
 	var err error
 	geofile := fmt.Sprintf("%s.xyz", O.inputname)
 	//Here any error of orcaNormal... or false means the same, so the error can be ignored.
@@ -429,7 +429,7 @@ func (O *OrcaRunner) GetGeometry(atoms chem.Ref) (*chem.VecMatrix, error) {
 //Returns error if problem, and also if the energy returned that is product of an
 //abnormally-terminated ORCA calculation. (in this case error is "Probable problem
 //in calculation")
-func (O *OrcaRunner) GetEnergy() (float64, error) {
+func (O *OrcaRunner) Energy() (float64, error) {
 	err := fmt.Errorf("Probable problem in calculation")
 	f, err1 := os.Open(fmt.Sprintf("%s.out", O.inputname))
 	if err1 != nil {

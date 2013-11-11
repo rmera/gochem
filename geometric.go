@@ -68,7 +68,7 @@ func AngleInVectors(v1, v2 *VecMatrix) float64 {
 //a rotation matrix that, when applied to mol, will rotate it around the Z axis
 //in such a way that the projection of newy in the XY plane will be aligned with
 //the Y axis.
-func GetRotateToNewY(newy *VecMatrix) (*VecMatrix, error) {
+func RotatorAroundZToNewY(newy *VecMatrix) (*VecMatrix, error) {
 	nr, nc := newy.Dims()
 	if nc != 3 || nr != 1 {
 		return nil, fmt.Errorf("Wrong newy vector")
@@ -88,7 +88,7 @@ func GetRotateToNewY(newy *VecMatrix) (*VecMatrix, error) {
 
 //GetRotateAroundZ returns an operator that will rotate a set of
 //coordinates by gamma radians around the z axis.
-func GetRotateAroundZ(gamma float64) (*VecMatrix, error) {
+func RotatorAroundZ(gamma float64) (*VecMatrix, error) {
 	singamma := math.Sin(gamma)
 	cosgamma := math.Cos(gamma)
 	operator := []float64{cosgamma, singamma, 0,
@@ -98,10 +98,10 @@ func GetRotateAroundZ(gamma float64) (*VecMatrix, error) {
 
 }
 
-//GetSwitchZ takes a matrix a row vector (newz).
+//RotatorToNewZ takes a matrix a row vector (newz).
 //It returns a linear operator such that, when applied to a matrix mol ( with the operator on the right side)
 //it will rotate mol such that the z axis is aligned with newz.
-func GetSwitchZ(newz *VecMatrix) *VecMatrix {
+func RotatorToNewZ(newz *VecMatrix) *VecMatrix {
 	r, c := newz.Dims()
 	if c != 3 || r != 1 {
 		panic("Wrong newz vector")
@@ -124,14 +124,14 @@ func GetSwitchZ(newz *VecMatrix) *VecMatrix {
 
 }
 
-//GetSuper superimposes the set of cartesian coordinates given as the rows of the matrix test on the gnOnes of the rows
+//RotatorTranslatorToSuper superimposes the set of cartesian coordinates given as the rows of the matrix test on the gnOnes of the rows
 //of the matrix templa. Returns the transformed matrix, the rotation matrix, 2 translation row vectors
 //For the superposition plus an error. In order to perform the superposition, without using the transformed
 //the first translation vector has to be added first to the moving matrix, then the rotation must be performed
 //and finally the second translation has to be added.
 //This is a low level function, although one can use it directly since it returns the transformed matrix.
 //The math for this function is by Prof. Veronica Jimenez-Curihual, University of Concepcion, Chile.
-func GetSuper(test, templa *VecMatrix) (*VecMatrix, *VecMatrix, *VecMatrix, *VecMatrix, error) {
+func RotatorTranslatorToSuper(test, templa *VecMatrix) (*VecMatrix, *VecMatrix, *VecMatrix, *VecMatrix, error) {
 	tmr, tmc := templa.Dims()
 	tsr, tsc := test.Dims()
 	if tmr != tsr || tmc != 3 || tsc != 3 {
@@ -157,7 +157,7 @@ func GetSuper(test, templa *VecMatrix) (*VecMatrix, *VecMatrix, *VecMatrix, *Vec
 	Maux := ZeroVecs(r)
 	Maux.Mul(aux2, ctest)
 	Maux.TCopy(Maux) //Dont understand why this is needed
-	U, _, Vt := gnSVD(VecMatrix2chemDense(Maux))
+	U, _, Vt := gnSVD(vecMatrix2chemDense(Maux))
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -282,7 +282,7 @@ func RhoShapeIndexes(evals []float64) (float64, float64, error) {
 
 //Rhos returns the semiaxis of the elipoid of inertia given the eigenvectors of the moment tensor.
 func Rhos(evals []float64) ([]float64, error) {
-	rhos := sort.Float64Slice{InvSqrt(evals[0]), InvSqrt(evals[1]), InvSqrt(evals[2])}
+	rhos := sort.Float64Slice{invSqrt(evals[0]), invSqrt(evals[1]), invSqrt(evals[2])}
 	if evals[2] <= appzero {
 		return rhos[:], fmt.Errorf("Molecule colapsed to a single point. Check for blackholes.")
 	}
@@ -407,7 +407,7 @@ func MomentTensor(A *VecMatrix, massslice []float64) (*VecMatrix, error) {
 	if massslice == nil {
 		mass = gnOnes(ar, 1)
 	} else {
-		mass, err = NewchemDense(massslice, ar, 1)
+		mass, err = newchemDense(massslice, ar, 1)
 		if err != nil {
 			return nil, err
 		}

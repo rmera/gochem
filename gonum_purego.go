@@ -97,7 +97,7 @@ func det(A *VecMatrix) float64 {
 }
 
 //Generate and returns a CoorMatrix with arbitrary shape from data.
-func NewchemDense(data []float64, rows, cols int) (*chemDense, error) {
+func newchemDense(data []float64, rows, cols int) (*chemDense, error) {
 	if len(data) < cols*rows {
 		return nil, fmt.Errorf(string(notEnoughElements))
 	}
