@@ -36,8 +36,8 @@ import "bytes"
 import "runtime"
 import "github.com/rmera/gochem"
 
-const MAXTITLE int32 = 80
-const RSCAL32BITS int32 = 1
+const mAXTITLE int32 = 80
+const rSCAL32BITS int32 = 1
 
 //Container for an Charmm/NAMD binary trajectory file.
 type DCDObj struct {
@@ -85,7 +85,7 @@ func (D *DCDObj) Readable() bool {
 //It support big and little endianness, charmm or (namd>=2.1) and no
 //fixed atoms.
 func (D *DCDObj) initRead(name string) error {
-	rec_scale := RSCAL32BITS //At least for now we will not support anything else.
+	rec_scale := rSCAL32BITS //At least for now we will not support anything else.
 	D.endian = binary.LittleEndian
 	_ = rec_scale
 	NB := bytes.NewBuffer //shortness sake
@@ -163,12 +163,12 @@ func (D *DCDObj) initRead(name string) error {
 	if err := binary.Read(D.dcd, D.endian, &input_int); err != nil {
 		return err
 	}
-	//how many units of MAXTITLE does the title have?
+	//how many units of mAXTITLE does the title have?
 	var ntitle int32
 	if err := binary.Read(D.dcd, D.endian, &ntitle); err != nil {
 		return err
 	}
-	title := make([]byte, MAXTITLE*ntitle, MAXTITLE*ntitle)
+	title := make([]byte, mAXTITLE*ntitle, mAXTITLE*ntitle)
 	if err := binary.Read(D.dcd, D.endian, title); err != nil {
 		return err
 	}

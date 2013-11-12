@@ -53,10 +53,6 @@ func NewMopacHandle() *MopacHandle {
 
 //MopacHandle methods
 
-//Just to satisfy the interface. It does nothing
-func (O *MopacHandle) SetnCPU(cpu int) {
-	//It does nothing! :-D
-}
 
 //Sets the name for the job, used for input
 //and output files (ex. input will be name.inp).

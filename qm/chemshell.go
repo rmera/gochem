@@ -61,10 +61,6 @@ func NewCSHandle() *CSHandle {
 
 //QCCSHandle methods
 
-//Just to satisfy the interface. It does nothing
-func (O *CSHandle) SetnCPU(cpu int) {
-	//It does nothing! :-D
-}
 
 func (O *CSHandle) SetMPI(mpi bool){
 	O.mpi=mpi

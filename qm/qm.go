@@ -34,8 +34,6 @@ import "github.com/rmera/gochem"
 
 //This allows to set QM calculations using different programs.
 type Handle interface {
-	//Sets the number of  CPUs for the calculation, when possible
-	SetnCPU(cpu int)
 
 	//Sets the name for the job, used for input
 	//and output files. The extentions will depend on the program.

@@ -41,6 +41,7 @@ const (
 	A2Bohr  = 1.889725989
 	Bohr2A  = 1 / 1.889725989
 	EV2Kcal = 23.061
+	Kcal2EV = 1 / 23.061
 )
 
 //Others

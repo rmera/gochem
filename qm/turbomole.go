@@ -60,10 +60,6 @@ func NewTMHandle() *TMHandle {
 
 //TMHandle methods
 
-//Just to satisfy the interface. It does nothing
-func (O *TMHandle) SetnCPU(cpu int) {
-	//It does nothing! :-D
-}
 
 //This set the name of the subdirectory, in the current directory
 //where the calculation will be ran

@@ -472,8 +472,8 @@ func (M *Molecule) Corrupted() error {
 	return err
 }
 
-//LenFrames returns the number of frames in the molecule
-func (M *Molecule) LenFrames() int {
+//NFrames returns the number of frames in the molecule
+func (M *Molecule) NFrames() int {
 	return len(M.Coords)
 }
 
