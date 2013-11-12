@@ -23,9 +23,7 @@
  */
 /***Dedicated to the long life of the Ven. Khenpo Phuntzok Tenzin Rinpoche***/
 
-//Package chem provides atom and molecule structures, facilities for reading and writing some
-//files used in computational chemistry and some functions for geometric manipulations and shape
-//indicators.
+
 package chem
 
 import "fmt"
