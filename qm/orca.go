@@ -306,7 +306,6 @@ func (O *OrcaHandle) Run(wait bool) (err error) {
 
 //buildIConstraints transforms the list of cartesian constrains in the QMCalc structre
 //into a string with ORCA-formatted internal constraints.
-
 func (O *OrcaHandle) buildIConstraints(C []*IConstraint) (string, error) {
 	if C == nil {
 		return "\n", nil //no constraints
@@ -361,7 +360,7 @@ func (O *OrcaHandle) buildCConstraints(C []int) string {
 }
 
 //Only DFT is supported. Also, only Karlsruhe's basis sets. If you are using Pople's,
-//please come back from the sixties :-)
+//let us know so we can send a mission to rescue you from the sixties :-)
 func (O *OrcaHandle) buildgCP(Q *Calc) (string, error) {
 	ret := ""
 	var err error
