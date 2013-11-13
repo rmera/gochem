@@ -5,6 +5,9 @@ To the long life of the Ven. Khenpo Phuntzok Tenzin Rinpoche.
 goChem is a library fro Computational Chemistry and Biochemistry
 written in the Go programming language. 
 
+Check the wiki https://github.com/rmera/gochem/wiki for more
+info.
+
 
 goChem uses either a zero-runtime-dependency, pure go library for
 the matrix operations based in go.matrix 
