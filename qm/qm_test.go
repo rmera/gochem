@@ -28,14 +28,13 @@
 
 package qm
 
-import(
-	"testing"
-	"github.com/rmera/gochem"
+import (
 	"fmt"
+	"github.com/rmera/gochem"
 	"os"
 	"strings"
+	"testing"
 )
-
 
 //TestQM tests the QM functionality. It prepares input for ORCA and MOPAC
 //In the case of MOPAC it reads a previously prepared output and gets the energy.
@@ -137,7 +136,6 @@ func TestQM(Te *testing.T) {
 	fmt.Println("end mopac and orca test!")
 }
 
-
 //TestTurbo tests the QM functionality. It prepares input for Turbomole
 //Notice that 2 TM inputs cannot be in the same directory. Notice that TMHandle
 //supports ECPs
@@ -195,8 +193,6 @@ func TesstTurbo(Te *testing.T) {
 	fmt.Println("end TurboTest!")
 }
 
-
-
 func TestChemShell(Te *testing.T) {
 	mol, err := chem.XYZRead("../test/sample.xyz")
 	if err != nil {
@@ -248,4 +244,3 @@ func qderror_handler(err error, Te *testing.T) {
 		}
 	}
 }
-

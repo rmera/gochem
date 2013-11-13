@@ -36,8 +36,6 @@ import "os/exec"
 import "strconv"
 import "github.com/rmera/gochem"
 
-
-
 //Note that the default methods and basis vary with each program, and even
 //for a given program they are NOT considered part of the API, so they can always change.
 type OrcaHandle struct {

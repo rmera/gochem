@@ -121,5 +121,3 @@ type Ref interface {
 	ReadRef
 	WriteRef
 }
-
-

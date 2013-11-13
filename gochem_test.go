@@ -27,7 +27,6 @@ import "fmt"
 import "os"
 import "testing"
 
-
 //TestMultiXYZ tests that multi-XYZ files are opened and read correctly.
 func TestXYZIO(Te *testing.T) {
 	mol, err := XYZRead("test/sample.xyz")
@@ -178,7 +177,6 @@ func TestPutInXYPlane(Te *testing.T) {
 	XYZWrite("test/Rotated.xyz", mol.Coords[0], mol)
 }
 
-
 func TestDelete(Te *testing.T) {
 	mol, err := XYZRead("test/ethanol.xyz")
 	if err != nil {
@@ -188,7 +186,6 @@ func TestDelete(Te *testing.T) {
 	XYZWrite("test/ethanolDel.xyz", mol.Coords[0], mol)
 
 }
-
 
 func TestWater(Te *testing.T) {
 	mol, err := XYZRead("test/sample.xyz")
@@ -233,7 +230,6 @@ func TesstFixPDB(Te *testing.T) {
 	FixNumbering(mol)
 	PDBWrite("test/2c9vfixed.pdb", mol.Coords[0], mol, nil)
 }
-
 
 func TestReduce(Te *testing.T) {
 	mol, err := PDBRead("test/2c9v.pdb", true)

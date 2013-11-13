@@ -60,7 +60,6 @@ func NewTMHandle() *TMHandle {
 
 //TMHandle methods
 
-
 //This set the name of the subdirectory, in the current directory
 //where the calculation will be ran
 func (O *TMHandle) SetName(name string) {

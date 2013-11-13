@@ -78,7 +78,6 @@ func NewVecs(data []float64) (*VecMatrix, error) {
 	return &VecMatrix{r}, err
 }
 
-
 //Puts a view of the given col of the matrix on the receiver
 func (F *VecMatrix) ColView(i int) *VecMatrix {
 	r := new(mat64.Dense)

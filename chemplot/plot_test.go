@@ -25,11 +25,10 @@
 
 package chemplot
 
-
-import( 
-	"testing"
+import (
 	"fmt"
 	"github.com/rmera/gochem"
+	"testing"
 )
 
 //TestRama tests the Ramachandran plot functionality.

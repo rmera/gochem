@@ -25,7 +25,7 @@
 
 /*Package chem is the main package of the goChem library. It provides atom and molecule structures, facilities for reading and writing some
 files used in computational chemistry and some functions for geometric manipulations and shape
-indicators. 
+indicators.
 
 
 
@@ -37,8 +37,8 @@ indicators.
     Reads XTC and DCD trajectory files, both sequentially and concurrently.
 
     Superimposes molecules (especially adequate for non-proteins since doesn't
-	use sequence information). The user specify what atoms to use for the 
-	superimposing transformation calculation. Then all the atoms will be 
+	use sequence information). The user specify what atoms to use for the
+	superimposing transformation calculation. Then all the atoms will be
 	superimposed accordingly. Thus, non-identical molecules can be superimposed.
 
     Calculates RMSD between sets of coordinates.
@@ -49,38 +49,38 @@ indicators.
 
     Calculates moment tensor and elipsoid of inertia--related properties
 
-    The Molecule object implements the sort.Interface interface, so atoms 
+    The Molecule object implements the sort.Interface interface, so atoms
 	can easily be sorted by b-factors.
 
     Axis manipulation.
         Align a vector with the Z axis.
         Rotate around the Z axis until the xy projection of a vector becomes
 		the Y axis.
-        Rotate a sub-group of atoms in a molecule using any 2 coordinates as 
+        Rotate a sub-group of atoms in a molecule using any 2 coordinates as
 		the rotation axis.
 
-    The latter is implemented using Clifford algebra and, as a legacy version, Euler 
-	angles and rotation matrices (math for the Cliffor algebra implementation by Doc. 
-	Dr. Janne Pesonen). The Clifford algebra implementation is concurrent. In general, 
-	Clifford algebra is mathematically better behaving than Euler angles, which are 
+    The latter is implemented using Clifford algebra and, as a legacy version, Euler
+	angles and rotation matrices (math for the Cliffor algebra implementation by Doc.
+	Dr. Janne Pesonen). The Clifford algebra implementation is concurrent. In general,
+	Clifford algebra is mathematically better behaving than Euler angles, which are
 	not defined for certain rotations.
 
     Calculates and draws Ramachandran plots (uses the Plotinum library). for an
-	aminoacidic chain or a subset of it. 
-	
+	aminoacidic chain or a subset of it.
+
     Generates input for, run and recover results from QM calculations with Turbomole,
 	Orca and MOPAC (which must be obtained independently from their respective
 	distributors). Interfacing gochem to other QM codes is fairly simple.
 
-    goChem data can be JSON encoded and transfered in such a way that PyMOL 
+    goChem data can be JSON encoded and transfered in such a way that PyMOL
 	(http://www.pymol.org plugins can send and received data from/to goChem programs)
 	thus enabling the build of PyMOL plugins using goChem.
 
 
 
-goChem implements its own matrix type for coordinates, VecMatrix,based in github.com/gonum/matrix. 
+goChem implements its own matrix type for coordinates, VecMatrix,based in github.com/gonum/matrix.
 
-Currently, each row of a VecMatrix represents one point in space. As this could change if 
+Currently, each row of a VecMatrix represents one point in space. As this could change if
 github.com/gonum/matrix changes, we recomend prefering the Vec* methods over the Row* methods
 when manipulating a VecMatrix. Vec* methods will change from row to column following the upstream
 Gonum library.*/

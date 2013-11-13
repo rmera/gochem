@@ -26,11 +26,11 @@
 package chemplot
 
 import (
-	"github.com/rmera/gochem"
 	"code.google.com/p/plotinum/plot"
 	"code.google.com/p/plotinum/plotter"
 	"code.google.com/p/plotinum/vg"
 	"fmt"
+	"github.com/rmera/gochem"
 	"image/color"
 	"math"
 	"strings"
@@ -79,7 +79,7 @@ func RamaPlotParts(data [][][]float64, tag [][]int, title, plotname string) erro
 	var tagged int
 	for key, val := range data {
 		temp := make(plotter.XYs, 1) //len(val))
-	//	fmt.Println(key, len(val))
+		//	fmt.Println(key, len(val))
 		for k, v := range val {
 			temp[0].X = v[0]
 			temp[0].Y = v[1]
@@ -99,7 +99,7 @@ func RamaPlotParts(data [][][]float64, tag [][]int, title, plotname string) erro
 			}
 			//set the colors
 			r, g, b := colors(key, len(data))
-			fmt.Println("DATA POINT", key, "color", r,g,b)
+			fmt.Println("DATA POINT", key, "color", r, g, b)
 			s.GlyphStyle.Color = color.RGBA{R: r, B: b, G: g, A: 255}
 			//The tagging procedure is a bit complex.
 			p.Add(s)
@@ -173,7 +173,7 @@ func colors(key, steps int) (r, g, b uint8) {
 	} else {
 		h = hp + 20.0
 	}
-//	fmt.Println("HUE", h, hp)
+	//	fmt.Println("HUE", h, hp)
 	s := 1.0
 	v := 1.0
 	r, g, b = iHVS2RGB(h, v, s)

@@ -30,8 +30,6 @@ package qm
 
 import "github.com/rmera/gochem"
 
-
-
 //This allows to set QM calculations using different programs.
 type Handle interface {
 
@@ -60,8 +58,6 @@ type Handle interface {
 	//end properly*
 	OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error)
 }
-
-
 
 type IntConstraint struct {
 	Kind  byte
@@ -119,11 +115,7 @@ func (Q *Calc) SetDefaults() {
 	Q.Disperssion = "D3"
 }
 
-
-
-
 //Utilities here
-
 
 //isIn is a helper for the RamaList function,
 //returns true if test is in container, false otherwise.
