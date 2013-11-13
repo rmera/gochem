@@ -2,10 +2,25 @@
 
 body {
   padding:50px;
-  font:14px/1.5 Lato, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  color:#373737;
+  font-size: 16px;
+  font-family: 'Myriad Pro', Calibri, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  text-align:justify;
+  -webkit-font-smoothing: antialiased;
+}
+
+/*
+  body {
+  padding:50px;
+  font-size: 16px;
+  font-family: Arial, Arial, Helvetica, sans-serif;
+  line-height: 1.5;
+  // font:15px/1.5 Lato, "Helvetica Neue", Helvetica, Arial, sans-serif;
   color:#777;
   font-weight:300;
 }
+*/
 
 h1, h2, h3, h4, h5, h6 {
   color:#222;
@@ -21,7 +36,7 @@ h1, h2, h3 {
 }
 
 h1 {
-  font-size:28px;
+  font-size:35px;
 }
 
 h2 {
@@ -103,11 +118,12 @@ header {
 
 header ul {
   list-style:none;
-  height:40px;
+  height:25px;
   
-  padding:0;
+  padding:10px;
   
-  background: #eee;
+/*  background: #eee;
+  
   background: -moz-linear-gradient(top, #f8f8f8 0%, #dddddd 100%);
   background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#f8f8f8), color-stop(100%,#dddddd));
   background: -webkit-linear-gradient(top, #f8f8f8 0%,#dddddd 100%);
@@ -118,7 +134,9 @@ header ul {
   border-radius:5px;
   border:1px solid #d2d2d2;
   box-shadow:inset #fff 0 1px 0, inset rgba(0,0,0,0.03) 0 -1px 0;
+*/  
   width:270px;
+
 }
 
 header li {
