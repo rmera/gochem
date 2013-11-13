@@ -1,68 +1,35 @@
 To the long life of the Ven. Khenpo Phuntzok Tenzin Rinpoche.
 
 
-Gochem is a library for computational chemitry/biochemistry, in go. 
-It provides structures for handling atoms and molecules, 
-reading/writing some common formats (currently xyz, PDB, xtc and 
-dcd) and a few functions for geometrical manipulation of 
-molecules.
 
-In gochem the Atom container contains all information about an atom that
-is not expected to vary between states (mass, etc). Coordinates and 
-b-factors (or temperature factors) are stored separately as Nx3 
-gomatrix dense matrices the firsts and as slices of N float64 the seconds 
-(N being the number of atoms).
-
-A Molecule container, then, contains a slice of Atoms, a slice of
-gomatrix dense matrices (one matrix for each state of the molecule) for
-the coordinates, and a slice of slices of float64 for the b-factors.
+goChem is a library fro Computational Chemistry and Biochemistry
+written in the Go programming language. 
 
 
-Since coordinates can be obtained separated from the rest of the atomic
-info, as in trajectories and the non-coordinate atomic information can 
-be obtained separately from coordinates (from topology files, although
-these are not currently supported), interfaces for trajectories (Traj)
-and topologies or references (Ref) are provided, so general functions 
-that works with PDB files or trajectories can be easily written. The 
-type *Molecule implements both the Traj and Ref interfaces.
+goChem uses either a zero-runtime-dependency, pure go library for
+the matrix operations based in go.matrix 
+(https://github.com/skelterjohn/go.matrix) Or a more efficient, 
+cBlas based library (https://github.com/gonum/matrix)
+
+Ramachandran plots require the Plotinum 
+(http://code.google.com/p/plotinum/) library.
+
+Reading xtc files require the xdrfile
+library from Gromacs (www.gromacs.org) 
 
 
-The library allows to read Gromacs trajectory files (xtc) if the flag
-'xtc' is given during the build. This requires the xdrfile from the
-Gromacs team (www.gromacs.org). 
-
-Gochem also supports dcd trajectories if the flag 'dcd' is given
-during the build. In this case the implementation is go-native, not
-requiring external libraries.
-
-Trajectories can be read  sequentially, where one frame is saved in 
-memory at a time; or concurrently, where several frames are read at 
-each time and returned as go channels to be processed in parallel.
-
-The library includes a few tests that can also used as examples. 
-
-
-Gochem uses the Gomatrix (https://github.com/skelterjohn/go.matrix) 
-and Plotinum (http://code.google.com/p/plotinum/) libraries.
+All dependencies of goChem are open source.
 
 
 Design goals:
 
 *Simplicity (of the code).
 *Readability.
-*Assume that users can code (dont overcomplicate the code with 
-	zillion simplifying functions. When some of these are provided 
-	they should be separated from the rest.) The helper functions 
-	provided are to be clearly identified and isolated from the core
-	of the library.
-*Try to avoid the need for users to know gomatrix as much as possible
-	-Supply convenience functions to deal with coordinates.
-	-Of course users wanting to code calculations will need gomatrix 
-	anyway.
 *Fast and light
 *Concurrent when possible and necessary
 *Easy to extend
-*Useful for computational biochemistry at a classical and QM levels.
+*Useful for Computational Chemistry/Biochemistry 
+at a classical and QM levels.
 
 
 
@@ -107,21 +74,38 @@ Current capabilities.
 
 10.  Calculates and draws Ramachandran plots (uses the Plotinum library).
         for an aminoacidic chain or a subset of it.
-11   Generates input for, run and recover results from QM calculations
-	 with Turbomole, Orca and MOPAC (which must be obtained independently from their respective     
-     distributors.)
+
+11.  Generates input for, run and recover results from QM calculations
+	 with Turbomole, Orca and MOPAC (which must be obtained independently 
+	 from their respective distributors.)
+
+12.	Implements a JSON interface that allows easy communication of goChem
+	programs with the PyMOL visualization program (www.pymol.org)
 
 
-TODOS:
+NOTE ON THE API:
 
-*Protein superimposer (Calign?).
-*Additional geometrical manipulation tools.
-*Read Amber trajectories.
-*Add more tests.
+On 13/11/2013 the API has been made stable. This means that only 
+backward-compatible changes to the current API will be made 
+to it for a year.
+In the unlikely event that a serious problem requiring a minor API 
+change would arise, Tools to automatically upgrade code will be made 
+available.
 
-Currently, gochem is licensed under LGPL2. This might change towards BSD 
-in the future. Meanwhile, if you want to use some of this for a 
-BSD-licensed project, let me know.
+
+There is no publication on gochem yet. If you use the library, or a
+program based on gochem before such a publication is available,
+please support the library by citing in your publication:
+
+Mera-Adasme, R., Savasci, G., Ochsenfeld, C.
+Pesonen, J. "goChem: a library for computational chemistry".
+https://www.github.com/rmera/gochem
+
+
+
+Currently, gochem is licensed under LGPL2.1. This might change 
+towards BSD in the future. Meanwhile, if you want to use some 
+of this for a BSD-licensed project, contact the developer.
 
 
 
