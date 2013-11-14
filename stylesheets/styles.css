@@ -39,6 +39,10 @@ h1 {
   font-size:35px;
 }
 
+h1 a {
+ color:#222;
+}
+
 h2 {
   color:#393939;
 }
@@ -113,7 +117,7 @@ img {
 header {
   width:270px;
   float:left;
-  position:fixed;
+ // position:fixed;
 }
 
 header ul {
@@ -142,16 +146,17 @@ header ul {
 header li {
   width:89px;
   float:left;
-  border-right:1px solid #d2d2d2;
+// border-right:1px solid #d2d2d2;
   height:40px;
 }
 
 header ul a {
+
   line-height:1;
   font-size:11px;
   color:#999;
   display:block;
-  text-align:center;
+  text-align:left;
   padding-top:6px;
   height:40px;
 }
@@ -230,9 +235,9 @@ footer {
   }
   
   header ul {
-    position:absolute;
-    right:50px;
-    top:52px;
+   // position:absolute;
+   // right:50px;
+   // top:52px;
   }
 }
 
