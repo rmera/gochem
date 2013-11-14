@@ -141,7 +141,7 @@ func (O *CSHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q *Cal
 
 	} else {
 		chem.XYZWrite(fmt.Sprintf("%s.xyz", O.inputname), coords, atoms)
-		coordline = fmt.Sprintf("read_xyz %s.xyz coords=%s.crd \nset residues [ res_selectall coords=%s.crd ]\n", O.inputname, O.inputname, O.inputname)
+		coordline = fmt.Sprintf("read_xyz file=%s.xyz coords=%s.crd \nset residues [ res_selectall coords=%s.crd ]\n", O.inputname, O.inputname, O.inputname)
 	}
 	frozen := ""
 	optline := ""
@@ -183,8 +183,12 @@ func (O *CSHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q *Cal
 	if O.mpi {
 		mpi = fmt.Sprintf("%s mpi_nprocs=$::env(mpi_nprocs) %s mpi_mf=$::env(mpi_mf) %s mpi_omp=$::env(mpi_omp)] %s", b, b, b, sb)
 	}
+	//The dielectric part could vary if the Chemshell--QCMine interface changes.
+	if Q.Dielectric<0{
+		Q.Dielectric=-1
+	}
 	//I admit the following is horrible. Just take a leap of faith
-	arguments := fmt.Sprintf("     theory= %s : [ list basis=%s %s hamiltonian=%s %s accuracy=high %s link=%s %s charge=%d %s jobname=%s %s useghosts=0 %s coords=%s.crd %s %s list_option=full\n\n", O.program, basis, b, method, b, b, link, b, atoms.Charge(), b, O.inputname, b, mpi, O.inputname, sb, optline)
+	arguments := fmt.Sprintf("     theory= %s : [ list basis=%s %s hamiltonian=%s %s cpcm=%3.1f %s accuracy=high %s link=%s %s charge=%d %s jobname=%s %s useghosts=0 %s coords=%s.crd %s %s list_option=full\n\n", O.program, basis, b, method, b, Q.Dielectric, b,  b, link, b, atoms.Charge(), b, O.inputname, b, mpi, O.inputname, sb, optline)
 	_, _ = fmt.Fprint(file, arguments)
 	_, _ = fmt.Fprint(file, writeline)
 	return nonfatal
