@@ -185,7 +185,7 @@ func (R *paravector) cliRotation(A, axis, tmp1, tmp2 *paravector, angle float64)
 }
 
 /*
-//CliRotate takes the matrix Target and uses Clifford algebra to rotate each of its rows
+//RotateSer takes the matrix Target and uses Clifford algebra to rotate each of its rows
 //by angle radians around axis. Axis must be a 3D row vector. Target must be an N,3 matrix.
 //The Ser in the name is from "serial". The CliRotate is concurrent.
 func RotateSer(Target, axis *VecMatrix, angle float64) *VecMatrix {
@@ -201,9 +201,9 @@ func RotateSer(Target, axis *VecMatrix, angle float64) *VecMatrix {
 	Res := ZeroVecs(tarr)
 	for i := 0; i < tarr; i++ {
 		rowvec := Target.VecView(i)
-		tmp := cliProduct(Rrev, paravectorFromVector(rowvec))
-		Rotated := cliProduct(tmp, R)
-		Res.SetMatrix(i, 0, Rotated.Vreal)
+		Rotated:=paravectorFromVectors(Res.VecView(i),t1)
+		t2.cliProduct(Rrev, paravectorFromVector(rowvec,t2))
+		Rotated := cliProduct(t2, R)
 	}
 	return Res
 }
@@ -254,9 +254,9 @@ func Rotate(Target, axis *VecMatrix, angle float64) *VecMatrix {
 				//a,b:=Res.Dims() //debug
 				//c,d:=Rotated.Vreal.Dims()
 				//fmt.Println("rows",a,c,"cols",b,d,"i","rowss",)
-				t1.Set(0, 0, 0.0) //This could be more expensive than simpy getting new vectors. Profile!
-				t1.Set(0, 1, 0.0)
-				t1.Set(0, 2, 0.0)
+		//		t1.Set(0, 0, 0.0) //This could be more expensive than simpy getting new vectors. Profile!
+		//		t1.Set(0, 1, 0.0)
+		//		t1.Set(0, 2, 0.0)
 			}
 			ended <- true
 			return
