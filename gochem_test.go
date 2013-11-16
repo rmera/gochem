@@ -26,6 +26,7 @@ package chem
 import "fmt"
 import "os"
 import "testing"
+//import "runtime"
 
 //TestMultiXYZ tests that multi-XYZ files are opened and read correctly.
 func TestXYZIO(Te *testing.T) {
@@ -56,6 +57,7 @@ func TestPDBIO(Te *testing.T) {
 //aligned with the Z axis. The new molecule is written
 //as 2c9v_aligned.pdb to the test folder.
 func TestChangeAxis(Te *testing.T) {
+	//runtime.GOMAXPROCS(2) ///////////////////////////
 	mol, err := PDBRead("test/2c9v.pdb", true)
 	if err != nil {
 		Te.Error(err)
@@ -188,6 +190,7 @@ func TestDelete(Te *testing.T) {
 }
 
 func TestWater(Te *testing.T) {
+//	runtime.GOMAXPROCS(2) ///////////////////////////
 	mol, err := XYZRead("test/sample.xyz")
 	if err != nil {
 		Te.Error(err)
