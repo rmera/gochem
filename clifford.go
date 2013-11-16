@@ -32,7 +32,6 @@ package chem
 import (
 	"math"
 	"runtime"
-	"fmt"
 )
 
 //import "fmt"
@@ -184,37 +183,83 @@ func (R *paravector) cliRotation(A, axis, tmp1, tmp2 *paravector, angle float64)
 	R.cliProduct(tmp2, R)
 }
 
-/*
+
+
+
 //RotateSer takes the matrix Target and uses Clifford algebra to rotate each of its rows
 //by angle radians around axis. Axis must be a 3D row vector. Target must be an N,3 matrix.
-//The Ser in the name is from "serial". The CliRotate is concurrent.
-func RotateSer(Target, axis *VecMatrix, angle float64) *VecMatrix {
-	tarr, _ := Target.Dims()
+//The Ser in the name is from "serial". The Rotate function (below) is concurrent.
+//The result is returned.
+//NOTE: If you dont care about performance you should just use Rotate instead of this.
+//This function is only here because I noticed the extra allocation after freezing the API.
+//It will be removed after the year of API-freeze is over. (and RotateSerP will become RotateSer)
+func RotateSer(Target,axis *VecMatrix,angle float64) *VecMatrix{
+	Res:=ZeroVecs(Target.NVecs())
+	RotateSerP(Target,Res,axis,angle)
+	return Res
+}
+
+
+//RotateSerP takes the matrix Target and uses Clifford algebra to rotate each of its rows
+//by angle radians around axis. Axis must be a 3D row vector. Target must be an N,3 matrix.
+//The Ser in the name is from "serial". The Rotate function (below) is concurrent.
+//The result is put in Res. Note that Res and Target must have the same dimmension but cannot
+//Point to the same object (in both cases RotateSerP will panic).
+func RotateSerP(Target,Res, axis *VecMatrix, angle float64)  {
+	tarr:= Target.NVecs()
+	rarr:= Res.NVecs()
+	if tarr!=rarr || Target.Dense==Res.Dense{
+		panic("RotateSerP: Target and Res must have the same dimensions. Target and Res cannot reference the same matrix")
+	}
 	paxis := paravectorFromVector(axis)
-	paxis = paxis.unit()
+	paxis.unit(paxis)
 	R := makeParavector()
 	R.Real = math.Cos(angle / 2.0)
 	for i := 0; i < 3; i++ {
 		R.Vimag.Set(0, i, math.Sin(angle/2.0)*paxis.Vreal.At(0, i))
 	}
-	Rrev := R.reverse()
-	Res := ZeroVecs(tarr)
+	Tbig:=ZeroVecs(4)
+	t1:=Tbig.VecView(0)
+	t2:=Tbig.VecView(1)
+	t3:=Tbig.VecView(2)
+	t4:=Tbig.VecView(3)
+	pv:=paravectorFromVectors(t3,t4)
+	Rrev:=makeParavector() //R dagger
+	Rrev.reverse(R)
 	for i := 0; i < tarr; i++ {
 		rowvec := Target.VecView(i)
 		Rotated:=paravectorFromVectors(Res.VecView(i),t1)
-		t2.cliProduct(Rrev, paravectorFromVector(rowvec,t2))
-		Rotated := cliProduct(t2, R)
+		pv.cliProduct(Rrev, paravectorFromVectors(rowvec,t2))
+		Rotated.cliProduct(pv, R)
 	}
-	return Res
+	return
 }
-*/
+
+
+
+
 
 //Rotate takes the matrix Target and uses Clifford algebra to _concurrently_ rotate each
 //of its rows by angle radians around axis. Axis must be a 3D row vector.
-//Target must be an N,3 matrix.
-func Rotate(Target, axis *VecMatrix, angle float64) *VecMatrix {
+//Target must be an N,3 matrix. The result is returned.
+func Rotate(Target,axis *VecMatrix, angle float64) *VecMatrix{
+	Res:=ZeroVecs(Target.NVecs())
+	RotateP(Target,Res,axis,angle)
+	return Res
+}
+
+//RotateP takes the matrix Target and uses Clifford algebra to _concurrently_ rotate each
+//of its rows by angle radians around axis. Axis must be a 3D row vector.
+//Target must be an N,3 matrix. The result is stored in Res, which must have the same 
+//dimensions as Target. In addition, Target and Res cannot point to the same object 
+//(in both cases RotateP will panic). 
+func RotateP(Target, Res, axis *VecMatrix, angle float64){
 	gorut := runtime.GOMAXPROCS(-1) //Do not change anything, only query
-	rows, _ := Target.Dims()
+	rows:= Target.NVecs()
+	rrows:=  Res.NVecs()
+	if rrows!=rows || Target.Dense==Res.Dense {
+		panic("RotateP: Target and Res must have the same dimensions. Target and Res cannot reference the same matrix.")
+	}
 	paxis := paravectorFromVector(axis)
 	paxis.unit(paxis)
 	R := makeParavector() //build the rotor (R)
@@ -224,7 +269,6 @@ func Rotate(Target, axis *VecMatrix, angle float64) *VecMatrix {
 	}
 	Rrev := makeParavector() //R-dagger
 	Rrev.reverse(R)
-	Res := ZeroVecs(rows) //The returned matrix
 	ended := make(chan bool, gorut)
 	//Just temporal skit to be used by the gorutines
 	tmp1 := ZeroVecs(gorut)
@@ -251,12 +295,6 @@ func Rotate(Target, axis *VecMatrix, angle float64) *VecMatrix {
 				targetparavec := paravectorFromVectors(Target.VecView(j),t1)
 				pv.cliProduct(Rrev, targetparavec)
 				Rotated.cliProduct(pv, R)
-				//a,b:=Res.Dims() //debug
-				//c,d:=Rotated.Vreal.Dims()
-				//fmt.Println("rows",a,c,"cols",b,d,"i","rowss",)
-		//		t1.Set(0, 0, 0.0) //This could be more expensive than simpy getting new vectors. Profile!
-		//		t1.Set(0, 1, 0.0)
-		//		t1.Set(0, 2, 0.0)
 			}
 			ended <- true
 			return
@@ -266,8 +304,7 @@ func Rotate(Target, axis *VecMatrix, angle float64) *VecMatrix {
 	for i := 0; i < gorut; i++ {
 		<-ended
 	}
-	fmt.Println("gorut",gorut)
-	return Res
+	return
 }
 
 //Clifford product of 2 paravectors.
