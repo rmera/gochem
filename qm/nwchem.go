@@ -31,46 +31,46 @@ package qm
 import "os"
 import "strings"
 import "fmt"
-import "runtime"
+//import "runtime"
 import "os/exec"
 import "strconv"
 import "github.com/rmera/gochem"
 
 //Note that the default methods and basis vary with each program, and even
 //for a given program they are NOT considered part of the API, so they can always change.
-type OrcaHandle struct {
+type NWChemHandle struct {
 	defmethod   string
 	defbasis    string
 	defauxbasis string
 	previousMO  string
-	bsse        string
+	restart     bool
 	command     string
 	inputname   string
 	nCPU        int
 }
 
-func NewOrcaHandle() *OrcaHandle {
-	run := new(OrcaHandle)
+func NewNWChemHandle() *NWChemHandle {
+	run := new(NWChemHandle)
 	run.SetDefaults()
 	return run
 }
 
-//OrcaHandle methods
+//NWChemHandle methods
 
 //Sets the number of CPU to be used
-func (O *OrcaHandle) SetnCPU(cpu int) {
+func (O *NWChemHandle) SetnCPU(cpu int) {
 	O.nCPU = cpu
 }
 
-func (O *OrcaHandle) SetName(name string) {
+func (O *NWChemHandle) SetName(name string) {
 	O.inputname = name
 }
 
-func (O *OrcaHandle) SetCommand(name string) {
+func (O *NWChemHandle) SetCommand(name string) {
 	O.command = name
 }
 
-func (O *OrcaHandle) SetMOName(name string) {
+func (O *NWChemHandle) SetMOName(name string) {
 	O.previousMO = name
 }
 
@@ -78,180 +78,167 @@ func (O *OrcaHandle) SetMOName(name string) {
 revPBE/def2-SVP with RI, and all the available CPU with a max of
 8. The ORCA command is set to $ORCA_PATH/orca, at least in
 unix.*/
-func (O *OrcaHandle) SetDefaults() {
-	O.defmethod = "revPBE"
-	O.defbasis = "def2-SVP"
-	O.defauxbasis = "def2-SVP/J"
-	O.command = os.ExpandEnv("${ORCA_PATH}/orca")
-	if O.command == "/orca" { //if ORCA_PATH was not defined
-		O.command = "./orca"
-	}
-	cpu := runtime.NumCPU()
-	O.nCPU = cpu
+func (O *NWChemHandle) SetDefaults() {
+	O.defmethod = "tpss"
+	O.defbasis = "def2-svp"
+//	O.defauxbasis = "def2-SVP/J"
+	O.command =  "nw"   //os.ExpandEnv("${ORCA_PATH}/orca")
+
+//	cpu := runtime.NumCPU()
+//	if cpu > 8 {
+//		O.nCPU = 8
+//	}
 
 }
 
 //BuildInput builds an input for ORCA based int the data in atoms, coords and C.
 //returns only error.
-func (O *OrcaHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q *Calc) error {
+func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q *Calc) error {
 	//Only error so far
 	if atoms == nil || coords == nil {
 		return fmt.Errorf("Missing charges or coordinates")
 	}
 	if Q.Basis == "" {
-		fmt.Fprintf(os.Stderr, "no basis set assigned for ORCA calculation, will used the default %s, \n", O.defbasis)
+		fmt.Fprintf(os.Stderr, "no basis set assigned for NWChem calculation, will used the default %s, \n", O.defbasis)
 		Q.Basis = O.defbasis
 	}
 	if Q.Method == "" {
-		fmt.Fprintf(os.Stderr, "no method assigned for ORCA calculation, will used the default %s, \n", O.defmethod)
+		fmt.Fprintf(os.Stderr, "no method assigned for NWChem calculation, will used the default %s, \n", O.defmethod)
 		Q.Method = O.defmethod
-		Q.auxColBasis = "" //makes no sense for pure functional
-		Q.auxBasis = fmt.Sprintf("%s/J", Q.Basis)
+		Q.RI = true
 	}
 
-	//Set RI or RIJCOSX if needed
-	ri := ""
-	if Q.RI && Q.RIJ {
-		return fmt.Errorf("RI and RIJ cannot be activated at the same time")
-	}
-	if Q.RI {
-		Q.auxBasis = Q.Basis + "/J"
-		//	if !strings.Contains(Q.Others," RI "){
-		ri = "RI"
-	}
-	if Q.RIJ {
-		Q.auxBasis = Q.Basis + "/J"
-		Q.auxColBasis = Q.Basis + "/C"
-		//	if !strings.Contains(Q.Others,"RIJCOSX"){
-		ri = "RIJCOSX"
+	vectors:=fmt.Sprintf("output  %s.movecs",O.inputname)  //The initial guess
+	
+	switch Q.Guess{
+		case "":
+		case "hcore":
+			vectors=fmt.Sprintf("input hcore %s",vectors)
+		default:
+			if !Q.OldMO{
+				//If the user gives something in Q.Guess but DOES NOT want an old MO to be used, I assume he/she wants to put whatever 
+				//is in Q.Guess directly  in the vector keyword. If you want the default put an empty string in Q.Guess.
+				vectors=fmt.Sprintf("%s %s",Q.Guess,vectors)
+				break
+			}
+			//I assume the user gave a basis set name in Q.Guess which I can use to project vectors from a previous run.
+			moname:=getOldMO(O.previousMO)
+			if moname==""{
+				break
+			}
+			if Q.Guess==Q.Basis{
+				//Useful if you only change functionals.
+				vectors=fmt.Sprintf("input %s %s",moname,vectors)
+			}else{
+				//This will NOT work if one assigns different basis sets to different atoms.
+				vectors=fmt.Sprintf("input project %s %s %s",Q.Guess,moname,vectors)
+			}
+		
 	}
 
-	disp := "D3"
-	if Q.Disperssion != "" {
-		disp = orcaDisp[Q.Disperssion]
+	disp,ok := nwchemDisp[Q.Disperssion]
+	if !ok{
+		disp="vdw 3"
 	}
-	opt := ""
+	task := "dft energy"
 	if Q.Optimize == true {
-		opt = "Opt"
+		task = "dft optimize"
 	}
-	//If this flag is set we'll look for a suitable MO file.
-	//If not found, we'll just use the default ORCA guess
-	hfuhf := "RHF"
-	if atoms.Multi() != 1 {
-		hfuhf = "UHF"
+
+	tightness:=""
+	switch  Q.SCFTightness {
+		case 1:
+			tightness:="convergence energy 1.000000E-08\nconvergence density 5.000000E-09\nconvergence gradient 1E-05"
+		case 2:
+			//NO idea if this will work, or the criteria will be stronger than the criteria for the intergral evaluation
+			//and thus the SCF will never converge. Delete when tested.
+			tightness="convergence energy 1.000000E-10\nconvergence density 5.000000E-11\nconvergence gradient 1E-07"
 	}
-	moinp := ""
-	if Q.OldMO == true {
-		dir, _ := os.Open("./")     //This should always work, hence ignoring the error
-		files, _ := dir.Readdir(-1) //Get all the files.
-		for _, val := range files {
-			if O.previousMO != "" {
-				break
-			}
-			if val.IsDir() == true {
-				continue
-			}
-			name := val.Name()
-			if strings.Contains(".gbw", name) {
-				O.previousMO = name
-				break
-			}
-		}
-		if O.previousMO != "" {
-			Q.Guess = "MORead"
-			moinp = fmt.Sprintf("%%moinp \"%s\"\n", O.previousMO)
-		} else {
-			moinp = ""
-			Q.Guess = "" //The default guess
-		}
+
+	//Here I dont quite know what to do to help convergency, Ill just slightly extend the iteration tolerance. Sorry about that.
+	scfiters:="iterations 30"
+	if Q.SCFConvHelp>0{
+		scfiters="iterations 50"
 	}
-	tight := "TightSCF"
-	if Q.SCFTightness != 0 {
-		tight = orcaSCFTight[Q.SCFTightness]
-	}
-	conv := ""
-	if Q.SCFConvHelp == 0 {
-		//The default for this is nothing for RHF and SlowConv for UHF
-		if atoms.Multi() > 1 {
-			conv = "SlowConv"
-		}
-	} else {
-		conv = orcaSCFConv[Q.SCFConvHelp]
-	}
-	pal := ""
-	palbig := ""
-	if O.nCPU > 1 {
-		if O.nCPU > 8 {
-			palbig = fmt.Sprintf("%%pal nprocs %d\n   end\n", O.nCPU) //fmt.Fprintf(os.Stderr, "CPU number of %d for ORCA calculations currently not supported, maximun 8", O.nCPU)
-		} else {
-			pal = fmt.Sprintf("PAL%d", O.nCPU)
-		}
-	}
-	grid := ""
-	if Q.Grid > 0 && Q.Grid <= 9 {
-		final := ""
-		if Q.Grid > 3 {
-			final = "NoFinalGrid"
-		}
-		grid = fmt.Sprintf("Grid%d %s", Q.Grid, final)
+	grid,ok:=nwchemGrid[Q.Grid]
+	if !ok{
+		grid="m"
 	}
 	var err error
-	var bsse string
-	if bsse, err = O.buildgCP(Q); err != nil {
-		fmt.Fprintln(os.Stderr, err.Error())
+
+	//Only cartesian constraints supported by now.
+	constraints:=""
+	if len(Q.CConstraints)>0{
+		constraints="constraints\n fix atom"
+		for _,v:=range(Q.CConstraints){
+			constraints=fmt.Sprintf("%s %i",constraints,v+1) //goChem numbering starts from 0, apparently NWChem starts from 1, hence the v+1
+		}
+		constraints=constraints+"\nend"
 	}
-	if Q.Method == "HF-3c" { //This method includes its own basis sets and corrections, so previous choices are overwritten.
-		Q.Basis = ""
-		Q.auxBasis = ""
-		Q.auxColBasis = ""
-		Q.Guess = ""
-		bsse = ""
-		disp = ""
-	}
-	MainOptions := []string{"!", hfuhf, Q.Method, Q.Basis, Q.auxBasis, Q.auxColBasis, tight, disp, conv, Q.Guess, opt, Q.Others, grid, ri, bsse, pal, "\n"}
-	mainline := strings.Join(MainOptions, " ")
-	constraints := O.buildCConstraints(Q.CConstraints)
-	iconstraints, err := O.buildIConstraints(Q.IConstraints)
-	if err != nil {
-		return err
-	}
+
 	cosmo := ""
 	if Q.Dielectric > 0 {
-		cosmo = fmt.Sprintf("%%cosmo epsilon %1.0f\n        refrac 1.30\n        end\n", Q.Dielectric)
+		cosmo=fmt.Sprintf("cosmo\n dielec %s\nend")
 	}
 	mem := ""
 	if Q.Memory != 0 {
-		mem = fmt.Sprintf("%%MaxCore %d\n", Q.Memory)
+		mem = fmt.Sprintf("memory %d mb", Q.Memory)
 	}
-	ElementBasis := ""
-	if Q.HBElements != nil || Q.LBElements != nil {
-		elementbasis := make([]string, 0, len(Q.HBElements)+len(Q.LBElements)+2)
-		elementbasis = append(elementbasis, " %basis \n")
-		for _, val := range Q.HBElements {
-			elementbasis = append(elementbasis, fmt.Sprintf("  newgto %s \"%s\" end\n", val, Q.HighBasis))
-		}
-		for _, val := range Q.LBElements {
-			elementbasis = append(elementbasis, fmt.Sprintf("  newgto %s \"%s\" end\n", val, Q.LowBasis))
-		}
-		elementbasis = append(elementbasis, "         end\n")
-		ElementBasis = strings.Join(elementbasis, "")
-	}
-	//Now lets write the thing
+
+
+
+	//////////////////////////////////////////////////////////////
+	//Now lets write the thing. Ill process/write the basis later
+	//////////////////////////////////////////////////////////////
 	if O.inputname == "" {
 		O.inputname = "gochem"
 	}
-	file, err := os.Create(fmt.Sprintf("%s.inp", O.inputname))
+	file, err := os.Create(fmt.Sprintf("%s.nw", O.inputname))
 	if err != nil {
 		return err
 	}
 	defer file.Close()
-	_, err = fmt.Fprint(file, mainline)
-	//With this check its assumed that the file is ok.
+	start:="start"
+	if O.restart{
+		start="restart"
+	}
+	_, err = fmt.Fprint(file,"%s %s\n",start,O.inputname)
+	//after this check its assumed that the file is ok.
 	if err != nil {
 		return err
 	}
-	fmt.Fprint(file, palbig)
-	fmt.Fprint(file, moinp)
+	fmt.Fprint(file, "echo\n") //echo input in the output.
+	fmt.Fprintf(file, "charge %d",atoms.Charge())
+	fmt.Fprintf(file,"%s\n", mem) //the memory
+
+	//Now the geometry:
+	fmt.Fprint(file, "geometry units angstroms\n")
+	elements:=make([]string,0,5) //I will collect the different elements that are in the molecule using the same loop as the geometry.
+	for i := 0; i < atoms.Len(); i++ {
+		symbol:=atoms.Atom(i).Symbol
+		//In the following if/else I try to set up basis for specific atoms. Not SO sure it works.
+		if isInInt(Q.HBAtoms,i){
+			symbol=symbol+"1"
+		}else if isInInt(Q.LBAtoms,i){
+			symbol=symbol+"2"
+		}
+		fmt.Fprintf(file, " %-2s  %8.3f%8.3f%8.3f \n", symbol, coords.At(i, 0), coords.At(i, 1), coords.At(i, 2))
+
+		if !isInString(elements,symbol){
+			elements=append(elements,symbol)
+		}
+	}
+	fmt.Fprintf(file, "end\n")
+	//The basis. First the ao basis (required)
+	for _,el:=range(elements){
+		if isInString(Q.HBElements,el) || strings.HasSuffix(el,"1"){
+			fmt.Fprintf(file,"%s library %s",el,HighBasis)
+		}else if isInString(Q.LBElements,el) || strings.HasSuffix(el,"2"){
+			fmt.Fprintf(file,"%s library %s",el,LowBasis)
+		}else{
+			fmt.Fprintf(fie, "%s library %s",el,Basis)
+		}
+	}
 	fmt.Fprint(file, mem)
 	fmt.Fprint(file, constraints)
 	fmt.Fprint(file, iconstraints)
@@ -262,17 +249,7 @@ func (O *OrcaHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q *C
 	fmt.Fprintf(file, "* xyz %d %d\n", atoms.Charge(), atoms.Multi())
 	//now the coordinates
 	//	fmt.Println(atoms.Len(), coords.Rows()) ///////////////
-	for i := 0; i < atoms.Len(); i++ {
-		newbasis := ""
-		if isInInt(Q.HBAtoms, i) == true {
-			newbasis = fmt.Sprintf("newgto \"%s\" end", Q.HighBasis)
-		} else if isInInt(Q.LBAtoms, i) == true {
-			newbasis = fmt.Sprintf("newgto \"%s\" end", Q.LowBasis)
-		}
-		//	fmt.Println(atoms.Atom(i).Symbol)
-		fmt.Fprintf(file, "%-2s  %8.3f%8.3f%8.3f %s\n", atoms.Atom(i).Symbol, coords.At(i, 0), coords.At(i, 1), coords.At(i, 2), newbasis)
-	}
-	fmt.Fprintf(file, "*\n")
+
 	return nil
 }
 
@@ -280,7 +257,7 @@ func (O *OrcaHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q *C
 //it waits or not for the result depending on wait.
 //Not waiting for results works
 //only for unix-compatible systems, as it uses bash and nohup.
-func (O *OrcaHandle) Run(wait bool) (err error) {
+func (O *NWChemHandle) Run(wait bool) (err error) {
 
 	if wait == true {
 		out, err := os.Create(fmt.Sprintf("%s.out", O.inputname))
@@ -299,9 +276,44 @@ func (O *OrcaHandle) Run(wait bool) (err error) {
 	return err
 }
 
+
+func getOldMO(prevMO string) string {
+	dir, _ := os.Open("./")     //This should always work, hence ignoring the error
+	files, _ := dir.Readdir(-1) //Get all the files.
+	for _, val := range files {
+		if prevMO != "" {
+			break
+		}
+		if val.IsDir() == true {
+			continue
+		}
+		name := val.Name()
+		if strings.Contains(".movecs", name) {
+			prevMO = name
+			break
+		}
+	}
+	if prevMO != "" {
+		return prevMO
+	} else {
+		return ""
+
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
 //buildIConstraints transforms the list of cartesian constrains in the QMCalc structre
 //into a string with ORCA-formatted internal constraints.
-func (O *OrcaHandle) buildIConstraints(C []*IConstraint) (string, error) {
+func (O *NWChemHandle) buildIConstraints(C []*IConstraint) (string, error) {
 	if C == nil {
 		return "\n", nil //no constraints
 	}
@@ -338,7 +350,7 @@ var iConstraintOrder = map[byte]int{
 
 //buildCConstraints transforms the list of cartesian constrains in the QMCalc structre
 //into a string with ORCA-formatted cartesian constraints
-func (O *OrcaHandle) buildCConstraints(C []int) string {
+func (O *NWChemHandle) buildCConstraints(C []int) string {
 	if C == nil {
 		return "\n" //no constraints
 	}
@@ -354,25 +366,6 @@ func (O *OrcaHandle) buildCConstraints(C []int) string {
 	return final
 }
 
-//Only DFT is supported. Also, only Karlsruhe's basis sets. If you are using Pople's,
-//let us know so we can send a mission to rescue you from the sixties :-)
-func (O *OrcaHandle) buildgCP(Q *Calc) (string, error) {
-	ret := ""
-	var err error
-	if strings.ToLower(Q.BSSE) == "gcp" {
-		switch strings.ToLower(Q.Basis) {
-		case "def2-svp":
-			ret = "GCP(DFT/SVP)"
-		case "def2-tzvp":
-			ret = "GCP(DFT/TZ)"
-		case "def2-sv(p)":
-			ret = "GCP(DFT/SV(P))"
-		default:
-			err = fmt.Errorf("Method/basis combination for gCP unavailable, will skip the correction")
-		}
-	}
-	return ret, err
-}
 
 var orcaSCFTight = map[int]string{
 	0: "",
@@ -386,27 +379,53 @@ var orcaSCFConv = map[int]string{
 	2: "VerySlowConv",
 }
 
-var orcaDisp = map[string]string{
+var nwchemDisp = map[string]string{
 	"nodisp": "",
-	"D3OLD":  "VDW10", //compatibility with ORCA 2.9
-	"D2":     "D2",
-	"D3BJ":   "D3BJ",
-	"D3bj":   "D3BJ",
-	"D3":     "D3ZERO",
-	"D3ZERO": "D3ZERO",
-	"D3Zero": "D3ZERO",
-	"D3zero": "D3ZERO",
-	"VV10":   "NL", //for these methods only the default integration grid is supported.
-	"SCVV10": "SCNL",
-	"NL":     "NL",
-	"SCNL":   "SCNL",
+	"D2":     "vdw 2",
+	"D3":     "vdw 3",
+	"D3ZERO": "vdw 3",
+	"D3Zero": "vdw 3",
+	"D3zero": "vdw 3",
 }
+
+var nwchemGrid = map[int]string{
+	1: "xcoarse",
+	2: "coarse",
+	3: "medium",
+	4: "fine",
+	5: "xfine",
+}
+
+
+var nwchemMethods = map[string]string{
+//	"HF":     "hf",
+//	"hf":     "hf",
+	"b3lyp":  "b3lyp",
+	"B3LYP":  "b3lyp",
+	"b3-lyp": "b3lyp",
+//	"PBE":    "pbe",
+//	"pbe":    "pbe",
+	"pbe0":   "pbe0",
+	"PBE0":   "pbe0",
+	"TPSS":   "xtpss03 ctpss03",
+	"tpss":   "xtpss03 ctpss03",
+	"TPSSh":  "xctpssh",
+	"tpssh":  "xctpssh",
+	"BP86":   "becke88 perdew 86",
+	"b-p":    "becke88 perdew 86",
+	"blyp":   "becke88 lyp",
+}
+
+
+
+
+
 
 /*Reads the latest geometry from an ORCA optimization. Returns the
   geometry or error. Returns the geometry AND error if the geometry read
   is not the product of a correctly ended ORCA calculation. In this case
   the error is "probable problem in calculation"*/
-func (O *OrcaHandle) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error) {
+func (O *NWChemHandle) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error) {
 	var err error
 	geofile := fmt.Sprintf("%s.xyz", O.inputname)
 	//Here any error of orcaNormal... or false means the same, so the error can be ignored.
@@ -425,7 +444,7 @@ func (O *OrcaHandle) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error) 
 //Returns error if problem, and also if the energy returned that is product of an
 //abnormally-terminated ORCA calculation. (in this case error is "Probable problem
 //in calculation")
-func (O *OrcaHandle) Energy() (float64, error) {
+func (O *NWChemHandle) Energy() (float64, error) {
 	err := fmt.Errorf("Probable problem in calculation")
 	f, err1 := os.Open(fmt.Sprintf("%s.out", O.inputname))
 	if err1 != nil {
@@ -488,7 +507,7 @@ func getTailLine(f *os.File) (line string, err error) {
 
 //This checks that an ORCA calculation has terminated normally
 //I know this duplicates code, I wrote this one first and then the other one.
-func (O *OrcaHandle) orcaNormalTermination() bool {
+func (O *NWChemHandle) orcaNormalTermination() bool {
 	var ini int64 = 0
 	var end int64 = 0
 	var first bool
