@@ -81,7 +81,7 @@ unix.*/
 func (O *NWChemHandle) SetDefaults() {
 	O.defmethod = "tpss"
 	O.defbasis = "def2-svp"
-	O.command =  "nw"
+	O.command =  "nwchem"
 
 }
 
@@ -212,7 +212,12 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 		fmt.Fprintf(file,"%s\n", memory) //the memory
 	}
 	//Now the geometry:
-	fmt.Fprint(file, "geometry units angstroms\n")
+	//If we have cartesian constraints we give the directive noautoz to optimize in cartesian coordinates.
+	autoz:=""
+	if len(Q.CConstraints)>0{
+		autoz="noautoz"
+	}
+	fmt.Fprintf(file, "geometry units angstroms %s\n",autoz)
 	elements:=make([]string,0,5) //I will collect the different elements that are in the molecule using the same loop as the geometry.
 	for i := 0; i < atoms.Len(); i++ {
 		symbol:=atoms.Atom(i).Symbol
@@ -246,7 +251,7 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 	}
 	fmt.Fprintf(file, "end\n")
 	//Only Ahlrichs basis are supported for RI. USE AHLRICHS BASIS, PERKELE! :-)
-	//The only Ahlrichs J basis in NWchem appear to be equivalent to def2-TZVPP/J (orca nomenclature). I supposed that they are still faster
+	//The only Ahlrichs J basis in NWchem appear to be equivalent to def2-TZVPP/J (orca nomenclature). I suppose that they are still faster
 	//than not using RI if the main basis is SVP. One can also hope that they are good enough if the main basis is QZVPP or something.
 	//(about the last point, it appears that in Turbomole, the aux basis also go up to TZVPP).
 	//This comment is based on the H, Be and C basis.
@@ -360,18 +365,16 @@ var nwchemMethods = map[string]string{
 //	"HF":     "hf",
 //	"hf":     "hf",
 	"b3lyp":  "b3lyp",
-	"B3LYP":  "b3lyp",
 	"b3-lyp": "b3lyp",
 //	"PBE":    "pbe",
 //	"pbe":    "pbe",
 	"pbe0":   "pbe0",
-	"PBE0":   "pbe0",
 	"TPSS":   "xtpss03 ctpss03",
 	"tpss":   "xtpss03 ctpss03",
 	"TPSSh":  "xctpssh",
 	"tpssh":  "xctpssh",
-	"BP86":   "becke88 perdew 86",
-	"b-p":    "becke88 perdew 86",
+	"bp86":   "becke88 perdew86",
+	"b-p":    "becke88 perdew86",
 	"blyp":   "becke88 lyp",
 }
 
