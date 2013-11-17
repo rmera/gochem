@@ -1,8 +1,8 @@
 /*
- * qm.go, part of gochem.
+ * nwchem.go, part of gochem.
  *
  *
- * Copyright 2012 Raul Mera <rmera{at}chemDOThelsinkiDOTfi>
+ * Copyright 2013 Raul Mera <rmera{at}chemDOThelsinkiDOTfi>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -28,13 +28,13 @@
 
 package qm
 
-import "os"
-import "strings"
-import "fmt"
-//import "runtime"
-import "os/exec"
-import "strconv"
-import "github.com/rmera/gochem"
+import (
+ "os"
+ "strings"
+ "fmt"
+ "os/exec"
+ "github.com/rmera/gochem"
+)
 
 //Note that the default methods and basis vary with each program, and even
 //for a given program they are NOT considered part of the API, so they can always change.
@@ -58,8 +58,8 @@ func NewNWChemHandle() *NWChemHandle {
 //NWChemHandle methods
 
 //Sets the number of CPU to be used
-func (O *NWChemHandle) SetnCPU(cpu int) {
-	O.nCPU = cpu
+func (O *NWChemHandle) SetRestart(r bool) {
+	O.restart = r
 }
 
 func (O *NWChemHandle) SetName(name string) {
@@ -81,13 +81,7 @@ unix.*/
 func (O *NWChemHandle) SetDefaults() {
 	O.defmethod = "tpss"
 	O.defbasis = "def2-svp"
-//	O.defauxbasis = "def2-SVP/J"
-	O.command =  "nw"   //os.ExpandEnv("${ORCA_PATH}/orca")
-
-//	cpu := runtime.NumCPU()
-//	if cpu > 8 {
-//		O.nCPU = 8
-//	}
+	O.command =  "nw"
 
 }
 
@@ -107,7 +101,9 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 		Q.Method = O.defmethod
 		Q.RI = true
 	}
-
+	if O.inputname == "" {
+		O.inputname = "gochem"
+	}
 	//The initial guess
 	vectors:=fmt.Sprintf("output  %s.movecs",O.inputname)  //The initial guess
 	switch Q.Guess{
@@ -149,7 +145,7 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 	tightness:=""
 	switch  Q.SCFTightness {
 		case 1:
-			tightness:="convergence energy 1.000000E-08\n convergence density 5.000000E-09\n convergence gradient 1E-05"
+			tightness="convergence energy 1.000000E-08\n convergence density 5.000000E-09\n convergence gradient 1E-05"
 		case 2:
 			//NO idea if this will work, or the criteria will be stronger than the criteria for the intergral evaluation
 			//and thus the SCF will never converge. Delete when tested.
@@ -173,14 +169,14 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 	if len(Q.CConstraints)>0{
 		constraints="constraints\n fix atom"
 		for _,v:=range(Q.CConstraints){
-			constraints=fmt.Sprintf("%s %i",constraints,v+1) //goChem numbering starts from 0, apparently NWChem starts from 1, hence the v+1
+			constraints=fmt.Sprintf("%s %d",constraints,v+1) //goChem numbering starts from 0, apparently NWChem starts from 1, hence the v+1
 		}
 		constraints=constraints+"\nend"
 	}
 
 	cosmo := ""
 	if Q.Dielectric > 0 {
-		cosmo=fmt.Sprintf("cosmo\n dielec %s\nend")
+		cosmo=fmt.Sprintf("cosmo\n dielec %4.1f\nend",Q.Dielectric)
 	}
 	memory := ""
 	if Q.Memory != 0 {
@@ -196,9 +192,6 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 	//////////////////////////////////////////////////////////////
 	//Now lets write the thing. Ill process/write the basis later
 	//////////////////////////////////////////////////////////////
-	if O.inputname == "" {
-		O.inputname = "gochem"
-	}
 	file, err := os.Create(fmt.Sprintf("%s.nw", O.inputname))
 	if err != nil {
 		return err
@@ -208,13 +201,13 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 	if O.restart{
 		start="restart"
 	}
-	_, err = fmt.Fprint(file,"%s %s\n",start,O.inputname)
+	_, err = fmt.Fprintf(file,"%s %s\n",start,O.inputname)
 	//after this check its assumed that the file is ok.
 	if err != nil {
 		return err
 	}
 	fmt.Fprint(file, "echo\n") //echo input in the output.
-	fmt.Fprintf(file, "charge %d",atoms.Charge())
+	fmt.Fprintf(file, "charge %d\n",atoms.Charge())
 	if memory!=""{
 		fmt.Fprintf(file,"%s\n", memory) //the memory
 	}
@@ -244,11 +237,11 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 	fmt.Fprintf(file,"basis \"ao basis\"\n",)
 	for _,el:=range(elements){
 		if isInString(Q.HBElements,el) || strings.HasSuffix(el,"1"){
-			fmt.Fprintf(file,"% s library %s\n",el,decap(Q.HighBasis))
+			fmt.Fprintf(file," %-2s library %s\n",el,decap(Q.HighBasis))
 		}else if isInString(Q.LBElements,el) || strings.HasSuffix(el,"2"){
-			fmt.Fprintf(file,"% s library %s\n",el,decap(Q.LowBasis))
+			fmt.Fprintf(file," %-2s library %s\n",el,decap(Q.LowBasis))
 		}else{
-			fmt.Fprintf(file, "% s library %s\n",el,decap(Q.Basis))
+			fmt.Fprintf(file, " %-2s library %s\n",el,decap(Q.Basis))
 		}
 	}
 	fmt.Fprintf(file, "end\n")
@@ -258,7 +251,7 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 	//(about the last point, it appears that in Turbomole, the aux basis also go up to TZVPP).
 	//This comment is based on the H, Be and C basis.
 	if Q.RI{
-		fmt.Fprint(file,"basis \"cd basis\"\n * library \"Ahlrichs Coulomb Fitting\"\n ' end\n")
+		fmt.Fprint(file,"basis \"cd basis\"\n * library \"Ahlrichs Coulomb Fitting\"\nend\n")
 	}
 	//Now the geometry constraints. I kind of assume they are 
 	if constraints!=""{
@@ -277,32 +270,40 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 	fmt.Fprintf(file," %s\n",grid)
 	fmt.Fprintf(file, " %s\n",method)
 	if disp!=""{
-		fmt.Fprintf(file," disp %s",disp)
+		fmt.Fprintf(file," disp %s\n",disp)
 	}
-
+	fmt.Fprintf(file," mult %d\n",atoms.Multi())
+	fmt.Fprint(file,"end\n")
+	fmt.Fprintf(file,"task %s\n",task)
 
 
 	return nil
 }
+
+
+
+
+
+
 
 //Run runs the command given by the string O.command
 //it waits or not for the result depending on wait.
 //Not waiting for results works
 //only for unix-compatible systems, as it uses bash and nohup.
 func (O *NWChemHandle) Run(wait bool) (err error) {
-
 	if wait == true {
 		out, err := os.Create(fmt.Sprintf("%s.out", O.inputname))
 		if err != nil {
 			return err
 		}
 		defer out.Close()
-		command := exec.Command(O.command, fmt.Sprintf("%s.inp", O.inputname))
+		command := exec.Command(O.command, fmt.Sprintf("%s.nw", O.inputname))
 		command.Stdout = out
 		err = command.Run()
 
 	} else {
-		command := exec.Command("sh", "-c", "nohup "+O.command+fmt.Sprintf(" %s.inp > %s.out &", O.inputname, O.inputname))
+		//This will not work in windows.
+		command := exec.Command("sh", "-c", "nohup "+O.command+fmt.Sprintf(" %s.nw > %s.out &", O.inputname, O.inputname))
 		err = command.Start()
 	}
 	return err
@@ -334,69 +335,6 @@ func getOldMO(prevMO string) string {
 }
 
 
-
-
-
-
-
-
-
-
-
-//buildIConstraints transforms the list of cartesian constrains in the QMCalc structre
-//into a string with ORCA-formatted internal constraints.
-func (O *NWChemHandle) buildIConstraints(C []*IConstraint) (string, error) {
-	if C == nil {
-		return "\n", nil //no constraints
-	}
-	constraints := make([]string, len(C)+3)
-	constraints[0] = "%geom Constraints\n"
-	for key, val := range C {
-
-		if iConstraintOrder[val.Class] != len(val.CAtoms) {
-			return "", fmt.Errorf("Internal constraint ill-formated")
-		}
-
-		var temp string
-		if val.Class == 'B' {
-			temp = fmt.Sprintf("         {B %d %d %2.3f C}\n", val.CAtoms[0], val.CAtoms[1], val.Val)
-		} else if val.Class == 'A' {
-			temp = fmt.Sprintf("         {A %d %d %d %2.3f C}\n", val.CAtoms[0], val.CAtoms[1], val.CAtoms[2], val.Val)
-		} else if val.Class == 'D' {
-			temp = fmt.Sprintf("         {D %d %d %d %d %2.3f C}\n", val.CAtoms[0], val.CAtoms[1], val.CAtoms[2], val.CAtoms[3], val.Val)
-		}
-		constraints[key+1] = temp
-	}
-	last := len(constraints) - 1
-	constraints[last-1] = "         end\n"
-	constraints[last] = " end\n"
-	final := strings.Join(constraints, "")
-	return final, nil
-}
-
-var iConstraintOrder = map[byte]int{
-	'B': 2,
-	'A': 3,
-	'D': 4,
-}
-
-//buildCConstraints transforms the list of cartesian constrains in the QMCalc structre
-//into a string with ORCA-formatted cartesian constraints
-func (O *NWChemHandle) buildCConstraints(C []int) string {
-	if C == nil {
-		return "\n" //no constraints
-	}
-	constraints := make([]string, len(C)+3)
-	constraints[0] = "%geom Constraints\n"
-	for key, val := range C {
-		constraints[key+1] = fmt.Sprintf("         {C %d C}\n", val)
-	}
-	last := len(constraints) - 1
-	constraints[last-1] = "         end\n"
-	constraints[last] = " end\n"
-	final := strings.Join(constraints, "")
-	return final
-}
 
 
 
@@ -442,93 +380,26 @@ var nwchemMethods = map[string]string{
 
 
 
-/*Reads the latest geometry from an ORCA optimization. Returns the
-  geometry or error. Returns the geometry AND error if the geometry read
-  is not the product of a correctly ended ORCA calculation. In this case
-  the error is "probable problem in calculation"*/
+//Reads the latest geometry from an NWChem optimization. Returns the
+//geometry or error. Returns the geometry AND error if the geometry read
+//is not the product of a correctly ended NWChem calculation. In this case
+//the error is "probable problem in calculation"*/
 func (O *NWChemHandle) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error) {
-	var err error
-	geofile := fmt.Sprintf("%s.xyz", O.inputname)
-	//Here any error of orcaNormal... or false means the same, so the error can be ignored.
-	if trust := O.orcaNormalTermination(); !trust {
-		err = fmt.Errorf("Probable problem in calculation")
-	}
-	//This might not be super efficient but oh well.
-	mol, err1 := chem.XYZRead(geofile)
-	if err1 != nil {
-		return nil, err1
-	}
-	return mol.Coords[0], err //returns the coords, the error indicates whether the structure is trusty (normal calculation) or not
+	return nil, fmt.Errorf("not yet implemented")
 }
 
-//Gets the energy of a previous Orca calculations.
+//Gets the energy of a previous NWChem calculation.
 //Returns error if problem, and also if the energy returned that is product of an
-//abnormally-terminated ORCA calculation. (in this case error is "Probable problem
+//abnormally-terminated NWChem calculation. (in this case error is "Probable problem
 //in calculation")
 func (O *NWChemHandle) Energy() (float64, error) {
-	err := fmt.Errorf("Probable problem in calculation")
-	f, err1 := os.Open(fmt.Sprintf("%s.out", O.inputname))
-	if err1 != nil {
-		return 0, err1
-	}
-	defer f.Close()
-	f.Seek(-1, 2) //We start at the end of the file
-	energy := 0.0
-	var found bool
-	for i := 0; ; i++ {
-		line, err1 := getTailLine(f)
-		if err1 != nil {
-			return 0.0, err1
-		}
-		if strings.Contains(line, "**ORCA TERMINATED NORMALLY**") {
-			err = nil
-		}
-		if strings.Contains(line, "FINAL SINGLE POINT ENERGY") {
-			splitted := strings.Fields(line)
-			energy, err1 = strconv.ParseFloat(splitted[4], 64)
-			if err1 != nil {
-				return 0.0, err1
-			}
-			found = true
-			break
-		}
-	}
-	if !found {
-		return 0.0, fmt.Errorf("Output does not contain energy")
-	}
-	return energy * chem.H2Kcal, err
+	return 0, fmt.Errorf("Not yet implemented")
 }
 
-//Gets previous line of the file f
-func getTailLine(f *os.File) (line string, err error) {
-	var i int64 = 1
-	buf := make([]byte, 1)
-	var ini int64 = -1
-	for ; ; i++ {
-		//move the pointer back one byte per cycle
-		if _, err := f.Seek(-2, 1); err != nil {
-			return "", err
-		}
-		if _, err := f.Read(buf); err != nil {
-			return "", err
-		}
-		if buf[0] == byte('\n') && ini == -1 {
-			ini = i
-			break
-		}
-	}
-	bufF := make([]byte, ini)
-	f.Read(bufF)
 
-	if _, err := f.Seek(int64(-1*(len(bufF))), 1); err != nil { //making up for the read
-		return "", err
-	}
-	return string(bufF), nil
-}
-
-//This checks that an ORCA calculation has terminated normally
+//This checks that an NWChem calculation has terminated normally
 //I know this duplicates code, I wrote this one first and then the other one.
-func (O *NWChemHandle) orcaNormalTermination() bool {
+func (O *NWChemHandle) nwchemNormalTermination() bool {
 	var ini int64 = 0
 	var end int64 = 0
 	var first bool
