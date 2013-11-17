@@ -108,8 +108,8 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 		Q.RI = true
 	}
 
+	//The initial guess
 	vectors:=fmt.Sprintf("output  %s.movecs",O.inputname)  //The initial guess
-	
 	switch Q.Guess{
 		case "":
 		case "hcore":
@@ -126,20 +126,21 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 			if moname==""{
 				break
 			}
-			if Q.Guess==Q.Basis{
+			if strings.ToLower(Q.Guess)==strings.ToLower(Q.Basis){
 				//Useful if you only change functionals.
 				vectors=fmt.Sprintf("input %s %s",moname,vectors)
 			}else{
 				//This will NOT work if one assigns different basis sets to different atoms.
-				vectors=fmt.Sprintf("input project %s %s %s",Q.Guess,moname,vectors)
+				vectors=fmt.Sprintf("input project %s %s %s",strings.ToLower(Q.Guess),moname,vectors)
 			}
-		
 	}
+	vectors="vectors "+vectors
 
 	disp,ok := nwchemDisp[Q.Disperssion]
 	if !ok{
 		disp="vdw 3"
 	}
+
 	task := "dft energy"
 	if Q.Optimize == true {
 		task = "dft optimize"
@@ -148,11 +149,11 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 	tightness:=""
 	switch  Q.SCFTightness {
 		case 1:
-			tightness:="convergence energy 1.000000E-08\nconvergence density 5.000000E-09\nconvergence gradient 1E-05"
+			tightness:="convergence energy 1.000000E-08\n convergence density 5.000000E-09\n convergence gradient 1E-05"
 		case 2:
 			//NO idea if this will work, or the criteria will be stronger than the criteria for the intergral evaluation
 			//and thus the SCF will never converge. Delete when tested.
-			tightness="convergence energy 1.000000E-10\nconvergence density 5.000000E-11\nconvergence gradient 1E-07"
+			tightness="convergence energy 1.000000E-10\n convergence density 5.000000E-11\n convergence gradient 1E-07"
 	}
 
 	//Here I dont quite know what to do to help convergency, Ill just slightly extend the iteration tolerance. Sorry about that.
@@ -162,8 +163,9 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 	}
 	grid,ok:=nwchemGrid[Q.Grid]
 	if !ok{
-		grid="m"
+		grid="medium"
 	}
+	grid=fmt.Sprintf("grid %s",grid)
 	var err error
 
 	//Only cartesian constraints supported by now.
@@ -180,12 +182,16 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 	if Q.Dielectric > 0 {
 		cosmo=fmt.Sprintf("cosmo\n dielec %s\nend")
 	}
-	mem := ""
+	memory := ""
 	if Q.Memory != 0 {
-		mem = fmt.Sprintf("memory %d mb", Q.Memory)
+		memory = fmt.Sprintf("memory total %d mb", Q.Memory)
 	}
-
-
+	m:=strings.ToLower(Q.Method)
+	method,ok:=nwchemMethods[m]
+	if !ok{
+		method="xtpss03 ctpss03"
+	}
+	method=fmt.Sprintf("xc %s",method)
 
 	//////////////////////////////////////////////////////////////
 	//Now lets write the thing. Ill process/write the basis later
@@ -209,8 +215,9 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 	}
 	fmt.Fprint(file, "echo\n") //echo input in the output.
 	fmt.Fprintf(file, "charge %d",atoms.Charge())
-	fmt.Fprintf(file,"%s\n", mem) //the memory
-
+	if memory!=""{
+		fmt.Fprintf(file,"%s\n", memory) //the memory
+	}
 	//Now the geometry:
 	fmt.Fprint(file, "geometry units angstroms\n")
 	elements:=make([]string,0,5) //I will collect the different elements that are in the molecule using the same loop as the geometry.
@@ -230,25 +237,50 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 	}
 	fmt.Fprintf(file, "end\n")
 	//The basis. First the ao basis (required)
+	decap:=strings.ToLower //hoping to make the next for loop less ugly
+
+	basis:=make([]string,1,2)
+	basis[0]="\"ao basis\""
+	fmt.Fprintf(file,"basis \"ao basis\"\n",)
 	for _,el:=range(elements){
 		if isInString(Q.HBElements,el) || strings.HasSuffix(el,"1"){
-			fmt.Fprintf(file,"%s library %s",el,HighBasis)
+			fmt.Fprintf(file,"% s library %s\n",el,decap(Q.HighBasis))
 		}else if isInString(Q.LBElements,el) || strings.HasSuffix(el,"2"){
-			fmt.Fprintf(file,"%s library %s",el,LowBasis)
+			fmt.Fprintf(file,"% s library %s\n",el,decap(Q.LowBasis))
 		}else{
-			fmt.Fprintf(fie, "%s library %s",el,Basis)
+			fmt.Fprintf(file, "% s library %s\n",el,decap(Q.Basis))
 		}
 	}
-	fmt.Fprint(file, mem)
-	fmt.Fprint(file, constraints)
-	fmt.Fprint(file, iconstraints)
-	fmt.Fprint(file, ElementBasis)
-	fmt.Fprint(file, cosmo)
-	fmt.Fprint(file, "\n")
-	//Now the type of coords, charge and multiplicity
-	fmt.Fprintf(file, "* xyz %d %d\n", atoms.Charge(), atoms.Multi())
-	//now the coordinates
-	//	fmt.Println(atoms.Len(), coords.Rows()) ///////////////
+	fmt.Fprintf(file, "end\n")
+	//Only Ahlrichs basis are supported for RI. USE AHLRICHS BASIS, PERKELE! :-)
+	//The only Ahlrichs J basis in NWchem appear to be equivalent to def2-TZVPP/J (orca nomenclature). I supposed that they are still faster
+	//than not using RI if the main basis is SVP. One can also hope that they are good enough if the main basis is QZVPP or something.
+	//(about the last point, it appears that in Turbomole, the aux basis also go up to TZVPP).
+	//This comment is based on the H, Be and C basis.
+	if Q.RI{
+		fmt.Fprint(file,"basis \"cd basis\"\n * library \"Ahlrichs Coulomb Fitting\"\n ' end\n")
+	}
+	//Now the geometry constraints. I kind of assume they are 
+	if constraints!=""{
+		fmt.Fprintf(file,"%s\n",constraints)
+	}
+	if cosmo!=""{
+		fmt.Fprintf(file,"%s\n",cosmo)
+	}
+	//The DFT block
+	fmt.Fprint(file,"dft\n")
+	fmt.Fprintf(file," %s\n",vectors)
+	fmt.Fprintf(file," %s\n",scfiters)
+	if tightness!=""{
+		fmt.Fprintf(file," %s\n",tightness)
+	}
+	fmt.Fprintf(file," %s\n",grid)
+	fmt.Fprintf(file, " %s\n",method)
+	if disp!=""{
+		fmt.Fprintf(file," disp %s",disp)
+	}
+
+
 
 	return nil
 }
@@ -367,17 +399,6 @@ func (O *NWChemHandle) buildCConstraints(C []int) string {
 }
 
 
-var orcaSCFTight = map[int]string{
-	0: "",
-	1: "TightSCF",
-	2: "VeryTightSCF",
-}
-
-var orcaSCFConv = map[int]string{
-	0: "",
-	1: "SlowConv",
-	2: "VerySlowConv",
-}
 
 var nwchemDisp = map[string]string{
 	"nodisp": "",
