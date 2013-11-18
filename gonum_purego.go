@@ -169,12 +169,12 @@ func (E eigenpair) Len() int {
 	return len(E.evals)
 }
 
-//gnEigen wraps the matrix.DenseMatrix.Eigen() function in order to guarantee
+//EigenWrap wraps the matrix.DenseMatrix.Eigen() function in order to guarantee
 //That the eigenvectors and eigenvalues are sorted according to the eigenvalues
 //It also guarantees orthonormality and handness. I don't know how many of
 //these are already guaranteed by Eig(). Will delete the unneeded parts
 //And even this whole function when sure.
-func gnEigen(in *VecMatrix, epsilon float64) (*VecMatrix, []float64, error) {
+func EigenWrap(in *VecMatrix, epsilon float64) (*VecMatrix, []float64, error) {
 	var err error
 	if epsilon < 0 {
 		epsilon = appzero

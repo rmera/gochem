@@ -334,7 +334,7 @@ func BestPlane(coords *VecMatrix, mol ReadRef) (*VecMatrix, error) {
 	if err != nil {
 		return nil, err
 	}
-	evecs, _, err := gnEigen(moment, appzero)
+	evecs, _, err := EigenWrap(moment, appzero)
 	if err != nil {
 		return nil, err
 	}
