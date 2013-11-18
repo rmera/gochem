@@ -74,10 +74,9 @@ func (O *NWChemHandle) SetMOName(name string) {
 	O.previousMO = name
 }
 
-/*Sets defaults for ORCA calculation. Default is a single-point at
-revPBE/def2-SVP with RI, and all the available CPU with a max of
-8. The ORCA command is set to $ORCA_PATH/orca, at least in
-unix.*/
+//Sets defaults for NWChem calculation. Default is a single-point at
+//TPSS/def2-SVP with RI, and all the available CPU with a max of
+//unix.
 func (O *NWChemHandle) SetDefaults() {
 	O.defmethod = "tpss"
 	O.defbasis = "def2-svp"
@@ -85,7 +84,7 @@ func (O *NWChemHandle) SetDefaults() {
 
 }
 
-//BuildInput builds an input for ORCA based int the data in atoms, coords and C.
+//BuildInput builds an input for NWChem based int the data in atoms, coords and C.
 //returns only error.
 func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q *Calc) error {
 	//Only error so far

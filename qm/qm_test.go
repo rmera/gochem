@@ -269,10 +269,10 @@ func TestNWChem(Te *testing.T) {
 	calc.Basis = "def2-SVP"
 	calc.HighBasis = "def2-TZVP"
 	calc.Grid = 4
-//	calc.Memory = 500
+	calc.Memory = 500
 	calc.HBAtoms = []int{2}
 	calc.HBElements = []string{"O"}
-//	calc.CConstraints = []int{1}
+	calc.CConstraints = []int{1}
 	calc.SetDefaults()
 	nw := NewNWChemHandle()
 	atoms := chem.ZeroVecs(mol.Len())
