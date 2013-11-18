@@ -316,8 +316,10 @@ func (E eigenpair) Len() int {
 //That the eigenvectors and eigenvalues are sorted according to the eigenvalues
 //It also guarantees orthonormality and handness. I don't know how many of
 //these are already guaranteed by Eig(). Will delete the unneeded parts
-//And even this whole function when sure.
-func gnEigen(in *VecMatrix, epsilon float64) (*VecMatrix, []float64, error) {
+//And even this whole function when sure. The main reason for this function
+//Is the compatibiliy with go.matrix. This function should dissapear when we 
+//have a pure Go blas.
+func EigenWrap(in *VecMatrix, epsilon float64) (*VecMatrix, []float64, error) {
 	var err error
 	if epsilon < 0 {
 		epsilon = appzero
