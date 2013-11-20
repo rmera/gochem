@@ -264,12 +264,12 @@ func TestNWChem(Te *testing.T) {
 	calc := new(Calc)
 	calc.SCFTightness = 1 //quite tight
 	calc.Optimize = true
-	calc.Method = "BP86"
+	calc.Method = "TPSS"
 	calc.Dielectric = 4
 	calc.Basis = "def2-SVP"
 	calc.HighBasis = "def2-TZVP"
 	calc.Grid = 4
-	calc.Memory = 500
+	calc.Memory = 1000
 	calc.HBAtoms = []int{2}
 	calc.HBElements = []string{"O"}
 	calc.CConstraints = []int{1}
