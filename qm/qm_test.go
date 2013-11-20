@@ -244,3 +244,41 @@ func qderror_handler(err error, Te *testing.T) {
 		}
 	}
 }
+
+
+
+
+
+func TestNWChem(Te *testing.T) {
+	mol, err := chem.XYZRead("../test/ethanol.xyz")
+	fmt.Println(mol.Coords[0], len(mol.Coords), "Quiere quedar leyenda, compadre?", err)
+	if err != nil {
+		Te.Error(err)
+
+	}
+	if err := mol.Corrupted(); err != nil {
+		Te.Error(err)
+	}
+	mol.SetCharge(0)
+	mol.SetMulti(1)
+	calc := new(Calc)
+	calc.SCFTightness = 1 //quite tight
+	calc.Optimize = true
+	calc.Method = "TPSS"
+	calc.Dielectric = 4
+	calc.Basis = "def2-SVP"
+	calc.HighBasis = "def2-TZVP"
+	calc.Grid = 4
+	calc.Memory = 1000
+	calc.HBAtoms = []int{2}
+	calc.HBElements = []string{"O"}
+	calc.CConstraints = []int{1}
+	calc.SetDefaults()
+	nw := NewNWChemHandle()
+	atoms := chem.ZeroVecs(mol.Len())
+	mol.Next(atoms)
+	if err = os.Chdir("../test"); err != nil {
+		Te.Error(err)
+	}
+	_ = nw.BuildInput(atoms, mol, calc)
+}
