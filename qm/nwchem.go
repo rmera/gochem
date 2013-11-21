@@ -280,9 +280,9 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 	}
 
 	//task part
-	fmt.Fprintf(file,"%s",driver)
 	fmt.Fprintf(file," mult %d\n",atoms.Multi())
 	fmt.Fprint(file,"end\n")
+	fmt.Fprintf(file,"%s",driver)
 	fmt.Fprintf(file,"task %s\n",task)
 
 
