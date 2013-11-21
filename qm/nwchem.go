@@ -137,8 +137,10 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 	}
 
 	task := "dft energy"
+	driver:=""
 	if Q.Optimize == true {
 		task = "dft optimize"
+		driver=fmt.Sprintf("driver\n maxiter 100\n xyz %s\nend\n",O.inputname)
 	}
 
 	tightness:=""
@@ -276,6 +278,9 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 	if disp!=""{
 		fmt.Fprintf(file," disp %s\n",disp)
 	}
+
+	//task part
+	fmt.Fprintf(file,"%s",driver)
 	fmt.Fprintf(file," mult %d\n",atoms.Multi())
 	fmt.Fprint(file,"end\n")
 	fmt.Fprintf(file,"task %s\n",task)
@@ -368,6 +373,7 @@ var nwchemMethods = map[string]string{
 //	"PBE":    "pbe",
 //	"pbe":    "pbe",
 	"pbe0":   "pbe0",
+	"revpbe": "revpbe cpbe96",
 	"TPSS":   "xtpss03 ctpss03",
 	"tpss":   "xtpss03 ctpss03",
 	"TPSSh":  "xctpssh",
