@@ -156,7 +156,7 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 	//Here I dont quite know what to do to help convergency, Ill just slightly extend the iteration tolerance. Sorry about that.
 	scfiters:="iterations 30"
 	if Q.SCFConvHelp>0{
-		scfiters="iterations 50"
+		scfiters="iterations 60"
 	}
 	grid,ok:=nwchemGrid[Q.Grid]
 	if !ok{
@@ -177,7 +177,11 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 
 	cosmo := ""
 	if Q.Dielectric > 0 {
-		cosmo=fmt.Sprintf("cosmo\n dielec %4.1f\nend",Q.Dielectric)
+		if Q.Optimize{
+			cosmo=fmt.Sprintf("cosmo\n dielec %4.1f\n rsolv 1.3\n do_gasphase True\nend",Q.Dielectric)
+		}else{
+			cosmo=fmt.Sprintf("cosmo\n dielec %4.1f\n rsolv 1.3\n do_gasphase True\nend",Q.Dielectric)
+		}
 	}
 	memory := ""
 	if Q.Memory != 0 {
