@@ -26,6 +26,7 @@ package chem
 import "fmt"
 import "os"
 import "testing"
+
 //import "runtime"
 
 //TestMultiXYZ tests that multi-XYZ files are opened and read correctly.
@@ -190,7 +191,7 @@ func TestDelete(Te *testing.T) {
 }
 
 func TestWater(Te *testing.T) {
-//	runtime.GOMAXPROCS(2) ///////////////////////////
+	//	runtime.GOMAXPROCS(2) ///////////////////////////
 	mol, err := XYZRead("test/sample.xyz")
 	if err != nil {
 		Te.Error(err)

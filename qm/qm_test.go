@@ -245,10 +245,6 @@ func qderror_handler(err error, Te *testing.T) {
 	}
 }
 
-
-
-
-
 func TestNWChem(Te *testing.T) {
 	mol, err := chem.XYZRead("../test/ethanol.xyz")
 	fmt.Println(mol.Coords[0], len(mol.Coords), "Quiere quedar leyenda, compadre?", err)
