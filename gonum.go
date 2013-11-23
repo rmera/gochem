@@ -316,7 +316,7 @@ func (E eigenpair) Len() int {
 //It also guarantees orthonormality and handness. I don't know how many of
 //these are already guaranteed by Eig(). Will delete the unneeded parts
 //And even this whole function when sure. The main reason for this function
-//Is the compatibiliy with go.matrix. This function should dissapear when we 
+//Is the compatibiliy with go.matrix. This function should dissapear when we
 //have a pure Go blas.
 func EigenWrap(in *VecMatrix, epsilon float64) (*VecMatrix, []float64, error) {
 	var err error
@@ -352,7 +352,7 @@ func EigenWrap(in *VecMatrix, epsilon float64) (*VecMatrix, []float64, error) {
 		for j := i + 1; j < eigrows; j++ {
 			vectorj := eig.evecs.RowView(j)
 			if math.Abs(vectori.Dot(vectorj)) > epsilon && i != j {
-				fmt.Println("FAAAAILL", eig.evecs,i,j, math.Abs(vectori.Dot(vectorj)),vectori,vectorj)
+				fmt.Println("FAAAAILL", eig.evecs, i, j, math.Abs(vectori.Dot(vectorj)), vectori, vectorj)
 				return eig.evecs, evals[:], notOrthogonal
 			}
 		}
