@@ -140,7 +140,10 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 	driver:=""
 	if Q.Optimize == true {
 		task = "dft optimize"
-		driver=fmt.Sprintf("driver\n maxiter 100\n xyz %s\nend\n",O.inputname)
+		//First an optimization with very loose convergency and the standard trust radius.
+		driver=fmt.Sprintf("driver\n maxiter 200\n trust 0.3\n gmax 0.0500\n grms 0.0300\n xmax 0.1800\n xrms 0.1200\n xyz %s_prev\nend\ntask dft optimize",O.inputname)
+		//Then the final optimization with a small trust radius and a convergence a bit looser than the nwchem default, which is very tight.
+		driver=fmt.Sprintf("%s\ndriver\n maxiter 200\n trust 0.1\n gmax 0.003\n grms 0.0001\n xmax 0.004 \n xrms 0.002\n xyz %s\nend",driver,O.inputname)
 	}
 
 	tightness:=""
@@ -178,9 +181,9 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 	cosmo := ""
 	if Q.Dielectric > 0 {
 		if Q.Optimize{
-			cosmo=fmt.Sprintf("cosmo\n dielec %4.1f\n rsolv 1.3\n do_gasphase True\nend",Q.Dielectric)
+			cosmo=fmt.Sprintf("cosmo\n dielec %4.1f\n do_gasphase True\nend",Q.Dielectric)
 		}else{
-			cosmo=fmt.Sprintf("cosmo\n dielec %4.1f\n rsolv 1.3\n do_gasphase True\nend",Q.Dielectric)
+			cosmo=fmt.Sprintf("cosmo\n dielec %4.1f\n do_gasphase True\nend",Q.Dielectric)
 		}
 	}
 	memory := ""
