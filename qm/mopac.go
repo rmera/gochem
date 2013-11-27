@@ -222,7 +222,7 @@ func (O *MopacHandle) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error)
 	}
 	defer file.Close()
 	out := bufio.NewReader(file)
-	err = fmt.Errorf("Mopac Energy not found in %s", O.inputname)
+	err = fmt.Errorf("Mopac Geometries not found in %s", O.inputname)
 	//some variables that will be changed/increased during the next for loop
 	final_point := false //to see if we got to the right part of the file
 	reading := false     //start reading
@@ -241,7 +241,8 @@ func (O *MopacHandle) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error)
 			continue
 		}
 
-		if !reading && (strings.Contains(line, "FINAL  POINT  AND  DERIVATIVES") || strings.Contains(line, "GEOMETRY OPTIMISED")) {
+		//MOPAC output is a pleasure to parse. IF YOU ARE A F*** PERKELEN CTM MASOCHIST!!!!!!!!!!!!!!!!!!!
+		if !reading && (strings.Contains(line, "FINAL  POINT  AND  DERIVATIVES") || strings.Contains(line, "GEOMETRY OPTIMISED")) || strings.Contains(line,"GRADIENTS WERE INITIALLY ACCEPTABLY SMALL") {
 			final_point = true
 			continue
 		}
