@@ -121,7 +121,7 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 	vectors := fmt.Sprintf("output  %s.movecs", O.inputname) //The initial guess
 	switch Q.Guess {
 	case "":
-	case "hcore":
+	case "hcore": //This option is not a great idea, apparently.
 		vectors = fmt.Sprintf("input hcore %s", vectors)
 	default:
 		if !Q.OldMO {
@@ -271,7 +271,7 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 
 	basis := make([]string, 1, 2)
 	basis[0] = "\"ao basis\""
-	fmt.Fprintf(file, "basis \"ao basis\"\n")
+	fmt.Fprintf(file, "basis \"ao basis\" spherical\n") //According to the manual this fails with COSMO. The calculations dont crash. Need to compare energies and geometries with Turbomole in order to be sure.
 	for _, el := range elements {
 		if isInString(Q.HBElements, el) || strings.HasSuffix(el, "1") {
 			fmt.Fprintf(file, " %-2s library %s\n", el, decap(Q.HighBasis))
@@ -407,7 +407,7 @@ var nwchemMethods = map[string]string{
 //Reads the latest geometry from an NWChem optimization. Returns the
 //geometry or error. Returns the geometry AND error if the geometry read
 //is not the product of a correctly ended NWChem calculation. In this case
-//the error is "probable problem in calculation"*/
+//the error is "probable problem in calculation".
 func (O *NWChemHandle) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error) {
 	return nil, fmt.Errorf("not yet implemented")
 }
