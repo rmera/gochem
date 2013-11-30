@@ -167,17 +167,13 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 	if Q.SCFConvHelp > 0 {
 		scfiters = "iterations 200"
 		if  Q.Guess==""{
-			prevscf="\nbasis\"ao basis\"\n * 3-21g\nend\nscf\n maxiter 200\n vectors output hf.movecs\nend\ntask scf energy\n\n"
+			prevscf="\nbasis\"ao basis\"\n * library 3-21g\nend\nscf\n maxiter 200\n vectors output hf.movecs\nend\ntask scf energy\n\n"
 			vectors=fmt.Sprintf("vectors input hf.movecs output %s.movecs",O.inputname)
 		}
 	}
 	grid, ok := nwchemGrid[Q.Grid]
 	if !ok {
 		grid = "medium"
-	}
-	grid,ok:=nwchemGrid[Q.Grid]
-	if !ok{
-		grid="medium"
 	}
 	grid = fmt.Sprintf("grid %s", grid)
 	var err error
@@ -410,12 +406,8 @@ var nwchemGrid = map[int]string{
 
 
 var nwchemMethods = map[string]string{
-//	"HF":     "hf",
-//	"hf":     "hf",
 	"b3lyp":  "b3lyp",
 	"b3-lyp": "b3lyp",
-//	"PBE":    "pbe",
-//	"pbe":    "pbe",
 	"pbe0":   "pbe0",
 	"revpbe": "revpbe cpbe96",
 	"TPSS":   "xtpss03 ctpss03",
