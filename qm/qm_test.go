@@ -259,6 +259,7 @@ func TestNWChem(Te *testing.T) {
 	mol.SetMulti(1)
 	calc := new(Calc)
 	calc.SCFTightness = 1 //quite tight
+	calc.SCFConvHelp=1
 	calc.Optimize = true
 	calc.Method = "TPSS"
 	calc.Dielectric = 4

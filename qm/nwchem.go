@@ -159,10 +159,17 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 		tightness = "convergence energy 1.000000E-10\n convergence density 5.000000E-11\n convergence gradient 1E-07"
 	}
 
-	//Here I dont quite know what to do to help convergency, Ill just slightly extend the iteration tolerance. Sorry about that.
+	//For  now, the only convergence help I trust is to run a little HF calculation before and use the orbitals as a guess.
+	//It works quite nicely. When the NWChem people get their shit together and fix the bugs with cgmin and RI and cgmin and 
+	//COSMO, cgmin will be a great option also. 
 	scfiters := "iterations 60"
+	prevscf:=""
 	if Q.SCFConvHelp > 0 {
 		scfiters = "iterations 200"
+		if  Q.Guess==""{
+			prevscf="\nbasis\"ao basis\"\n * 3-21g\nend\nscf\n maxiter 200\n vectors output hf.movecs\nend\ntask scf energy\n\n"
+			vectors=fmt.Sprintf("vectors input hf.movecs output %s.movecs",O.inputname)
+		}
 	}
 	grid, ok := nwchemGrid[Q.Grid]
 	if !ok {
@@ -266,9 +273,9 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 		}
 	}
 	fmt.Fprintf(file, "end\n")
+	fmt.Fprintf(file,prevscf) //The preeliminar SCF if exists.
 	//The basis. First the ao basis (required)
 	decap := strings.ToLower //hoping to make the next for loop less ugly
-
 	basis := make([]string, 1, 2)
 	basis[0] = "\"ao basis\""
 	fmt.Fprintf(file, "basis \"ao basis\" spherical\n") //According to the manual this fails with COSMO. The calculations dont crash. Need to compare energies and geometries with Turbomole in order to be sure.
@@ -387,17 +394,11 @@ var nwchemGrid = map[int]string{
 }
 
 var nwchemMethods = map[string]string{
-	//	"HF":     "hf",
-	//	"hf":     "hf",
 	"b3lyp":  "b3lyp",
 	"b3-lyp": "b3lyp",
-	//	"PBE":    "pbe",
-	//	"pbe":    "pbe",
 	"pbe0":   "pbe0",
 	"revpbe": "revpbe cpbe96",
-	"TPSS":   "xtpss03 ctpss03",
 	"tpss":   "xtpss03 ctpss03",
-	"TPSSh":  "xctpssh",
 	"tpssh":  "xctpssh",
 	"bp86":   "becke88 perdew86",
 	"b-p":    "becke88 perdew86",
