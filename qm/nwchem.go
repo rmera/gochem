@@ -44,6 +44,7 @@ type NWChemHandle struct {
 	defauxbasis string
 	previousMO  string
 	restart     bool
+	smartCosmo  bool
 	command     string
 	inputname   string
 	nCPU        int
@@ -70,9 +71,21 @@ func (O *NWChemHandle) SetCommand(name string) {
 	O.command = name
 }
 
+//Sets the name of a file containing orbitals which will be used as a guess for this calculations
 func (O *NWChemHandle) SetMOName(name string) {
 	O.previousMO = name
 }
+
+//For an optimization, first calculate an SCF with do_gasphase True and use THAT density guess 
+//for the first optimization step. The optimization is done with do_gasphase False.
+//for a SP, smartCosmo simply means do_gasphase False.
+//Notice that SmartCosmo is not reallty too smart, for optimizations. In my tests, it doesn't really
+//make things better. I keep it for further testing, and may never make it to the master branch.
+//My tests indicate that just using do_gasphase False is good enough for optimizations.
+func(O *NWChemHandle) SetSmartCosmo(set bool){
+	O.smartCosmo=set
+}
+
 
 //Sets defaults for NWChem calculation. Default is a single-point at
 //TPSS/def2-SVP with RI, and all the available CPU with a max of
@@ -81,6 +94,7 @@ func (O *NWChemHandle) SetDefaults() {
 	O.defmethod = "tpss"
 	O.defbasis = "def2-svp"
 	O.command = "nwchem"
+	O.smartCosmo=false
 
 }
 
@@ -107,7 +121,7 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 	vectors := fmt.Sprintf("output  %s.movecs", O.inputname) //The initial guess
 	switch Q.Guess {
 	case "":
-	case "hcore":
+	case "hcore": //This option is not a great idea, apparently.
 		vectors = fmt.Sprintf("input hcore %s", vectors)
 	default:
 		if !Q.OldMO {
@@ -135,32 +149,35 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 	if !ok {
 		disp = "vdw 3"
 	}
-
-	task := "dft energy"
-	driver := ""
-	if Q.Optimize == true {
-		task = "dft optimize"
-		driver = fmt.Sprintf("driver\n maxiter 100\n xyz %s\nend\n", O.inputname)
-	}
-
 	tightness := ""
 	switch Q.SCFTightness {
 	case 1:
 		tightness = "convergence energy 1.000000E-08\n convergence density 5.000000E-09\n convergence gradient 1E-05"
 	case 2:
 		//NO idea if this will work, or the criteria will be stronger than the criteria for the intergral evaluation
-		//and thus the SCF will never converge. Delete when tested.
+		//and thus the SCF will never converge. Delete when properly tested.
 		tightness = "convergence energy 1.000000E-10\n convergence density 5.000000E-11\n convergence gradient 1E-07"
 	}
 
-	//Here I dont quite know what to do to help convergency, Ill just slightly extend the iteration tolerance. Sorry about that.
-	scfiters := "iterations 30"
+	//For  now, the only convergence help I trust is to run a little HF calculation before and use the orbitals as a guess.
+	//It works quite nicely. When the NWChem people get their shit together and fix the bugs with cgmin and RI and cgmin and 
+	//COSMO, cgmin will be a great option also. 
+	scfiters := "iterations 60"
+	prevscf:=""
 	if Q.SCFConvHelp > 0 {
-		scfiters = "iterations 50"
+		scfiters = "iterations 200"
+		if  Q.Guess==""{
+			prevscf="\nbasis\"ao basis\"\n * 3-21g\nend\nscf\n maxiter 200\n vectors output hf.movecs\nend\ntask scf energy\n\n"
+			vectors=fmt.Sprintf("vectors input hf.movecs output %s.movecs",O.inputname)
+		}
 	}
 	grid, ok := nwchemGrid[Q.Grid]
 	if !ok {
 		grid = "medium"
+	}
+	grid,ok:=nwchemGrid[Q.Grid]
+	if !ok{
+		grid="medium"
 	}
 	grid = fmt.Sprintf("grid %s", grid)
 	var err error
@@ -177,7 +194,12 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 
 	cosmo := ""
 	if Q.Dielectric > 0 {
-		cosmo = fmt.Sprintf("cosmo\n dielec %4.1f\nend", Q.Dielectric)
+		//SmartCosmo in a single-point means that do_gasphase False is used, nothing fancy.
+		if Q.Optimize || O.smartCosmo{
+			cosmo = fmt.Sprintf("cosmo\n dielec %4.1f\n do_gasphase False\nend", Q.Dielectric)
+		} else {
+			cosmo = fmt.Sprintf("cosmo\n dielec %4.1f\n do_gasphase True\nend", Q.Dielectric)
+		}
 	}
 	memory := ""
 	if Q.Memory != 0 {
@@ -189,6 +211,26 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 		method = "xtpss03 ctpss03"
 	}
 	method = fmt.Sprintf("xc %s", method)
+
+	task := "dft energy"
+	driver := ""
+	preopt:=""
+	if Q.Optimize == true {
+		if Q.Dielectric>0 && O.smartCosmo{
+			//If COSMO is used, and O.SmartCosmo is enabled, we start the optimization with a rather loose SCF (the default). 
+			//and use that denisty as a starting point for the next calculation. The idea is to 
+			//avoid the gas phase calculation in COSMO.
+			//This procedure doesn't seem to help at all, and just using do_gasphase False appears to be good enough in my tests.
+			preopt=fmt.Sprintf("cosmo\n dielec %4.1f\n do_gasphase True\nend\n", Q.Dielectric)
+			preopt=fmt.Sprintf("%sdft\n iterations 100\n %s\n %s\n print low\nend\ntask dft energy\n",preopt,vectors,method)
+			vectors = fmt.Sprintf("vectors input %s.movecs output  %s.movecs", O.inputname,O.inputname) //We must modify the initial guess so we use the vectors we have just generated
+		}
+		task = "dft optimize"
+		//First an optimization with very loose convergency and the standard trust radius.
+		driver = fmt.Sprintf("driver\n maxiter 200\n trust 0.3\n gmax 0.0500\n grms 0.0300\n xmax 0.1800\n xrms 0.1200\n xyz %s_prev\nend\ntask dft optimize", O.inputname)
+		//Then the final optimization with a small trust radius and a convergence a bit looser than the nwchem default, which is very tight.
+		driver = fmt.Sprintf("%s\ndriver\n maxiter 200\n trust 0.1\n gmax 0.003\n grms 0.0001\n xmax 0.004 \n xrms 0.002\n xyz %s\nend\n", driver, O.inputname)
+	}
 
 	//////////////////////////////////////////////////////////////
 	//Now lets write the thing. Ill process/write the basis later
@@ -235,12 +277,12 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 		}
 	}
 	fmt.Fprintf(file, "end\n")
+	fmt.Fprintf(file,prevscf) //The preeliminar SCF if exists.
 	//The basis. First the ao basis (required)
 	decap := strings.ToLower //hoping to make the next for loop less ugly
-
 	basis := make([]string, 1, 2)
 	basis[0] = "\"ao basis\""
-	fmt.Fprintf(file, "basis \"ao basis\"\n")
+	fmt.Fprintf(file, "basis \"ao basis\" spherical\n") //According to the manual this fails with COSMO. The calculations dont crash. Need to compare energies and geometries with Turbomole in order to be sure.
 	for _, el := range elements {
 		if isInString(Q.HBElements, el) || strings.HasSuffix(el, "1") {
 			fmt.Fprintf(file, " %-2s library %s\n", el, decap(Q.HighBasis))
@@ -263,6 +305,7 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 	if constraints != "" {
 		fmt.Fprintf(file, "%s\n", constraints)
 	}
+	fmt.Fprintf(file,preopt)
 	if cosmo != "" {
 		fmt.Fprintf(file, "%s\n", cosmo)
 	}
@@ -278,7 +321,9 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 	if disp != "" {
 		fmt.Fprintf(file, " disp %s\n", disp)
 	}
-
+	if Q.Optimize {
+		fmt.Fprintf(file, " print convergence information parameters\n")
+	}
 	//task part
 	fmt.Fprintf(file, " mult %d\n", atoms.Multi())
 	fmt.Fprint(file, "end\n")
@@ -287,6 +332,12 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 
 	return nil
 }
+
+
+
+
+
+
 
 //Run runs the command given by the string O.command
 //it waits or not for the result depending on wait.
@@ -310,6 +361,7 @@ func (O *NWChemHandle) Run(wait bool) (err error) {
 	}
 	return err
 }
+
 
 func getOldMO(prevMO string) string {
 	dir, _ := os.Open("./")     //This should always work, hence ignoring the error
@@ -335,6 +387,10 @@ func getOldMO(prevMO string) string {
 	}
 }
 
+
+
+
+
 var nwchemDisp = map[string]string{
 	"nodisp": "",
 	"D2":     "vdw 2",
@@ -352,13 +408,14 @@ var nwchemGrid = map[int]string{
 	5: "xfine",
 }
 
+
 var nwchemMethods = map[string]string{
-	//	"HF":     "hf",
-	//	"hf":     "hf",
+//	"HF":     "hf",
+//	"hf":     "hf",
 	"b3lyp":  "b3lyp",
 	"b3-lyp": "b3lyp",
-	//	"PBE":    "pbe",
-	//	"pbe":    "pbe",
+//	"PBE":    "pbe",
+//	"pbe":    "pbe",
 	"pbe0":   "pbe0",
 	"revpbe": "revpbe cpbe96",
 	"TPSS":   "xtpss03 ctpss03",
@@ -370,10 +427,15 @@ var nwchemMethods = map[string]string{
 	"blyp":   "becke88 lyp",
 }
 
+
+
+
+
+
 //Reads the latest geometry from an NWChem optimization. Returns the
 //geometry or error. Returns the geometry AND error if the geometry read
 //is not the product of a correctly ended NWChem calculation. In this case
-//the error is "probable problem in calculation"*/
+//the error is "probable problem in calculation".
 func (O *NWChemHandle) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error) {
 	return nil, fmt.Errorf("not yet implemented")
 }
@@ -385,6 +447,7 @@ func (O *NWChemHandle) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error
 func (O *NWChemHandle) Energy() (float64, error) {
 	return 0, fmt.Errorf("Not yet implemented")
 }
+
 
 //This checks that an NWChem calculation has terminated normally
 //I know this duplicates code, I wrote this one first and then the other one.
