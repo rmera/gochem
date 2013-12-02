@@ -167,7 +167,7 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 	if Q.SCFConvHelp > 0 {
 		scfiters = "iterations 200"
 		if  Q.Guess==""{
-			prevscf="\nbasis\"ao basis\"\n * library 3-21g\nend\nscf\n maxiter 200\n vectors output hf.movecs\nend\ntask scf energy\n\n"
+			prevscf="\nbasis \"ao basis\"\n * library 3-21g\nend\nscf\n maxiter 200\n vectors output hf.movecs\nend\ntask scf energy\n\n"
 			vectors=fmt.Sprintf("vectors input hf.movecs output %s.movecs",O.inputname)
 		}
 	}
@@ -409,6 +409,7 @@ var nwchemMethods = map[string]string{
 	"b3lyp":  "b3lyp",
 	"b3-lyp": "b3lyp",
 	"pbe0":   "pbe0",
+	"mpw1b95": "mpw1b95",
 	"revpbe": "revpbe cpbe96",
 	"TPSS":   "xtpss03 ctpss03",
 	"tpss":   "xtpss03 ctpss03",
