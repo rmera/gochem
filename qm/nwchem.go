@@ -409,6 +409,7 @@ var nwchemMethods = map[string]string{
 	"b3lyp":  "b3lyp",
 	"b3-lyp": "b3lyp",
 	"pbe0":   "pbe0",
+	"mpw1b95": "mpw1b95",
 	"revpbe": "revpbe cpbe96",
 	"TPSS":   "xtpss03 ctpss03",
 	"tpss":   "xtpss03 ctpss03",
