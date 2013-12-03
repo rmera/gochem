@@ -272,10 +272,12 @@ func TestNWChem(Te *testing.T) {
 	calc.CConstraints = []int{1}
 	calc.SetDefaults()
 	nw := NewNWChemHandle()
+	orca:=NewOrcaHandle()
 	atoms := chem.ZeroVecs(mol.Len())
 	mol.Next(atoms)
 	if err = os.Chdir("../test"); err != nil {
 		Te.Error(err)
 	}
 	_ = nw.BuildInput(atoms, mol, calc)
+	_ = orca.BuildInput(atoms, mol, calc)
 }
