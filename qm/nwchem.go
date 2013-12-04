@@ -152,7 +152,7 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 	tightness := ""
 	switch Q.SCFTightness {
 	case 1:
-		tightness = "convergence energy 1.000000E-08\n convergence density 5.000000E-09\n convergence gradient 1E-05"
+		tightness = "convergence energy 5.000000E-08\n convergence density 5.000000E-09\n convergence gradient 1E-05"
 	case 2:
 		//NO idea if this will work, or the criteria will be stronger than the criteria for the intergral evaluation
 		//and thus the SCF will never converge. Delete when properly tested.
@@ -167,13 +167,16 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 	if Q.SCFConvHelp > 0 {
 		scfiters = "iterations 200"
 		if  Q.Guess==""{
-			prevscf=fmt.Sprintf("\nbasis \"ao basis\"\n * library 3-21g\nend\nscf\n maxiter 200\n vectors output hf.movecs\n %s\nend\ntask scf energy\n\n",strings.ToLower(mopacMultiplicity[atoms.Multi()]))
-			vectors=fmt.Sprintf("vectors input hf.movecs output %s.movecs",O.inputname)
+			prevscf=fmt.Sprintf("\nbasis \"3-21g\"\n * library 3-21g\nend\nset \"ao basis\" 3-21g\nscf\n maxiter 200\n vectors output hf.movecs\n %s\nend\ntask scf energy\n\n",strings.ToLower(mopacMultiplicity[atoms.Multi()]))
+			vectors=fmt.Sprintf("vectors input project \"3-21g\" hf.movecs output %s.movecs",O.inputname)
 		}
 	}
 	grid, ok := nwchemGrid[Q.Grid]
 	if !ok {
 		grid = "medium"
+	}
+	if Q.SCFTightness>0{  //We need this if we want the SCF to converge.
+		grid = "xfine"
 	}
 	grid = fmt.Sprintf("grid %s", grid)
 	var err error
@@ -212,6 +215,10 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 	driver := ""
 	preopt:=""
 	if Q.Optimize == true {
+		eprec:=""  //The available presition is set to default except if tighter SCF convergene criteria are being used.
+		if Q.SCFTightness>0{
+			eprec=" eprec 1E-7\n"
+		}
 		if Q.Dielectric>0 && O.smartCosmo{
 			//If COSMO is used, and O.SmartCosmo is enabled, we start the optimization with a rather loose SCF (the default). 
 			//and use that denisty as a starting point for the next calculation. The idea is to 
@@ -221,11 +228,15 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 			preopt=fmt.Sprintf("%sdft\n iterations 100\n %s\n %s\n print low\nend\ntask dft energy\n",preopt,vectors,method)
 			vectors = fmt.Sprintf("vectors input %s.movecs output  %s.movecs", O.inputname,O.inputname) //We must modify the initial guess so we use the vectors we have just generated
 		}
+		//The NWCHem optimizer is horrible. To try to get something out of it we use this 3-step optimization scheme where we try to compensate for the lack of
+		//variable trust radius in nwchem. 
 		task = "dft optimize"
 		//First an optimization with very loose convergency and the standard trust radius.
-		driver = fmt.Sprintf("driver\n maxiter 200\n trust 0.3\n gmax 0.0500\n grms 0.0300\n xmax 0.1800\n xrms 0.1200\n xyz %s_prev\nend\ntask dft optimize", O.inputname)
+		driver = fmt.Sprintf("driver\n maxiter 200\n%s trust 0.3\n gmax 0.0500\n grms 0.0300\n xmax 0.1800\n xrms 0.1200\n xyz %s_prev\nend\ntask dft optimize", eprec,O.inputname)
+		//Then a second optimization with a looser convergency and a 0.1 trust radius
+		driver = fmt.Sprintf("%s\ndriver\n maxiter 200\n%s trust 0.1\n gmax 0.009\n grms 0.001\n xmax 0.04 \n xrms 0.02\n xyz %s_prev2\nend\ntask dft optimize", driver, eprec,O.inputname)
 		//Then the final optimization with a small trust radius and a convergence a bit looser than the nwchem default, which is very tight.
-		driver = fmt.Sprintf("%s\ndriver\n maxiter 200\n trust 0.1\n gmax 0.003\n grms 0.0001\n xmax 0.004 \n xrms 0.002\n xyz %s\nend\n", driver, O.inputname)
+		driver = fmt.Sprintf("%s\ndriver\n maxiter 200\n%s trust 0.05\n gmax 0.003\n grms 0.0001\n xmax 0.004 \n xrms 0.002\n xyz %s\nend\n", driver, eprec,O.inputname)
 	}
 
 	//////////////////////////////////////////////////////////////
@@ -256,7 +267,7 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 	if len(Q.CConstraints) > 0 {
 		autoz = "noautoz"
 	}
-	fmt.Fprintf(file, "geometry units angstroms %s\n", autoz)
+	fmt.Fprintf(file, "geometry units angstroms noautosym %s\n", autoz)
 	elements := make([]string, 0, 5) //I will collect the different elements that are in the molecule using the same loop as the geometry.
 	for i := 0; i < atoms.Len(); i++ {
 		symbol := atoms.Atom(i).Symbol
@@ -278,7 +289,7 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 	decap := strings.ToLower //hoping to make the next for loop less ugly
 	basis := make([]string, 1, 2)
 	basis[0] = "\"ao basis\""
-	fmt.Fprintf(file, "basis \"ao basis\" spherical\n") //According to the manual this fails with COSMO. The calculations dont crash. Need to compare energies and geometries with Turbomole in order to be sure.
+	fmt.Fprintf(file, "basis \"large\" spherical\n") //According to the manual this fails with COSMO. The calculations dont crash. Need to compare energies and geometries with Turbomole in order to be sure.
 	for _, el := range elements {
 		if isInString(Q.HBElements, el) || strings.HasSuffix(el, "1") {
 			fmt.Fprintf(file, " %-2s library %s\n", el, decap(Q.HighBasis))
@@ -289,6 +300,7 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 		}
 	}
 	fmt.Fprintf(file, "end\n")
+	fmt.Fprintf(file, "set \"ao basis\" large\n")
 	//Only Ahlrichs basis are supported for RI. USE AHLRICHS BASIS, PERKELE! :-)
 	//The only Ahlrichs J basis in NWchem appear to be equivalent to def2-TZVPP/J (orca nomenclature). I suppose that they are still faster
 	//than not using RI if the main basis is SVP. One can also hope that they are good enough if the main basis is QZVPP or something.
@@ -318,7 +330,7 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 		fmt.Fprintf(file, " disp %s\n", disp)
 	}
 	if Q.Optimize {
-		fmt.Fprintf(file, " print convergence information parameters\n")
+		fmt.Fprintf(file, " print convergence\n")
 	}
 	//task part
 	fmt.Fprintf(file, " mult %d\n", atoms.Multi())
