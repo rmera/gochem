@@ -236,7 +236,8 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 		//Then a second optimization with a looser convergency and a 0.1 trust radius
 		driver = fmt.Sprintf("%s\ndriver\n maxiter 200\n%s trust 0.1\n gmax 0.009\n grms 0.001\n xmax 0.04 \n xrms 0.02\n xyz %s_prev2\nend\ntask dft optimize", driver, eprec,O.inputname)
 		//Then the final optimization with a small trust radius and a convergence a bit looser than the nwchem default, which is very tight.
-		driver = fmt.Sprintf("%s\ndriver\n maxiter 200\n%s trust 0.05\n gmax 0.003\n grms 0.0001\n xmax 0.004 \n xrms 0.002\n xyz %s\nend\n", driver, eprec,O.inputname)
+		driver = fmt.Sprintf("%s\ndriver\n maxiter 200\n%s trust 0.05\n xyz %s\nend\n", driver, eprec,O.inputname)
+		//Old criteria: gmax 0.003\n grms 0.0001\n xmax 0.004 \n xrms 0.002\n
 	}
 
 	//////////////////////////////////////////////////////////////
