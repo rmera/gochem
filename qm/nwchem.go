@@ -471,7 +471,7 @@ func (O *NWChemHandle) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error
 		if err!=nil{
 			continue
 		}
-		if ndx>lastnumber{
+		if ndx>=lastnumber{
 			lastnumber=ndx
 			lastname=v
 		}
