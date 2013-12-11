@@ -34,6 +34,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"strconv"
 )
 
 //Note that the default methods and basis vary with each program, and even
@@ -235,9 +236,9 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 		driver = fmt.Sprintf("driver\n maxiter 200\n%s trust 0.3\n gmax 0.0500\n grms 0.0300\n xmax 0.1800\n xrms 0.1200\n xyz %s_prev\nend\ntask dft optimize", eprec,O.inputname)
 		//Then a second optimization with a looser convergency and a 0.1 trust radius
 		driver = fmt.Sprintf("%s\ndriver\n maxiter 200\n%s trust 0.1\n gmax 0.009\n grms 0.001\n xmax 0.04 \n xrms 0.02\n xyz %s_prev2\nend\ntask dft optimize", driver, eprec,O.inputname)
-		//Then the final optimization with a small trust radius and a convergence a bit looser than the nwchem default, which is very tight.
+		//Then the final optimization with a small trust radius and the NWChem default convergence criteria.
 		driver = fmt.Sprintf("%s\ndriver\n maxiter 200\n%s trust 0.05\n xyz %s\nend\n", driver, eprec,O.inputname)
-		//Old criteria: gmax 0.003\n grms 0.0001\n xmax 0.004 \n xrms 0.002\n
+		//Old criteria (ORCA): gmax 0.003\n grms 0.0001\n xmax 0.004 \n xrms 0.002\n
 	}
 
 	//////////////////////////////////////////////////////////////
@@ -443,7 +444,43 @@ var nwchemMethods = map[string]string{
 //is not the product of a correctly ended NWChem calculation. In this case
 //the error is "probable problem in calculation".
 func (O *NWChemHandle) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error) {
-	return nil, fmt.Errorf("not yet implemented")
+	lastnumber:=0
+	lastname:=""
+	if !O.nwchemNormalTermination(){
+		return nil, fmt.Errorf("Probable problem in calculation")
+	}
+	dir,err:=os.Open("./")
+	if err!=nil{
+		return nil, err
+	}
+	files,err:=dir.Readdirnames(-1)
+	if err!=nil{
+		return nil, err
+	}
+	//This is a crappy sort/filter, but really, it will never be the bottleneck.
+	//We go over the dir content and look for xyz files with the name of the input and without
+	// the susbstring _prev. Among these, we choose the file with the largest number in the filename
+	//(which will be the latest geometry written) and return that geometry.
+	for _,v:=range(files){
+		//quite ugly, feel free to fix.
+		if !(strings.Contains(v,O.inputname) && strings.Contains(v,".xyz") && !strings.Contains(v,"_prev")){
+			continue
+		}
+		numbers:=strings.Split(strings.Replace(v,".xyz","",1),"-")
+		ndx, err:=strconv.Atoi(numbers[len(numbers)-1])
+		if err!=nil{
+			continue
+		}
+		if ndx>lastnumber{
+			lastnumber=ndx
+			lastname=v
+		}
+	}
+	if lastname==""{
+		return nil, fmt.Errorf("Geometry not found")
+	}
+	mol,err:=chem.XYZRead(lastname)
+	return mol.Coords[0], err
 }
 
 //Gets the energy of a previous NWChem calculation.
@@ -451,8 +488,39 @@ func (O *NWChemHandle) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error
 //abnormally-terminated NWChem calculation. (in this case error is "Probable problem
 //in calculation")
 func (O *NWChemHandle) Energy() (float64, error) {
-	return 0, fmt.Errorf("Not yet implemented")
+	err := fmt.Errorf("Probable problem in calculation")
+	f, err1 := os.Open(fmt.Sprintf("%s.out", O.inputname))
+	if err1 != nil {
+		return 0, err1
+	}
+	defer f.Close()
+	f.Seek(-1, 2) //We start at the end of the file
+	energy := 0.0
+	var found bool
+	for i := 0; ; i++ {
+		line, err1 := getTailLine(f)
+		if err1 != nil {
+			return 0.0, err1
+		}
+		if strings.Contains(line, "CITATION") {
+			err = nil
+		}
+		if strings.Contains(line, "Total DFT energy") {
+			splitted := strings.Fields(line)
+			energy, err1 = strconv.ParseFloat(splitted[len(splitted)-1], 64)
+			if err1 != nil {
+				return 0.0, err1
+			}
+			found = true
+			break
+		}
+	}
+	if !found {
+		return 0.0, fmt.Errorf("Output does not contain energy")
+	}
+	return energy * chem.H2Kcal, err
 }
+
 
 
 //This checks that an NWChem calculation has terminated normally
@@ -488,7 +556,7 @@ func (O *NWChemHandle) nwchemNormalTermination() bool {
 	f.Seek(-1*ini, 2)
 	bufF := make([]byte, ini-end)
 	f.Read(bufF)
-	if strings.Contains(string(bufF), "**ORCA TERMINATED NORMALLY**") {
+	if strings.Contains(string(bufF), "CITATION") {
 		return true
 	}
 	return false
