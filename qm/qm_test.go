@@ -259,7 +259,7 @@ func TestNWChem(Te *testing.T) {
 	mol.SetMulti(1)
 	calc := new(Calc)
 	calc.SCFTightness = 1 //quite tight
-	calc.SCFConvHelp=1
+	calc.SCFConvHelp = 1
 	calc.Optimize = true
 	calc.Method = "TPSS"
 	calc.Dielectric = 4
@@ -272,7 +272,7 @@ func TestNWChem(Te *testing.T) {
 	calc.CConstraints = []int{1}
 	calc.SetDefaults()
 	nw := NewNWChemHandle()
-	orca:=NewOrcaHandle()
+	orca := NewOrcaHandle()
 	atoms := chem.ZeroVecs(mol.Len())
 	mol.Next(atoms)
 	if err = os.Chdir("../test"); err != nil {
