@@ -275,5 +275,13 @@ func TestSuper(Te *testing.T) {
 	}
 	newname := "test/2c9v_super.pdb"
 	PDBWrite(newname, mol1.Coords[0], mol1, nil)
+	//Now for a full molecule
+	ptest, _ := XYZRead("test/Rotated.xyz")
+	ptempla, _ := XYZRead("test/sample_plane.xyz")
+	newp, err := Super(ptest.Coords[0], ptempla.Coords[0], nil, nil)
+	if err != nil {
+		panic(err.Error())
+	}
+	XYZWrite("test/SuperPlane.xyz", newp, ptest)
 
 }
