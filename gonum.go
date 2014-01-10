@@ -73,8 +73,8 @@ func NewVecs(data []float64) (*VecMatrix, error) {
 	if l%cols != 0 {
 		return nil, fmt.Errorf("Input slice lenght %d not divisible by %d: %d", rows, cols, rows%cols)
 	}
-	r, err := mat64.NewDense(rows, cols, data)
-	return &VecMatrix{r}, err
+	r:= mat64.NewDense(rows, cols, data)
+	return &VecMatrix{r}, nil
 }
 
 //Puts a view of the given col of the matrix on the receiver
@@ -250,15 +250,19 @@ type chemDense struct {
 	*mat64.Dense
 }
 
+//Some of the following function have an err return type in the signature, but they always return a nil error. This is 
+//Because of a change in gonum/matrix. The NewDense function used to return error and now panics.
+//I do not think it is worth to fix these functions.
+
 func newchemDense(data []float64, r, c int) (*chemDense, error) {
-	d, err := mat64.NewDense(r, c, data)
-	return &chemDense{d}, err
+	d := mat64.NewDense(r, c, data)
+	return &chemDense{d}, nil
 }
 
 //Returns and empty, but not nil, Dense. It barely allocates memory
 func emptyDense() (*mat64.Dense, error) {
 	a := make([]float64, 0, 0)
-	return mat64.NewDense(0, 0, a)
+	return mat64.NewDense(0, 0, a), nil
 
 }
 
@@ -266,7 +270,7 @@ func emptyDense() (*mat64.Dense, error) {
 //It is to be substituted by the Gonum function.
 func gnZeros(r, c int) *chemDense {
 	f := make([]float64, r*c, r*c)
-	ret, _ := mat64.NewDense(r, c, f)
+	ret  := mat64.NewDense(r, c, f)
 	return &chemDense{ret}
 
 }
