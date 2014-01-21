@@ -426,10 +426,11 @@ var nwchemMethods = map[string]string{
 //is not the product of a correctly ended NWChem calculation. In this case
 //the error is "probable problem in calculation".
 func (O *NWChemHandle) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error) {
+	var err2 error
 	lastnumber := 0
 	lastname := ""
 	if !O.nwchemNormalTermination() {
-		return nil, fmt.Errorf("Probable problem in calculation")
+		err2=fmt.Errorf("Probable problem in calculation")
 	}
 	dir, err := os.Open("./")
 	if err != nil {
@@ -462,7 +463,10 @@ func (O *NWChemHandle) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error
 		return nil, fmt.Errorf("Geometry not found")
 	}
 	mol, err := chem.XYZRead(lastname)
-	return mol.Coords[0], err
+	if err!=nil{
+		return nil, err
+	}
+	return mol.Coords[0], err2
 }
 
 //Gets the energy of a previous NWChem calculation.
