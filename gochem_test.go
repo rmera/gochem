@@ -235,6 +235,7 @@ func TesstFixPDB(Te *testing.T) {
 	PDBWrite("test/2c9vfixed.pdb", mol.Coords[0], mol, nil)
 }
 
+//will fail if reduce is not installed!
 func TestReduce(Te *testing.T) {
 	mol, err := PDBRead("test/2c9v.pdb", true)
 	if err != nil {
@@ -250,6 +251,7 @@ func TestReduce(Te *testing.T) {
 	}
 	PDBWrite("test/2c9vHReduce.pdb", mol2.Coords[0], mol2, nil)
 }
+
 
 func TestSuper(Te *testing.T) {
 	backbone := []string{"C", "CA", "N"}        //The PDB name of the atoms in the backbone.

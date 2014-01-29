@@ -1,4 +1,4 @@
-// +build !purego
+// +build gonum
 
 /*
  * gonum.go, part of gochem.
@@ -80,17 +80,15 @@ func NewVecs(data []float64) (*VecMatrix, error) {
 //Puts a view of the given col of the matrix on the receiver
 func (F *VecMatrix) ColView(i int) *VecMatrix {
 	r := new(mat64.Dense)
-	*r = *F.Dense
 	Fr, _ := F.Dims()
-	r.View(0, i, Fr, 1)
+	r.View(F.Dense,0, i, Fr, 1)
 	return &VecMatrix{r}
 }
 
 //Returns view of the given vector of the matrix in the receiver
 func (F *VecMatrix) VecView(i int) *VecMatrix {
 	r := new(mat64.Dense)
-	*r = *F.Dense
-	r.View(i, 0, 1, 3)
+	r.View(F.Dense,i, 0, 1, 3)
 	return &VecMatrix{r}
 }
 
@@ -101,15 +99,14 @@ func (F *VecMatrix) VecView(i int) *VecMatrix {
 //memory allocation happens, only a couple of ints and pointers.
 func (F *VecMatrix) View(i, j, r, c int) *VecMatrix {
 	ret := new(mat64.Dense)
-	*ret = *F.Dense
-	ret.View(i, j, r, c)
+	ret.View(F.Dense,i, j, r, c)
 	return &VecMatrix{ret}
 }
 
 //Puts the matrix A in the received starting from the ith row and jth col
 //of the receiver.
 func (F *VecMatrix) SetMatrix(i, j int, A *VecMatrix) {
-	b := F.BlasMatrix()
+	b := F.RawMatrix()
 	ar, ac := A.Dims()
 	fc := 3
 	if ar+i > F.NVecs() || ac+j > fc {
@@ -222,7 +219,7 @@ func (F *VecMatrix) Mul(A, B Matrix) {
 
 //puts A stacked over B in F
 func (F *VecMatrix) Stack(A, B *VecMatrix) {
-	f := F.BlasMatrix()
+	f := F.RawMatrix()
 	ar, _ := A.Dims()
 	br, _ := B.Dims()
 	if F.NVecs() < ar+br {
