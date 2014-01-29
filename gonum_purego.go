@@ -1,4 +1,4 @@
-// +build purego
+// +build !gonum
 
 /*
  * gonum_go.go, part of gochem.
