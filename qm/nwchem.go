@@ -510,38 +510,23 @@ func (O *NWChemHandle) Energy() (float64, error) {
 //This checks that an NWChem calculation has terminated normally
 //I know this duplicates code, I wrote this one first and then the other one.
 func (O *NWChemHandle) nwchemNormalTermination() bool {
-	var ini int64 = 0
-	var end int64 = 0
-	var first bool
-	buf := make([]byte, 1)
-	f, err := os.Open(fmt.Sprintf("%s.out", O.inputname))
-	if err != nil {
+	ret:=false
+	f, err1 := os.Open(fmt.Sprintf("%s.out", O.inputname))
+	if err1 != nil {
 		return false
 	}
 	defer f.Close()
-	var i int64 = 1
-	for ; ; i++ {
-		if _, err := f.Seek(-1*i, 2); err != nil {
+	f.Seek(-1, 2) //We start at the end of the file
+	for i := 0; ; i++ {
+		line, err1 := getTailLine(f)
+		if err1 != nil {
 			return false
 		}
-		if _, err := f.Read(buf); err != nil {
-			return false
-		}
-		if buf[0] == byte('\n') && first == false {
-			first = true
-		} else if buf[0] == byte('\n') && end == 0 {
-			end = i
-		} else if buf[0] == byte('\n') && ini == 0 {
-			ini = i
+		if strings.Contains(line, "CITATION") {
+			ret=true
 			break
 		}
-
 	}
-	f.Seek(-1*ini, 2)
-	bufF := make([]byte, ini-end)
-	f.Read(bufF)
-	if strings.Contains(string(bufF), "CITATION") {
-		return true
-	}
-	return false
+	return ret
 }
+

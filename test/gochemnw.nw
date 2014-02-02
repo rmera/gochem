@@ -1,0 +1,85 @@
+start gochemnw
+echo
+charge 0
+memory total 1000 mb
+geometry units angstroms noautosym noautoz
+ H      1.627  -0.038   0.846 
+ C      1.011  -0.045  -0.063 
+ H1     1.325   0.803  -0.685 
+ H      1.250  -0.961  -0.619 
+ C     -0.462   0.031   0.295 
+ H     -0.758  -0.826   0.932 
+ H     -0.682   0.954   0.867 
+ O     -1.198   0.018  -0.907 
+ H     -2.113   0.065  -0.665 
+end
+
+basis "3-21g"
+ * library 3-21g
+end
+set "ao basis" 3-21g
+scf
+ maxiter 200
+ vectors output hf.movecs
+ singlet
+end
+task scf energy
+
+basis "large" spherical
+ H  library def2-svp
+ C  library def2-svp
+ H1 library def2-tzvp
+ O  library def2-tzvp
+end
+set "ao basis" large
+basis "cd basis"
+ * library "Ahlrichs Coulomb Fitting"
+end
+constraints
+ fix atom 2
+end
+cosmo
+ dielec  4.0
+ do_gasphase False
+end
+dft
+ vectors input project "3-21g" hf.movecs output gochemnw.movecs
+ iterations 200
+ convergence energy 5.000000E-08
+ convergence density 5.000000E-09
+ convergence gradient 1E-05
+ grid xfine
+ xc xtpss03 ctpss03
+ disp vdw 3
+ print convergence
+ mult 1
+end
+driver
+ maxiter 200
+ eprec 1E-7
+ trust 0.3
+ gmax 0.0500
+ grms 0.0300
+ xmax 0.1800
+ xrms 0.1200
+ xyz gochemnw_prev
+end
+task dft optimize
+driver
+ maxiter 200
+ eprec 1E-7
+ trust 0.1
+ gmax 0.009
+ grms 0.001
+ xmax 0.04 
+ xrms 0.02
+ xyz gochemnw_prev2
+end
+task dft optimize
+driver
+ maxiter 200
+ eprec 1E-7
+ trust 0.05
+ xyz gochemnw
+end
+task dft optimize

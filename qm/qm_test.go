@@ -250,7 +250,6 @@ func TestNWChem(Te *testing.T) {
 	fmt.Println(mol.Coords[0], len(mol.Coords), "Quiere quedar leyenda, compadre?", err)
 	if err != nil {
 		Te.Error(err)
-
 	}
 	if err := mol.Corrupted(); err != nil {
 		Te.Error(err)
@@ -273,6 +272,7 @@ func TestNWChem(Te *testing.T) {
 	calc.SetDefaults()
 	nw := NewNWChemHandle()
 	orca := NewOrcaHandle()
+	nw.SetName("gochemnw")
 	atoms := chem.ZeroVecs(mol.Len())
 	mol.Next(atoms)
 	if err = os.Chdir("../test"); err != nil {
@@ -280,4 +280,18 @@ func TestNWChem(Te *testing.T) {
 	}
 	_ = nw.BuildInput(atoms, mol, calc)
 	_ = orca.BuildInput(atoms, mol, calc)
+	//The files are already in ./test.
+	os.Chdir("../test")
+	defer os.Chdir("../qm")
+	energy,err:=nw.Energy()
+	if err!=nil{
+		Te.Error(err)
+	}
+	fmt.Println("NWChem Energy: ", energy)
+	newg,err:=nw.OptimizedGeometry(mol)
+	if err!=nil{
+		Te.Error(err)
+	}
+	chem.XYZWrite("optiNW.xyz",newg,mol)
+
 }
