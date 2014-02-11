@@ -252,7 +252,6 @@ func TestReduce(Te *testing.T) {
 	PDBWrite("test/2c9vHReduce.pdb", mol2.Coords[0], mol2, nil)
 }
 
-
 func TestSuper(Te *testing.T) {
 	backbone := []string{"C", "CA", "N"}        //The PDB name of the atoms in the backbone.
 	mol1, err := PDBRead("test/2c9v.pdb", true) //true means that we try to read the symbol from the PDB file.

@@ -283,15 +283,15 @@ func TestNWChem(Te *testing.T) {
 	//The files are already in ./test.
 	os.Chdir("../test")
 	defer os.Chdir("../qm")
-	energy,err:=nw.Energy()
-	if err!=nil{
+	energy, err := nw.Energy()
+	if err != nil {
 		Te.Error(err)
 	}
 	fmt.Println("NWChem Energy: ", energy)
-	newg,err:=nw.OptimizedGeometry(mol)
-	if err!=nil{
+	newg, err := nw.OptimizedGeometry(mol)
+	if err != nil {
 		Te.Error(err)
 	}
-	chem.XYZWrite("optiNW.xyz",newg,mol)
+	chem.XYZWrite("optiNW.xyz", newg, mol)
 
 }

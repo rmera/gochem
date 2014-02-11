@@ -321,7 +321,7 @@ func pdbBufIORead(pdb *bufio.Reader, read_additional bool) (*Molecule, error) {
 
 //correctBfactors check that coords and bfactors have the same number of elements.
 func correctBfactors(coords []*VecMatrix, bfactors [][]float64) bool {
-	if len(coords) != len(bfactors) || bfactors==nil{
+	if len(coords) != len(bfactors) || bfactors == nil {
 		return false
 	}
 	for key, coord := range coords {
@@ -435,7 +435,7 @@ func MultiPDBWrite(pdbname string, Coords []*VecMatrix, mol Atomer, Bfactors [][
 		if err != nil {
 			return err
 		}
-		outstring=strings.Replace(outstring, "END\n", "ENDMDL\n", 1)
+		outstring = strings.Replace(outstring, "END\n", "ENDMDL\n", 1)
 		fmt.Fprintf(out, outstring) //here it could be needed to check for the error
 	}
 

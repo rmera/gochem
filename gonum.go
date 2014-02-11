@@ -73,7 +73,7 @@ func NewVecs(data []float64) (*VecMatrix, error) {
 	if l%cols != 0 {
 		return nil, fmt.Errorf("Input slice lenght %d not divisible by %d: %d", rows, cols, rows%cols)
 	}
-	r:= mat64.NewDense(rows, cols, data)
+	r := mat64.NewDense(rows, cols, data)
 	return &VecMatrix{r}, nil
 }
 
@@ -81,14 +81,14 @@ func NewVecs(data []float64) (*VecMatrix, error) {
 func (F *VecMatrix) ColView(i int) *VecMatrix {
 	r := new(mat64.Dense)
 	Fr, _ := F.Dims()
-	r.View(F.Dense,0, i, Fr, 1)
+	r.View(F.Dense, 0, i, Fr, 1)
 	return &VecMatrix{r}
 }
 
 //Returns view of the given vector of the matrix in the receiver
 func (F *VecMatrix) VecView(i int) *VecMatrix {
 	r := new(mat64.Dense)
-	r.View(F.Dense,i, 0, 1, 3)
+	r.View(F.Dense, i, 0, 1, 3)
 	return &VecMatrix{r}
 }
 
@@ -99,7 +99,7 @@ func (F *VecMatrix) VecView(i int) *VecMatrix {
 //memory allocation happens, only a couple of ints and pointers.
 func (F *VecMatrix) View(i, j, r, c int) *VecMatrix {
 	ret := new(mat64.Dense)
-	ret.View(F.Dense,i, j, r, c)
+	ret.View(F.Dense, i, j, r, c)
 	return &VecMatrix{ret}
 }
 
@@ -247,7 +247,7 @@ type chemDense struct {
 	*mat64.Dense
 }
 
-//Some of the following function have an err return type in the signature, but they always return a nil error. This is 
+//Some of the following function have an err return type in the signature, but they always return a nil error. This is
 //Because of a change in gonum/matrix. The NewDense function used to return error and now panics.
 //I do not think it is worth to fix these functions.
 
@@ -267,7 +267,7 @@ func emptyDense() (*mat64.Dense, error) {
 //It is to be substituted by the Gonum function.
 func gnZeros(r, c int) *chemDense {
 	f := make([]float64, r*c, r*c)
-	ret  := mat64.NewDense(r, c, f)
+	ret := mat64.NewDense(r, c, f)
 	return &chemDense{ret}
 
 }

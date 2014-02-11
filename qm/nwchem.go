@@ -430,7 +430,7 @@ func (O *NWChemHandle) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error
 	lastnumber := 0
 	lastname := ""
 	if !O.nwchemNormalTermination() {
-		err2=fmt.Errorf("Probable problem in calculation")
+		err2 = fmt.Errorf("Probable problem in calculation")
 	}
 	dir, err := os.Open("./")
 	if err != nil {
@@ -463,7 +463,7 @@ func (O *NWChemHandle) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error
 		return nil, fmt.Errorf("Geometry not found")
 	}
 	mol, err := chem.XYZRead(lastname)
-	if err!=nil{
+	if err != nil {
 		return nil, err
 	}
 	return mol.Coords[0], err2
@@ -510,7 +510,7 @@ func (O *NWChemHandle) Energy() (float64, error) {
 //This checks that an NWChem calculation has terminated normally
 //I know this duplicates code, I wrote this one first and then the other one.
 func (O *NWChemHandle) nwchemNormalTermination() bool {
-	ret:=false
+	ret := false
 	f, err1 := os.Open(fmt.Sprintf("%s.out", O.inputname))
 	if err1 != nil {
 		return false
@@ -523,10 +523,9 @@ func (O *NWChemHandle) nwchemNormalTermination() bool {
 			return false
 		}
 		if strings.Contains(line, "CITATION") {
-			ret=true
+			ret = true
 			break
 		}
 	}
 	return ret
 }
-
