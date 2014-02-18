@@ -242,7 +242,7 @@ func (O *MopacHandle) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error)
 		}
 
 		//MOPAC output is a pleasure to parse. IF YOU ARE A F*** PERKELEN CTM MASOCHIST!!!!!!!!!!!!!!!!!!!
-		if !reading && (strings.Contains(line, "FINAL  POINT  AND  DERIVATIVES") || strings.Contains(line, "GEOMETRY OPTIMISED")) || strings.Contains(line,"GRADIENTS WERE INITIALLY ACCEPTABLY SMALL") {
+		if !reading && (strings.Contains(line, "FINAL  POINT  AND  DERIVATIVES") || strings.Contains(line, "GEOMETRY OPTIMISED")) || strings.Contains(line, "GRADIENTS WERE INITIALLY ACCEPTABLY SMALL") {
 			final_point = true
 			continue
 		}

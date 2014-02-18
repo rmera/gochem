@@ -87,9 +87,6 @@ func (O *OrcaHandle) SetDefaults() {
 		O.command = "./orca"
 	}
 	cpu := runtime.NumCPU()
-	if cpu > 8 {
-		O.nCPU = 8
-	}
 	O.nCPU = cpu
 
 }
@@ -241,7 +238,7 @@ func (O *OrcaHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q *C
 	}
 	//Now lets write the thing
 	if O.inputname == "" {
-		O.inputname = "Gochem"
+		O.inputname = "gochem"
 	}
 	file, err := os.Create(fmt.Sprintf("%s.inp", O.inputname))
 	if err != nil {

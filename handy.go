@@ -57,24 +57,31 @@ func OnesMass(lenght int) *VecMatrix {
 //Super determines the best rotation and translations to superimpose the coords in test
 //listed in testlst on te atoms of molecule templa, frame frametempla, listed in templalst.
 //It applies those rotation and translations to the whole frame frametest of molecule test, in palce.
-//testlst and templalst must have the same number of elements.
+//testlst and templalst must have the same number of elements. If any of the two slices, or both, are
+//nil or have a zero lenght, they will be replaced by a list containing the number of all atoms in the
+//corresponding molecule.
 func Super(test, templa *VecMatrix, testlst, templalst []int) (*VecMatrix, error) {
 	//_, testcols := test.Dims()
 	//_, templacols := templa.Dims()
-	if len(testlst) != len(templalst) {
-		return nil, fmt.Errorf("testlst and templalst must have the same lenght. testlst: %d, templalst %d", len(testlst), len(templalst))
+	structs := []*VecMatrix{test, templa}
+	lists := [][]int{testlst, templalst}
+	//In case one or both lists are nil or have lenght zero.
+	for k, v := range lists {
+		if v == nil || len(v) == 0 {
+			lists[k] = make([]int, structs[k].NVecs(), structs[k].NVecs())
+			for k2, _ := range lists[k] {
+				lists[k][k2] = k2
+			}
+		}
 	}
-	ctest := ZeroVecs(len(testlst))
-	if len(testlst) != 0 {
-		ctest.SomeVecs(test, testlst)
+	fmt.Println(lists[0])
+	if len(lists[0]) != len(lists[1]) {
+		return nil, fmt.Errorf("Mismatched template and test atom numbers: %d, %d", len(lists[1]), len(lists[0]))
 	}
-	ctempla := ZeroVecs(len(templalst))
-	if len(templalst) != 0 {
-		ctempla.SomeVecs(templa, templalst)
-	}
-	if len(templalst) != len(testlst) {
-		return nil, fmt.Errorf("Mismatched template and test atom numbers: %d, %d", len(templalst), len(testlst))
-	}
+	ctest := ZeroVecs(len(lists[0]))
+	ctest.SomeVecs(test, lists[0])
+	ctempla := ZeroVecs(len(lists[1]))
+	ctempla.SomeVecs(templa, lists[1])
 	_, rotation, trans1, trans2, err1 := RotatorTranslatorToSuper(ctest, ctempla)
 	if err1 != nil {
 		return nil, err1

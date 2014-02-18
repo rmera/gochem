@@ -27,6 +27,8 @@ import "fmt"
 import "os"
 import "testing"
 
+//import "runtime"
+
 //TestMultiXYZ tests that multi-XYZ files are opened and read correctly.
 func TestXYZIO(Te *testing.T) {
 	mol, err := XYZRead("test/sample.xyz")
@@ -56,6 +58,7 @@ func TestPDBIO(Te *testing.T) {
 //aligned with the Z axis. The new molecule is written
 //as 2c9v_aligned.pdb to the test folder.
 func TestChangeAxis(Te *testing.T) {
+	//runtime.GOMAXPROCS(2) ///////////////////////////
 	mol, err := PDBRead("test/2c9v.pdb", true)
 	if err != nil {
 		Te.Error(err)
@@ -188,6 +191,7 @@ func TestDelete(Te *testing.T) {
 }
 
 func TestWater(Te *testing.T) {
+	//	runtime.GOMAXPROCS(2) ///////////////////////////
 	mol, err := XYZRead("test/sample.xyz")
 	if err != nil {
 		Te.Error(err)
@@ -248,7 +252,6 @@ func TestReduce(Te *testing.T) {
 	PDBWrite("test/2c9vHReduce.pdb", mol2.Coords[0], mol2, nil)
 }
 
-
 func TestSuper(Te *testing.T) {
 	backbone := []string{"C", "CA", "N"}        //The PDB name of the atoms in the backbone.
 	mol1, err := PDBRead("test/2c9v.pdb", true) //true means that we try to read the symbol from the PDB file.
@@ -273,5 +276,13 @@ func TestSuper(Te *testing.T) {
 	}
 	newname := "test/2c9v_super.pdb"
 	PDBWrite(newname, mol1.Coords[0], mol1, nil)
+	//Now for a full molecule
+	ptest, _ := XYZRead("test/Rotated.xyz")
+	ptempla, _ := XYZRead("test/sample_plane.xyz")
+	newp, err := Super(ptest.Coords[0], ptempla.Coords[0], nil, nil)
+	if err != nil {
+		panic(err.Error())
+	}
+	XYZWrite("test/SuperPlane.xyz", newp, ptest)
 
 }
