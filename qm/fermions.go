@@ -32,8 +32,8 @@ import (
 	"fmt"
 	"github.com/rmera/gochem"
 	"os"
-	"os/exec"
-	"strconv"
+//	"os/exec"
+//	"strconv"
 	"strings"
 )
 
@@ -121,19 +121,6 @@ func (O *FermionsHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, 
 	grid = fmt.Sprintf("GRID_RAD_TYPE %s", grid)
 	var err error
 
-	//Only cartesian constraints supported by now.
-	constraints := ""
-	//constraints dont seem to be supported in fermions++
-	if len(Q.CConstraints) > 0 {
-	}
-
-	cosmo := ""
-	if Q.Dielectric > 0 {
-	}
-	memory := ""
-	if Q.Memory != 0 {
-
-	}
 	m := strings.ToLower(Q.Method)
 	method, ok := nwchemMethods[m]
 	if !ok {
@@ -146,10 +133,15 @@ func (O *FermionsHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, 
 	if Q.Optimize == true {
 		task="DLF_OPTIMIZE"
 		dloptions=fmt.Sprintf("start::dlfind\nJOB std\nmethod l-bfgs\ntrust_radius simple\ndcd %s.dcd\nmaxcycle 200\ncoord_type cartesian\n*end\n",O.inputname)
-		eprec := "" //The available presition is set to default except if tighter SCF convergene criteria are being used.
-		if Q.SCFTightness > 0 {
-			eprec = " eprec 1E-7\n"
+		//Only cartesian constraints supported by now.
+		if len(Q.CConstraints) > 0 {
+			dloptions=fmt.Sprintf("%s *start::dlconstraints\n",dloptions)
+			for _,v:=range(Q.CConstraints){
+				dloptions=fmt.Sprintf("%s cart %d\n",dloptions,v+1) //fortran numbering, starts with 1.
+			}
+			dloptions=fmt.Sprintf("%s *end\n",dloptions)
 		}
+	}
 	cosmo := ""
 	if Q.Dielectric > 0 {
 		cosmo = fmt.Sprintf("start::solvate\n pcm_model cpcm\n epsilon %f\n*end\n", Q.Dielectric)
@@ -158,15 +150,12 @@ func (O *FermionsHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, 
 	//////////////////////////////////////////////////////////////
 	//Now lets write the thing.
 	//////////////////////////////////////////////////////////////
-	file, err := os.Create(fmt.Sprintf("%s.nw", O.inputname))
+	file, err := os.Create(fmt.Sprintf("%s.in", O.inputname))
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 	start := "start"
-	if O.restart {
-		start = "restart"
-	}
 	//Start with the geometry part (coords, charge and multiplicity)
 	fmt.Fprintf(file,"*start::geo\n")
 	fmt.Fprintf(file, "%d %d\n", atoms.Charge(), atoms.Multi())
@@ -186,12 +175,6 @@ func (O *FermionsHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, 
 	fmt.Fprintf(file,"start::solvent\n")
 	fmt.Fprintf(file,"%s\n",cosmo)
 	fmt.Fprintf(file,"%s\n",dloptions)
-
-	//Now the geometry constraints. I kind of assume they are
-	if constraints != "" {
-		fmt.Fprintf(file, "%s\n", constraints)
-	}
-
 	return nil
 }
 
