@@ -193,46 +193,36 @@ func TesstTurbo(Te *testing.T) {
 	fmt.Println("end TurboTest!")
 }
 
-func TestChemShell(Te *testing.T) {
-	mol, err := chem.XYZRead("../test/sample.xyz")
+func TestFermions(Te *testing.T) {
+	mol, err := chem.XYZRead("../test/ethanol.xyz")
 	if err != nil {
 		Te.Error(err)
 	}
 	if err := mol.Corrupted(); err != nil {
 		Te.Error(err)
 	}
-	mol.Del(mol.Len() - 1)
-	mol.SetCharge(1)
+	mol.SetCharge(0)
 	mol.SetMulti(1)
 	calc := new(Calc)
 	calc.Optimize = true
 	calc.Method = "BLYP"
 	calc.Dielectric = 4
 	calc.Basis = "def2-SVP"
-	calc.Grid = 4 //not supported yet, coming sun
+	calc.Grid = 4
 	calc.Disperssion = "D3"
 	calc.CConstraints = []int{0, 10, 20}
-	cs := NewCSHandle()
+	cs := NewFermionsHandle()
+	cs.SetName("gochemF")
 	atoms := mol.Coords[0]
 	original_dir, _ := os.Getwd() //will check in a few lines
 	if err = os.Chdir("../test"); err != nil {
 		Te.Error(err)
 	}
 	err = cs.BuildInput(atoms, mol, calc)
-	qderror_handler(err, Te)
-	//now with a PDB
-	cs.SetCoordFormat("pdb")
-	cs.SetName("gochem_pdb")
-	err = cs.BuildInput(atoms, mol, calc)
-	qderror_handler(err, Te)
-	cs.SetName("gochem_sp")
-	calc.Optimize = false
-	err = cs.BuildInput(atoms, mol, calc)
-	qderror_handler(err, Te)
 	if err = os.Chdir(original_dir); err != nil {
 		Te.Error(err)
 	}
-	fmt.Println("end ChemShell test!")
+	fmt.Println("end FermiONs++ test!")
 }
 
 func qderror_handler(err error, Te *testing.T) {

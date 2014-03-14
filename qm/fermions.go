@@ -49,6 +49,7 @@ type FermionsHandle struct {
 	command     string
 	inputname   string
 	nCPU        int
+	gpu         string
 }
 
 func NewFermionsHandle() *FermionsHandle {
@@ -59,6 +60,16 @@ func NewFermionsHandle() *FermionsHandle {
 
 //FermionsHandle methods
 
+
+//Sets GPU usage. Alternatives are "cuda" or "opencl" (alias "ocl"). Anything else is ignored. GPU is off by default.
+func (O *FermionsHandle) SetGPU(rawname string){
+	name:=strings.ToLower(rawname)
+	if name=="cuda"{
+		O.gpu="USE_CUDA YES\nCUDA_LINALG_MIN 500"
+	}else if name=="opencl" || name=="ocl"{
+		O.gpu="USE_OCL YES\nOCL_LINALG_MIN 500" //OpenCL is only for SCF energies!!!!!
+	}
+}
 
 func (O *FermionsHandle) SetName(name string) {
 	O.inputname = name
@@ -75,6 +86,8 @@ func (O *FermionsHandle) SetDefaults() {
 	O.defmethod = "revpbe"
 	O.defbasis = "def2-svp"
 	O.command = ""
+	O.inputname = "gochem"
+	O.gpu=""
 
 }
 
@@ -95,56 +108,41 @@ func (O *FermionsHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, 
 		fmt.Fprintf(os.Stderr, "no method assigned for Fermions++ calculation, will used the default %s, \n", O.defmethod)
 		Q.Method = O.defmethod
 	}
-	if O.inputname == "" {
-		O.inputname = "gochem"
-	}
-	//The initial guess
-	vectors := fmt.Sprintf("output  %s.movecs", O.inputname) //The initial guess
-	switch Q.Guess {
 
+	disp,ok:=fermionsDisp[strings.ToLower(Q.Disperssion)]
+	if !ok{
+		disp = "disp_corr  D3"
 	}
-	disp, ok := fermionsDisp[Q.Disperssion]
-	if !ok {
-		disp = ""
-	}
-	tightness := ""
-	switch Q.SCFTightness {
-	case 1:
-		tightness = ""
-	case 2:
 
-	}
 	grid, ok :=fermionsGrid[Q.Grid]
 	if !ok {
-		grid = "GRID_RAD_M3"
+		grid = "M3"
 	}
 	grid = fmt.Sprintf("GRID_RAD_TYPE %s", grid)
 	var err error
 
 	m := strings.ToLower(Q.Method)
-	method, ok := nwchemMethods[m]
+	method, ok := fermionsMethods[m]
 	if !ok {
-		method = "EXC XC_GGA_X_PBE_R\nECORR XC_GGA_C_PBE"
+		method = "EXC XC_GGA_X_PBE_R\n ECORR XC_GGA_C_PBE"
 	}
-	method = fmt.Sprintf("xc %s", method)
-
 	task := "SinglePoint"
 	dloptions:=""
 	if Q.Optimize == true {
 		task="DLF_OPTIMIZE"
-		dloptions=fmt.Sprintf("start::dlfind\nJOB std\nmethod l-bfgs\ntrust_radius simple\ndcd %s.dcd\nmaxcycle 200\ncoord_type cartesian\n*end\n",O.inputname)
+		dloptions=fmt.Sprintf("*start::dlfind\n JOB std\n method l-bfgs\n trust_radius energy\n dcd %s.dcd\n maxcycle 300\n maxene 200\n coord_type cartesian\n*end\n",O.inputname)
 		//Only cartesian constraints supported by now.
 		if len(Q.CConstraints) > 0 {
-			dloptions=fmt.Sprintf("%s *start::dlconstraints\n",dloptions)
+			dloptions=fmt.Sprintf("%s\n*start::dlconstraints\n",dloptions)
 			for _,v:=range(Q.CConstraints){
 				dloptions=fmt.Sprintf("%s cart %d\n",dloptions,v+1) //fortran numbering, starts with 1.
 			}
-			dloptions=fmt.Sprintf("%s *end\n",dloptions)
+			dloptions=fmt.Sprintf("%s*end\n",dloptions)
 		}
 	}
 	cosmo := ""
 	if Q.Dielectric > 0 {
-		cosmo = fmt.Sprintf("start::solvate\n pcm_model cpcm\n epsilon %f\n*end\n", Q.Dielectric)
+		cosmo = fmt.Sprintf("*start::solvate\n pcm_model cpcm\n epsilon %f\n cavity_model bondi\n*end\n", Q.Dielectric)
 	}
 
 	//////////////////////////////////////////////////////////////
@@ -155,7 +153,6 @@ func (O *FermionsHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, 
 		return err
 	}
 	defer file.Close()
-	start := "start"
 	//Start with the geometry part (coords, charge and multiplicity)
 	fmt.Fprintf(file,"*start::geo\n")
 	fmt.Fprintf(file, "%d %d\n", atoms.Charge(), atoms.Multi())
@@ -163,16 +160,17 @@ func (O *FermionsHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, 
 		fmt.Fprintf(file, "%-2s  %8.3f%8.3f%8.3f\n", atoms.Atom(i).Symbol, coords.At(i, 0), coords.At(i, 1), coords.At(i, 2))
 	}
 	fmt.Fprintf(file,"*end\n\n")
-	fmt.Fprintf(file,"start::sys\n")
-	fmt.Fprintf(file,"TODO %s\n",task)
-	fmt.Fprintf(file,"BASIS %s\nPC 1\n",strings.ToLower(Q.Basis))
-	fmt.Fprintf(file,"%s\n",method)
-	fmt.Fprintf(file,"%s\n",grid)
+	fmt.Fprintf(file,"*start::sys\n")
+	fmt.Fprintf(file," TODO %s\n",task)
+	fmt.Fprintf(file," BASIS %s\n PC pure\n",strings.ToLower(Q.Basis))
+	fmt.Fprintf(file," %s\n",method)
+	fmt.Fprintf(file," %s\n",grid)
+	fmt.Fprintf(file," %s\n",disp)
+	fmt.Fprintf(file," %s\n",O.gpu)
 	if !Q.Optimize{
-		fmt.Fprintf(file,"INFO 2\n")
+		fmt.Fprintf(file," INFO 2\n")
 	}
 	fmt.Fprintf(file,"*end\n\n")
-	fmt.Fprintf(file,"start::solvent\n")
 	fmt.Fprintf(file,"%s\n",cosmo)
 	fmt.Fprintf(file,"%s\n",dloptions)
 	return nil
@@ -204,35 +202,37 @@ func (O *FermionsHandle) Run(wait bool) (err error) {
 *******/
 
 var fermionsDisp = map[string]string{
+	"":       "",
 	"nodisp": "",
-	"D2":     "vdw 2",
-	"D3":     "vdw 3",
-	"D3ZERO": "vdw 3",
-	"D3Zero": "vdw 3",
-	"D3zero": "vdw 3",
+	"d2":     "disp_corr D2",
+	"d3bj":   "disp_corr BJ",
+	"bj":     "disp_corr BJ",
+	"d3":     "disp_corr D3",
 }
- //M5 etc are not supported
+
+
+//M5 etc are not supported
 var fermionsGrid = map[int]string{
-	1: "GRID_RAD_M3",
-	2: "GRID_RAD_M3",
-	3: "GRID_RAD_M3",
-	4: "GRID_RAD_M4",
-	5: "GRID_RAD_M4",
+	1: "M3",
+	2: "M3",
+	3: "M3",
+	4: "M4",
+	5: "M4",
 }
 
 //All meta-gga functionals here are buggy in the libxc library, and thus not reliable. I leave them hoping this will get fixed eventually.
 var fermionsMethods = map[string]string{
-	"b3lyp":   "EXC XC_HYB_GGA_XC_B3LYP\nECORR XC_HYB_GGA_XC_B3LYP",
-	"b3-lyp":   "EXC XC_HYB_GGA_XC_B3LYP\nECORR XC_HYB_GGA_XC_B3LYP",
-	"pbe":      "EXC XC_GGA_X_PBE\nECORR XC_GGA_C_PBE",
-	"revpbe":   "EXC XC_GGA_X_PBE_R\nECORR XC_GGA_C_PBE",
-	"pbe0":    "EXC XC_HYB_GGA_XC_PBEH\nECORR XC_HYB_GGA_XC_PBEH",
-	"mpw1b95": "EXC XC_HYB_MGGA_XC_MPW1B95\nECORR XC_HYB_MGGA_XC_MPW1B95", //probably also buggy
-	"tpss":    "EXC XC_MGGA_X_TPSS\nECORR XC_MGGA_C_TPSS",  //Buggy in current libxc, avoid.
-	"bp86":    "EXC XC_GGA_X_B88\nECORR XC_GGA_C_P86",
-	"b-p":     "EXC XC_GGA_X_B88\nECORR XC_GGA_C_P86",
-	"blyp":    "EXC XC_GGA_X_B88\nECORR XC_GGA_C_LYP",
-	"b-lyp":    "EXC XC_GGA_X_B88\nECORR XC_GGA_C_LYP",
+	"b3lyp":   "EXC XC_HYB_GGA_XC_B3LYP\n ECORR XC_HYB_GGA_XC_B3LYP",
+	"b3-lyp":   "EXC XC_HYB_GGA_XC_B3LYP\n ECORR XC_HYB_GGA_XC_B3LYP",
+	"pbe":      "EXC XC_GGA_X_PBE\n ECORR XC_GGA_C_PBE",
+	"revpbe":   "EXC XC_GGA_X_PBE_R\n ECORR XC_GGA_C_PBE",
+	"pbe0":    "EXC XC_HYB_GGA_XC_PBEH\n ECORR XC_HYB_GGA_XC_PBEH",
+	"mpw1b95": "EXC XC_HYB_MGGA_XC_MPW1B95\n ECORR XC_HYB_MGGA_XC_MPW1B95", //probably also buggy
+	"tpss":    "EXC XC_MGGA_X_TPSS\n ECORR XC_MGGA_C_TPSS",  //Buggy in current libxc, avoid.
+	"bp86":    "EXC XC_GGA_X_B88\n ECORR XC_GGA_C_P86",
+	"b-p":     "EXC XC_GGA_X_B88\n ECORR XC_GGA_C_P86",
+	"blyp":    "EXC XC_GGA_X_B88\n ECORR XC_GGA_C_LYP",
+	"b-lyp":    "EXC XC_GGA_X_B88\n ECORR XC_GGA_C_LYP",
 }
 
 /****************************************************
