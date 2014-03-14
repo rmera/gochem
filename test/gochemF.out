@@ -1,0 +1,2981 @@
+
+========================================================================================
+                             ____  ________  ____
+                            / __ \/ ____/  |/  (_)___  ___
+                           / / / / /   / /|_/ / / __ \/ _ \
+                          / /_/ / /___/ /  / / / / / /  __/
+                          \___\_\____/_/  /_/_/_/ /_/\___/
+
+                                  (i.e, it's mine)
+
+  Author:                J. Kussmann                   (jkussmann93@gmail.com)
+
+
+  Contributing authors:
+
+    Simon Maurer				University of Munich (LMU)
+
+========================================================================================
+
+
+Fri Mar 14 05:02:04 CET 2014
+
+HOST:       e19
+MACHTYPE:   x86_64-suse-linux
+OpenMP:     enabled    [no. of thread(s): 24]
+Version at  /opt/software/qcmine-stable-gcc46
+CUDA:       enabled    [0 threads on 0 device(s)]
+            0 active CUDA-device(s) providing 0 threads
+            Device-ID(s): 0
+ OpenCL:     disabled
+
+Input-file:        setup.in
+Working-directory: /scr/rmera/SCRATCH/qc.scr.00000//
+
+========================================================================================
+                                   +++++ Setup +++++
+Fri Mar 14 05:02:04 CET 2014
+========================================================================================
+ Shared-Memory access via Project-ID: -1
+ Control-Access: YES
+  Setting up BCSR blocking but MATRIX_TYPE is not a BCSR type
+
+ ====================================================================
+   Generated blocking-input for BCSR-format:
+   No. of blocks: 1, Average target block-size: 100
+ ====================================================================
+
+   Automatically generated blocking
+  ----------------------------------
+   No. of blocks: 1
+   Sub-block dimensions:
+       72 
+   (6D)
+       75 
+
+  Setting up BCSRptr matrices, but SV_MATRIX_TYPE != MATRIX_BCSR_PTR
+
+  Mat2P: 5184	Mat2C: 5625
+  Vec2P: 2678	Vec2C: 2915
+
+  Initial Guess: guess density as superposition of atomic densities ...done!
+
+  ATOMIC DENSITIES: 1st energy is NOT variational!
+
+
+        --------- Polarizable Continuum Model ---------
+
+  Model:                                           C-PCM
+  Solvent:                       user-def (epsilon = 4.00000)
+  Cavity:                                          Bondi
+  Add proton-spheres:                                yes
+  X (epsilon):                                   0.00000
+  epsilon (optical):                             4.00000
+  vdW-factor:                                    1.20000
+  Rad(solvent):                                  1.40000
+  No. of points per sphere (Lebedev-Laikov):         590
+  No. of Tesserae:                                  1184
+  Surface area:                                213.79268 A^2
+  LEQS-solver:                                 inversion (auto)
+  Evaluate only electrostatic interactions
+
+  Setup Total:	CPU[s]       9.43   WALL[s]       2.00   STEADY[s]       2.04
+========================================================================================
+                                +++++ Setup done +++++
+========================================================================================
+
+  Job-Queue:
+  ----------
+   1) Geometry optimization via dl-find
+
+
+  == Grimme's dispersion correction ==
+
+  Please cite DFT-D3 work done with this code as:
+      S. Grimme, J. Antony, S. Ehrlich and H. Krieg,
+      J. Chem. Phys. 132 (2010), 154104
+  If used with BJ-damping cite also
+      S. Grimme, S. Ehrlich and L. Goerigk,
+      J. Comput. Chem. 32 (2011), 1456-1465
+  For DFT-D2 the reference is
+      S. Grimme, J. Comput. Chem., 27 (2006), 1787-1799
+
+  E(disp):         -0.0000000000 a.u.
+  E6:              -0.0000000000 a.u.
+  E8:                       -nan a.u.
+
+Fri Mar 14 05:02:06 CET 2014
+========================================================================================
+                            +++++ Interface: DL-FIND +++++
+
+========================================================================================
+
+***********************************************************************
+**                                                                   **
+**                       ---------------------                       **
+**                              DL-FIND                              **
+**                       Geometry Optimisation                       **
+**                       ---------------------                       **
+**                                                                   **
+**                 J. Kaestner, J.M. Carr, T.W. Keal,                **
+**                W. Thiel, A. Wander and P. Sherwood                **
+**                                                                   **
+**              J. Phys. Chem. A, 2009, 113 (43), 11856.             **
+**                                                                   **
+**   Please include this reference in published work using DL-FIND.  **
+**                                                                   **
+**               Copyright:  STFC Daresbury Laboratory               **
+**                           Revision: 534M                          **
+**                                                                   **
+***********************************************************************
+
+
+DL-FIND Report:
+===============
+Optimisation algorithm: L-BFGS
+Number of steps in L-BFGS memory ...............      20000
+
+Trust radius based on energy
+Maximum step length ............................  5.000E-01
+
+Coordinate system: Cartesian coordinates
+
+Number of atoms ................................          9
+Number of input geometries .....................          1
+Variables to be optimised ......................         27
+Restart information is written every ...........          5 steps
+This run has not been restarted.
+Maximum number of steps ........................         20
+Maximum number of energy evaluations ...........         20
+
+========================================================================================
+                                    +++++ SCF +++++
+Fri Mar 14 05:02:06 CET 2014
+========================================================================================
+  SCF-Diagonalization:               Standard (dsyev)
+  Integral-thresh (Coulomb+Exchange):  1.0e-10
+  Integral-thresh (Coulomb):           1.0e-10
+  Integral-thresh (Exchange):          1.0e-10
+  PreLinK-thresh (Exchange):           1.0e-10
+  Matrix-type:                       Standard (dense)
+  Orthogonalization:                 Loewdin (sym.)
+  SCF convergence criterium:         1.0e-07
+  SCF energy convergence:            OFF
+  Convergence acceleration:          Pulay's DIIS
+    Criterium for DIIS-start:        1.0e+01
+    sub-space dimension:             15
+  Level-shift:                       OFF
+  Damping:                           OFF
+
+
+  ---------------------------------------------------------------------------------
+                            Exchange-Correlation Functional
+  ---------------------------------------------------------------------------------
+    Exchange: 'Becke 88'
+      Refs.: AD Becke, Phys. Rev. A 38, 3098 (1988)
+    Correlation: 'Lee, Yang & Parr'
+      Refs.: C Lee, W Yang and RG Parr, Phys. Rev. B 37, 785 (1988)
+             B Miehlich, A Savin, H Stoll and H Preuss, Chem. Phys. Lett. 157, 200 (1989)
+  ---------------------------------------------------------------------------------
+    Lebedev/Laikov-Grid: 75 (radial) 302 (angular)
+    - Radial grid-type: M4 (Treutler, Ahlrichs, J. Chem. Phys. 102, 346 (1995)
+    - adaptive number of radial points
+    - max. batch-size: 512
+    Becke-weights: once, store full grid on disk (derivative weights on-the-fly)
+    Becke-weights derivatives: ON
+    Grid-pruning:   1.0e-11
+  ---------------------------------------------------------------------------------
+
+  Generate molecular grid once and save on disk...
+  Finally we have 189926 grid points...
+  ---------------------------------------------------------------------------------
+        Iter            Energy                   Err(DIIS)
+  ---------------------------------------------------------------------------------
+  ITER    0          -155.0811318144              ------
+  Error:    0.0225965
+  Starting Extrapolation of Fock-Matrix!
+  ITER    1          -154.6882839528              2.2597e-02
+  ITER    2          -154.4437826191              2.5048e-02
+  ITER    3          -154.8432492329              2.3343e-03
+  ITER    4          -154.8450544843              1.3233e-03
+  ITER    5          -154.8460173233              1.8409e-04
+  ITER    6          -154.8460403475              5.7453e-05
+  ITER    7          -154.8460416347              1.5703e-05
+  ITER    8          -154.8460415159              2.7174e-06
+  ITER    9          -154.8460418097              2.5907e-07
+  ITER   10          -154.8460417782              4.4380e-08        -- converged! (diis)
+  Final norm of [F,P]_:                      0.0000000175
+
+
+    ***********************************************************
+    *                                                         *
+    *   nuclear repulsion energy:         81.9709366326       *
+    *   1el energy:                     -371.9863049403       *
+    *   Kinetic energy:                  153.4606042122       *
+    *   Elec.-Nuc. energy:              -525.4469091525       *
+    *   Coulomb energy:                  156.7836183601       *
+    *   Exchange energy (alpha):           0.0000000000       *
+    *   Exchange energy (beta):            0.0000000000       *
+    *   KS-DFT(X):                       -20.7600062043       *
+    *   KS-DFT(C):                        -0.8542856286       *
+    *   -----------------------------------------------       *
+    *                                                         *
+    *   SCF energy:                     -154.8460417805 a.u.  *
+    *                                                         *
+    *   SCF energy + dispersion:        -154.8460417805 a.u.  *
+    *                                                         *
+    *   Virial ratio:                     -2.0090279689       *
+    *                                                         *
+    ***********************************************************
+
+
+    ***********************************************************
+    *                                                         *
+    *            --- Polarizable Continuum Model ---          *
+    *                                                         *
+    *   SCF energy:                     -154.8460417805 a.u.  *
+    *                                                         *
+    *   + PCM-electrostatic:             -0.0004902207        *
+    *   -----------------------------------------------       *
+    *                                                         *
+    *   Free energy:                    -154.8465320011 a.u.  *
+    *                                                         *
+    ***********************************************************
+
+  SCF Total:	CPU[s]     321.24   WALL[s]      34.00   STEADY[s]      33.95
+========================================================================================
+                            +++++ Analytical Derivatives +++++
+Fri Mar 14 05:02:40 CET 2014
+========================================================================================
+                            +++++ SCF Force calculation +++++
+
+                 (Forces including PCM-contribution)
+        ++++++++++++++++++++++++++++++++++++++++++++++++++++
+        +            Forces:  SCF energy Gradient          +
+        ++++++++++++++++++++++++++++++++++++++++++++++++++++
+  Atom             x                     y                     z
+   1:         0.0063169994         -0.0044267161         -0.0000645452
+   2:         0.0049830659         -0.0041929114          0.0002406917
+   3:        -0.0020642705          0.0030141385         -0.0061560795
+   4:        -0.0021331893          0.0029376002          0.0059774968
+   5:         0.0009115408          0.0035300723          0.0001359358
+   6:         0.0039509958         -0.0056135077          0.0052876938
+   7:         0.0038985757         -0.0056271229         -0.0053773530
+   8:         0.0100766957          0.0233680028         -0.0000647689
+   9:        -0.0259404135         -0.0129895557          0.0000209286
+
+  Derivatives Total:	CPU[s]     127.96   WALL[s]      12.00   STEADY[s]      12.39
+========================================================================================
+                            +++++ (Re)Setup for new Geometry+++++
+Fri Mar 14 05:02:52 CET 2014
+========================================================================================
+  Setting up BCSRptr matrices, but SV_MATRIX_TYPE != MATRIX_BCSR_PTR
+
+  Mat2P: 5184	Mat2C: 5625
+  Vec2P: 2678	Vec2C: 2915
+
+  Initial Guess: use old density for new geometry -- SP2-projection ...done!
+
+  (Re)Setup Total:	CPU[s]       4.02   WALL[s]       1.00   STEADY[s]       0.45
+========================================================================================
+                              +++++ (Re)Setup done +++++
+========================================================================================
+========================================================================================
+                                    +++++ SCF +++++
+Fri Mar 14 05:02:53 CET 2014
+========================================================================================
+  SCF-Diagonalization:               Standard (dsyev)
+  Integral-thresh (Coulomb+Exchange):  1.0e-10
+  Integral-thresh (Coulomb):           1.0e-10
+  Integral-thresh (Exchange):          1.0e-10
+  PreLinK-thresh (Exchange):           1.0e-10
+  Matrix-type:                       Standard (dense)
+  Orthogonalization:                 Loewdin (sym.)
+  SCF convergence criterium:         1.0e-07
+  SCF energy convergence:            OFF
+  Convergence acceleration:          Pulay's DIIS
+    Criterium for DIIS-start:        1.0e+01
+    sub-space dimension:             15
+  Level-shift:                       OFF
+  Damping:                           OFF
+
+
+  ---------------------------------------------------------------------------------
+                            Exchange-Correlation Functional
+  ---------------------------------------------------------------------------------
+    Exchange: 'Becke 88'
+      Refs.: AD Becke, Phys. Rev. A 38, 3098 (1988)
+    Correlation: 'Lee, Yang & Parr'
+      Refs.: C Lee, W Yang and RG Parr, Phys. Rev. B 37, 785 (1988)
+             B Miehlich, A Savin, H Stoll and H Preuss, Chem. Phys. Lett. 157, 200 (1989)
+  ---------------------------------------------------------------------------------
+    Lebedev/Laikov-Grid: 75 (radial) 302 (angular)
+    - Radial grid-type: M4 (Treutler, Ahlrichs, J. Chem. Phys. 102, 346 (1995)
+    - adaptive number of radial points
+    - max. batch-size: 512
+    Becke-weights: once, store full grid on disk (derivative weights on-the-fly)
+    Becke-weights derivatives: ON
+    Grid-pruning:   1.0e-11
+  ---------------------------------------------------------------------------------
+
+  Generate molecular grid once and save on disk...
+  Finally we have 189943 grid points...
+  ---------------------------------------------------------------------------------
+        Iter            Energy                   Err(DIIS)
+  ---------------------------------------------------------------------------------
+  ITER    0          -154.8466720497              ------
+  Error:    0.0002944
+  Starting Extrapolation of Fock-Matrix!
+  ITER    1          -154.8467283877              2.9436e-04
+  ITER    2          -154.8466785861              1.6703e-04
+  ITER    3          -154.8467209262              7.1137e-05
+  ITER    4          -154.8467212658              1.0561e-05
+  ITER    5          -154.8467217252              3.2706e-06
+  ITER    6          -154.8467217958              7.0255e-07
+  ITER    7          -154.8467217954              1.0146e-07
+  ITER    8          -154.8467217908              7.2838e-09        -- converged! (diis)
+  Final norm of [F,P]_:                      0.0000000038
+
+
+    ***********************************************************
+    *                                                         *
+    *   nuclear repulsion energy:         81.8570531914       *
+    *   1el energy:                     -371.7749975117       *
+    *   Kinetic energy:                  153.4294382001       *
+    *   Elec.-Nuc. energy:              -525.2044357118       *
+    *   Coulomb energy:                  156.6760817497       *
+    *   Exchange energy (alpha):           0.0000000000       *
+    *   Exchange energy (beta):            0.0000000000       *
+    *   KS-DFT(X):                       -20.7509489073       *
+    *   KS-DFT(C):                        -0.8539103134       *
+    *   -----------------------------------------------       *
+    *                                                         *
+    *   SCF energy:                     -154.8467217913 a.u.  *
+    *                                                         *
+    *   SCF energy + dispersion:        -154.8467217913 a.u.  *
+    *                                                         *
+    *   Virial ratio:                     -2.0092373641       *
+    *                                                         *
+    ***********************************************************
+
+
+    ***********************************************************
+    *                                                         *
+    *            --- Polarizable Continuum Model ---          *
+    *                                                         *
+    *   SCF energy:                     -154.8467217913 a.u.  *
+    *                                                         *
+    *   + PCM-electrostatic:             -0.0004946139        *
+    *   -----------------------------------------------       *
+    *                                                         *
+    *   Free energy:                    -154.8472164052 a.u.  *
+    *                                                         *
+    ***********************************************************
+
+  SCF Total:	CPU[s]     266.07   WALL[s]      22.00   STEADY[s]      21.81
+========================================================================================
+                            +++++ Analytical Derivatives +++++
+Fri Mar 14 05:03:15 CET 2014
+========================================================================================
+                            +++++ SCF Force calculation +++++
+
+                 (Forces including PCM-contribution)
+        ++++++++++++++++++++++++++++++++++++++++++++++++++++
+        +            Forces:  SCF energy Gradient          +
+        ++++++++++++++++++++++++++++++++++++++++++++++++++++
+  Atom             x                     y                     z
+   1:         0.0061270577         -0.0042337089         -0.0000582730
+   2:         0.0050613464         -0.0025693101          0.0001560462
+   3:        -0.0019550890          0.0021755040         -0.0050019388
+   4:        -0.0020146427          0.0021494671          0.0048992136
+   5:         0.0009927023          0.0024448761          0.0000948497
+   6:         0.0036546681         -0.0046372960          0.0042479531
+   7:         0.0036125014         -0.0046281700         -0.0043002463
+   8:        -0.0001593532          0.0148743799         -0.0000459037
+   9:        -0.0153191909         -0.0055757421          0.0000082991
+
+  Derivatives Total:	CPU[s]     110.31   WALL[s]       9.00   STEADY[s]       9.18
+========================================================================================
+                            +++++ (Re)Setup for new Geometry+++++
+Fri Mar 14 05:03:24 CET 2014
+========================================================================================
+  Setting up BCSRptr matrices, but SV_MATRIX_TYPE != MATRIX_BCSR_PTR
+
+  Mat2P: 5184	Mat2C: 5625
+  Vec2P: 2678	Vec2C: 2915
+
+  Initial Guess: use old density for new geometry -- SP2-projection ...done!
+
+  (Re)Setup Total:	CPU[s]       4.14   WALL[s]       0.00   STEADY[s]       0.21
+========================================================================================
+                              +++++ (Re)Setup done +++++
+========================================================================================
+========================================================================================
+                                    +++++ SCF +++++
+Fri Mar 14 05:03:24 CET 2014
+========================================================================================
+  SCF-Diagonalization:               Standard (dsyev)
+  Integral-thresh (Coulomb+Exchange):  1.0e-10
+  Integral-thresh (Coulomb):           1.0e-10
+  Integral-thresh (Exchange):          1.0e-10
+  PreLinK-thresh (Exchange):           1.0e-10
+  Matrix-type:                       Standard (dense)
+  Orthogonalization:                 Loewdin (sym.)
+  SCF convergence criterium:         1.0e-07
+  SCF energy convergence:            OFF
+  Convergence acceleration:          Pulay's DIIS
+    Criterium for DIIS-start:        1.0e+01
+    sub-space dimension:             15
+  Level-shift:                       OFF
+  Damping:                           OFF
+
+
+  ---------------------------------------------------------------------------------
+                            Exchange-Correlation Functional
+  ---------------------------------------------------------------------------------
+    Exchange: 'Becke 88'
+      Refs.: AD Becke, Phys. Rev. A 38, 3098 (1988)
+    Correlation: 'Lee, Yang & Parr'
+      Refs.: C Lee, W Yang and RG Parr, Phys. Rev. B 37, 785 (1988)
+             B Miehlich, A Savin, H Stoll and H Preuss, Chem. Phys. Lett. 157, 200 (1989)
+  ---------------------------------------------------------------------------------
+    Lebedev/Laikov-Grid: 75 (radial) 302 (angular)
+    - Radial grid-type: M4 (Treutler, Ahlrichs, J. Chem. Phys. 102, 346 (1995)
+    - adaptive number of radial points
+    - max. batch-size: 512
+    Becke-weights: once, store full grid on disk (derivative weights on-the-fly)
+    Becke-weights derivatives: ON
+    Grid-pruning:   1.0e-11
+  ---------------------------------------------------------------------------------
+
+  Generate molecular grid once and save on disk...
+  Finally we have 190011 grid points...
+  ---------------------------------------------------------------------------------
+        Iter            Energy                   Err(DIIS)
+  ---------------------------------------------------------------------------------
+  ITER    0          -154.8473385868              ------
+  Error:    0.0003304
+  Starting Extrapolation of Fock-Matrix!
+  ITER    1          -154.8474871958              3.3035e-04
+  ITER    2          -154.8474403164              1.8453e-04
+  ITER    3          -154.8474845001              7.9370e-05
+  ITER    4          -154.8474864131              1.1003e-05
+  ITER    5          -154.8474872652              4.7140e-06
+  ITER    6          -154.8474869887              6.9632e-07
+  ITER    7          -154.8474870391              1.2314e-07
+  ITER    8          -154.8474870300              4.4811e-08        -- converged! (diis)
+  Final norm of [F,P]_:                      0.0000000138
+
+
+    ***********************************************************
+    *                                                         *
+    *   nuclear repulsion energy:         81.4594035407       *
+    *   1el energy:                     -371.0134447388       *
+    *   Kinetic energy:                  153.3548684491       *
+    *   Elec.-Nuc. energy:              -524.3683131878       *
+    *   Coulomb energy:                  156.2893713928       *
+    *   Exchange energy (alpha):           0.0000000000       *
+    *   Exchange energy (beta):            0.0000000000       *
+    *   KS-DFT(X):                       -20.7299308058       *
+    *   KS-DFT(C):                        -0.8528864196       *
+    *   -----------------------------------------------       *
+    *                                                         *
+    *   SCF energy:                     -154.8474870307 a.u.  *
+    *                                                         *
+    *   SCF energy + dispersion:        -154.8474870307 a.u.  *
+    *                                                         *
+    *   Virial ratio:                     -2.0097331020       *
+    *                                                         *
+    ***********************************************************
+
+
+    ***********************************************************
+    *                                                         *
+    *            --- Polarizable Continuum Model ---          *
+    *                                                         *
+    *   SCF energy:                     -154.8474870307 a.u.  *
+    *                                                         *
+    *   + PCM-electrostatic:             -0.0005037267        *
+    *   -----------------------------------------------       *
+    *                                                         *
+    *   Free energy:                    -154.8479907573 a.u.  *
+    *                                                         *
+    ***********************************************************
+
+  SCF Total:	CPU[s]     306.75   WALL[s]      34.00   STEADY[s]      33.74
+========================================================================================
+                            +++++ Analytical Derivatives +++++
+Fri Mar 14 05:03:58 CET 2014
+========================================================================================
+                            +++++ SCF Force calculation +++++
+
+                 (Forces including PCM-contribution)
+        ++++++++++++++++++++++++++++++++++++++++++++++++++++
+        +            Forces:  SCF energy Gradient          +
+        ++++++++++++++++++++++++++++++++++++++++++++++++++++
+  Atom             x                     y                     z
+   1:         0.0049129536         -0.0031632725         -0.0000407669
+   2:         0.0037881440          0.0012458272         -0.0000147692
+   3:        -0.0013714155          0.0000495159         -0.0018776708
+   4:        -0.0014083114          0.0001200769          0.0019243623
+   5:        -0.0011896274          0.0006228862          0.0000026303
+   6:         0.0027760463         -0.0016325860          0.0011097817
+   7:         0.0027581799         -0.0015789398         -0.0010829861
+   8:        -0.0080602771          0.0007539484         -0.0000130482
+   9:        -0.0022056924          0.0035825437         -0.0000075331
+
+  Derivatives Total:	CPU[s]     140.99   WALL[s]      15.00   STEADY[s]      15.06
+========================================================================================
+                            +++++ (Re)Setup for new Geometry+++++
+Fri Mar 14 05:04:13 CET 2014
+========================================================================================
+  Setting up BCSRptr matrices, but SV_MATRIX_TYPE != MATRIX_BCSR_PTR
+
+  Mat2P: 5184	Mat2C: 5625
+  Vec2P: 2678	Vec2C: 2915
+
+  Initial Guess: use old density for new geometry -- SP2-projection ...done!
+
+  (Re)Setup Total:	CPU[s]       2.03   WALL[s]       0.00   STEADY[s]       0.13
+========================================================================================
+                              +++++ (Re)Setup done +++++
+========================================================================================
+========================================================================================
+                                    +++++ SCF +++++
+Fri Mar 14 05:04:13 CET 2014
+========================================================================================
+  SCF-Diagonalization:               Standard (dsyev)
+  Integral-thresh (Coulomb+Exchange):  1.0e-10
+  Integral-thresh (Coulomb):           1.0e-10
+  Integral-thresh (Exchange):          1.0e-10
+  PreLinK-thresh (Exchange):           1.0e-10
+  Matrix-type:                       Standard (dense)
+  Orthogonalization:                 Loewdin (sym.)
+  SCF convergence criterium:         1.0e-07
+  SCF energy convergence:            OFF
+  Convergence acceleration:          Pulay's DIIS
+    Criterium for DIIS-start:        1.0e+01
+    sub-space dimension:             15
+  Level-shift:                       OFF
+  Damping:                           OFF
+
+
+  ---------------------------------------------------------------------------------
+                            Exchange-Correlation Functional
+  ---------------------------------------------------------------------------------
+    Exchange: 'Becke 88'
+      Refs.: AD Becke, Phys. Rev. A 38, 3098 (1988)
+    Correlation: 'Lee, Yang & Parr'
+      Refs.: C Lee, W Yang and RG Parr, Phys. Rev. B 37, 785 (1988)
+             B Miehlich, A Savin, H Stoll and H Preuss, Chem. Phys. Lett. 157, 200 (1989)
+  ---------------------------------------------------------------------------------
+    Lebedev/Laikov-Grid: 75 (radial) 302 (angular)
+    - Radial grid-type: M4 (Treutler, Ahlrichs, J. Chem. Phys. 102, 346 (1995)
+    - adaptive number of radial points
+    - max. batch-size: 512
+    Becke-weights: once, store full grid on disk (derivative weights on-the-fly)
+    Becke-weights derivatives: ON
+    Grid-pruning:   1.0e-11
+  ---------------------------------------------------------------------------------
+
+  Generate molecular grid once and save on disk...
+  Finally we have 190056 grid points...
+  ---------------------------------------------------------------------------------
+        Iter            Energy                   Err(DIIS)
+  ---------------------------------------------------------------------------------
+  ITER    0          -154.8477125059              ------
+  Error:    0.0003605
+  Starting Extrapolation of Fock-Matrix!
+  ITER    1          -154.8477450661              3.6055e-04
+  ITER    2          -154.8476255575              3.9336e-04
+  ITER    3          -154.8477386750              6.6492e-05
+  ITER    4          -154.8477458204              7.6101e-06
+  ITER    5          -154.8477462792              2.1866e-06
+  ITER    6          -154.8477461880              8.5094e-07
+  ITER    7          -154.8477462312              1.0651e-07
+  ITER    8          -154.8477462255              1.6970e-08        -- converged! (diis)
+  Final norm of [F,P]_:                      0.0000000095
+
+
+    ***********************************************************
+    *                                                         *
+    *   nuclear repulsion energy:         81.1665019825       *
+    *   1el energy:                     -370.4429056043       *
+    *   Kinetic energy:                  153.3130654325       *
+    *   Elec.-Nuc. energy:              -523.7559710368       *
+    *   Coulomb energy:                  155.9997962627       *
+    *   Exchange energy (alpha):           0.0000000000       *
+    *   Exchange energy (beta):            0.0000000000       *
+    *   KS-DFT(X):                       -20.7188848833       *
+    *   KS-DFT(C):                        -0.8522539836       *
+    *   -----------------------------------------------       *
+    *                                                         *
+    *   SCF energy:                     -154.8477462260 a.u.  *
+    *                                                         *
+    *   SCF energy + dispersion:        -154.8477462260 a.u.  *
+    *                                                         *
+    *   Virial ratio:                     -2.0100101109       *
+    *                                                         *
+    ***********************************************************
+
+
+    ***********************************************************
+    *                                                         *
+    *            --- Polarizable Continuum Model ---          *
+    *                                                         *
+    *   SCF energy:                     -154.8477462260 a.u.  *
+    *                                                         *
+    *   + PCM-electrostatic:             -0.0005061858        *
+    *   -----------------------------------------------       *
+    *                                                         *
+    *   Free energy:                    -154.8482524118 a.u.  *
+    *                                                         *
+    ***********************************************************
+
+  SCF Total:	CPU[s]     284.27   WALL[s]      27.00   STEADY[s]      27.20
+========================================================================================
+                            +++++ Analytical Derivatives +++++
+Fri Mar 14 05:04:40 CET 2014
+========================================================================================
+                            +++++ SCF Force calculation +++++
+
+                 (Forces including PCM-contribution)
+        ++++++++++++++++++++++++++++++++++++++++++++++++++++
+        +            Forces:  SCF energy Gradient          +
+        ++++++++++++++++++++++++++++++++++++++++++++++++++++
+  Atom             x                     y                     z
+   1:         0.0027427638         -0.0013690811         -0.0000300975
+   2:         0.0017396626          0.0007358475         -0.0000224694
+   3:        -0.0006951136         -0.0005922700         -0.0005075840
+   4:        -0.0007218561         -0.0005288020          0.0005529515
+   5:        -0.0012451296          0.0002848016         -0.0000117236
+   6:         0.0020120381          0.0001605565         -0.0006310438
+   7:         0.0020019372          0.0002088841          0.0006617568
+   8:        -0.0053581211         -0.0033588013         -0.0000023459
+   9:        -0.0004761813          0.0044588647         -0.0000094441
+
+  Derivatives Total:	CPU[s]      77.80   WALL[s]       6.00   STEADY[s]       5.40
+========================================================================================
+                            +++++ (Re)Setup for new Geometry+++++
+Fri Mar 14 05:04:46 CET 2014
+========================================================================================
+  Setting up BCSRptr matrices, but SV_MATRIX_TYPE != MATRIX_BCSR_PTR
+
+  Mat2P: 5184	Mat2C: 5625
+  Vec2P: 2678	Vec2C: 2915
+
+  Initial Guess: use old density for new geometry -- SP2-projection ...done!
+
+  (Re)Setup Total:	CPU[s]       3.37   WALL[s]       0.00   STEADY[s]       0.16
+========================================================================================
+                              +++++ (Re)Setup done +++++
+========================================================================================
+========================================================================================
+                                    +++++ SCF +++++
+Fri Mar 14 05:04:46 CET 2014
+========================================================================================
+  SCF-Diagonalization:               Standard (dsyev)
+  Integral-thresh (Coulomb+Exchange):  1.0e-10
+  Integral-thresh (Coulomb):           1.0e-10
+  Integral-thresh (Exchange):          1.0e-10
+  PreLinK-thresh (Exchange):           1.0e-10
+  Matrix-type:                       Standard (dense)
+  Orthogonalization:                 Loewdin (sym.)
+  SCF convergence criterium:         1.0e-07
+  SCF energy convergence:            OFF
+  Convergence acceleration:          Pulay's DIIS
+    Criterium for DIIS-start:        1.0e+01
+    sub-space dimension:             15
+  Level-shift:                       OFF
+  Damping:                           OFF
+
+
+  ---------------------------------------------------------------------------------
+                            Exchange-Correlation Functional
+  ---------------------------------------------------------------------------------
+    Exchange: 'Becke 88'
+      Refs.: AD Becke, Phys. Rev. A 38, 3098 (1988)
+    Correlation: 'Lee, Yang & Parr'
+      Refs.: C Lee, W Yang and RG Parr, Phys. Rev. B 37, 785 (1988)
+             B Miehlich, A Savin, H Stoll and H Preuss, Chem. Phys. Lett. 157, 200 (1989)
+  ---------------------------------------------------------------------------------
+    Lebedev/Laikov-Grid: 75 (radial) 302 (angular)
+    - Radial grid-type: M4 (Treutler, Ahlrichs, J. Chem. Phys. 102, 346 (1995)
+    - adaptive number of radial points
+    - max. batch-size: 512
+    Becke-weights: once, store full grid on disk (derivative weights on-the-fly)
+    Becke-weights derivatives: ON
+    Grid-pruning:   1.0e-11
+  ---------------------------------------------------------------------------------
+
+  Generate molecular grid once and save on disk...
+  Finally we have 190082 grid points...
+  ---------------------------------------------------------------------------------
+        Iter            Energy                   Err(DIIS)
+  ---------------------------------------------------------------------------------
+  ITER    0          -154.8478974969              ------
+  Error:    0.0004039
+  Starting Extrapolation of Fock-Matrix!
+  ITER    1          -154.8479254063              4.0387e-04
+  ITER    2          -154.8477584485              5.0688e-04
+  ITER    3          -154.8479254105              5.1188e-05
+  ITER    4          -154.8479336362              9.0597e-06
+  ITER    5          -154.8479338587              3.4626e-06
+  ITER    6          -154.8479339476              5.8195e-07
+  ITER    7          -154.8479339435              9.2596e-08        -- converged! (diis)
+  Final norm of [F,P]_:                      0.0000000333
+
+
+    ***********************************************************
+    *                                                         *
+    *   nuclear repulsion energy:         80.9885541463       *
+    *   1el energy:                     -370.0931864036       *
+    *   Kinetic energy:                  153.2890145039       *
+    *   Elec.-Nuc. energy:              -523.3822009075       *
+    *   Coulomb energy:                  155.8221705719       *
+    *   Exchange energy (alpha):           0.0000000000       *
+    *   Exchange energy (beta):            0.0000000000       *
+    *   KS-DFT(X):                       -20.7135556877       *
+    *   KS-DFT(C):                        -0.8519165717       *
+    *   -----------------------------------------------       *
+    *                                                         *
+    *   SCF energy:                     -154.8479339447 a.u.  *
+    *                                                         *
+    *   SCF energy + dispersion:        -154.8479339447 a.u.  *
+    *                                                         *
+    *   Virial ratio:                     -2.0101698054       *
+    *                                                         *
+    ***********************************************************
+
+
+    ***********************************************************
+    *                                                         *
+    *            --- Polarizable Continuum Model ---          *
+    *                                                         *
+    *   SCF energy:                     -154.8479339447 a.u.  *
+    *                                                         *
+    *   + PCM-electrostatic:             -0.0005038459        *
+    *   -----------------------------------------------       *
+    *                                                         *
+    *   Free energy:                    -154.8484377906 a.u.  *
+    *                                                         *
+    ***********************************************************
+
+  SCF Total:	CPU[s]     287.15   WALL[s]      32.00   STEADY[s]      31.76
+========================================================================================
+                            +++++ Analytical Derivatives +++++
+Fri Mar 14 05:05:18 CET 2014
+========================================================================================
+                            +++++ SCF Force calculation +++++
+
+                 (Forces including PCM-contribution)
+        ++++++++++++++++++++++++++++++++++++++++++++++++++++
+        +            Forces:  SCF energy Gradient          +
+        ++++++++++++++++++++++++++++++++++++++++++++++++++++
+  Atom             x                     y                     z
+   1:         0.0000927354          0.0003441361         -0.0000122717
+   2:        -0.0004835975          0.0006141832         -0.0000279516
+   3:         0.0000758121         -0.0009790968          0.0006828346
+   4:         0.0000638868         -0.0009383263         -0.0006504765
+   5:         0.0005711073         -0.0009697119          0.0000060782
+   6:         0.0010716236          0.0006775061         -0.0007907717
+   7:         0.0010703894          0.0006982699          0.0007965118
+   8:        -0.0017854368         -0.0020018414          0.0000035530
+   9:        -0.0006765203          0.0025548812         -0.0000075062
+
+  Derivatives Total:	CPU[s]     103.79   WALL[s]       9.00   STEADY[s]       9.42
+========================================================================================
+                            +++++ (Re)Setup for new Geometry+++++
+Fri Mar 14 05:05:27 CET 2014
+========================================================================================
+  Setting up BCSRptr matrices, but SV_MATRIX_TYPE != MATRIX_BCSR_PTR
+
+  Mat2P: 5184	Mat2C: 5625
+  Vec2P: 2678	Vec2C: 2915
+
+  Initial Guess: use old density for new geometry -- SP2-projection ...done!
+
+  (Re)Setup Total:	CPU[s]       2.23   WALL[s]       0.00   STEADY[s]       0.12
+========================================================================================
+                              +++++ (Re)Setup done +++++
+========================================================================================
+========================================================================================
+                                    +++++ SCF +++++
+Fri Mar 14 05:05:27 CET 2014
+========================================================================================
+  SCF-Diagonalization:               Standard (dsyev)
+  Integral-thresh (Coulomb+Exchange):  1.0e-10
+  Integral-thresh (Coulomb):           1.0e-10
+  Integral-thresh (Exchange):          1.0e-10
+  PreLinK-thresh (Exchange):           1.0e-10
+  Matrix-type:                       Standard (dense)
+  Orthogonalization:                 Loewdin (sym.)
+  SCF convergence criterium:         1.0e-07
+  SCF energy convergence:            OFF
+  Convergence acceleration:          Pulay's DIIS
+    Criterium for DIIS-start:        1.0e+01
+    sub-space dimension:             15
+  Level-shift:                       OFF
+  Damping:                           OFF
+
+
+  ---------------------------------------------------------------------------------
+                            Exchange-Correlation Functional
+  ---------------------------------------------------------------------------------
+    Exchange: 'Becke 88'
+      Refs.: AD Becke, Phys. Rev. A 38, 3098 (1988)
+    Correlation: 'Lee, Yang & Parr'
+      Refs.: C Lee, W Yang and RG Parr, Phys. Rev. B 37, 785 (1988)
+             B Miehlich, A Savin, H Stoll and H Preuss, Chem. Phys. Lett. 157, 200 (1989)
+  ---------------------------------------------------------------------------------
+    Lebedev/Laikov-Grid: 75 (radial) 302 (angular)
+    - Radial grid-type: M4 (Treutler, Ahlrichs, J. Chem. Phys. 102, 346 (1995)
+    - adaptive number of radial points
+    - max. batch-size: 512
+    Becke-weights: once, store full grid on disk (derivative weights on-the-fly)
+    Becke-weights derivatives: ON
+    Grid-pruning:   1.0e-11
+  ---------------------------------------------------------------------------------
+
+  Generate molecular grid once and save on disk...
+  Finally we have 190072 grid points...
+  ---------------------------------------------------------------------------------
+        Iter            Energy                   Err(DIIS)
+  ---------------------------------------------------------------------------------
+  ITER    0          -154.8479560761              ------
+  Error:    0.0003184
+  Starting Extrapolation of Fock-Matrix!
+  ITER    1          -154.8479970289              3.1836e-04
+  ITER    2          -154.8479061210              2.9577e-04
+  ITER    3          -154.8479856731              6.7540e-05
+  ITER    4          -154.8479910043              1.4384e-05
+  ITER    5          -154.8479914851              4.9739e-06
+  ITER    6          -154.8479915787              5.0266e-07
+  ITER    7          -154.8479915854              8.7765e-08        -- converged! (diis)
+  Final norm of [F,P]_:                      0.0000000247
+
+
+    ***********************************************************
+    *                                                         *
+    *   nuclear repulsion energy:         80.8954099774       *
+    *   1el energy:                     -369.9152173348       *
+    *   Kinetic energy:                  153.2869546723       *
+    *   Elec.-Nuc. energy:              -523.2021720071       *
+    *   Coulomb energy:                  155.7375855763       *
+    *   Exchange energy (alpha):           0.0000000000       *
+    *   Exchange energy (beta):            0.0000000000       *
+    *   KS-DFT(X):                       -20.7139146633       *
+    *   KS-DFT(C):                        -0.8518551393       *
+    *   -----------------------------------------------       *
+    *                                                         *
+    *   SCF energy:                     -154.8479915837 a.u.  *
+    *                                                         *
+    *   SCF energy + dispersion:        -154.8479915837 a.u.  *
+    *                                                         *
+    *   Virial ratio:                     -2.0101837558       *
+    *                                                         *
+    ***********************************************************
+
+
+    ***********************************************************
+    *                                                         *
+    *            --- Polarizable Continuum Model ---          *
+    *                                                         *
+    *   SCF energy:                     -154.8479915837 a.u.  *
+    *                                                         *
+    *   + PCM-electrostatic:             -0.0005055485        *
+    *   -----------------------------------------------       *
+    *                                                         *
+    *   Free energy:                    -154.8484971322 a.u.  *
+    *                                                         *
+    ***********************************************************
+
+  SCF Total:	CPU[s]     252.96   WALL[s]      29.00   STEADY[s]      28.49
+========================================================================================
+                            +++++ Analytical Derivatives +++++
+Fri Mar 14 05:05:56 CET 2014
+========================================================================================
+                            +++++ SCF Force calculation +++++
+
+                 (Forces including PCM-contribution)
+        ++++++++++++++++++++++++++++++++++++++++++++++++++++
+        +            Forces:  SCF energy Gradient          +
+        ++++++++++++++++++++++++++++++++++++++++++++++++++++
+  Atom             x                     y                     z
+   1:        -0.0014230646          0.0013835048         -0.0000022452
+   2:         0.0001318582         -0.0021189085          0.0000688315
+   3:         0.0002315572          0.0001544142         -0.0003435036
+   4:         0.0002329947          0.0001257425          0.0002832585
+   5:        -0.0016228777          0.0019306402         -0.0000381112
+   6:         0.0005668459         -0.0002586752          0.0004307323
+   7:         0.0005681679         -0.0002408272         -0.0004052637
+   8:         0.0016603677         -0.0019240930          0.0000119939
+   9:        -0.0003458493          0.0009482023         -0.0000056925
+
+  Derivatives Total:	CPU[s]      93.26   WALL[s]       7.00   STEADY[s]       6.91
+========================================================================================
+                            +++++ (Re)Setup for new Geometry+++++
+Fri Mar 14 05:06:03 CET 2014
+========================================================================================
+  Setting up BCSRptr matrices, but SV_MATRIX_TYPE != MATRIX_BCSR_PTR
+
+  Mat2P: 5184	Mat2C: 5625
+  Vec2P: 2678	Vec2C: 2915
+
+  Initial Guess: use old density for new geometry -- SP2-projection ...done!
+
+  (Re)Setup Total:	CPU[s]       2.41   WALL[s]       0.00   STEADY[s]       0.12
+========================================================================================
+                              +++++ (Re)Setup done +++++
+========================================================================================
+========================================================================================
+                                    +++++ SCF +++++
+Fri Mar 14 05:06:03 CET 2014
+========================================================================================
+  SCF-Diagonalization:               Standard (dsyev)
+  Integral-thresh (Coulomb+Exchange):  1.0e-10
+  Integral-thresh (Coulomb):           1.0e-10
+  Integral-thresh (Exchange):          1.0e-10
+  PreLinK-thresh (Exchange):           1.0e-10
+  Matrix-type:                       Standard (dense)
+  Orthogonalization:                 Loewdin (sym.)
+  SCF convergence criterium:         1.0e-07
+  SCF energy convergence:            OFF
+  Convergence acceleration:          Pulay's DIIS
+    Criterium for DIIS-start:        1.0e+01
+    sub-space dimension:             15
+  Level-shift:                       OFF
+  Damping:                           OFF
+
+
+  ---------------------------------------------------------------------------------
+                            Exchange-Correlation Functional
+  ---------------------------------------------------------------------------------
+    Exchange: 'Becke 88'
+      Refs.: AD Becke, Phys. Rev. A 38, 3098 (1988)
+    Correlation: 'Lee, Yang & Parr'
+      Refs.: C Lee, W Yang and RG Parr, Phys. Rev. B 37, 785 (1988)
+             B Miehlich, A Savin, H Stoll and H Preuss, Chem. Phys. Lett. 157, 200 (1989)
+  ---------------------------------------------------------------------------------
+    Lebedev/Laikov-Grid: 75 (radial) 302 (angular)
+    - Radial grid-type: M4 (Treutler, Ahlrichs, J. Chem. Phys. 102, 346 (1995)
+    - adaptive number of radial points
+    - max. batch-size: 512
+    Becke-weights: once, store full grid on disk (derivative weights on-the-fly)
+    Becke-weights derivatives: ON
+    Grid-pruning:   1.0e-11
+  ---------------------------------------------------------------------------------
+
+  Generate molecular grid once and save on disk...
+  Finally we have 190072 grid points...
+  ---------------------------------------------------------------------------------
+        Iter            Energy                   Err(DIIS)
+  ---------------------------------------------------------------------------------
+  ITER    0          -154.8479936205              ------
+  Error:    0.0003634
+  Starting Extrapolation of Fock-Matrix!
+  ITER    1          -154.8480130241              3.6345e-04
+  ITER    2          -154.8478767902              4.3328e-04
+  ITER    3          -154.8480070059              5.0856e-05
+  ITER    4          -154.8480142722              1.3124e-05
+  ITER    5          -154.8480145586              4.7373e-06
+  ITER    6          -154.8480146599              4.4142e-07
+  ITER    7          -154.8480146672              8.9903e-08        -- converged! (diis)
+  Final norm of [F,P]_:                      0.0000000288
+
+
+    ***********************************************************
+    *                                                         *
+    *   nuclear repulsion energy:         80.9495965152       *
+    *   1el energy:                     -370.0184437604       *
+    *   Kinetic energy:                  153.2901875245       *
+    *   Elec.-Nuc. energy:              -523.3086312849       *
+    *   Coulomb energy:                  155.7880910716       *
+    *   Exchange energy (alpha):           0.0000000000       *
+    *   Exchange energy (beta):            0.0000000000       *
+    *   KS-DFT(X):                       -20.7152994098       *
+    *   KS-DFT(C):                        -0.8519590820       *
+    *   -----------------------------------------------       *
+    *                                                         *
+    *   SCF energy:                     -154.8480146654 a.u.  *
+    *                                                         *
+    *   SCF energy + dispersion:        -154.8480146654 a.u.  *
+    *                                                         *
+    *   Virial ratio:                     -2.0101626018       *
+    *                                                         *
+    ***********************************************************
+
+
+    ***********************************************************
+    *                                                         *
+    *            --- Polarizable Continuum Model ---          *
+    *                                                         *
+    *   SCF energy:                     -154.8480146654 a.u.  *
+    *                                                         *
+    *   + PCM-electrostatic:             -0.0005016392        *
+    *   -----------------------------------------------       *
+    *                                                         *
+    *   Free energy:                    -154.8485163046 a.u.  *
+    *                                                         *
+    ***********************************************************
+
+  SCF Total:	CPU[s]     243.46   WALL[s]      17.00   STEADY[s]      17.47
+========================================================================================
+                            +++++ Analytical Derivatives +++++
+Fri Mar 14 05:06:20 CET 2014
+========================================================================================
+                            +++++ SCF Force calculation +++++
+
+                 (Forces including PCM-contribution)
+        ++++++++++++++++++++++++++++++++++++++++++++++++++++
+        +            Forces:  SCF energy Gradient          +
+        ++++++++++++++++++++++++++++++++++++++++++++++++++++
+  Atom             x                     y                     z
+   1:        -0.0003010196         -0.0000071078          0.0000067106
+   2:        -0.0013650972          0.0010065177         -0.0000314419
+   3:         0.0003015618         -0.0001987518          0.0002128559
+   4:         0.0003066319         -0.0001855792         -0.0001955587
+   5:        -0.0003835381         -0.0011138596          0.0000285520
+   6:         0.0002487057         -0.0000110043          0.0000819933
+   7:         0.0002537220         -0.0000204584         -0.0001047469
+   8:         0.0012551726          0.0005067884          0.0000064753
+   9:        -0.0003161392          0.0000234549         -0.0000048398
+
+  Derivatives Total:	CPU[s]     117.66   WALL[s]       9.00   STEADY[s]       8.81
+========================================================================================
+                            +++++ (Re)Setup for new Geometry+++++
+Fri Mar 14 05:06:29 CET 2014
+========================================================================================
+  Setting up BCSRptr matrices, but SV_MATRIX_TYPE != MATRIX_BCSR_PTR
+
+  Mat2P: 5184	Mat2C: 5625
+  Vec2P: 2678	Vec2C: 2915
+
+  Initial Guess: use old density for new geometry -- SP2-projection ...done!
+
+  (Re)Setup Total:	CPU[s]       3.81   WALL[s]       1.00   STEADY[s]       0.39
+========================================================================================
+                              +++++ (Re)Setup done +++++
+========================================================================================
+========================================================================================
+                                    +++++ SCF +++++
+Fri Mar 14 05:06:30 CET 2014
+========================================================================================
+  SCF-Diagonalization:               Standard (dsyev)
+  Integral-thresh (Coulomb+Exchange):  1.0e-10
+  Integral-thresh (Coulomb):           1.0e-10
+  Integral-thresh (Exchange):          1.0e-10
+  PreLinK-thresh (Exchange):           1.0e-10
+  Matrix-type:                       Standard (dense)
+  Orthogonalization:                 Loewdin (sym.)
+  SCF convergence criterium:         1.0e-07
+  SCF energy convergence:            OFF
+  Convergence acceleration:          Pulay's DIIS
+    Criterium for DIIS-start:        1.0e+01
+    sub-space dimension:             15
+  Level-shift:                       OFF
+  Damping:                           OFF
+
+
+  ---------------------------------------------------------------------------------
+                            Exchange-Correlation Functional
+  ---------------------------------------------------------------------------------
+    Exchange: 'Becke 88'
+      Refs.: AD Becke, Phys. Rev. A 38, 3098 (1988)
+    Correlation: 'Lee, Yang & Parr'
+      Refs.: C Lee, W Yang and RG Parr, Phys. Rev. B 37, 785 (1988)
+             B Miehlich, A Savin, H Stoll and H Preuss, Chem. Phys. Lett. 157, 200 (1989)
+  ---------------------------------------------------------------------------------
+    Lebedev/Laikov-Grid: 75 (radial) 302 (angular)
+    - Radial grid-type: M4 (Treutler, Ahlrichs, J. Chem. Phys. 102, 346 (1995)
+    - adaptive number of radial points
+    - max. batch-size: 512
+    Becke-weights: once, store full grid on disk (derivative weights on-the-fly)
+    Becke-weights derivatives: ON
+    Grid-pruning:   1.0e-11
+  ---------------------------------------------------------------------------------
+
+  Generate molecular grid once and save on disk...
+  Finally we have 190065 grid points...
+  ---------------------------------------------------------------------------------
+        Iter            Energy                   Err(DIIS)
+  ---------------------------------------------------------------------------------
+  ITER    0          -154.8480197993              ------
+  Error:    0.0003160
+  Starting Extrapolation of Fock-Matrix!
+  ITER    1          -154.8480260073              3.1605e-04
+  ITER    2          -154.8479307168              3.1557e-04
+  ITER    3          -154.8480144806              6.1064e-05
+  ITER    4          -154.8480201658              1.3220e-05
+  ITER    5          -154.8480205807              4.7157e-06
+  ITER    6          -154.8480206801              4.7312e-07
+  ITER    7          -154.8480206862              8.9675e-08        -- converged! (diis)
+  Final norm of [F,P]_:                      0.0000000273
+
+
+    ***********************************************************
+    *                                                         *
+    *   nuclear repulsion energy:         80.9789043186       *
+    *   1el energy:                     -370.0762398118       *
+    *   Kinetic energy:                  153.2934337171       *
+    *   Elec.-Nuc. energy:              -523.3696735289       *
+    *   Coulomb energy:                  155.8173824172       *
+    *   Exchange energy (alpha):           0.0000000000       *
+    *   Exchange energy (beta):            0.0000000000       *
+    *   KS-DFT(X):                       -20.7160589740       *
+    *   KS-DFT(C):                        -0.8520086339       *
+    *   -----------------------------------------------       *
+    *                                                         *
+    *   SCF energy:                     -154.8480206840 a.u.  *
+    *                                                         *
+    *   SCF energy + dispersion:        -154.8480206840 a.u.  *
+    *                                                         *
+    *   Virial ratio:                     -2.0101412496       *
+    *                                                         *
+    ***********************************************************
+
+
+    ***********************************************************
+    *                                                         *
+    *            --- Polarizable Continuum Model ---          *
+    *                                                         *
+    *   SCF energy:                     -154.8480206840 a.u.  *
+    *                                                         *
+    *   + PCM-electrostatic:             -0.0005012850        *
+    *   -----------------------------------------------       *
+    *                                                         *
+    *   Free energy:                    -154.8485219690 a.u.  *
+    *                                                         *
+    ***********************************************************
+
+  SCF Total:	CPU[s]     291.45   WALL[s]      25.00   STEADY[s]      25.20
+========================================================================================
+                            +++++ Analytical Derivatives +++++
+Fri Mar 14 05:06:55 CET 2014
+========================================================================================
+                            +++++ SCF Force calculation +++++
+
+                 (Forces including PCM-contribution)
+        ++++++++++++++++++++++++++++++++++++++++++++++++++++
+        +            Forces:  SCF energy Gradient          +
+        ++++++++++++++++++++++++++++++++++++++++++++++++++++
+  Atom             x                     y                     z
+   1:        -0.0004257579          0.0000849279          0.0000045431
+   2:        -0.0005851849          0.0001715781         -0.0000053619
+   3:         0.0001306915          0.0000391742         -0.0000991969
+   4:         0.0001353930          0.0000417424          0.0000971162
+   5:         0.0000377469         -0.0006090342          0.0000058836
+   6:         0.0002278872         -0.0002052570          0.0002127048
+   7:         0.0002310030         -0.0002048272         -0.0002182528
+   8:         0.0003038851          0.0003998268          0.0000076943
+   9:        -0.0000556638          0.0002818690         -0.0000051304
+
+  Derivatives Total:	CPU[s]      99.06   WALL[s]       8.00   STEADY[s]       8.30
+========================================================================================
+                            +++++ (Re)Setup for new Geometry+++++
+Fri Mar 14 05:07:03 CET 2014
+========================================================================================
+  Setting up BCSRptr matrices, but SV_MATRIX_TYPE != MATRIX_BCSR_PTR
+
+  Mat2P: 5184	Mat2C: 5625
+  Vec2P: 2678	Vec2C: 2915
+
+  Initial Guess: use old density for new geometry -- SP2-projection ...done!
+
+  (Re)Setup Total:	CPU[s]       1.78   WALL[s]       0.00   STEADY[s]       0.14
+========================================================================================
+                              +++++ (Re)Setup done +++++
+========================================================================================
+========================================================================================
+                                    +++++ SCF +++++
+Fri Mar 14 05:07:03 CET 2014
+========================================================================================
+  SCF-Diagonalization:               Standard (dsyev)
+  Integral-thresh (Coulomb+Exchange):  1.0e-10
+  Integral-thresh (Coulomb):           1.0e-10
+  Integral-thresh (Exchange):          1.0e-10
+  PreLinK-thresh (Exchange):           1.0e-10
+  Matrix-type:                       Standard (dense)
+  Orthogonalization:                 Loewdin (sym.)
+  SCF convergence criterium:         1.0e-07
+  SCF energy convergence:            OFF
+  Convergence acceleration:          Pulay's DIIS
+    Criterium for DIIS-start:        1.0e+01
+    sub-space dimension:             15
+  Level-shift:                       OFF
+  Damping:                           OFF
+
+
+  ---------------------------------------------------------------------------------
+                            Exchange-Correlation Functional
+  ---------------------------------------------------------------------------------
+    Exchange: 'Becke 88'
+      Refs.: AD Becke, Phys. Rev. A 38, 3098 (1988)
+    Correlation: 'Lee, Yang & Parr'
+      Refs.: C Lee, W Yang and RG Parr, Phys. Rev. B 37, 785 (1988)
+             B Miehlich, A Savin, H Stoll and H Preuss, Chem. Phys. Lett. 157, 200 (1989)
+  ---------------------------------------------------------------------------------
+    Lebedev/Laikov-Grid: 75 (radial) 302 (angular)
+    - Radial grid-type: M4 (Treutler, Ahlrichs, J. Chem. Phys. 102, 346 (1995)
+    - adaptive number of radial points
+    - max. batch-size: 512
+    Becke-weights: once, store full grid on disk (derivative weights on-the-fly)
+    Becke-weights derivatives: ON
+    Grid-pruning:   1.0e-11
+  ---------------------------------------------------------------------------------
+
+  Generate molecular grid once and save on disk...
+  Finally we have 190062 grid points...
+  ---------------------------------------------------------------------------------
+        Iter            Energy                   Err(DIIS)
+  ---------------------------------------------------------------------------------
+  ITER    0          -154.8480238624              ------
+  Error:    0.0003131
+  Starting Extrapolation of Fock-Matrix!
+  ITER    1          -154.8480307205              3.1309e-04
+  ITER    2          -154.8479366912              3.1191e-04
+  ITER    3          -154.8480189352              6.0918e-05
+  ITER    4          -154.8480245911              1.3108e-05
+  ITER    5          -154.8480249873              4.7016e-06
+  ITER    6          -154.8480250861              4.7758e-07
+  ITER    7          -154.8480250934              8.9823e-08        -- converged! (diis)
+  Final norm of [F,P]_:                      0.0000000272
+
+
+    ***********************************************************
+    *                                                         *
+    *   nuclear repulsion energy:         80.9959649858       *
+    *   1el energy:                     -370.1104989402       *
+    *   Kinetic energy:                  153.2952079305       *
+    *   Elec.-Nuc. energy:              -523.4057068706       *
+    *   Coulomb energy:                  155.8349995302       *
+    *   Exchange energy (alpha):           0.0000000000       *
+    *   Exchange energy (beta):            0.0000000000       *
+    *   KS-DFT(X):                       -20.7164550938       *
+    *   KS-DFT(C):                        -0.8520355730       *
+    *   -----------------------------------------------       *
+    *                                                         *
+    *   SCF energy:                     -154.8480250911 a.u.  *
+    *                                                         *
+    *   SCF energy + dispersion:        -154.8480250911 a.u.  *
+    *                                                         *
+    *   Virial ratio:                     -2.0101295871       *
+    *                                                         *
+    ***********************************************************
+
+
+    ***********************************************************
+    *                                                         *
+    *            --- Polarizable Continuum Model ---          *
+    *                                                         *
+    *   SCF energy:                     -154.8480250911 a.u.  *
+    *                                                         *
+    *   + PCM-electrostatic:             -0.0005011788        *
+    *   -----------------------------------------------       *
+    *                                                         *
+    *   Free energy:                    -154.8485262699 a.u.  *
+    *                                                         *
+    ***********************************************************
+
+  SCF Total:	CPU[s]     285.01   WALL[s]      30.00   STEADY[s]      29.70
+========================================================================================
+                            +++++ Analytical Derivatives +++++
+Fri Mar 14 05:07:33 CET 2014
+========================================================================================
+                            +++++ SCF Force calculation +++++
+
+                 (Forces including PCM-contribution)
+        ++++++++++++++++++++++++++++++++++++++++++++++++++++
+        +            Forces:  SCF energy Gradient          +
+        ++++++++++++++++++++++++++++++++++++++++++++++++++++
+  Atom             x                     y                     z
+   1:        -0.0002555726         -0.0000680046          0.0000034425
+   2:         0.0000822984          0.0000347239          0.0000021579
+   3:        -0.0000710346          0.0001017219         -0.0001722105
+   4:        -0.0000667867          0.0001021435          0.0001655936
+   5:         0.0000363776         -0.0000195968         -0.0000024012
+   6:         0.0001303146         -0.0003287301          0.0002244553
+   7:         0.0001313353         -0.0003239025         -0.0002231514
+   8:        -0.0000624482          0.0001758517          0.0000071985
+   9:         0.0000755163          0.0003257929         -0.0000050847
+
+  Derivatives Total:	CPU[s]     119.88   WALL[s]      11.00   STEADY[s]      10.61
+========================================================================================
+                            +++++ (Re)Setup for new Geometry+++++
+Fri Mar 14 05:07:44 CET 2014
+========================================================================================
+  Setting up BCSRptr matrices, but SV_MATRIX_TYPE != MATRIX_BCSR_PTR
+
+  Mat2P: 5184	Mat2C: 5625
+  Vec2P: 2678	Vec2C: 2915
+
+  Initial Guess: use old density for new geometry -- SP2-projection ...done!
+
+  (Re)Setup Total:	CPU[s]       2.75   WALL[s]       0.00   STEADY[s]       0.36
+========================================================================================
+                              +++++ (Re)Setup done +++++
+========================================================================================
+========================================================================================
+                                    +++++ SCF +++++
+Fri Mar 14 05:07:44 CET 2014
+========================================================================================
+  SCF-Diagonalization:               Standard (dsyev)
+  Integral-thresh (Coulomb+Exchange):  1.0e-10
+  Integral-thresh (Coulomb):           1.0e-10
+  Integral-thresh (Exchange):          1.0e-10
+  PreLinK-thresh (Exchange):           1.0e-10
+  Matrix-type:                       Standard (dense)
+  Orthogonalization:                 Loewdin (sym.)
+  SCF convergence criterium:         1.0e-07
+  SCF energy convergence:            OFF
+  Convergence acceleration:          Pulay's DIIS
+    Criterium for DIIS-start:        1.0e+01
+    sub-space dimension:             15
+  Level-shift:                       OFF
+  Damping:                           OFF
+
+
+  ---------------------------------------------------------------------------------
+                            Exchange-Correlation Functional
+  ---------------------------------------------------------------------------------
+    Exchange: 'Becke 88'
+      Refs.: AD Becke, Phys. Rev. A 38, 3098 (1988)
+    Correlation: 'Lee, Yang & Parr'
+      Refs.: C Lee, W Yang and RG Parr, Phys. Rev. B 37, 785 (1988)
+             B Miehlich, A Savin, H Stoll and H Preuss, Chem. Phys. Lett. 157, 200 (1989)
+  ---------------------------------------------------------------------------------
+    Lebedev/Laikov-Grid: 75 (radial) 302 (angular)
+    - Radial grid-type: M4 (Treutler, Ahlrichs, J. Chem. Phys. 102, 346 (1995)
+    - adaptive number of radial points
+    - max. batch-size: 512
+    Becke-weights: once, store full grid on disk (derivative weights on-the-fly)
+    Becke-weights derivatives: ON
+    Grid-pruning:   1.0e-11
+  ---------------------------------------------------------------------------------
+
+  Generate molecular grid once and save on disk...
+  Finally we have 190061 grid points...
+  ---------------------------------------------------------------------------------
+        Iter            Energy                   Err(DIIS)
+  ---------------------------------------------------------------------------------
+  ITER    0          -154.8480255490              ------
+  Error:    0.0003212
+  Starting Extrapolation of Fock-Matrix!
+  ITER    1          -154.8480308564              3.2117e-04
+  ITER    2          -154.8479299813              3.3446e-04
+  ITER    3          -154.8480196134              5.9259e-05
+  ITER    4          -154.8480258015              1.2110e-05
+  ITER    5          -154.8480261018              4.5843e-06
+  ITER    6          -154.8480262171              4.9503e-07
+  ITER    7          -154.8480262216              8.8295e-08        -- converged! (diis)
+  Final norm of [F,P]_:                      0.0000000250
+
+
+    ***********************************************************
+    *                                                         *
+    *   nuclear repulsion energy:         80.9941040495       *
+    *   1el energy:                     -370.1072036635       *
+    *   Kinetic energy:                  153.2940003711       *
+    *   Elec.-Nuc. energy:              -523.4012040346       *
+    *   Coulomb energy:                  155.8332150872       *
+    *   Exchange energy (alpha):           0.0000000000       *
+    *   Exchange energy (beta):            0.0000000000       *
+    *   KS-DFT(X):                       -20.7161215759       *
+    *   KS-DFT(C):                        -0.8520201168       *
+    *   -----------------------------------------------       *
+    *                                                         *
+    *   SCF energy:                     -154.8480262196 a.u.  *
+    *                                                         *
+    *   SCF energy + dispersion:        -154.8480262196 a.u.  *
+    *                                                         *
+    *   Virial ratio:                     -2.0101375517       *
+    *                                                         *
+    ***********************************************************
+
+
+    ***********************************************************
+    *                                                         *
+    *            --- Polarizable Continuum Model ---          *
+    *                                                         *
+    *   SCF energy:                     -154.8480262196 a.u.  *
+    *                                                         *
+    *   + PCM-electrostatic:             -0.0005004139        *
+    *   -----------------------------------------------       *
+    *                                                         *
+    *   Free energy:                    -154.8485266334 a.u.  *
+    *                                                         *
+    ***********************************************************
+
+  SCF Total:	CPU[s]     232.59   WALL[s]      18.00   STEADY[s]      18.05
+========================================================================================
+                            +++++ Analytical Derivatives +++++
+Fri Mar 14 05:08:02 CET 2014
+========================================================================================
+                            +++++ SCF Force calculation +++++
+
+                 (Forces including PCM-contribution)
+        ++++++++++++++++++++++++++++++++++++++++++++++++++++
+        +            Forces:  SCF energy Gradient          +
+        ++++++++++++++++++++++++++++++++++++++++++++++++++++
+  Atom             x                     y                     z
+   1:        -0.0001198592         -0.0000940660          0.0000024399
+   2:         0.0001252850         -0.0002434749          0.0000092487
+   3:        -0.0001245996          0.0001650434         -0.0001774569
+   4:        -0.0001213057          0.0001626577          0.0001660126
+   5:         0.0001709255         -0.0000368728         -0.0000041843
+   6:         0.0000287939         -0.0001386710         -0.0000359153
+   7:         0.0000274406         -0.0001329548          0.0000385754
+   8:        -0.0000820267          0.0000937466          0.0000060735
+   9:         0.0000953462          0.0002245918         -0.0000047935
+
+  Derivatives Total:	CPU[s]     105.41   WALL[s]       8.00   STEADY[s]       8.29
+========================================================================================
+                            +++++ (Re)Setup for new Geometry+++++
+Fri Mar 14 05:08:10 CET 2014
+========================================================================================
+  Setting up BCSRptr matrices, but SV_MATRIX_TYPE != MATRIX_BCSR_PTR
+
+  Mat2P: 5184	Mat2C: 5625
+  Vec2P: 2678	Vec2C: 2915
+
+  Initial Guess: use old density for new geometry -- SP2-projection ...done!
+
+  (Re)Setup Total:	CPU[s]       2.18   WALL[s]       0.00   STEADY[s]       0.13
+========================================================================================
+                              +++++ (Re)Setup done +++++
+========================================================================================
+========================================================================================
+                                    +++++ SCF +++++
+Fri Mar 14 05:08:10 CET 2014
+========================================================================================
+  SCF-Diagonalization:               Standard (dsyev)
+  Integral-thresh (Coulomb+Exchange):  1.0e-10
+  Integral-thresh (Coulomb):           1.0e-10
+  Integral-thresh (Exchange):          1.0e-10
+  PreLinK-thresh (Exchange):           1.0e-10
+  Matrix-type:                       Standard (dense)
+  Orthogonalization:                 Loewdin (sym.)
+  SCF convergence criterium:         1.0e-07
+  SCF energy convergence:            OFF
+  Convergence acceleration:          Pulay's DIIS
+    Criterium for DIIS-start:        1.0e+01
+    sub-space dimension:             15
+  Level-shift:                       OFF
+  Damping:                           OFF
+
+
+  ---------------------------------------------------------------------------------
+                            Exchange-Correlation Functional
+  ---------------------------------------------------------------------------------
+    Exchange: 'Becke 88'
+      Refs.: AD Becke, Phys. Rev. A 38, 3098 (1988)
+    Correlation: 'Lee, Yang & Parr'
+      Refs.: C Lee, W Yang and RG Parr, Phys. Rev. B 37, 785 (1988)
+             B Miehlich, A Savin, H Stoll and H Preuss, Chem. Phys. Lett. 157, 200 (1989)
+  ---------------------------------------------------------------------------------
+    Lebedev/Laikov-Grid: 75 (radial) 302 (angular)
+    - Radial grid-type: M4 (Treutler, Ahlrichs, J. Chem. Phys. 102, 346 (1995)
+    - adaptive number of radial points
+    - max. batch-size: 512
+    Becke-weights: once, store full grid on disk (derivative weights on-the-fly)
+    Becke-weights derivatives: ON
+    Grid-pruning:   1.0e-11
+  ---------------------------------------------------------------------------------
+
+  Generate molecular grid once and save on disk...
+  Finally we have 190064 grid points...
+  ---------------------------------------------------------------------------------
+        Iter            Energy                   Err(DIIS)
+  ---------------------------------------------------------------------------------
+  ITER    0          -154.8480281168              ------
+  Error:    0.0003119
+  Starting Extrapolation of Fock-Matrix!
+  ITER    1          -154.8480349132              3.1187e-04
+  ITER    2          -154.8479394807              3.1794e-04
+  ITER    3          -154.8480228978              5.9433e-05
+  ITER    4          -154.8480288110              1.2376e-05
+  ITER    5          -154.8480291157              4.6013e-06
+  ITER    6          -154.8480292244              4.9232e-07
+  ITER    7          -154.8480292320              9.0975e-08        -- converged! (diis)
+  Final norm of [F,P]_:                      0.0000000290
+
+
+    ***********************************************************
+    *                                                         *
+    *   nuclear repulsion energy:         80.9877637241       *
+    *   1el energy:                     -370.0958241096       *
+    *   Kinetic energy:                  153.2921763465       *
+    *   Elec.-Nuc. energy:              -523.3880004562       *
+    *   Coulomb energy:                  155.8276283770       *
+    *   Exchange energy (alpha):           0.0000000000       *
+    *   Exchange energy (beta):            0.0000000000       *
+    *   KS-DFT(X):                       -20.7156028148       *
+    *   KS-DFT(C):                        -0.8519944063       *
+    *   -----------------------------------------------       *
+    *                                                         *
+    *   SCF energy:                     -154.8480292298 a.u.  *
+    *                                                         *
+    *   SCF energy + dispersion:        -154.8480292298 a.u.  *
+    *                                                         *
+    *   Virial ratio:                     -2.0101495909       *
+    *                                                         *
+    ***********************************************************
+
+
+    ***********************************************************
+    *                                                         *
+    *            --- Polarizable Continuum Model ---          *
+    *                                                         *
+    *   SCF energy:                     -154.8480292298 a.u.  *
+    *                                                         *
+    *   + PCM-electrostatic:             -0.0005004427        *
+    *   -----------------------------------------------       *
+    *                                                         *
+    *   Free energy:                    -154.8485296724 a.u.  *
+    *                                                         *
+    ***********************************************************
+
+  SCF Total:	CPU[s]     225.78   WALL[s]      16.00   STEADY[s]      15.51
+========================================================================================
+                            +++++ Analytical Derivatives +++++
+Fri Mar 14 05:08:26 CET 2014
+========================================================================================
+                            +++++ SCF Force calculation +++++
+
+                 (Forces including PCM-contribution)
+        ++++++++++++++++++++++++++++++++++++++++++++++++++++
+        +            Forces:  SCF energy Gradient          +
+        ++++++++++++++++++++++++++++++++++++++++++++++++++++
+  Atom             x                     y                     z
+   1:         0.0001296972         -0.0001300230          0.0000022446
+   2:         0.0001769466          0.0004321940         -0.0000229867
+   3:        -0.0001534395         -0.0002092133          0.0002906385
+   4:        -0.0001518550         -0.0001928023         -0.0002729919
+   5:        -0.0001288938          0.0004136975          0.0000068513
+   6:        -0.0000486443         -0.0001346723          0.0000167754
+   7:        -0.0000507924         -0.0001306429         -0.0000197245
+   8:         0.0002429110         -0.0001120551          0.0000034720
+   9:        -0.0000159300          0.0000635174         -0.0000042789
+
+  Derivatives Total:	CPU[s]      79.81   WALL[s]       5.00   STEADY[s]       4.90
+========================================================================================
+                            +++++ (Re)Setup for new Geometry+++++
+Fri Mar 14 05:08:31 CET 2014
+========================================================================================
+  Setting up BCSRptr matrices, but SV_MATRIX_TYPE != MATRIX_BCSR_PTR
+
+  Mat2P: 5184	Mat2C: 5625
+  Vec2P: 2678	Vec2C: 2915
+
+  Initial Guess: use old density for new geometry -- SP2-projection ...done!
+
+  (Re)Setup Total:	CPU[s]       2.33   WALL[s]       0.00   STEADY[s]       0.12
+========================================================================================
+                              +++++ (Re)Setup done +++++
+========================================================================================
+========================================================================================
+                                    +++++ SCF +++++
+Fri Mar 14 05:08:31 CET 2014
+========================================================================================
+  SCF-Diagonalization:               Standard (dsyev)
+  Integral-thresh (Coulomb+Exchange):  1.0e-10
+  Integral-thresh (Coulomb):           1.0e-10
+  Integral-thresh (Exchange):          1.0e-10
+  PreLinK-thresh (Exchange):           1.0e-10
+  Matrix-type:                       Standard (dense)
+  Orthogonalization:                 Loewdin (sym.)
+  SCF convergence criterium:         1.0e-07
+  SCF energy convergence:            OFF
+  Convergence acceleration:          Pulay's DIIS
+    Criterium for DIIS-start:        1.0e+01
+    sub-space dimension:             15
+  Level-shift:                       OFF
+  Damping:                           OFF
+
+
+  ---------------------------------------------------------------------------------
+                            Exchange-Correlation Functional
+  ---------------------------------------------------------------------------------
+    Exchange: 'Becke 88'
+      Refs.: AD Becke, Phys. Rev. A 38, 3098 (1988)
+    Correlation: 'Lee, Yang & Parr'
+      Refs.: C Lee, W Yang and RG Parr, Phys. Rev. B 37, 785 (1988)
+             B Miehlich, A Savin, H Stoll and H Preuss, Chem. Phys. Lett. 157, 200 (1989)
+  ---------------------------------------------------------------------------------
+    Lebedev/Laikov-Grid: 75 (radial) 302 (angular)
+    - Radial grid-type: M4 (Treutler, Ahlrichs, J. Chem. Phys. 102, 346 (1995)
+    - adaptive number of radial points
+    - max. batch-size: 512
+    Becke-weights: once, store full grid on disk (derivative weights on-the-fly)
+    Becke-weights derivatives: ON
+    Grid-pruning:   1.0e-11
+  ---------------------------------------------------------------------------------
+
+  Generate molecular grid once and save on disk...
+  Finally we have 190063 grid points...
+  ---------------------------------------------------------------------------------
+        Iter            Energy                   Err(DIIS)
+  ---------------------------------------------------------------------------------
+  ITER    0          -154.8480282898              ------
+  Error:    0.0003223
+  Starting Extrapolation of Fock-Matrix!
+  ITER    1          -154.8480328719              3.2225e-04
+  ITER    2          -154.8479313499              3.3606e-04
+  ITER    3          -154.8480217374              5.9186e-05
+  ITER    4          -154.8480279415              1.2245e-05
+  ITER    5          -154.8480282475              4.6037e-06
+  ITER    6          -154.8480283591              4.9796e-07
+  ITER    7          -154.8480283641              8.8000e-08        -- converged! (diis)
+  Final norm of [F,P]_:                      0.0000000248
+
+
+    ***********************************************************
+    *                                                         *
+    *   nuclear repulsion energy:         80.9898123834       *
+    *   1el energy:                     -370.0995024948       *
+    *   Kinetic energy:                  153.2922405592       *
+    *   Elec.-Nuc. energy:              -523.3917430541       *
+    *   Coulomb energy:                  155.8293035753       *
+    *   Exchange energy (alpha):           0.0000000000       *
+    *   Exchange energy (beta):            0.0000000000       *
+    *   KS-DFT(X):                       -20.7156440734       *
+    *   KS-DFT(C):                        -0.8519977525       *
+    *   -----------------------------------------------       *
+    *                                                         *
+    *   SCF energy:                     -154.8480283620 a.u.  *
+    *                                                         *
+    *   SCF energy + dispersion:        -154.8480283620 a.u.  *
+    *                                                         *
+    *   Virial ratio:                     -2.0101491621       *
+    *                                                         *
+    ***********************************************************
+
+
+    ***********************************************************
+    *                                                         *
+    *            --- Polarizable Continuum Model ---          *
+    *                                                         *
+    *   SCF energy:                     -154.8480283620 a.u.  *
+    *                                                         *
+    *   + PCM-electrostatic:             -0.0004999247        *
+    *   -----------------------------------------------       *
+    *                                                         *
+    *   Free energy:                    -154.8485282867 a.u.  *
+    *                                                         *
+    ***********************************************************
+
+  SCF Total:	CPU[s]     198.32   WALL[s]      13.00   STEADY[s]      13.10
+========================================================================================
+                            +++++ Analytical Derivatives +++++
+Fri Mar 14 05:08:44 CET 2014
+========================================================================================
+                            +++++ SCF Force calculation +++++
+
+                 (Forces including PCM-contribution)
+        ++++++++++++++++++++++++++++++++++++++++++++++++++++
+        +            Forces:  SCF energy Gradient          +
+        ++++++++++++++++++++++++++++++++++++++++++++++++++++
+  Atom             x                     y                     z
+   1:         0.0000468475         -0.0000418229          0.0000012072
+   2:         0.0000583250          0.0000322360          0.0000020386
+   3:        -0.0000979270         -0.0000459924          0.0001009775
+   4:        -0.0000968601         -0.0000431578         -0.0001047539
+   5:        -0.0000027251          0.0000408888          0.0000014229
+   6:        -0.0000312669         -0.0000143393         -0.0000831007
+   7:        -0.0000345279         -0.0000101783          0.0000824283
+   8:         0.0001122958          0.0000059505          0.0000040527
+   9:         0.0000458388          0.0000764154         -0.0000042728
+
+  Derivatives Total:	CPU[s]      88.29   WALL[s]       6.00   STEADY[s]       5.41
+========================================================================================
+                            +++++ (Re)Setup for new Geometry+++++
+Fri Mar 14 05:08:50 CET 2014
+========================================================================================
+  Setting up BCSRptr matrices, but SV_MATRIX_TYPE != MATRIX_BCSR_PTR
+
+  Mat2P: 5184	Mat2C: 5625
+  Vec2P: 2678	Vec2C: 2915
+
+  Initial Guess: use old density for new geometry -- SP2-projection ...done!
+
+  (Re)Setup Total:	CPU[s]       2.27   WALL[s]       0.00   STEADY[s]       0.35
+========================================================================================
+                              +++++ (Re)Setup done +++++
+========================================================================================
+========================================================================================
+                                    +++++ SCF +++++
+Fri Mar 14 05:08:50 CET 2014
+========================================================================================
+  SCF-Diagonalization:               Standard (dsyev)
+  Integral-thresh (Coulomb+Exchange):  1.0e-10
+  Integral-thresh (Coulomb):           1.0e-10
+  Integral-thresh (Exchange):          1.0e-10
+  PreLinK-thresh (Exchange):           1.0e-10
+  Matrix-type:                       Standard (dense)
+  Orthogonalization:                 Loewdin (sym.)
+  SCF convergence criterium:         1.0e-07
+  SCF energy convergence:            OFF
+  Convergence acceleration:          Pulay's DIIS
+    Criterium for DIIS-start:        1.0e+01
+    sub-space dimension:             15
+  Level-shift:                       OFF
+  Damping:                           OFF
+
+
+  ---------------------------------------------------------------------------------
+                            Exchange-Correlation Functional
+  ---------------------------------------------------------------------------------
+    Exchange: 'Becke 88'
+      Refs.: AD Becke, Phys. Rev. A 38, 3098 (1988)
+    Correlation: 'Lee, Yang & Parr'
+      Refs.: C Lee, W Yang and RG Parr, Phys. Rev. B 37, 785 (1988)
+             B Miehlich, A Savin, H Stoll and H Preuss, Chem. Phys. Lett. 157, 200 (1989)
+  ---------------------------------------------------------------------------------
+    Lebedev/Laikov-Grid: 75 (radial) 302 (angular)
+    - Radial grid-type: M4 (Treutler, Ahlrichs, J. Chem. Phys. 102, 346 (1995)
+    - adaptive number of radial points
+    - max. batch-size: 512
+    Becke-weights: once, store full grid on disk (derivative weights on-the-fly)
+    Becke-weights derivatives: ON
+    Grid-pruning:   1.0e-11
+  ---------------------------------------------------------------------------------
+
+  Generate molecular grid once and save on disk...
+  Finally we have 190063 grid points...
+  ---------------------------------------------------------------------------------
+        Iter            Energy                   Err(DIIS)
+  ---------------------------------------------------------------------------------
+  ITER    0          -154.8480288047              ------
+  Error:    0.0003141
+  Starting Extrapolation of Fock-Matrix!
+  ITER    1          -154.8480343666              3.1405e-04
+  ITER    2          -154.8479380336              3.2016e-04
+  ITER    3          -154.8480225535              5.9653e-05
+  ITER    4          -154.8480284802              1.2501e-05
+  ITER    5          -154.8480287981              4.6220e-06
+  ITER    6          -154.8480289050              4.9474e-07
+  ITER    7          -154.8480289123              8.9319e-08        -- converged! (diis)
+  Final norm of [F,P]_:                      0.0000000265
+
+
+    ***********************************************************
+    *                                                         *
+    *   nuclear repulsion energy:         80.9887877460       *
+    *   1el energy:                     -370.0976629568       *
+    *   Kinetic energy:                  153.2922081613       *
+    *   Elec.-Nuc. energy:              -523.3898711181       *
+    *   Coulomb energy:                  155.8284658068       *
+    *   Exchange energy (alpha):           0.0000000000       *
+    *   Exchange energy (beta):            0.0000000000       *
+    *   KS-DFT(X):                       -20.7156234265       *
+    *   KS-DFT(C):                        -0.8519960794       *
+    *   -----------------------------------------------       *
+    *                                                         *
+    *   SCF energy:                     -154.8480289100 a.u.  *
+    *                                                         *
+    *   SCF energy + dispersion:        -154.8480289100 a.u.  *
+    *                                                         *
+    *   Virial ratio:                     -2.0101493792       *
+    *                                                         *
+    ***********************************************************
+
+
+    ***********************************************************
+    *                                                         *
+    *            --- Polarizable Continuum Model ---          *
+    *                                                         *
+    *   SCF energy:                     -154.8480289100 a.u.  *
+    *                                                         *
+    *   + PCM-electrostatic:             -0.0005001835        *
+    *   -----------------------------------------------       *
+    *                                                         *
+    *   Free energy:                    -154.8485290935 a.u.  *
+    *                                                         *
+    ***********************************************************
+
+  SCF Total:	CPU[s]     243.64   WALL[s]      20.00   STEADY[s]      19.74
+========================================================================================
+                            +++++ Analytical Derivatives +++++
+Fri Mar 14 05:09:10 CET 2014
+========================================================================================
+                            +++++ SCF Force calculation +++++
+
+                 (Forces including PCM-contribution)
+        ++++++++++++++++++++++++++++++++++++++++++++++++++++
+        +            Forces:  SCF energy Gradient          +
+        ++++++++++++++++++++++++++++++++++++++++++++++++++++
+  Atom             x                     y                     z
+   1:         0.0000882609         -0.0000859233          0.0000017266
+   2:         0.0001176118          0.0002322686         -0.0000104885
+   3:        -0.0001256717         -0.0001276409          0.0001958741
+   4:        -0.0001243467         -0.0001180088         -0.0001889252
+   5:        -0.0000658268          0.0002273059          0.0000041358
+   6:        -0.0000399536         -0.0000744950         -0.0000331922
+   7:        -0.0000426585         -0.0000703988          0.0000313828
+   8:         0.0001776331         -0.0000530752          0.0000037624
+   9:         0.0000149514          0.0000699675         -0.0000042759
+
+  Derivatives Total:	CPU[s]     112.35   WALL[s]       9.00   STEADY[s]       9.26
+========================================================================================
+                            +++++ (Re)Setup for new Geometry+++++
+Fri Mar 14 05:09:19 CET 2014
+========================================================================================
+  Setting up BCSRptr matrices, but SV_MATRIX_TYPE != MATRIX_BCSR_PTR
+
+  Mat2P: 5184	Mat2C: 5625
+  Vec2P: 2678	Vec2C: 2915
+
+  Initial Guess: use old density for new geometry -- SP2-projection ...done!
+
+  (Re)Setup Total:	CPU[s]       2.73   WALL[s]       0.00   STEADY[s]       0.36
+========================================================================================
+                              +++++ (Re)Setup done +++++
+========================================================================================
+========================================================================================
+                                    +++++ SCF +++++
+Fri Mar 14 05:09:19 CET 2014
+========================================================================================
+  SCF-Diagonalization:               Standard (dsyev)
+  Integral-thresh (Coulomb+Exchange):  1.0e-10
+  Integral-thresh (Coulomb):           1.0e-10
+  Integral-thresh (Exchange):          1.0e-10
+  PreLinK-thresh (Exchange):           1.0e-10
+  Matrix-type:                       Standard (dense)
+  Orthogonalization:                 Loewdin (sym.)
+  SCF convergence criterium:         1.0e-07
+  SCF energy convergence:            OFF
+  Convergence acceleration:          Pulay's DIIS
+    Criterium for DIIS-start:        1.0e+01
+    sub-space dimension:             15
+  Level-shift:                       OFF
+  Damping:                           OFF
+
+
+  ---------------------------------------------------------------------------------
+                            Exchange-Correlation Functional
+  ---------------------------------------------------------------------------------
+    Exchange: 'Becke 88'
+      Refs.: AD Becke, Phys. Rev. A 38, 3098 (1988)
+    Correlation: 'Lee, Yang & Parr'
+      Refs.: C Lee, W Yang and RG Parr, Phys. Rev. B 37, 785 (1988)
+             B Miehlich, A Savin, H Stoll and H Preuss, Chem. Phys. Lett. 157, 200 (1989)
+  ---------------------------------------------------------------------------------
+    Lebedev/Laikov-Grid: 75 (radial) 302 (angular)
+    - Radial grid-type: M4 (Treutler, Ahlrichs, J. Chem. Phys. 102, 346 (1995)
+    - adaptive number of radial points
+    - max. batch-size: 512
+    Becke-weights: once, store full grid on disk (derivative weights on-the-fly)
+    Becke-weights derivatives: ON
+    Grid-pruning:   1.0e-11
+  ---------------------------------------------------------------------------------
+
+  Generate molecular grid once and save on disk...
+  Finally we have 190063 grid points...
+  ---------------------------------------------------------------------------------
+        Iter            Energy                   Err(DIIS)
+  ---------------------------------------------------------------------------------
+  ITER    0          -154.8480290583              ------
+  Error:    0.0003155
+  Starting Extrapolation of Fock-Matrix!
+  ITER    1          -154.8480344096              3.1549e-04
+  ITER    2          -154.8479371484              3.2294e-04
+  ITER    3          -154.8480226896              5.9595e-05
+  ITER    4          -154.8480286704              1.2456e-05
+  ITER    5          -154.8480289860              4.6196e-06
+  ITER    6          -154.8480290939              4.9550e-07
+  ITER    7          -154.8480291007              8.9099e-08        -- converged! (diis)
+  Final norm of [F,P]_:                      0.0000000261
+
+
+    ***********************************************************
+    *                                                         *
+    *   nuclear repulsion energy:         80.9882756581       *
+    *   1el energy:                     -370.0967432495       *
+    *   Kinetic energy:                  153.2921920649       *
+    *   Elec.-Nuc. energy:              -523.3889353144       *
+    *   Coulomb energy:                  155.8280468283       *
+    *   Exchange energy (alpha):           0.0000000000       *
+    *   Exchange energy (beta):            0.0000000000       *
+    *   KS-DFT(X):                       -20.7156130937       *
+    *   KS-DFT(C):                        -0.8519952417       *
+    *   -----------------------------------------------       *
+    *                                                         *
+    *   SCF energy:                     -154.8480290985 a.u.  *
+    *                                                         *
+    *   SCF energy + dispersion:        -154.8480290985 a.u.  *
+    *                                                         *
+    *   Virial ratio:                     -2.0101494865       *
+    *                                                         *
+    ***********************************************************
+
+
+    ***********************************************************
+    *                                                         *
+    *            --- Polarizable Continuum Model ---          *
+    *                                                         *
+    *   SCF energy:                     -154.8480290985 a.u.  *
+    *                                                         *
+    *   + PCM-electrostatic:             -0.0005003131        *
+    *   -----------------------------------------------       *
+    *                                                         *
+    *   Free energy:                    -154.8485294115 a.u.  *
+    *                                                         *
+    ***********************************************************
+
+  SCF Total:	CPU[s]     262.94   WALL[s]      22.00   STEADY[s]      22.00
+========================================================================================
+                            +++++ Analytical Derivatives +++++
+Fri Mar 14 05:09:41 CET 2014
+========================================================================================
+                            +++++ SCF Force calculation +++++
+
+                 (Forces including PCM-contribution)
+        ++++++++++++++++++++++++++++++++++++++++++++++++++++
+        +            Forces:  SCF energy Gradient          +
+        ++++++++++++++++++++++++++++++++++++++++++++++++++++
+  Atom             x                     y                     z
+   1:         0.0001089871         -0.0001079814          0.0000019858
+   2:         0.0001472707          0.0003322395         -0.0000167410
+   3:        -0.0001395521         -0.0001684272          0.0002432604
+   4:        -0.0001380975         -0.0001554035         -0.0002309594
+   5:        -0.0000973911          0.0003204971          0.0000054934
+   6:        -0.0000442961         -0.0001045765         -0.0000082209
+   7:        -0.0000467227         -0.0001005135          0.0000058419
+   8:         0.0002102878         -0.0000825800          0.0000036171
+   9:        -0.0000004861          0.0000667455         -0.0000042774
+
+  Derivatives Total:	CPU[s]      74.86   WALL[s]       6.00   STEADY[s]       5.39
+========================================================================================
+                            +++++ (Re)Setup for new Geometry+++++
+Fri Mar 14 05:09:47 CET 2014
+========================================================================================
+  Setting up BCSRptr matrices, but SV_MATRIX_TYPE != MATRIX_BCSR_PTR
+
+  Mat2P: 5184	Mat2C: 5625
+  Vec2P: 2678	Vec2C: 2915
+
+  Initial Guess: use old density for new geometry -- SP2-projection ...done!
+
+  (Re)Setup Total:	CPU[s]       2.35   WALL[s]       0.00   STEADY[s]       0.12
+========================================================================================
+                              +++++ (Re)Setup done +++++
+========================================================================================
+========================================================================================
+                                    +++++ SCF +++++
+Fri Mar 14 05:09:47 CET 2014
+========================================================================================
+  SCF-Diagonalization:               Standard (dsyev)
+  Integral-thresh (Coulomb+Exchange):  1.0e-10
+  Integral-thresh (Coulomb):           1.0e-10
+  Integral-thresh (Exchange):          1.0e-10
+  PreLinK-thresh (Exchange):           1.0e-10
+  Matrix-type:                       Standard (dense)
+  Orthogonalization:                 Loewdin (sym.)
+  SCF convergence criterium:         1.0e-07
+  SCF energy convergence:            OFF
+  Convergence acceleration:          Pulay's DIIS
+    Criterium for DIIS-start:        1.0e+01
+    sub-space dimension:             15
+  Level-shift:                       OFF
+  Damping:                           OFF
+
+
+  ---------------------------------------------------------------------------------
+                            Exchange-Correlation Functional
+  ---------------------------------------------------------------------------------
+    Exchange: 'Becke 88'
+      Refs.: AD Becke, Phys. Rev. A 38, 3098 (1988)
+    Correlation: 'Lee, Yang & Parr'
+      Refs.: C Lee, W Yang and RG Parr, Phys. Rev. B 37, 785 (1988)
+             B Miehlich, A Savin, H Stoll and H Preuss, Chem. Phys. Lett. 157, 200 (1989)
+  ---------------------------------------------------------------------------------
+    Lebedev/Laikov-Grid: 75 (radial) 302 (angular)
+    - Radial grid-type: M4 (Treutler, Ahlrichs, J. Chem. Phys. 102, 346 (1995)
+    - adaptive number of radial points
+    - max. batch-size: 512
+    Becke-weights: once, store full grid on disk (derivative weights on-the-fly)
+    Becke-weights derivatives: ON
+    Grid-pruning:   1.0e-11
+  ---------------------------------------------------------------------------------
+
+  Generate molecular grid once and save on disk...
+  Finally we have 190063 grid points...
+  ---------------------------------------------------------------------------------
+        Iter            Energy                   Err(DIIS)
+  ---------------------------------------------------------------------------------
+  ITER    0          -154.8480291547              ------
+  Error:    0.0003162
+  Starting Extrapolation of Fock-Matrix!
+  ITER    1          -154.8480344081              3.1621e-04
+  ITER    2          -154.8479366793              3.2434e-04
+  ITER    3          -154.8480227363              5.9567e-05
+  ITER    4          -154.8480287439              1.2434e-05
+  ITER    5          -154.8480290585              4.6185e-06
+  ITER    6          -154.8480291669              4.9587e-07
+  ITER    7          -154.8480291735              8.8998e-08        -- converged! (diis)
+  Final norm of [F,P]_:                      0.0000000259
+
+
+    ***********************************************************
+    *                                                         *
+    *   nuclear repulsion energy:         80.9880196718       *
+    *   1el energy:                     -370.0962834417       *
+    *   Kinetic energy:                  153.2921840642       *
+    *   Elec.-Nuc. energy:              -523.3884675059       *
+    *   Coulomb energy:                  155.8278373512       *
+    *   Exchange energy (alpha):           0.0000000000       *
+    *   Exchange energy (beta):            0.0000000000       *
+    *   KS-DFT(X):                       -20.7156079299       *
+    *   KS-DFT(C):                        -0.8519948228       *
+    *   -----------------------------------------------       *
+    *                                                         *
+    *   SCF energy:                     -154.8480291713 a.u.  *
+    *                                                         *
+    *   SCF energy + dispersion:        -154.8480291713 a.u.  *
+    *                                                         *
+    *   Virial ratio:                     -2.0101495397       *
+    *                                                         *
+    ***********************************************************
+
+
+    ***********************************************************
+    *                                                         *
+    *            --- Polarizable Continuum Model ---          *
+    *                                                         *
+    *   SCF energy:                     -154.8480291713 a.u.  *
+    *                                                         *
+    *   + PCM-electrostatic:             -0.0005003779        *
+    *   -----------------------------------------------       *
+    *                                                         *
+    *   Free energy:                    -154.8485295491 a.u.  *
+    *                                                         *
+    ***********************************************************
+
+  SCF Total:	CPU[s]     313.73   WALL[s]      34.00   STEADY[s]      33.97
+========================================================================================
+                            +++++ Analytical Derivatives +++++
+Fri Mar 14 05:10:21 CET 2014
+========================================================================================
+                            +++++ SCF Force calculation +++++
+
+                 (Forces including PCM-contribution)
+        ++++++++++++++++++++++++++++++++++++++++++++++++++++
+        +            Forces:  SCF energy Gradient          +
+        ++++++++++++++++++++++++++++++++++++++++++++++++++++
+  Atom             x                     y                     z
+   1:         0.0001193515         -0.0001190097          0.0000021153
+   2:         0.0001621057          0.0003822156         -0.0000198646
+   3:        -0.0001464945         -0.0001888138          0.0002669419
+   4:        -0.0001449751         -0.0001740960         -0.0002519673
+   5:        -0.0001131681          0.0003670903          0.0000061724
+   6:        -0.0000464678         -0.0001196200          0.0000042711
+   7:        -0.0000487552         -0.0001155737         -0.0000069352
+   8:         0.0002266082         -0.0000973270          0.0000035445
+   9:        -0.0000082047          0.0000651343         -0.0000042781
+
+  Derivatives Total:	CPU[s]      98.65   WALL[s]       6.00   STEADY[s]       6.54
+========================================================================================
+                            +++++ (Re)Setup for new Geometry+++++
+Fri Mar 14 05:10:27 CET 2014
+========================================================================================
+  Setting up BCSRptr matrices, but SV_MATRIX_TYPE != MATRIX_BCSR_PTR
+
+  Mat2P: 5184	Mat2C: 5625
+  Vec2P: 2678	Vec2C: 2915
+
+  Initial Guess: use old density for new geometry -- SP2-projection ...done!
+
+  (Re)Setup Total:	CPU[s]       2.28   WALL[s]       1.00   STEADY[s]       0.13
+========================================================================================
+                              +++++ (Re)Setup done +++++
+========================================================================================
+========================================================================================
+                                    +++++ SCF +++++
+Fri Mar 14 05:10:28 CET 2014
+========================================================================================
+  SCF-Diagonalization:               Standard (dsyev)
+  Integral-thresh (Coulomb+Exchange):  1.0e-10
+  Integral-thresh (Coulomb):           1.0e-10
+  Integral-thresh (Exchange):          1.0e-10
+  PreLinK-thresh (Exchange):           1.0e-10
+  Matrix-type:                       Standard (dense)
+  Orthogonalization:                 Loewdin (sym.)
+  SCF convergence criterium:         1.0e-07
+  SCF energy convergence:            OFF
+  Convergence acceleration:          Pulay's DIIS
+    Criterium for DIIS-start:        1.0e+01
+    sub-space dimension:             15
+  Level-shift:                       OFF
+  Damping:                           OFF
+
+
+  ---------------------------------------------------------------------------------
+                            Exchange-Correlation Functional
+  ---------------------------------------------------------------------------------
+    Exchange: 'Becke 88'
+      Refs.: AD Becke, Phys. Rev. A 38, 3098 (1988)
+    Correlation: 'Lee, Yang & Parr'
+      Refs.: C Lee, W Yang and RG Parr, Phys. Rev. B 37, 785 (1988)
+             B Miehlich, A Savin, H Stoll and H Preuss, Chem. Phys. Lett. 157, 200 (1989)
+  ---------------------------------------------------------------------------------
+    Lebedev/Laikov-Grid: 75 (radial) 302 (angular)
+    - Radial grid-type: M4 (Treutler, Ahlrichs, J. Chem. Phys. 102, 346 (1995)
+    - adaptive number of radial points
+    - max. batch-size: 512
+    Becke-weights: once, store full grid on disk (derivative weights on-the-fly)
+    Becke-weights derivatives: ON
+    Grid-pruning:   1.0e-11
+  ---------------------------------------------------------------------------------
+
+  Generate molecular grid once and save on disk...
+  Finally we have 190063 grid points...
+  ---------------------------------------------------------------------------------
+        Iter            Energy                   Err(DIIS)
+  ---------------------------------------------------------------------------------
+  ITER    0          -154.8480291954              ------
+  Error:    0.0003166
+  Starting Extrapolation of Fock-Matrix!
+  ITER    1          -154.8480344016              3.1658e-04
+  ITER    2          -154.8479364382              3.2504e-04
+  ITER    3          -154.8480227544              5.9553e-05
+  ITER    4          -154.8480287754              1.2423e-05
+  ITER    5          -154.8480290894              4.6179e-06
+  ITER    6          -154.8480291980              4.9605e-07
+  ITER    7          -154.8480292046              8.8949e-08        -- converged! (diis)
+  Final norm of [F,P]_:                      0.0000000258
+
+
+    ***********************************************************
+    *                                                         *
+    *   nuclear repulsion energy:         80.9878916931       *
+    *   1el energy:                     -370.0960535500       *
+    *   Kinetic energy:                  153.2921800754       *
+    *   Elec.-Nuc. energy:              -523.3882336254       *
+    *   Coulomb energy:                  155.8277326165       *
+    *   Exchange energy (alpha):           0.0000000000       *
+    *   Exchange energy (beta):            0.0000000000       *
+    *   KS-DFT(X):                       -20.7156053486       *
+    *   KS-DFT(C):                        -0.8519946133       *
+    *   -----------------------------------------------       *
+    *                                                         *
+    *   SCF energy:                     -154.8480292024 a.u.  *
+    *                                                         *
+    *   SCF energy + dispersion:        -154.8480292024 a.u.  *
+    *                                                         *
+    *   Virial ratio:                     -2.0101495662       *
+    *                                                         *
+    ***********************************************************
+
+
+    ***********************************************************
+    *                                                         *
+    *            --- Polarizable Continuum Model ---          *
+    *                                                         *
+    *   SCF energy:                     -154.8480292024 a.u.  *
+    *                                                         *
+    *   + PCM-electrostatic:             -0.0005004103        *
+    *   -----------------------------------------------       *
+    *                                                         *
+    *   Free energy:                    -154.8485296126 a.u.  *
+    *                                                         *
+    ***********************************************************
+
+  SCF Total:	CPU[s]     210.78   WALL[s]      15.00   STEADY[s]      15.28
+========================================================================================
+                            +++++ Analytical Derivatives +++++
+Fri Mar 14 05:10:43 CET 2014
+========================================================================================
+                            +++++ SCF Force calculation +++++
+
+                 (Forces including PCM-contribution)
+        ++++++++++++++++++++++++++++++++++++++++++++++++++++
+        +            Forces:  SCF energy Gradient          +
+        ++++++++++++++++++++++++++++++++++++++++++++++++++++
+  Atom             x                     y                     z
+   1:         0.0001245339         -0.0001245237          0.0000021800
+   2:         0.0001695245          0.0004072013         -0.0000214258
+   3:        -0.0001499663         -0.0001990055          0.0002787797
+   4:        -0.0001484143         -0.0001834410         -0.0002624690
+   5:        -0.0001210553          0.0003903863          0.0000065120
+   6:        -0.0000475538         -0.0001271424          0.0000105187
+   7:        -0.0000497716         -0.0001231046         -0.0000133254
+   8:         0.0002347668         -0.0001046991          0.0000035082
+   9:        -0.0000120639          0.0000643287         -0.0000042785
+
+  Derivatives Total:	CPU[s]      98.57   WALL[s]       7.00   STEADY[s]       6.75
+========================================================================================
+                            +++++ (Re)Setup for new Geometry+++++
+Fri Mar 14 05:10:50 CET 2014
+========================================================================================
+  Setting up BCSRptr matrices, but SV_MATRIX_TYPE != MATRIX_BCSR_PTR
+
+  Mat2P: 5184	Mat2C: 5625
+  Vec2P: 2678	Vec2C: 2915
+
+  Initial Guess: use old density for new geometry -- SP2-projection ...done!
+
+  (Re)Setup Total:	CPU[s]       2.24   WALL[s]       0.00   STEADY[s]       0.12
+========================================================================================
+                              +++++ (Re)Setup done +++++
+========================================================================================
+========================================================================================
+                                    +++++ SCF +++++
+Fri Mar 14 05:10:50 CET 2014
+========================================================================================
+  SCF-Diagonalization:               Standard (dsyev)
+  Integral-thresh (Coulomb+Exchange):  1.0e-10
+  Integral-thresh (Coulomb):           1.0e-10
+  Integral-thresh (Exchange):          1.0e-10
+  PreLinK-thresh (Exchange):           1.0e-10
+  Matrix-type:                       Standard (dense)
+  Orthogonalization:                 Loewdin (sym.)
+  SCF convergence criterium:         1.0e-07
+  SCF energy convergence:            OFF
+  Convergence acceleration:          Pulay's DIIS
+    Criterium for DIIS-start:        1.0e+01
+    sub-space dimension:             15
+  Level-shift:                       OFF
+  Damping:                           OFF
+
+
+  ---------------------------------------------------------------------------------
+                            Exchange-Correlation Functional
+  ---------------------------------------------------------------------------------
+    Exchange: 'Becke 88'
+      Refs.: AD Becke, Phys. Rev. A 38, 3098 (1988)
+    Correlation: 'Lee, Yang & Parr'
+      Refs.: C Lee, W Yang and RG Parr, Phys. Rev. B 37, 785 (1988)
+             B Miehlich, A Savin, H Stoll and H Preuss, Chem. Phys. Lett. 157, 200 (1989)
+  ---------------------------------------------------------------------------------
+    Lebedev/Laikov-Grid: 75 (radial) 302 (angular)
+    - Radial grid-type: M4 (Treutler, Ahlrichs, J. Chem. Phys. 102, 346 (1995)
+    - adaptive number of radial points
+    - max. batch-size: 512
+    Becke-weights: once, store full grid on disk (derivative weights on-the-fly)
+    Becke-weights derivatives: ON
+    Grid-pruning:   1.0e-11
+  ---------------------------------------------------------------------------------
+
+  Generate molecular grid once and save on disk...
+  Finally we have 190063 grid points...
+  ---------------------------------------------------------------------------------
+        Iter            Energy                   Err(DIIS)
+  ---------------------------------------------------------------------------------
+  ITER    0          -154.8480292138              ------
+  Error:    0.0003168
+  Starting Extrapolation of Fock-Matrix!
+  ITER    1          -154.8480343969              3.1676e-04
+  ITER    2          -154.8479363159              3.2539e-04
+  ITER    3          -154.8480227621              5.9546e-05
+  ITER    4          -154.8480287897              1.2417e-05
+  ITER    5          -154.8480291035              4.6177e-06
+  ITER    6          -154.8480292122              4.9614e-07
+  ITER    7          -154.8480292188              8.8925e-08        -- converged! (diis)
+  Final norm of [F,P]_:                      0.0000000258
+
+
+    ***********************************************************
+    *                                                         *
+    *   nuclear repulsion energy:         80.9878277074       *
+    *   1el energy:                     -370.0959386068       *
+    *   Kinetic energy:                  153.2921780842       *
+    *   Elec.-Nuc. energy:              -523.3881166910       *
+    *   Coulomb energy:                  155.8276802496       *
+    *   Exchange energy (alpha):           0.0000000000       *
+    *   Exchange energy (beta):            0.0000000000       *
+    *   KS-DFT(X):                       -20.7156040582       *
+    *   KS-DFT(C):                        -0.8519945086       *
+    *   -----------------------------------------------       *
+    *                                                         *
+    *   SCF energy:                     -154.8480292165 a.u.  *
+    *                                                         *
+    *   SCF energy + dispersion:        -154.8480292165 a.u.  *
+    *                                                         *
+    *   Virial ratio:                     -2.0101495794       *
+    *                                                         *
+    ***********************************************************
+
+
+    ***********************************************************
+    *                                                         *
+    *            --- Polarizable Continuum Model ---          *
+    *                                                         *
+    *   SCF energy:                     -154.8480292165 a.u.  *
+    *                                                         *
+    *   + PCM-electrostatic:             -0.0005004265        *
+    *   -----------------------------------------------       *
+    *                                                         *
+    *   Free energy:                    -154.8485296430 a.u.  *
+    *                                                         *
+    ***********************************************************
+
+  SCF Total:	CPU[s]     230.99   WALL[s]      14.00   STEADY[s]      14.09
+========================================================================================
+                            +++++ Analytical Derivatives +++++
+Fri Mar 14 05:11:04 CET 2014
+========================================================================================
+                            +++++ SCF Force calculation +++++
+
+                 (Forces including PCM-contribution)
+        ++++++++++++++++++++++++++++++++++++++++++++++++++++
+        +            Forces:  SCF energy Gradient          +
+        ++++++++++++++++++++++++++++++++++++++++++++++++++++
+  Atom             x                     y                     z
+   1:         0.0001271253         -0.0001272807          0.0000022123
+   2:         0.0001732342          0.0004196935         -0.0000222062
+   3:        -0.0001517024         -0.0002041009          0.0002846979
+   4:        -0.0001501341         -0.0001881133         -0.0002677193
+   5:        -0.0001249986          0.0004020342          0.0000066818
+   6:        -0.0000480968         -0.0001309037          0.0000136428
+   7:        -0.0000502798         -0.0001268702         -0.0000165208
+   8:         0.0002388456         -0.0001083848          0.0000034900
+   9:        -0.0000139934          0.0000639259         -0.0000042786
+
+  Derivatives Total:	CPU[s]      75.44   WALL[s]       5.00   STEADY[s]       4.83
+========================================================================================
+                            +++++ (Re)Setup for new Geometry+++++
+Fri Mar 14 05:11:09 CET 2014
+========================================================================================
+  Setting up BCSRptr matrices, but SV_MATRIX_TYPE != MATRIX_BCSR_PTR
+
+  Mat2P: 5184	Mat2C: 5625
+  Vec2P: 2678	Vec2C: 2915
+
+  Initial Guess: use old density for new geometry -- SP2-projection ...done!
+
+  (Re)Setup Total:	CPU[s]       2.40   WALL[s]       0.00   STEADY[s]       0.12
+========================================================================================
+                              +++++ (Re)Setup done +++++
+========================================================================================
+========================================================================================
+                                    +++++ SCF +++++
+Fri Mar 14 05:11:09 CET 2014
+========================================================================================
+  SCF-Diagonalization:               Standard (dsyev)
+  Integral-thresh (Coulomb+Exchange):  1.0e-10
+  Integral-thresh (Coulomb):           1.0e-10
+  Integral-thresh (Exchange):          1.0e-10
+  PreLinK-thresh (Exchange):           1.0e-10
+  Matrix-type:                       Standard (dense)
+  Orthogonalization:                 Loewdin (sym.)
+  SCF convergence criterium:         1.0e-07
+  SCF energy convergence:            OFF
+  Convergence acceleration:          Pulay's DIIS
+    Criterium for DIIS-start:        1.0e+01
+    sub-space dimension:             15
+  Level-shift:                       OFF
+  Damping:                           OFF
+
+
+  ---------------------------------------------------------------------------------
+                            Exchange-Correlation Functional
+  ---------------------------------------------------------------------------------
+    Exchange: 'Becke 88'
+      Refs.: AD Becke, Phys. Rev. A 38, 3098 (1988)
+    Correlation: 'Lee, Yang & Parr'
+      Refs.: C Lee, W Yang and RG Parr, Phys. Rev. B 37, 785 (1988)
+             B Miehlich, A Savin, H Stoll and H Preuss, Chem. Phys. Lett. 157, 200 (1989)
+  ---------------------------------------------------------------------------------
+    Lebedev/Laikov-Grid: 75 (radial) 302 (angular)
+    - Radial grid-type: M4 (Treutler, Ahlrichs, J. Chem. Phys. 102, 346 (1995)
+    - adaptive number of radial points
+    - max. batch-size: 512
+    Becke-weights: once, store full grid on disk (derivative weights on-the-fly)
+    Becke-weights derivatives: ON
+    Grid-pruning:   1.0e-11
+  ---------------------------------------------------------------------------------
+
+  Generate molecular grid once and save on disk...
+  Finally we have 190063 grid points...
+  ---------------------------------------------------------------------------------
+        Iter            Energy                   Err(DIIS)
+  ---------------------------------------------------------------------------------
+  ITER    0          -154.8480292224              ------
+  Error:    0.0003169
+  Starting Extrapolation of Fock-Matrix!
+  ITER    1          -154.8480343942              3.1685e-04
+  ITER    2          -154.8479362543              3.2556e-04
+  ITER    3          -154.8480227656              5.9543e-05
+  ITER    4          -154.8480287965              1.2415e-05
+  ITER    5          -154.8480291102              4.6175e-06
+  ITER    6          -154.8480292189              4.9619e-07
+  ITER    7          -154.8480292255              8.8913e-08        -- converged! (diis)
+  Final norm of [F,P]_:                      0.0000000258
+
+
+    ***********************************************************
+    *                                                         *
+    *   nuclear repulsion energy:         80.9877957154       *
+    *   1el energy:                     -370.0958811356       *
+    *   Kinetic energy:                  153.2921770890       *
+    *   Elec.-Nuc. energy:              -523.3880582246       *
+    *   Coulomb energy:                  155.8276540662       *
+    *   Exchange energy (alpha):           0.0000000000       *
+    *   Exchange energy (beta):            0.0000000000       *
+    *   KS-DFT(X):                       -20.7156034130       *
+    *   KS-DFT(C):                        -0.8519944562       *
+    *   -----------------------------------------------       *
+    *                                                         *
+    *   SCF energy:                     -154.8480292232 a.u.  *
+    *                                                         *
+    *   SCF energy + dispersion:        -154.8480292232 a.u.  *
+    *                                                         *
+    *   Virial ratio:                     -2.0101495860       *
+    *                                                         *
+    ***********************************************************
+
+
+    ***********************************************************
+    *                                                         *
+    *            --- Polarizable Continuum Model ---          *
+    *                                                         *
+    *   SCF energy:                     -154.8480292232 a.u.  *
+    *                                                         *
+    *   + PCM-electrostatic:             -0.0005004346        *
+    *   -----------------------------------------------       *
+    *                                                         *
+    *   Free energy:                    -154.8485296578 a.u.  *
+    *                                                         *
+    ***********************************************************
+
+  SCF Total:	CPU[s]     258.83   WALL[s]      23.00   STEADY[s]      22.61
+========================================================================================
+                            +++++ Analytical Derivatives +++++
+Fri Mar 14 05:11:32 CET 2014
+========================================================================================
+                            +++++ SCF Force calculation +++++
+
+                 (Forces including PCM-contribution)
+        ++++++++++++++++++++++++++++++++++++++++++++++++++++
+        +            Forces:  SCF energy Gradient          +
+        ++++++++++++++++++++++++++++++++++++++++++++++++++++
+  Atom             x                     y                     z
+   1:         0.0001284209         -0.0001286591          0.0000022285
+   2:         0.0001750892          0.0004259395         -0.0000225963
+   3:        -0.0001525704         -0.0002066485          0.0002876568
+   4:        -0.0001509940         -0.0001904493         -0.0002703443
+   5:        -0.0001269701          0.0004078580          0.0000067667
+   6:        -0.0000483683         -0.0001327844          0.0000152050
+   7:        -0.0000505340         -0.0001287530         -0.0000181187
+   8:         0.0002408849         -0.0001102275          0.0000034810
+   9:        -0.0000149582          0.0000637244         -0.0000042787
+
+  Derivatives Total:	CPU[s]      91.89   WALL[s]       6.00   STEADY[s]       6.79
+========================================================================================
+                            +++++ (Re)Setup for new Geometry+++++
+Fri Mar 14 05:11:38 CET 2014
+========================================================================================
+  Setting up BCSRptr matrices, but SV_MATRIX_TYPE != MATRIX_BCSR_PTR
+
+  Mat2P: 5184	Mat2C: 5625
+  Vec2P: 2678	Vec2C: 2915
+
+  Initial Guess: use old density for new geometry -- SP2-projection ...done!
+
+  (Re)Setup Total:	CPU[s]       7.42   WALL[s]       1.00   STEADY[s]       0.58
+========================================================================================
+                              +++++ (Re)Setup done +++++
+========================================================================================
+========================================================================================
+                                    +++++ SCF +++++
+Fri Mar 14 05:11:39 CET 2014
+========================================================================================
+  SCF-Diagonalization:               Standard (dsyev)
+  Integral-thresh (Coulomb+Exchange):  1.0e-10
+  Integral-thresh (Coulomb):           1.0e-10
+  Integral-thresh (Exchange):          1.0e-10
+  PreLinK-thresh (Exchange):           1.0e-10
+  Matrix-type:                       Standard (dense)
+  Orthogonalization:                 Loewdin (sym.)
+  SCF convergence criterium:         1.0e-07
+  SCF energy convergence:            OFF
+  Convergence acceleration:          Pulay's DIIS
+    Criterium for DIIS-start:        1.0e+01
+    sub-space dimension:             15
+  Level-shift:                       OFF
+  Damping:                           OFF
+
+
+  ---------------------------------------------------------------------------------
+                            Exchange-Correlation Functional
+  ---------------------------------------------------------------------------------
+    Exchange: 'Becke 88'
+      Refs.: AD Becke, Phys. Rev. A 38, 3098 (1988)
+    Correlation: 'Lee, Yang & Parr'
+      Refs.: C Lee, W Yang and RG Parr, Phys. Rev. B 37, 785 (1988)
+             B Miehlich, A Savin, H Stoll and H Preuss, Chem. Phys. Lett. 157, 200 (1989)
+  ---------------------------------------------------------------------------------
+    Lebedev/Laikov-Grid: 75 (radial) 302 (angular)
+    - Radial grid-type: M4 (Treutler, Ahlrichs, J. Chem. Phys. 102, 346 (1995)
+    - adaptive number of radial points
+    - max. batch-size: 512
+    Becke-weights: once, store full grid on disk (derivative weights on-the-fly)
+    Becke-weights derivatives: ON
+    Grid-pruning:   1.0e-11
+  ---------------------------------------------------------------------------------
+
+  Generate molecular grid once and save on disk...
+  Finally we have 190063 grid points...
+  ---------------------------------------------------------------------------------
+        Iter            Energy                   Err(DIIS)
+  ---------------------------------------------------------------------------------
+  ITER    0          -154.8480292267              ------
+  Error:    0.0003169
+  Starting Extrapolation of Fock-Matrix!
+  ITER    1          -154.8480343927              3.1690e-04
+  ITER    2          -154.8479362234              3.2565e-04
+  ITER    3          -154.8480227673              5.9541e-05
+  ITER    4          -154.8480287998              1.2413e-05
+  ITER    5          -154.8480291135              4.6175e-06
+  ITER    6          -154.8480292222              4.9621e-07
+  ITER    7          -154.8480292287              8.8907e-08        -- converged! (diis)
+  Final norm of [F,P]_:                      0.0000000258
+
+
+    ***********************************************************
+    *                                                         *
+    *   nuclear repulsion energy:         80.9877797197       *
+    *   1el energy:                     -370.0958524004       *
+    *   Kinetic energy:                  153.2921765917       *
+    *   Elec.-Nuc. energy:              -523.3880289920       *
+    *   Coulomb energy:                  155.8276409746       *
+    *   Exchange energy (alpha):           0.0000000000       *
+    *   Exchange energy (beta):            0.0000000000       *
+    *   KS-DFT(X):                       -20.7156030904       *
+    *   KS-DFT(C):                        -0.8519944300       *
+    *   -----------------------------------------------       *
+    *                                                         *
+    *   SCF energy:                     -154.8480292265 a.u.  *
+    *                                                         *
+    *   SCF energy + dispersion:        -154.8480292265 a.u.  *
+    *                                                         *
+    *   Virial ratio:                     -2.0101495893       *
+    *                                                         *
+    ***********************************************************
+
+
+    ***********************************************************
+    *                                                         *
+    *            --- Polarizable Continuum Model ---          *
+    *                                                         *
+    *   SCF energy:                     -154.8480292265 a.u.  *
+    *                                                         *
+    *   + PCM-electrostatic:             -0.0005004386        *
+    *   -----------------------------------------------       *
+    *                                                         *
+    *   Free energy:                    -154.8485296651 a.u.  *
+    *                                                         *
+    ***********************************************************
+
+  SCF Total:	CPU[s]     241.16   WALL[s]      19.00   STEADY[s]      18.96
+========================================================================================
+                            +++++ Analytical Derivatives +++++
+Fri Mar 14 05:11:58 CET 2014
+========================================================================================
+                            +++++ SCF Force calculation +++++
+
+                 (Forces including PCM-contribution)
+        ++++++++++++++++++++++++++++++++++++++++++++++++++++
+        +            Forces:  SCF energy Gradient          +
+        ++++++++++++++++++++++++++++++++++++++++++++++++++++
+  Atom             x                     y                     z
+   1:         0.0001290688         -0.0001293484          0.0000022366
+   2:         0.0001760167          0.0004290625         -0.0000227914
+   3:        -0.0001530044         -0.0002079223          0.0002891362
+   4:        -0.0001514240         -0.0001916173         -0.0002716567
+   5:        -0.0001279559          0.0004107700          0.0000068091
+   6:        -0.0000485041         -0.0001337248          0.0000159861
+   7:        -0.0000506610         -0.0001296944         -0.0000189176
+   8:         0.0002419045         -0.0001111489          0.0000034764
+   9:        -0.0000154406          0.0000636237         -0.0000042788
+
+  Derivatives Total:	CPU[s]      82.77   WALL[s]       5.00   STEADY[s]       5.29
+========================================================================================
+                            +++++ (Re)Setup for new Geometry+++++
+Fri Mar 14 05:12:03 CET 2014
+========================================================================================
+  Setting up BCSRptr matrices, but SV_MATRIX_TYPE != MATRIX_BCSR_PTR
+
+  Mat2P: 5184	Mat2C: 5625
+  Vec2P: 2678	Vec2C: 2915
+
+  Initial Guess: use old density for new geometry -- SP2-projection ...done!
+
+  (Re)Setup Total:	CPU[s]       2.40   WALL[s]       0.00   STEADY[s]       0.12
+========================================================================================
+                              +++++ (Re)Setup done +++++
+========================================================================================
+========================================================================================
+                                    +++++ SCF +++++
+Fri Mar 14 05:12:03 CET 2014
+========================================================================================
+  SCF-Diagonalization:               Standard (dsyev)
+  Integral-thresh (Coulomb+Exchange):  1.0e-10
+  Integral-thresh (Coulomb):           1.0e-10
+  Integral-thresh (Exchange):          1.0e-10
+  PreLinK-thresh (Exchange):           1.0e-10
+  Matrix-type:                       Standard (dense)
+  Orthogonalization:                 Loewdin (sym.)
+  SCF convergence criterium:         1.0e-07
+  SCF energy convergence:            OFF
+  Convergence acceleration:          Pulay's DIIS
+    Criterium for DIIS-start:        1.0e+01
+    sub-space dimension:             15
+  Level-shift:                       OFF
+  Damping:                           OFF
+
+
+  ---------------------------------------------------------------------------------
+                            Exchange-Correlation Functional
+  ---------------------------------------------------------------------------------
+    Exchange: 'Becke 88'
+      Refs.: AD Becke, Phys. Rev. A 38, 3098 (1988)
+    Correlation: 'Lee, Yang & Parr'
+      Refs.: C Lee, W Yang and RG Parr, Phys. Rev. B 37, 785 (1988)
+             B Miehlich, A Savin, H Stoll and H Preuss, Chem. Phys. Lett. 157, 200 (1989)
+  ---------------------------------------------------------------------------------
+    Lebedev/Laikov-Grid: 75 (radial) 302 (angular)
+    - Radial grid-type: M4 (Treutler, Ahlrichs, J. Chem. Phys. 102, 346 (1995)
+    - adaptive number of radial points
+    - max. batch-size: 512
+    Becke-weights: once, store full grid on disk (derivative weights on-the-fly)
+    Becke-weights derivatives: ON
+    Grid-pruning:   1.0e-11
+  ---------------------------------------------------------------------------------
+
+  Generate molecular grid once and save on disk...
+  Finally we have 190063 grid points...
+  ---------------------------------------------------------------------------------
+        Iter            Energy                   Err(DIIS)
+  ---------------------------------------------------------------------------------
+  ITER    0          -154.8480292288              ------
+  Error:    0.0003169
+  Starting Extrapolation of Fock-Matrix!
+  ITER    1          -154.8480343920              3.1692e-04
+  ITER    2          -154.8479362080              3.2569e-04
+  ITER    3          -154.8480227681              5.9540e-05
+  ITER    4          -154.8480288015              1.2413e-05
+  ITER    5          -154.8480291151              4.6174e-06
+  ITER    6          -154.8480292239              4.9622e-07
+  ITER    7          -154.8480292304              8.8904e-08        -- converged! (diis)
+  Final norm of [F,P]_:                      0.0000000258
+
+
+    ***********************************************************
+    *                                                         *
+    *   nuclear repulsion energy:         80.9877717218       *
+    *   1el energy:                     -370.0958380328       *
+    *   Kinetic energy:                  153.2921763430       *
+    *   Elec.-Nuc. energy:              -523.3880143758       *
+    *   Coulomb energy:                  155.8276344288       *
+    *   Exchange energy (alpha):           0.0000000000       *
+    *   Exchange energy (beta):            0.0000000000       *
+    *   KS-DFT(X):                       -20.7156029291       *
+    *   KS-DFT(C):                        -0.8519944169       *
+    *   -----------------------------------------------       *
+    *                                                         *
+    *   SCF energy:                     -154.8480292281 a.u.  *
+    *                                                         *
+    *   SCF energy + dispersion:        -154.8480292281 a.u.  *
+    *                                                         *
+    *   Virial ratio:                     -2.0101495909       *
+    *                                                         *
+    ***********************************************************
+
+
+    ***********************************************************
+    *                                                         *
+    *            --- Polarizable Continuum Model ---          *
+    *                                                         *
+    *   SCF energy:                     -154.8480292281 a.u.  *
+    *                                                         *
+    *   + PCM-electrostatic:             -0.0005004406        *
+    *   -----------------------------------------------       *
+    *                                                         *
+    *   Free energy:                    -154.8485296688 a.u.  *
+    *                                                         *
+    ***********************************************************
+
+  SCF Total:	CPU[s]     347.81   WALL[s]      34.00   STEADY[s]      33.82
+========================================================================================
+                            +++++ Analytical Derivatives +++++
+Fri Mar 14 05:12:37 CET 2014
+========================================================================================
+                            +++++ SCF Force calculation +++++
+
+                 (Forces including PCM-contribution)
+        ++++++++++++++++++++++++++++++++++++++++++++++++++++
+        +            Forces:  SCF energy Gradient          +
+        ++++++++++++++++++++++++++++++++++++++++++++++++++++
+  Atom             x                     y                     z
+   1:         0.0001293927         -0.0001296930          0.0000022406
+   2:         0.0001764805          0.0004306239         -0.0000228889
+   3:        -0.0001532215         -0.0002085592          0.0002898759
+   4:        -0.0001516390         -0.0001922013         -0.0002723130
+   5:        -0.0001284487          0.0004122259          0.0000068304
+   6:        -0.0000485720         -0.0001341950          0.0000163767
+   7:        -0.0000507245         -0.0001301652         -0.0000193171
+   8:         0.0002424143         -0.0001116096          0.0000034741
+   9:        -0.0000156818          0.0000635734         -0.0000042788
+
+  Derivatives Total:	CPU[s]     107.98   WALL[s]       8.00   STEADY[s]       7.85
+ Energy calculation finished, energy: -1.548460418E+02
+Testing convergence  in cycle    1
+  Max grad  2.5940E-02 Target: 1.0000E-04 converged?   no component    25
+  RMS grad  8.2900E-03 Target: 6.6667E-05 converged?   no
+ Predicted step length 2.0000E-02
+ Trust radius          1.0000E-01
+ Energy calculation finished, energy: -1.548467218E+02
+Testing convergence  in cycle    2
+    Energy  6.8001E-04 Target: 1.0000E-07 converged?   no
+  Max step  1.2044E-02 Target: 4.0000E-04 converged?   no component    25
+  RMS step  3.8490E-03 Target: 2.6667E-04 converged?   no
+  Max grad  1.5319E-02 Target: 1.0000E-04 converged?   no component    25
+  RMS grad  5.2840E-03 Target: 6.6667E-05 converged?   no
+ Predicted step length 4.5632E-02
+ Trust radius          2.0000E-01
+ Energy calculation finished, energy: -1.548474870E+02
+Testing convergence  in cycle    3
+    Energy  7.6524E-04 Target: 1.0000E-07 converged?   no
+  Max step  2.3855E-02 Target: 4.0000E-04 converged?   no component    23
+  RMS step  8.7818E-03 Target: 2.6667E-04 converged?   no
+  Max grad  8.0603E-03 Target: 1.0000E-04 converged?   no component    22
+  RMS grad  2.5024E-03 Target: 6.6667E-05 converged?   no
+ Predicted step length 3.2285E-02
+ Trust radius          4.0000E-01
+ Energy calculation finished, energy: -1.548477462E+02
+Testing convergence  in cycle    4
+    Energy  2.5920E-04 Target: 1.0000E-07 converged?   no
+  Max step  1.3398E-02 Target: 4.0000E-04 converged?   no component    25
+  RMS step  6.2132E-03 Target: 2.6667E-04 converged?   no
+  Max grad  5.3581E-03 Target: 1.0000E-04 converged?   no component    22
+  RMS grad  1.7832E-03 Target: 6.6667E-05 converged?   no
+ Predicted step length 3.9492E-02
+ Trust radius          5.0000E-01
+ Energy calculation finished, energy: -1.548479339E+02
+Testing convergence  in cycle    5
+    Energy  1.8772E-04 Target: 1.0000E-07 converged?   no
+  Max step  2.0529E-02 Target: 4.0000E-04 converged?   no component    25
+  RMS step  7.6002E-03 Target: 2.6667E-04 converged?   no
+  Max grad  2.5549E-03 Target: 1.0000E-04 converged?   no component    26
+  RMS grad  9.3144E-04 Target: 6.6667E-05 converged?   no
+ Predicted step length 3.1779E-02
+ Trust radius          5.0000E-01
+ Energy calculation finished, energy: -1.548479916E+02
+Testing convergence  in cycle    6
+    Energy  5.7639E-05 Target: 1.0000E-07 converged?   no
+  Max step  1.8908E-02 Target: 4.0000E-04 converged?   no component    25
+  RMS step  6.1159E-03 Target: 2.6667E-04 converged?   no
+  Max grad  2.1189E-03 Target: 1.0000E-04 converged?   no component     5
+  RMS grad  9.3801E-04 Target: 6.6667E-05 converged?   no
+ Predicted step length 1.5339E-02
+ Trust radius          5.0000E-01
+ Energy calculation finished, energy: -1.548480147E+02
+Testing convergence  in cycle    7
+    Energy  2.3082E-05 Target: 1.0000E-07 converged?   no
+  Max step  7.0827E-03 Target: 4.0000E-04 converged?   no component    26
+  RMS step  2.9521E-03 Target: 2.6667E-04 converged?   no
+  Max grad  1.3651E-03 Target: 1.0000E-04 converged?   no component     4
+  RMS grad  5.0099E-04 Target: 6.6667E-05 converged?   no
+ Predicted step length 4.6771E-03
+ Trust radius          5.0000E-01
+ Energy calculation finished, energy: -1.548480207E+02
+Testing convergence  in cycle    8
+    Energy  6.0186E-06 Target: 1.0000E-07 converged?   no
+  Max step  2.5139E-03 Target: 4.0000E-04 converged?   no component     4
+  RMS step  9.0011E-04 Target: 2.6667E-04 converged?   no
+  Max grad  6.0903E-04 Target: 1.0000E-04 converged?   no component    14
+  RMS grad  2.4403E-04 Target: 6.6667E-05 converged?   no
+ Predicted step length 6.0746E-03
+ Trust radius          5.0000E-01
+ Energy calculation finished, energy: -1.548480251E+02
+Testing convergence  in cycle    9
+    Energy  4.4071E-06 Target: 1.0000E-07 converged?   no
+  Max step  2.8016E-03 Target: 4.0000E-04 converged?   no component     4
+  RMS step  1.1691E-03 Target: 2.6667E-04 converged?   no
+  Max grad  3.2873E-04 Target: 1.0000E-04 converged?   no component    17
+  RMS grad  1.5648E-04 Target: 6.6667E-05 converged?   no
+ Predicted step length 5.4617E-03
+ Trust radius          5.0000E-01
+ Energy calculation finished, energy: -1.548480262E+02
+Testing convergence  in cycle   10
+    Energy  1.1285E-06 Target: 1.0000E-07 converged?   no
+  Max step  3.0667E-03 Target: 4.0000E-04 converged?   no component    26
+  RMS step  1.0511E-03 Target: 2.6667E-04 converged?   no
+  Max grad  2.4347E-04 Target: 1.0000E-04 converged?   no component     5
+  RMS grad  1.1991E-04 Target: 6.6667E-05 converged?   no
+ Predicted step length 5.7567E-03
+ Trust radius          5.0000E-01
+ Energy calculation finished, energy: -1.548480292E+02
+Testing convergence  in cycle   11
+    Energy  3.0102E-06 Target: 1.0000E-07 converged?   no
+  Max step  3.3193E-03 Target: 4.0000E-04 converged?   no component    26
+  RMS step  1.1079E-03 Target: 2.6667E-04 converged?   no
+  Max grad  4.3219E-04 Target: 1.0000E-04 converged?   no component     5
+  RMS grad  1.7674E-04 Target: 6.6667E-05 converged?   no
+ Predicted step length 1.3629E-03
+ Trust radius          5.0000E-01
+ Energy calculation finished, energy: -1.548480284E+02
+ Rejecting step, energy  8.678E-07 higher
+ Energy calculation finished, energy: -1.548480289E+02
+ Rejecting step, energy  3.198E-07 higher
+ Energy calculation finished, energy: -1.548480291E+02
+ Rejecting step, energy  1.313E-07 higher
+ Energy calculation finished, energy: -1.548480292E+02
+ Rejecting step, energy  5.850E-08 higher
+ Energy calculation finished, energy: -1.548480292E+02
+ Rejecting step, energy  2.742E-08 higher
+ Energy calculation finished, energy: -1.548480292E+02
+ Rejecting step, energy  1.325E-08 higher
+ Energy calculation finished, energy: -1.548480292E+02
+ Rejecting step, energy  6.573E-09 higher
+ Energy calculation finished, energy: -1.548480292E+02
+ Rejecting step, energy  3.276E-09 higher
+ Energy calculation finished, energy: -1.548480292E+02
+ Rejecting step, energy  1.640E-09 higher
+Stopping: maximum number of cycles reached
+ NOT CONVERGED
+
+DL-FIND Report:
+===============
+Optimisation algorithm: L-BFGS
+Number of steps in L-BFGS memory ...............      20000
+
+Trust radius based on energy
+Maximum step length ............................  5.000E-01
+
+Coordinate system: Cartesian coordinates
+
+Number of atoms ................................          9
+Number of input geometries .....................          1
+Variables to be optimised ......................         27
+Restart information is written every ...........          5 steps
+This run has not been restarted.
+Number of energy evaluations on this processor .         20
+Number of steps ................................         20
+Number of accepted steps / line searches .......         11
+
+  Coordinates in Angstrom:
+  ----------------------------------------------------------------------------
+     Atom       OZ           x                y                z
+  ----------------------------------------------------------------------------
+        1  H        1     -2.15578560       0.43345353       0.00007704
+        2  C        6     -1.27353397      -0.23804751      -0.00023980
+        3  H        1     -1.32650177      -0.88841992       0.89572293
+        4  H        1     -1.32670339      -0.88790804      -0.89651144
+        5  C        6      0.02370271       0.56974414      -0.00013294
+        6  H        1      0.04657458       1.23852586      -0.89783912
+        7  H        1      0.04636961       1.23870908       0.89744615
+        8  O        8      1.12101968      -0.34704613       0.00005254
+        9  H        1      1.94448096       0.17732483      -0.00075089
+  ----------------------------------------------------------------------------
+
+    == Final Optimized Geometry ==
+  Coordinates in Angstrom:
+  ----------------------------------------------------------------------------
+     Atom       OZ           x                y                z
+  ----------------------------------------------------------------------------
+        1  H        1     -2.15578560       0.43345353       0.00007704
+        2  C        6     -1.27353397      -0.23804751      -0.00023980
+        3  H        1     -1.32650177      -0.88841992       0.89572293
+        4  H        1     -1.32670339      -0.88790804      -0.89651144
+        5  C        6      0.02370271       0.56974414      -0.00013294
+        6  H        1      0.04657458       1.23852586      -0.89783912
+        7  H        1      0.04636961       1.23870908       0.89744615
+        8  O        8      1.12101968      -0.34704613       0.00005254
+        9  H        1      1.94448096       0.17732483      -0.00075089
+  ----------------------------------------------------------------------------
+
+========================================================================================
+                             +++++ Wave function Analysis+++++
+Fri Mar 14 05:12:45 CET 2014
+========================================================================================
+  No. of Orbitals:    72   No. of occ. Orbitals:    13   No. of virt. Orbitals:    59
+
+  == Orbital Energies ==
+
+  Occupied:
+    -18.7690183   -9.9669656   -9.9145288   -0.8965534   -0.6544936   -0.5276279
+     -0.4496073   -0.3981187   -0.3407192   -0.3279008   -0.3067936   -0.2716241
+     -0.2067502
+
+  Virtual:
+      0.0250691    0.0603208    0.0922850    0.0945630    0.1142618    0.1381716
+      0.1663661    0.2001200    0.3943012    0.4108276    0.4296014    0.4559790
+      0.5362378
+
+
+    ***********************************************************
+    *                     POPULATION ANALYSIS                 *
+    ***********************************************************
+
+              Atom            Charge
+          -----------------------------------------------
+               H           -0.0084330
+               C            0.0254142
+               H            0.0071557
+               H            0.0071284
+               C            0.1557617
+               H           -0.0284552
+               H           -0.0284479
+               O           -0.2778172
+               H            0.1476934
+          -----------------------------------------------
+              Sum           -0.0000000
+
+  Calculate multipole moments to 3. order...
+
+
+    ***********************************************************
+    *                CARTESIAN MULTIPOLE MOMENTS              *
+    *                     (DebyeAngst^Order)                  *
+    ***********************************************************
+
+    Charge               (0. Order)
+  -----------------------------------
+              -0.0000000
+  -----------------------------------------------------------------------
+
+    Dipole moments       (1. order)
+  -----------------------------------
+        x      0.2860720         y     1.3521641         z    -0.0013922
+   Result      1.3820951
+  -----------------------------------------------------------------------
+
+    Quadrupole moments   (2. order)
+  -----------------------------------
+       xx    -17.2207951        xy     1.7888160        xz    -0.0029890
+       yy    -20.5765043        yz    -0.0003748        zz   -20.2184977
+  -----------------------------------------------------------------------
+
+    Octapole moments     (3. order)
+  -----------------------------------
+      xxx     18.6462243       xxy     2.0373927       xxz    -0.0024312
+      xyy      2.4483165       xyz    -0.0004840       xzz     2.7475045
+      yyy     -2.7337347       yyz     0.0032761       yzz    -1.0586358
+      zzz      0.0080758                                  
+  -----------------------------------------------------------------------
+
+
+  Analyse Total:	CPU[s]       0.05   WALL[s]       0.00   STEADY[s]       0.00
+
+========================================================================================
+                              +++++ Calculation done +++++
+========================================================================================
+  Total:	CPU[s]    7394.56   WALL[s]     641.00   STEADY[s]     641.25
+
+bye...
+
+Fri Mar 14 05:12:45 CET 2014
+
+
+Timing report
+=============
+Module                                      CPU time            Wall clock time
+Total .................................  7913.663 (100.00%)   639.163 (100.00%) seconds
+Energy and Gradient ...................  7913.183 ( 99.99%)   639.130 ( 99.99%) seconds
+Step direction ........................     0.035 (  0.00%)     0.003 (  0.00%) seconds
+Coordinate transformation .............     0.019 (  0.00%)     0.002 (  0.00%) seconds
+Checkpoint file I/O ...................     0.230 (  0.00%)     0.012 (  0.00%) seconds
+XYZ-file I/O ..........................     0.000 (  0.00%)     0.000 (  0.00%) seconds
+Maximum memory usage ........................... 8.7522E+03 kB

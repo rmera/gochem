@@ -32,8 +32,8 @@ import (
 	"fmt"
 	"github.com/rmera/gochem"
 	"os"
-//	"os/exec"
-//	"strconv"
+	"os/exec"
+	"strconv"
 	"strings"
 )
 
@@ -85,7 +85,7 @@ func (O *FermionsHandle) SetCommand(name string) {
 func (O *FermionsHandle) SetDefaults() {
 	O.defmethod = "revpbe"
 	O.defbasis = "def2-svp"
-	O.command = ""
+	O.command = "qccalc"
 	O.inputname = "gochem"
 	O.gpu=""
 
@@ -176,30 +176,23 @@ func (O *FermionsHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, 
 	return nil
 }
 
-/*********
+
 //Run runs the command given by the string O.command
 //it waits or not for the result depending on wait.
 //Not waiting for results works
 //only for unix-compatible systems, as it uses bash and nohup.
 func (O *FermionsHandle) Run(wait bool) (err error) {
 	if wait == true {
-		out, err := os.Create(fmt.Sprintf("%s.out", O.inputname))
-		if err != nil {
-			return err
-		}
-		defer out.Close()
-		command := exec.Command(O.command, fmt.Sprintf("%s.nw", O.inputname))
-		command.Stdout = out
+		command := exec.Command(O.command, fmt.Sprintf("%s.in", O.inputname), fmt.Sprintf("%s.out",O.inputname))
 		err = command.Run()
 
 	} else {
 		//This will not work in windows.
-		command := exec.Command("sh", "-c", "nohup "+O.command+fmt.Sprintf(" %s.nw > %s.out &", O.inputname, O.inputname))
+		command := exec.Command("sh", "-c", "nohup "+O.command+fmt.Sprintf(" %s.in > %s.out &", O.inputname, O.inputname))
 		err = command.Start()
 	}
 	return err
 }
-*******/
 
 var fermionsDisp = map[string]string{
 	"":       "",
@@ -235,54 +228,40 @@ var fermionsMethods = map[string]string{
 	"b-lyp":    "EXC XC_GGA_X_B88\n ECORR XC_GGA_C_LYP",
 }
 
-/****************************************************
+/*
 //Reads the latest geometry from an Fermions++ optimization. Returns the
-//geometry or error. Returns the geometry AND error if the geometry read
-//is not the product of a correctly ended Fermions++ calculation. In this case
-//the error is "probable problem in calculation".
+//geometry or error. 
 func (O *FermionsHandle) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error) {
 	var err2 error
-	lastnumber := 0
-	lastname := ""
-	if !O.nwchemNormalTermination() {
-		err2 = fmt.Errorf("Probable problem in calculation")
+	if !O.fermionsNormalTermination() {
+		return nil, fmt.Errorf("Probable problem in calculation")
 	}
-	dir, err := os.Open("./")
-	if err != nil {
-		return nil, err
+	//The following is kinda clumsy and should be replaced for a better thing which looks for
+	//the convergency signal instead of the not-convergency one. Right now I dont know
+	//what is that signal for FermiONs++.
+	if searchFromEnd("NOT CONVERGED",fmt.Sprintf("%s.out",O.inputname)){
+		err2=fmt.Errorf("Probable problem in calculation")
 	}
-	files, err := dir.Readdirnames(-1)
-	if err != nil {
-		return nil, err
+	trj,err:=dcd.New(fmt.Sprintf("%s.dcd",O.inputname))
+	if err!=nil{
+		return nil, fmt.Errorf("Probable problem in calculation %", err)
 	}
-	//This is a crappy sort/filter, but really, it will never be the bottleneck.
-	//We go over the dir content and look for xyz files with the name of the input and without
-	// the susbstring _prev. Among these, we choose the file with the largest number in the filename
-	//(which will be the latest geometry written) and return that geometry.
-	for _, v := range files {
-		//quite ugly, feel free to fix.
-		if !(strings.Contains(v, O.inputname) && strings.Contains(v, ".xyz") && !strings.Contains(v, "_prev")) {
-			continue
+	ret := chem.ZeroVecs(trj.Len())
+	for {
+		err := trj.Next(ret)
+		if err != nil && err.Error() != "No more frames" {
+			return nil, fmt.Errorf("Probable problem in calculation %", err)
+		} else {
+			break
 		}
-		numbers := strings.Split(strings.Replace(v, ".xyz", "", 1), "-")
-		ndx, err := strconv.Atoi(numbers[len(numbers)-1])
-		if err != nil {
-			continue
-		}
-		if ndx >= lastnumber {
-			lastnumber = ndx
-			lastname = v
-		}
+
 	}
-	if lastname == "" {
-		return nil, fmt.Errorf("Geometry not found")
-	}
-	mol, err := chem.XYZRead(lastname)
-	if err != nil {
-		return nil, err
-	}
-	return mol.Coords[0], err2
+	return ret, err2
+
+
 }
+
+*/
 
 //Gets the energy of a previous Fermions++ calculation.
 //Returns error if problem, and also if the energy returned that is product of an
@@ -303,12 +282,12 @@ func (O *FermionsHandle) Energy() (float64, error) {
 		if err1 != nil {
 			return 0.0, err1
 		}
-		if strings.Contains(line, "CITATION") {
+		if strings.Contains(line, "Timing report") {
 			err = nil
 		}
-		if strings.Contains(line, "Total DFT energy") {
+		if strings.Contains(line, "    *   Free energy:  ") {
 			splitted := strings.Fields(line)
-			energy, err1 = strconv.ParseFloat(splitted[len(splitted)-1], 64)
+			energy, err1 = strconv.ParseFloat(splitted[len(splitted)-3], 64)
 			if err1 != nil {
 				return 0.0, err1
 			}
@@ -323,10 +302,20 @@ func (O *FermionsHandle) Energy() (float64, error) {
 }
 
 //This checks that an Fermions++ calculation has terminated normally
-//I know this duplicates code, I wrote this one first and then the other one.
-func (O *FermionsHandle) nwchemNormalTermination() bool {
+//Notice that this function will succeed whenever FermiONs++ exists
+//correctly. In the case of a geometry optimization, this DOES NOT
+//mean that the optimization converged (as opposed to, the NWChem 
+//interface, whose the equivalent function will return true ONLY 
+//if the optimization converged)
+func (O *FermionsHandle) fermionsNormalTermination() bool {
+	return searchFromEnd("Timing report",fmt.Sprintf("%s.out", O.inputname))
+}
+
+//This will return true if the templa string is present in the file filename
+//which is seached from the end.
+func searchFromEnd(templa, filename string) bool {
 	ret := false
-	f, err1 := os.Open(fmt.Sprintf("%s.out", O.inputname))
+	f, err1 := os.Open(filename)
 	if err1 != nil {
 		return false
 	}
@@ -337,7 +326,7 @@ func (O *FermionsHandle) nwchemNormalTermination() bool {
 		if err1 != nil {
 			return false
 		}
-		if strings.Contains(line, "CITATION") {
+		if strings.Contains(line, templa) {
 			ret = true
 			break
 		}
@@ -345,4 +334,3 @@ func (O *FermionsHandle) nwchemNormalTermination() bool {
 	return ret
 }
 
-**********/
