@@ -133,7 +133,7 @@ func (O *FermionsHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, 
 		dloptions=fmt.Sprintf("*start::dlfind\n JOB std\n method l-bfgs\n trust_radius energy\n dcd %s.dcd\n maxcycle 300\n maxene 200\n coord_type cartesian\n*end\n",O.inputname)
 		//Only cartesian constraints supported by now.
 		if len(Q.CConstraints) > 0 {
-			dloptions=fmt.Sprintf("%s\n*start::dlconstraints\n",dloptions)
+			dloptions=fmt.Sprintf("%s\n*start::dlf_constraints\n",dloptions)
 			for _,v:=range(Q.CConstraints){
 				dloptions=fmt.Sprintf("%s cart %d\n",dloptions,v+1) //fortran numbering, starts with 1.
 			}
