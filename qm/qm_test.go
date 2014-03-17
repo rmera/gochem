@@ -220,16 +220,16 @@ func TestFermions(Te *testing.T) {
 	}
 	err = cs.BuildInput(atoms, mol, calc)
 	defer os.Chdir(original_dir)
-	E,err:=cs.Energy()
-	if err!=nil{
+	E, err := cs.Energy()
+	if err != nil {
 		Te.Error(err)
 	}
-	fmt.Println("Final energy:", E,"kcal/mol")
-//	ngeo,err:=cs.OptimizedGeometry(mol)
-//	if err!=nil{
-//		fmt.Println("Error with the geometry?: ", err.Error())
-//	}
-//	chem.XYZWrite("LastGeoFermions.xyz",ngeo,mol)
+	fmt.Println("Final energy:", E, "kcal/mol")
+	//	ngeo,err:=cs.OptimizedGeometry(mol)
+	//	if err!=nil{
+	//		fmt.Println("Error with the geometry?: ", err.Error())
+	//	}
+	//	chem.XYZWrite("LastGeoFermions.xyz",ngeo,mol)
 	fmt.Println("Passed FermiONs++ test!")
 }
 
