@@ -1,7 +1,7 @@
 To the long life of the Ven. Khenpo Phuntzok Tenzin Rinpoche.
 
 
-goChem is a library fro Computational Chemistry and Biochemistry
+goChem is a library for Computational Chemistry and Biochemistry
 written in the Go programming language. 
 
 Check out www.gochem.org for more information.
@@ -39,7 +39,7 @@ Current capabilities.
 
 1.  Reads/writes PDB and XYZ files.
 
-2.   Reads XTC and DCD files, both sequentially and concurrently.
+2.  Reads XTC and DCD files, both sequentially and concurrently.
 
 3.  Superimposes molecules (especially adequate for non-proteins since  
 	doesn't use sequence information). The user specify what 
