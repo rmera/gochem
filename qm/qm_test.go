@@ -193,6 +193,45 @@ func TesstTurbo(Te *testing.T) {
 	fmt.Println("end TurboTest!")
 }
 
+func TestFermions(Te *testing.T) {
+	mol, err := chem.XYZRead("../test/ethanol.xyz")
+	if err != nil {
+		Te.Error(err)
+	}
+	if err := mol.Corrupted(); err != nil {
+		Te.Error(err)
+	}
+	mol.SetCharge(0)
+	mol.SetMulti(1)
+	calc := new(Calc)
+	calc.Optimize = true
+	calc.Method = "BLYP"
+	calc.Dielectric = 4
+	calc.Basis = "def2-SVP"
+	calc.Grid = 4
+	calc.Disperssion = "D3"
+	calc.CConstraints = []int{0, 10, 20}
+	cs := NewFermionsHandle()
+	cs.SetName("gochemF")
+	atoms := mol.Coords[0]
+	original_dir, _ := os.Getwd() //will check in a few lines
+	if err = os.Chdir("../test"); err != nil {
+		Te.Error(err)
+	}
+	err = cs.BuildInput(atoms, mol, calc)
+	defer os.Chdir(original_dir)
+	E, err := cs.Energy()
+	if err != nil {
+		Te.Error(err)
+	}
+	fmt.Println("Final energy:", E, "kcal/mol")
+	//	ngeo,err:=cs.OptimizedGeometry(mol)
+	//	if err!=nil{
+	//		fmt.Println("Error with the geometry?: ", err.Error())
+	//	}
+	//	chem.XYZWrite("LastGeoFermions.xyz",ngeo,mol)
+	fmt.Println("Passed FermiONs++ test!")
+}
 
 func qderror_handler(err error, Te *testing.T) {
 	if err != nil {
