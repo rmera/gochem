@@ -121,3 +121,18 @@ type Ref interface {
 	ReadRef
 	WriteRef
 }
+
+
+type TrajError interface{
+	Error() string
+	FileName() int
+	Fromat() string
+}
+
+//Errors
+type LastFrameError interface{
+	TrajError
+	NormalLastFrameTermination()  //does nothing, just to separate this interface from other TrajError's 
+
+}
+

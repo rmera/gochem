@@ -250,7 +250,7 @@ func (D *DCDObj) nextRaw(blocks [][]float32) error {
 	D.new = false
 	if D.readLast {
 		D.readable = false
-		return fmt.Errorf("No more frames")
+		return newlastFrameError(D.filename) 
 	}
 	//if there is an extra block we just skip it.
 	//Sadly, even when there is an extra block, it is not present in all
@@ -371,7 +371,7 @@ func (D *DCDObj) eOF2NoMoreFrames(err error) error {
 		return nil
 	}
 	if err.Error() == "EOF" {
-		return fmt.Errorf("No more frames")
+		return newlastFrameError(D.filename)
 	}
 	return err
 }
@@ -440,3 +440,38 @@ func (D *DCDObj) NextConc(frames []*chem.VecMatrix) ([]chan *chem.VecMatrix, err
 	}
 	return framechans, nil
 }
+
+
+
+
+//Errors
+
+type lastFrameError struct {
+	fileName string
+}
+
+
+func (E *lastFrameError) Error() string {
+	return fmt.Sprintf("No More Frames: Last frame in dcd trajectory from file %10s reached", E.fileName)
+}
+
+func (E *lastFrameError) Format() string {
+	return "dcd"
+}
+
+
+func (E *lastFrameError) FileName() string{
+	return E.fileName
+}
+
+func (E *lastFrameError) NormalLastFrameTermination() {
+}
+
+
+
+func newlastFrameError(filename string) *lastFrameError{
+	e:=new(lastFrameError)
+	e.fileName=filename
+	return e
+}
+

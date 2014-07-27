@@ -109,13 +109,13 @@ func (X *XTCObj) Next(output *chem.VecMatrix) error {
 	worked := C.get_coords(X.fp, &X.cCoords[0], cnatoms)
 	if worked == 11 {
 		X.readable = false
-		return fmt.Errorf("No more frames") //This is not really an error and should be catched in the calling function
+		return newlastFrameError(X.filename) //This is not really an error and should be catched in the calling function
 	}
 	if worked != 0 {
 		X.readable = false
 		return fmt.Errorf("Error reading frame")
 	}
-	if output != nil { //collect the frame
+	if output != nil { //col the frame
 		r, c := output.Dims()
 		if r < (X.natoms) {
 			panic("VecMatrix too small!")
@@ -173,10 +173,10 @@ func (X *XTCObj) NextConc(frames []*chem.VecMatrix) ([]chan *chem.VecMatrix, err
 		if worked == 11 {
 			if used == false {
 				X.readable = false
-				return nil, fmt.Errorf("No more frames") //This is not really an error and
+				return nil, newlastFrameError(X.filename) //This is not really an error and
 			} else { //should be catched in the calling function
 				X.readable = false
-				return framechans, fmt.Errorf("No more frames") //same
+				return framechans, newlastFrameError(X.filename) //same
 			}
 		}
 		if worked != 0 {
@@ -209,3 +209,36 @@ func (X *XTCObj) NextConc(frames []*chem.VecMatrix) ([]chan *chem.VecMatrix, err
 func (X *XTCObj) Len() int {
 	return X.natoms
 }
+
+
+//Errors
+
+type lastFrameError struct {
+	fileName string
+}
+
+
+func (E *lastFrameError) Error() string {
+	return fmt.Sprintf("No More Frames: Last frame in xtc trajectory from file %10s reached", E.fileName)
+}
+
+func (E *lastFrameError) Format() string {
+	return "xtc"
+}
+
+
+func (E *lastFrameError) FileName() string{
+	return E.fileName
+}
+
+func (E *lastFrameError) NormalLastFrameTermination(){
+}
+
+
+
+func newlastFrameError(filename string) *lastFrameError{
+	e:=new(lastFrameError)
+	e.fileName=filename
+	return e
+}
+

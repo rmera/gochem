@@ -74,7 +74,7 @@ func Super(test, templa *VecMatrix, testlst, templalst []int) (*VecMatrix, error
 			}
 		}
 	}
-	fmt.Println(lists[0])
+	//fmt.Println(lists[0])
 	if len(lists[0]) != len(lists[1]) {
 		return nil, fmt.Errorf("Mismatched template and test atom numbers: %d, %d", len(lists[1]), len(lists[0]))
 	}
