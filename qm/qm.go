@@ -56,7 +56,7 @@ type Handle interface {
 	//output. Returns error if fail. Returns Error ("Probable problem
 	//in calculation") if there is a geometry but the calculation didnt
 	//end properly*
-	OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error)
+	OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error) /*NOTICE: The "Probable problem..." error should have a type, and should report the program used. Also, chem.Ref is probably not needed here. Atomer is probably enough*/
 }
 
 type IntConstraint struct {

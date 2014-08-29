@@ -87,9 +87,11 @@ type ReadRef interface {
 	//Changes to these atoms affect the original molecule.
 	//The charge and multiplicity (unpaired electrons) for the molecule is just the one
 	//for the parent reference and its not guarranteed to be correct.
-	SomeAtoms(Atomer, []int)
+	SomeAtoms(Atomer, []int)  /*NOTICE: This method can probably be removed, as it doesn't seem to be used by any function that asks for a ReadRef*/
 }
 
+
+/*NOTICE: This whole interface can probably be removed, It appears that it is not used*/
 type WriteRef interface {
 	//Copy atoms in A into the received. This is a deep copy, so the received must have at least as many atoms as A
 	CopyAtoms(A Atomer)
@@ -117,6 +119,7 @@ type WriteRef interface {
 //Ref (reference) is an interface for any description of the type of atoms in a molecule,
 //i.e. every characteristic of them, except for the coordinates and b-factors.
 //Read-write reference
+/*NOTICE: WriteRef may be removed, which means that Ref would be removed too.*/
 type Ref interface {
 	ReadRef
 	WriteRef

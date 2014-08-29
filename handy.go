@@ -271,7 +271,7 @@ func MakeWater(a1, a2 *VecMatrix, distance, angle float64, oxygen bool) *VecMatr
 
 //This function will put the internal numbering+1 in the atoms and residue fields, so they match the current residues/atoms
 //in the molecule
-func FixNumbering(r Ref) {
+func FixNumbering(r Ref) {   /*NOTICE: Ref is not needed here, only the Len and Atom methods are used. Will chance for Atomer*/
 	resid := 0
 	prevres := -1
 	for i := 0; i < r.Len(); i++ {
@@ -504,7 +504,7 @@ func MergeAtomers(A, B Atomer) (*Topology, error) {
 			full[k] = B.Atom(k - al)
 		}
 	}
-	a, aok := A.(ReadRef)
+	a, aok := A.(ReadRef)   /*NOTICE: Here we use only the Charge and Multi methods of ReadRef. Maybe the other method can be removed from the interface or a new interface can be created.*/
 	b, bok := B.(ReadRef)
 	var charge, multi int
 	if aok && bok {
