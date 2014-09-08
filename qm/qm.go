@@ -30,7 +30,7 @@ package qm
 
 import "github.com/rmera/gochem"
 
-//This allows to set QM calculations using different programs.
+//This allows to set QM calculations using different programs. /*NOTICE: Handle could be divided in Handle and handle+ReadData (the latter would included Energy and OptimizedGeometry). Even Run could be taken away from Handle, so we have 2-3 interfaces. The user can build his/her own combination interfaces. Unfortunately, I think Handle is protected by the API promise, so we may make a workaround or postpone the change until November*/
 type Handle interface {
 
 	//Sets the name for the job, used for input
