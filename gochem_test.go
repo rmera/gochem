@@ -99,6 +99,23 @@ func TestChangeAxis(Te *testing.T) {
 	fmt.Println("bench1")
 }
 
+
+
+func TestMoldidNameChain2Index(Te *testing.T) {
+	//runtime.GOMAXPROCS(2) ///////////////////////////
+	mol, err := PDBRead("test/2c9v.pdb", true)
+	if err != nil {
+		Te.Error(err)
+	}
+	index,err:=MolidNameChain2Index(mol, 46, "ND1", "A")
+	if err != nil {
+		Te.Error(err)
+	}
+	fmt.Println("this should print the index and the Atom object for H46, chain A: ", index, mol.Atom(index))
+
+}
+
+
 //TestOldChangeAxis reads the PDB 2c9v.pdb from the test directory, collects
 //The CA and CB of residue D124 of the chain A, and rotates the
 //whole molecule such as the vector defined by these 2 atoms is

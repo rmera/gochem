@@ -47,6 +47,38 @@ func Molecules2Atoms(mol Atomer, residues []int, chains []string) []int {
 
 }
 
+
+//This functions takes a molid (residue number), atom name, chain index and a molecule Ref.
+//it returns the index associated with the atom in question in the Ref. The function returns also an error (if failure of warning)
+// or nil (if succses and no warnings). Note that this function is not efficient to call several times to retrieve many atoms. 
+func MolidNameChain2Index(mol Ref, molid int, name, chain string) (int,error) {
+	var ret int = -1 
+	var err error
+	if mol==nil{
+		return -1, fmt.Errorf("Given a nil chem.Ref")
+	}
+	for i := 0; i != mol.Len(); i++ {
+		a := mol.Atom(i)
+		if a.Name=="" && err==nil{
+			err=fmt.Errorf("Warning: The Ref does not seem to contain PDB-type information") //We set this error but will still keep running the function in case the data is present later in the molecule.
+		}
+		if (a.Molid == molid && a.Name == name && a.Chain==chain) {
+			ret=i
+			break
+		}
+
+	}
+	if ret==-1{
+		var p string
+		if err!=nil{
+			p=err.Error()
+		}
+		err=fmt.Errorf("%s.  No atomic index found in the Ref given for the given MolID, atom name and chain.", p)
+	}
+	return ret, err
+}
+
+
 //Ones mass returns a column matrix with lenght rosw.
 //This matrix can be used as a dummy mass matrix
 //for geometric calculations.
