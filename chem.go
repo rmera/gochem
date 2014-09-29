@@ -519,7 +519,7 @@ func (M *Molecule) Next(V *VecMatrix) error {
 	if M.current >= len(M.Coords) {
 		return newlastFrameError("", len(M.Coords)-1)
 	}
-	fmt.Println("CURR", M.current, len(M.Coords), V.NVecs(), M.Coords[M.current].NVecs()) ////////////////
+//	fmt.Println("CURR", M.current, len(M.Coords), V.NVecs(), M.Coords[M.current].NVecs()) ////////////////
 	M.current++
 	if V == nil {
 		return nil
@@ -581,7 +581,7 @@ type lastFrameError struct {
 }
 
 func (E *lastFrameError) Error() string {
-	return fmt.Sprintf("No More Frames: Last frame in mol-based trajectory from file %10s reached at frame %10d", E.fileName, E.frame)
+	return fmt.Sprintf("No more frames") //: Last frame in mol-based trajectory from file %10s reached at frame %10d", E.fileName, E.frame)
 }
 
 func (E *lastFrameError) Format() string {
