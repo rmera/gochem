@@ -65,6 +65,11 @@ func basicRamaPlot(title string) (*plot.Plot, error) {
 
 }
 
+
+// RamaPlotParts produces plots, in png format for the ramachandran data (phi and psi dihedrals)
+// contained in data. Data points in tag (maximun 4) are highlighted in the plot.
+// the extension must be included in plotname. Returns an error or nil. In RamaPlotParts
+// The data is divided in several slices, where each is represented differently in the plot
 func RamaPlotParts(data [][][]float64, tag [][]int, title, plotname string) error {
 	var err error
 	if data == nil {
@@ -206,9 +211,9 @@ func colorsOld(key, steps int) (r, g, b uint8) {
 	return r, g, b
 }
 
-/*Produce plots, in png format for the ramachandran data (psi and phi dihedrals)
-  contained in data. Data points in tag (maximun 4) are highlighted in the plot.
-  the extension must be included in plotname. Returns an error or nil*/
+// Produce plots, in png format for the ramachandran data (psi and phi dihedrals)
+// contained in data. Data points in tag (maximun 4) are highlighted in the plot.
+// the extension must be included in plotname. Returns an error or nil*/
 func RamaPlot(data [][]float64, tag []int, title, plotname string) error {
 	var err error
 	if data == nil {
@@ -264,9 +269,10 @@ func getShape(tagged int) (plot.GlyphDrawer, error) {
 	}
 }
 
-/*Obtain psi and phi angles for the molecule M, considerint the dihedrals in [][]int
-  for all the frames in frames. It returns a slice of slices (one per frame) of slices
-  (with 2 elemtns), for psi and phi angles, and an error*/
+
+// RamaCalc Obtains the values for the phi and psi dihedrals indicated in []Ramaset, for the 
+// structure M.  It returns a slice of 2-element slices, one for the phi the next for the psi
+// dihedral, a and an error or nil.
 func RamaCalc(M *chem.VecMatrix, dihedrals []RamaSet) ([][]float64, error) {
 	if M == nil || dihedrals == nil {
 		return nil, fmt.Errorf("RamaCalc: Given nil data")
@@ -290,10 +296,10 @@ func RamaCalc(M *chem.VecMatrix, dihedrals []RamaSet) ([][]float64, error) {
 	return Rama, nil
 }
 
-//Filter the set of dihedral angles of a ramachandran plot by residue.(ex. only GLY, everything but GLY)
-//The 3 letter code of the residues to be filtered in or out is in filterdata, whether they are filter in
-//or out depends on shouldBePresent. It returns the filtered data and a slice containing the indexes in
-//the new data of the residues in the old data, when they are included, or -1 when they are not included.
+// Filter the set of dihedral angles of a ramachandran plot by residue.(ex. only GLY, everything but GLY)
+// The 3 letter code of the residues to be filtered in or out is in filterdata, whether they are filter in
+// or out depends on shouldBePresent. It returns the filtered data and a slice containing the indexes in
+// the new data of the residues in the old data, when they are included, or -1 when they are not included.
 func RamaResidueFilter(dihedrals []RamaSet, filterdata []string, shouldBePresent bool) ([]RamaSet, []int) {
 	RetList := make([]RamaSet, 0, 0)
 	Index := make([]int, len(dihedrals))
@@ -311,13 +317,15 @@ func RamaResidueFilter(dihedrals []RamaSet, filterdata []string, shouldBePresent
 	return RetList, Index
 }
 
-/*RamaList takes a molecule and obtains a list of lists of five int. Each element
-  contain the indexes needed for one dihedral of a Rama plot. It gets the dihedral
-  indices for all residues in the range resran, if resran has 2 elements defining the
-  boundaries. Otherwise, returns dihedral lists for the residues included in
-  resran. If resran has 2 elements and the last is -1, RamaList will
-  get all the dihedral for residues from resran[0] to the end of the chain.
-  It only obtain dihedral lists for residues belonging to a chain included in chains */
+
+
+// RamaList takes a molecule and returns a slice of RamaSet, which contains the
+// indexes for each dihedral to be included in a Ramachandran plot. It gets the dihedral
+// indices for all residues in the range resran. if resran has 2 elements defining the
+// boundaries. Otherwise, returns dihedral lists for the residues included in
+// resran. If resran has 2 elements and the last is -1, RamaList will
+// get all the dihedral for residues from resran[0] to the end of the chain.
+// It only obtain dihedral lists for residues belonging to a chain included in chains.
 func RamaList(M chem.Atomer, chains string, resran []int) ([]RamaSet, error) {
 	RamaList := make([]RamaSet, 0, 0)
 	if len(resran) == 2 {
