@@ -517,9 +517,9 @@ func (M *Molecule) Readable() bool {
 //Returns the  next frame and an error
 func (M *Molecule) Next(V *VecMatrix) error {
 	if M.current >= len(M.Coords) {
-		return newlastFrameError("",len(M.Coords)-1)
+		return newlastFrameError("", len(M.Coords)-1)
 	}
-	fmt.Println("CURR",M.current,len(M.Coords),V.NVecs(),M.Coords[M.current].NVecs())////////////////
+	fmt.Println("CURR", M.current, len(M.Coords), V.NVecs(), M.Coords[M.current].NVecs()) ////////////////
 	M.current++
 	if V == nil {
 		return nil
@@ -552,7 +552,7 @@ func (M *Molecule) NextConc(frames []bool) ([]chan *VecMatrix, error) {
 			continue
 		}
 		if M.current >= len(M.Coords) {
-			lastframe:=newlastFrameError("",len(M.Coords)-1)
+			lastframe := newlastFrameError("", len(M.Coords)-1)
 			if used == false {
 				return nil, lastframe
 			} else {
@@ -569,8 +569,6 @@ func (M *Molecule) NextConc(frames []bool) ([]chan *VecMatrix, error) {
 	return toreturn, nil
 }
 
-
-
 /**End Traj interface implementation***********/
 
 //End Molecule methods
@@ -579,11 +577,11 @@ func (M *Molecule) NextConc(frames []bool) ([]chan *VecMatrix, error) {
 
 type lastFrameError struct {
 	fileName string
-	frame int
+	frame    int
 }
 
 func (E *lastFrameError) Error() string {
-	return fmt.Sprintf("No More Frames: Last frame in mol-based trajectory from file %10s reached at frame %10d", E.fileName,E.frame)
+	return fmt.Sprintf("No More Frames: Last frame in mol-based trajectory from file %10s reached at frame %10d", E.fileName, E.frame)
 }
 
 func (E *lastFrameError) Format() string {
@@ -594,19 +592,18 @@ func (E *lastFrameError) Frame() int {
 	return E.frame
 }
 
-func (E *lastFrameError) FileName() string{
+func (E *lastFrameError) FileName() string {
 	return E.fileName
 }
 
-func (E *lastFrameError) NormalLastFrameTermination(){
+func (E *lastFrameError) NormalLastFrameTermination() {
 }
 
-func newlastFrameError(filename string, frame int) *lastFrameError{
-	e:=new(lastFrameError)
-	e.fileName=filename
-	e.frame=frame
+func newlastFrameError(filename string, frame int) *lastFrameError {
+	e := new(lastFrameError)
+	e.fileName = filename
+	e.frame = frame
 	return e
 }
 
 //End Traj Error
-

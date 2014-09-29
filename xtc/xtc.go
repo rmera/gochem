@@ -210,35 +210,29 @@ func (X *XTCObj) Len() int {
 	return X.natoms
 }
 
-
 //Errors
 
 type lastFrameError struct {
 	fileName string
 }
 
-
 func (E *lastFrameError) Error() string {
-	return fmt.Sprintf("No More Frames: Last frame in xtc trajectory from file %10s reached", E.fileName)
+	return fmt.Sprintf("No more frames") //: Last frame in xtc trajectory from file %10s reached", E.fileName) //Suppresed the rest because of compatibility with previous versions.
 }
 
 func (E *lastFrameError) Format() string {
 	return "xtc"
 }
 
-
-func (E *lastFrameError) FileName() string{
+func (E *lastFrameError) FileName() string {
 	return E.fileName
 }
 
-func (E *lastFrameError) NormalLastFrameTermination(){
+func (E *lastFrameError) NormalLastFrameTermination() {
 }
 
-
-
-func newlastFrameError(filename string) *lastFrameError{
-	e:=new(lastFrameError)
-	e.fileName=filename
+func newlastFrameError(filename string) *lastFrameError {
+	e := new(lastFrameError)
+	e.fileName = filename
 	return e
 }
-

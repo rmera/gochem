@@ -44,18 +44,22 @@ func TestXTC(Te *testing.T) {
 	}
 	i := 0
 	coords := chem.ZeroVecs(traj.Len())
+reading:
 	for ; ; i++ {
 		err := traj.Next(coords)
-		if err != nil && err.Error() != "No more frames" {
-			Te.Error(err)
-			fmt.Println(err)
-			break
-		} else if err == nil {
-			fmt.Println(coords.VecView(2))
-		} else {
-			fmt.Println("no more!")
-			break
+		if err != nil {
+			switch err := err.(type) {
+			default:
+				Te.Error(err)
+				fmt.Println(err.Error(), "Para tu weveo longi")
+				break reading
+			case chem.LastFrameError:
+				fmt.Println("No More!")
+				break reading
+			}
 		}
+		fmt.Println(coords.VecView(2))
+
 	}
 	fmt.Println("Over! frames read:", i)
 }
@@ -91,11 +95,13 @@ func TestFrameXTCConc(Te *testing.T) {
 	for i := 0; ; i++ {
 		results = append(results, make([]chan *chem.VecMatrix, 0, len(frames)))
 		coordchans, err := traj.NextConc(frames)
-		if err != nil && err.Error() != "No more frames" {
-			Te.Error(err)
-		} else if err != nil {
-			if coordchans == nil {
-				break
+		if err != nil {
+			if err, ok := err.(chem.LastFrameError); ok {
+				if coordchans == nil {
+					break
+				}
+			} else {
+				Te.Error(err)
 			}
 		}
 		for key, channel := range coordchans {

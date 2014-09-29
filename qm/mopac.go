@@ -102,9 +102,9 @@ func (O *MopacHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q *
 	if Q.Dielectric > 0 {
 		cosmo = fmt.Sprintf("EPS=%2.1f RSOLV=1.3 LET DDMIN=0.0", Q.Dielectric) //The DDMIN ensures that the optimization continues when cosmo is used. From the manual I understand that it is OK
 	}
-	strict:=""
-	if Q.SCFTightness>0{
-		strict="GNORM=0.01 RELSCF=0.00001"
+	strict := ""
+	if Q.SCFTightness > 0 {
+		strict = "GNORM=0.01 RELSCF=0.00001"
 	}
 	multi := mopacMultiplicity[atoms.Multi()]
 	charge := fmt.Sprintf("CHARGE=%d", atoms.Charge())

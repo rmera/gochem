@@ -298,8 +298,8 @@ func Rhos(evals []float64) ([]float64, error) {
 /**Other geometrical**/
 
 //BestPlaneP takes sorted evecs, according to the eval,s and returns a row vector that is normal to the
-//Plane that best contains the molecule. Note that the function can't possibly check
-//That the vectors are sorted!. The P at the end of the name is for Performance. If
+//Plane that best contains the molecule. Notice that the function can't possibly check
+//that the vectors are sorted. The P at the end of the name is for Performance. If
 //That is not an issue it is safer to use the BestPlane function that wraps this one.
 func BestPlaneP(evecs *VecMatrix) (*VecMatrix, error) {
 	evr, evc := evecs.Dims()

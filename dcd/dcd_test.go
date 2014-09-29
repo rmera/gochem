@@ -36,7 +36,7 @@ import "github.com/rmera/gochem"
  * "interactive" or "low level" functions, i.e. one frame at a time
  * It prints the firs 2 coordinates of each frame and the number of
  * read frames at the end.*/
-func estDCD(Te *testing.T) {
+func TestDCD(Te *testing.T) {
 	fmt.Println("Fist test!")
 	traj, err := New("../test/test.dcd")
 	if err != nil {
@@ -46,14 +46,14 @@ func estDCD(Te *testing.T) {
 	mat := chem.ZeroVecs(traj.Len())
 	for ; ; i++ {
 		err := traj.Next(mat)
-		if err != nil && err.Error() != "No more frames" {
+		if err != nil {
+			if _, ok := err.(chem.LastFrameError); ok {
+				break
+			}
 			Te.Error(err)
 			break
-		} else if err == nil {
-			fmt.Println(mat.VecView(2))
-		} else {
-			break
 		}
+		fmt.Println(mat.VecView(2))
 	}
 	fmt.Println("Over! frames read:", i)
 }
@@ -71,12 +71,12 @@ func TestFrameDCDConc(Te *testing.T) {
 	for i := 0; ; i++ {
 		results = append(results, make([]chan *chem.VecMatrix, 0, len(frames)))
 		coordchans, err := traj.NextConc(frames)
-		if err != nil && err.Error() != "No more frames" {
-			Te.Error(err)
-		} else if err != nil {
-			if coordchans == nil {
+		if err != nil {
+			if _, ok := err.(chem.LastFrameError); ok && coordchans == nil {
 				break
 			}
+			Te.Error(err)
+			break
 		}
 		for key, channel := range coordchans {
 			results[len(results)-1] = append(results[len(results)-1], make(chan *chem.VecMatrix))

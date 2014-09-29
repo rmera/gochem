@@ -81,7 +81,7 @@ indicators.
 goChem implements its own matrix type for coordinates, VecMatrix, based in github.com/gonum/matrix.
 
 Currently, each row of a VecMatrix represents one point in space. As this could change if
-github.com/gonum/matrix changes, we recomend prefering the Vec* methods over the Row* methods
-when manipulating a VecMatrix. Vec* methods will change from row to column following the upstream
+github.com/gonum/matrix changes to col major (which seem unlikely at this point, but still), I recomend prefering the Vec* methods over the Row* methods
+when manipulating a VecMatrix. Vec* methods will change from row to column  following the upstream
 Gonum library.*/
 package chem

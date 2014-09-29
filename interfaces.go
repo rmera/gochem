@@ -70,7 +70,7 @@ type Atomer interface {
 	Len() int
 }
 
-type ReadRef interface {
+type ReadRef interface { /*NOTE: This method can probably be removed, as it doesn't seem to be used by any function that asks for these methods.*/
 	Atomer
 
 	//Returns a column vector with the massess of all atoms
@@ -87,12 +87,11 @@ type ReadRef interface {
 	//Changes to these atoms affect the original molecule.
 	//The charge and multiplicity (unpaired electrons) for the molecule is just the one
 	//for the parent reference and its not guarranteed to be correct.
-	SomeAtoms(Atomer, []int)  /*NOTICE: This method can probably be removed, as it doesn't seem to be used by any function that asks for a ReadRef*/
+	SomeAtoms(Atomer, []int)
 }
 
+type WriteRef interface { /*NOTE: This whole interface can probably be removed, It appears that it is not used*/
 
-/*NOTICE: This whole interface can probably be removed, It appears that it is not used*/
-type WriteRef interface {
 	//Copy atoms in A into the received. This is a deep copy, so the received must have at least as many atoms as A
 	CopyAtoms(A Atomer)
 
@@ -119,23 +118,20 @@ type WriteRef interface {
 //Ref (reference) is an interface for any description of the type of atoms in a molecule,
 //i.e. every characteristic of them, except for the coordinates and b-factors.
 //Read-write reference
-/*NOTICE: WriteRef may be removed, which means that Ref would be removed too.*/
-type Ref interface {
+type Ref interface { /*NOTE: WriteRef may be removed, which means that Ref would be removed too.*/
 	ReadRef
 	WriteRef
 }
 
-
-type TrajError interface{
+type TrajError interface {
 	Error() string
 	FileName() int
-	Fromat() string
+	Format() string
 }
 
 //Errors
-type LastFrameError interface{
-	TrajError
-	NormalLastFrameTermination()  //does nothing, just to separate this interface from other TrajError's 
+type LastFrameError interface {
+	Error() string
+	NormalLastFrameTermination() //does nothing, just to separate this interface from other TrajError's
 
 }
-

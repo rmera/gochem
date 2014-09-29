@@ -30,8 +30,8 @@ package qm
 
 import "github.com/rmera/gochem"
 
-//This allows to set QM calculations using different programs. /*NOTICE: Handle could be divided in Handle and handle+ReadData (the latter would included Energy and OptimizedGeometry). Even Run could be taken away from Handle, so we have 2-3 interfaces. The user can build his/her own combination interfaces. Unfortunately, I think Handle is protected by the API promise, so we may make a workaround or postpone the change until November*/
-type Handle interface {
+//This allows to set QM calculations using different programs.
+type Handle interface { /*NOTE: Handle could be divided in Handle and handle+ReadData (the latter would included Energy and OptimizedGeometry). Even Run could be taken away from Handle, so we have 2-3 interfaces. The user can build his/her own combination interfaces. Due to the API stability promise, these changes will have to wait until November.*/
 
 	//Sets the name for the job, used for input
 	//and output files. The extentions will depend on the program.
@@ -56,7 +56,7 @@ type Handle interface {
 	//output. Returns error if fail. Returns Error ("Probable problem
 	//in calculation") if there is a geometry but the calculation didnt
 	//end properly*
-	OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error) /*NOTICE: The "Probable problem..." error should have a type, and should report the program used. Also, chem.Ref is probably not needed here. Atomer is probably enough*/
+	OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error) /*NOTE: The "Probable problem..." error should have a type, and should report the program used. Also, chem.Ref is probably not needed here. Atomer is probably enough*/
 }
 
 type IntConstraint struct {
