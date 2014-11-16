@@ -131,8 +131,10 @@ func (O *OrcaHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q *C
 		disp = orcaDisp[Q.Disperssion]
 	}
 	opt := ""
+	trustradius:=""
 	if Q.Optimize == true {
 		opt = "Opt"
+		trustradius = "%geom trust 0.3\nend\n\n" //Orca uses a foxed trust radius by default. This goChem makes an input that activates variable trust radius.
 	}
 	//If this flag is set we'll look for a suitable MO file.
 	//If not found, we'll just use the default ORCA guess
@@ -255,6 +257,7 @@ func (O *OrcaHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q *C
 	fmt.Fprint(file, mem)
 	fmt.Fprint(file, constraints)
 	fmt.Fprint(file, iconstraints)
+	fmt.Fprint(file, trustradius)
 	fmt.Fprint(file, ElementBasis)
 	fmt.Fprint(file, cosmo)
 	fmt.Fprint(file, "\n")
