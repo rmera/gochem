@@ -165,13 +165,18 @@ func RotatorTranslatorToSuper(test, templa *VecMatrix) (*VecMatrix, *VecMatrix, 
 	Vt.Scale(-1, Vt)
 	//SVD gives different results here than in numpy. U and Vt are multiplide by -1 in one of them
 	//and gomatrix gives as Vt the transpose of the matrix given as Vt by numpy. I guess is not an
-	//error, but don't know for sure.
+	//error, but don't know for sure. 
 	vtr, _ := Vt.Dims()
 	Rotation := ZeroVecs(vtr)
 	Rotation.Mul(Vt, gnT(U))
 	Rotation.TCopy(Rotation) //Don't know why does this work :(
+	RightHand:=gnEye(3)
 	if det(Rotation) < 0 {
-		return nil, nil, nil, nil, fmt.Errorf("Got a reflection instead of a translations. The objects may be specular images of each others")
+		RightHand.Set(2,2,-1)
+		Rotation.Mul(Vt,RightHand)
+		Rotation.Mul(Rotation,gnT(U))  //If I get this to work Ill arrange so gnT(U) is calculated once, not twice as now.
+		Rotation.TCopy(Rotation) //Same, no ide why I need this
+	  //return nil, nil, nil, nil, fmt.Errorf("Got a reflection instead of a translations. The objects may be specular images of each others")
 	}
 	jT.Scale(Scal, jT)
 	subtempla := ZeroVecs(tmr)
