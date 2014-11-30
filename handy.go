@@ -167,10 +167,10 @@ func EulerRotateAbout(coordsorig, ax1, ax2 *VecMatrix, angle float64) (*VecMatri
 	if err != nil {
 		return nil, err
 	}
-	Zsr, _ := Zswitch.Dims()
-	RevZ := ZeroVecs(Zsr)
-	g := func() { RevZ = gnInverse(Zswitch) }
-	if err := gnMaybe(gnPanicker(g)); err != nil {
+//	Zsr, _ := Zswitch.Dims()
+//	RevZ := ZeroVecs(Zsr)
+	RevZ,err := gnInverse(Zswitch) 
+	if err != nil {
 		return nil, err
 	}
 	coords.Mul(coords, Zrot) //rotated

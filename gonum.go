@@ -174,9 +174,10 @@ func (F *VecMatrix) Sub(A *VecMatrix, B Matrix){
 
 */
 
-func gnInverse(F *VecMatrix) *VecMatrix {
-	a := mat64.Inverse(F.Dense)
-	return &VecMatrix{a}
+//It seems that I don't actually use this function!
+func gnInverse(F *VecMatrix) (*VecMatrix, error) {
+	a,err := mat64.Inverse(F.Dense)
+	return &VecMatrix{a}, err
 
 }
 
@@ -448,6 +449,10 @@ func det(A Matrix) float64 {
  * from here when gonum is implemented. The gn prefix is appended to the names to make them
  * unimported and to allow easy use of search/replace to add the "num" prefix when I change to
  * gonum.**/
+
+//OK I think I cant take all these out now. I will as soon as I can.
+
+
 
 // A Panicker is a function that may panic.
 type gnPanicker func()

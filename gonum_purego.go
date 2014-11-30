@@ -364,7 +364,9 @@ func (F *Dense) Dot(B Matrix) float64 {
 //puts the inverse of B in F or panics if F is non-singular.
 //its just a dirty minor adaptation from the code in go.matrix from John Asmuth
 //it will be replaced by the gonum implementation when the library is ready.
-func gnInverse(B Matrix) *VecMatrix {
+//Notice that this doesn't actually check for errors, the error value returned is always nil.
+//I just did that crappy fix because this gomatrix-interface should be taken out or deprecated soon.
+func gnInverse(B Matrix) (*VecMatrix, error) {
 	//fr,fc:=F.Dims()
 	ar, ac := B.Dims()
 	if ac != ar {
@@ -407,7 +409,7 @@ func gnInverse(B Matrix) *VecMatrix {
 		}
 	}
 	F.SubMatrix(aug, 0, ac, ar, ac)
-	return F
+	return F, nil
 }
 
 //A slightly modified version of John Asmuth's ParalellProduct function.
