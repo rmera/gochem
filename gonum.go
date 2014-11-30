@@ -1,5 +1,3 @@
-// +build gonum
-
 /*
  * gonum.go, part of gochem.
  *
@@ -35,25 +33,18 @@ package chem
 
 import (
 	"fmt"
-	"github.com/gonum/blas/cblas"
 	"github.com/gonum/matrix/mat64"
 	"math"
 	"sort"
 )
 
-//For now this is here as we do not have other blas engine options.
-//When we do, there will be several files with different inits,
-//That will be chosen with compiler flags.
-func init() {
-	mat64.Register(cblas.Blas{})
-}
 
 //INTERFACES  This part is from GONUM, copyright, the gonum authors.
 
 //The main container, must be able to implement any
 //gonum interface.
 //VecMatrix is a set of vectors in 3D space. The underlying implementation varies.
-type VecMatrix struct {
+type VecMatrix  struct {
 	*mat64.Dense
 }
 
