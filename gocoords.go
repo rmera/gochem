@@ -33,6 +33,7 @@ import (
 	"fmt"
 	"math"
 	"strings"
+	"github.com/gonum/matrix/mat64"
 )
 
 // Matrix is the basic matrix interface type. This is redundant and exactly equivalent to the implementation in gonum
@@ -51,18 +52,9 @@ const appzero float64 = 0.000000000001 //used to correct floating point
 //Returns a zero-filled VecMatrix with cos vectors and 3 in the other dimension.
 func ZeroVecs(cos int) *VecMatrix {
 	const cols int = 3
-	dens := gnZeros(cos, cols)
-	return &VecMatrix{dens.Dense}
+	dens := gnZeros(cos, cols) //Maybe it would be better to just put the gnZeros code here for efficiency.
+	return &VecMatrix{dens}
 }
-
-func chemDense2VecMatrix(A *chemDense) *VecMatrix {
-	return &VecMatrix{A.Dense}
-}
-
-func vecMatrix2chemDense(A *VecMatrix) *chemDense {
-	return &chemDense{A.Dense}
-}
-
 //METHODS
 
 func (F *VecMatrix) SwapVecs(i, j int) {
@@ -250,7 +242,7 @@ func (F *VecMatrix) AddRow(A, row *VecMatrix) {
 
 //Puts A**exp on the receiver. This function could probably
 //be written in a concurrent way
-func (F *chemDense) Pow(A Matrix, exp float64) {
+func pow(A Matrix, F *mat64.Dense, exp float64) {
 	ar, ac := A.Dims()
 	fr, fc := F.Dims()
 	if ar != fr || ac != fc {

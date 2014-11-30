@@ -81,7 +81,7 @@ func MolidNameChain2Index(mol Ref, molid int, name, chain string) (int, error) {
 //This matrix can be used as a dummy mass matrix
 //for geometric calculations.
 func OnesMass(lenght int) *VecMatrix {
-	return chemDense2VecMatrix(gnOnes(lenght, 1))
+	return Dense2VecMatrix(gnOnes(lenght, 1))
 }
 
 //Super determines the best rotation and translations to superimpose the coords in test

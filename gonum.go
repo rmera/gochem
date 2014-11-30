@@ -39,21 +39,20 @@ import (
 )
 
 
-//INTERFACES  This part is from GONUM, copyright, the gonum authors.
 
 //The main container, must be able to implement any
 //gonum interface.
 //VecMatrix is a set of vectors in 3D space. The underlying implementation varies.
-type VecMatrix  struct {
-	*mat64.Dense
+type VecMatrix	struct {
+  *mat64.Dense
 }
 
 func VecMatrix2Dense(A *VecMatrix) *mat64.Dense {
-	return A.Dense
+	return  A.Dense
 }
 
 func Dense2VecMatrix(A *mat64.Dense) *VecMatrix {
-	return &VecMatrix{A}
+	return  &VecMatrix{A}
 }
 
 //Generate and returns a VecMatrix with 3 columns from data.
@@ -111,61 +110,6 @@ func (F *VecMatrix) SetMatrix(i, j int, A *VecMatrix) {
 	}
 }
 
-//The following functions are here because directly calling the method
-//on the embeded mat64.Dense gives wrong behavior.
-
-/*
-
-func (F *VecMatrix) Copy(A Matrix) {
-	switch A := A.(type) {
-	case *VecMatrix:
-		F.Dense.Copy(A.Dense)
-	case *chemDense:
-		F.Dense.Copy(A.Dense)
-	default:
-		F.Dense.Copy(A)
-	}
-}
-
-
-func (F *VecMatrix)Add(A *VecMatrix, B Matrix){
-	switch B := B.(type) {
-	case *VecMatrix:
-		F.Dense.Add(A.Dense,B.Dense)
-	case *chemDense:
-		F.Dense.Add(A.Dense,B.Dense)
-	default:
-		F.Dense.Add(A.Dense,B)
-	}
-}
-
-func (F *VecMatrix)Scale(i float64, A Matrix){
-	switch A := A.(type) {
-	case *VecMatrix:
-		F.Dense.Scale(i,A.Dense)
-	case *chemDense:
-		F.Dense.Scale(i,A.Dense)
-	default:
-		F.Dense.Scale(i,A)
-	}
-}
-
-
-func (F *VecMatrix) Sub(A *VecMatrix, B Matrix){
-	switch B := B.(type) {
-	case *VecMatrix:
-		F.Dense.Sub(A.Dense,B.Dense)
-	case *chemDense:
-		F.Dense.Sub(A.Dense,B.Dense)
-	default:
-		F.Dense.Sub(A.Dense,B)
-	}
-}
-
-
-*/
-
-//It seems that I don't actually use this function!
 func gnInverse(F *VecMatrix) (*VecMatrix, error) {
 	a,err := mat64.Inverse(F.Dense)
 	return &VecMatrix{a}, err
@@ -233,20 +177,11 @@ func (F *VecMatrix) Stack(A, B *VecMatrix) {
 //
 //}
 
-//Just a dense matrix to allow different implementations of gonum.
-//This might change to Dense at some point, but the API change should be barely noticeable.
-type chemDense struct {
-	*mat64.Dense
-}
 
 //Some of the following function have an err return type in the signature, but they always return a nil error. This is
 //Because of a change in gonum/matrix. The NewDense function used to return error and now panics.
 //I do not think it is worth to fix these functions.
 
-func newchemDense(data []float64, r, c int) (*chemDense, error) {
-	d := mat64.NewDense(r, c, data)
-	return &chemDense{d}, nil
-}
 
 //Returns and empty, but not nil, Dense. It barely allocates memory
 func emptyDense() (*mat64.Dense, error) {
@@ -257,15 +192,14 @@ func emptyDense() (*mat64.Dense, error) {
 
 //Returns an zero-filled Dense with the given dimensions
 //It is to be substituted by the Gonum function.
-func gnZeros(r, c int) *chemDense {
+func gnZeros(r, c int) *mat64.Dense {
 	f := make([]float64, r*c, r*c)
-	ret := mat64.NewDense(r, c, f)
-	return &chemDense{ret}
+	return mat64.NewDense(r, c, f)
 
 }
 
 //Returns an identity matrix spanning span cols and rows
-func gnEye(span int) *chemDense {
+func gnEye(span int) *mat64.Dense {
 	A := gnZeros(span, span)
 	for i := 0; i < span; i++ {
 		A.Set(i, i, 1.0)
@@ -373,8 +307,9 @@ func EigenWrap(in *VecMatrix, epsilon float64) (*VecMatrix, []float64, error) {
 	return eig.evecs, eig.evals, err //Returns a slice of evals
 }
 
+/*
 //Returns the singular value decomposition of matrix A
-func gnSVD(A *chemDense) (*chemDense, *chemDense, *chemDense) {
+func gnSVD(A *mat64.Dense) ( *mat64.Dense,*mat64.Dense,*mat64.Dense) {
 	facts := mat64.SVD(A.Dense, appzero, math.SmallestNonzeroFloat64, true, true) //I am not sure that the second appzero is appropiate
 	//make sigma a matrix
 	//	lens:=len(s)
@@ -385,6 +320,7 @@ func gnSVD(A *chemDense) (*chemDense, *chemDense, *chemDense) {
 	return &chemDense{facts.U}, &chemDense{facts.S()}, &chemDense{facts.V}
 
 }
+*/
 
 func (F *VecMatrix) TCopy(A Matrix) {
 	if A, ok := A.(*VecMatrix); ok {
@@ -395,7 +331,7 @@ func (F *VecMatrix) TCopy(A Matrix) {
 }
 
 //returns a rows,cols matrix filled with gnOnes.
-func gnOnes(rows, cols int) *chemDense {
+func gnOnes(rows, cols int) *mat64.Dense {
 	gnOnes := gnZeros(rows, cols)
 	for i := 0; i < rows; i++ {
 		for j := 0; j < cols; j++ {
@@ -405,7 +341,8 @@ func gnOnes(rows, cols int) *chemDense {
 	return gnOnes
 }
 
-func gnMul(A, B mat64.Matrix) *chemDense {
+//The 2 following functions may not even be used.
+func gnMul(A, B mat64.Matrix) *mat64.Dense {
 	ar, _ := A.Dims()
 	_, bc := B.Dims()
 	C := gnZeros(ar, bc)
@@ -413,19 +350,22 @@ func gnMul(A, B mat64.Matrix) *chemDense {
 	return C
 }
 
-func gnCopy(A mat64.Matrix) *chemDense {
+func gnCopy(A mat64.Matrix) *mat64.Dense {
 	r, c := A.Dims()
 	B := gnZeros(r, c)
 	B.Copy(A)
 	return B
 }
 
-func gnT(A mat64.Matrix) *chemDense {
+func gnT(A mat64.Matrix) *mat64.Dense {
 	r, c := A.Dims()
 	B := gnZeros(c, r)
 	B.TCopy(A)
 	return B
 }
+
+
+
 
 //This is a temporal function. It returns the determinant of a 3x3 matrix. Panics if the matrix is not 3x3
 func det(A Matrix) float64 {
