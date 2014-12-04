@@ -74,7 +74,6 @@ type ReadRef interface { /*NOTE: This method can probably be removed, as it does
 	Atomer
 
 	//Returns a column vector with the massess of all atoms
-	//this will be changed to a tion that takes a Reference interface.
 	Masses() ([]float64, error)
 
 	//Charge gets the total charge of the topology

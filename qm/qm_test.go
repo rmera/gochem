@@ -270,13 +270,16 @@ func TestNWChem(Te *testing.T) {
 	calc.SetDefaults()
 	nw := NewNWChemHandle()
 	orca := NewOrcaHandle()
-	nw.SetName("gochemnw")
+	nw.SetName("gochem")
 	atoms := chem.ZeroVecs(mol.Len())
 	mol.Next(atoms)
 	if err = os.Chdir("../test"); err != nil {
 		Te.Error(err)
 	}
-	_ = nw.BuildInput(atoms, mol, calc)
+	err = nw.BuildInput(atoms, mol, calc)
+	if err!=nil{
+		Te.Error(err)
+	}
 	_ = orca.BuildInput(atoms, mol, calc)
 	//The files are already in ./test.
 	os.Chdir("../test")

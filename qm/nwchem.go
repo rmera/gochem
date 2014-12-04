@@ -103,7 +103,7 @@ func (O *NWChemHandle) SetDefaults() {
 func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q *Calc) error {
 	//Only error so far
 	if atoms == nil || coords == nil {
-		return fmt.Errorf("Missing charges or coordinates")
+		return Error{MissingCharges,NWChem,O.inputname,""}
 	}
 	if Q.Basis == "" {
 		fmt.Fprintf(os.Stderr, "no basis set assigned for NWChem calculation, will used the default %s, \n", O.defbasis)
@@ -350,7 +350,8 @@ func (O *NWChemHandle) Run(wait bool) (err error) {
 	if wait == true {
 		out, err := os.Create(fmt.Sprintf("%s.out", O.inputname))
 		if err != nil {
-			return err
+			return Error{NotRunning,NWChem,O.inputname,err.Error()}
+
 		}
 		defer out.Close()
 		command := exec.Command(O.command, fmt.Sprintf("%s.nw", O.inputname))
@@ -361,6 +362,9 @@ func (O *NWChemHandle) Run(wait bool) (err error) {
 		//This will not work in windows.
 		command := exec.Command("sh", "-c", "nohup "+O.command+fmt.Sprintf(" %s.nw > %s.out &", O.inputname, O.inputname))
 		err = command.Start()
+	}
+	if err!=nil{
+		err=Error{NotRunning,Mopac,O.inputname,err.Error()}
 	}
 	return err
 }
@@ -430,7 +434,7 @@ func (O *NWChemHandle) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error
 	lastnumber := 0
 	lastname := ""
 	if !O.nwchemNormalTermination() {
-		err2 = fmt.Errorf("Probable problem in calculation")
+		err2 = Error{ProbableProblem,NWChem,O.inputname,""}
 	}
 	dir, err := os.Open("./")
 	if err != nil {
@@ -460,7 +464,7 @@ func (O *NWChemHandle) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error
 		}
 	}
 	if lastname == "" {
-		return nil, fmt.Errorf("Geometry not found")
+		return nil, Error{NoGeometry,NWChem,O.inputname,""}
 	}
 	mol, err := chem.XYZRead(lastname)
 	if err != nil {
@@ -474,10 +478,11 @@ func (O *NWChemHandle) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error
 //abnormally-terminated NWChem calculation. (in this case error is "Probable problem
 //in calculation")
 func (O *NWChemHandle) Energy() (float64, error) {
-	err := fmt.Errorf("Probable problem in calculation")
+	var err error
+	err = Error{ProbableProblem,NWChem,O.inputname,""}
 	f, err1 := os.Open(fmt.Sprintf("%s.out", O.inputname))
 	if err1 != nil {
-		return 0, err1
+		return 0, Error{NoEnergy,NWChem,O.inputname,err1.Error()}
 	}
 	defer f.Close()
 	f.Seek(-1, 2) //We start at the end of the file
@@ -495,16 +500,19 @@ func (O *NWChemHandle) Energy() (float64, error) {
 			splitted := strings.Fields(line)
 			energy, err1 = strconv.ParseFloat(splitted[len(splitted)-1], 64)
 			if err1 != nil {
-				return 0.0, err1
+				return 0.0, Error{NoEnergy,NWChem,O.inputname,err1.Error()}
+
 			}
 			found = true
 			break
 		}
 	}
 	if !found {
-		return 0.0, fmt.Errorf("Output does not contain energy")
+		return 0.0, Error{NoEnergy,NWChem,O.inputname,""}
+
 	}
-	return energy * chem.H2Kcal, err
+	return energy * chem.H2Kcal, Error{NoEnergy,NWChem,O.inputname,err.Error()}
+
 }
 
 //This checks that an NWChem calculation has terminated normally

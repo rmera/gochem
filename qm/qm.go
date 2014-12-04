@@ -28,11 +28,13 @@
 
 package qm
 
-import "github.com/rmera/gochem"
+import (
+	"github.com/rmera/gochem"
+	"fmt"
+	)
 
-//This allows to set QM calculations using different programs.
-type Handle interface { /*NOTE: Handle could be divided in Handle and handle+ReadData (the latter would included Energy and OptimizedGeometry). Even Run could be taken away from Handle, so we have 2-3 interfaces. The user can build his/her own combination interfaces. Due to the API stability promise, these changes will have to wait until November.*/
-
+//builds an input for a QM calculation 
+type  InputBuilder interface {
 	//Sets the name for the job, used for input
 	//and output files. The extentions will depend on the program.
 	SetName(name string)
@@ -40,11 +42,26 @@ type Handle interface { /*NOTE: Handle could be divided in Handle and handle+Rea
 	//BuildInput builds an input for the QM program based int the data in
 	//atoms, coords and C. returns only error.
 	BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q *Calc) error
+}
 
+
+//Runs a QM calculation
+type Runner interface {
 	//Run runs the QM program for a calculation previously set.
 	//it waits or not for the result depending of the value of
 	//wait.
 	Run(wait bool) (err error)
+
+}
+
+
+type BuilderRunner interface {
+		InputBuilder
+		Runner
+}
+
+//Allows to recover energy and optimized geometries from a QM calculation
+type EnergyGeo interface {
 
 	//Energy gets the last energy for a  calculation by parsing the
 	//QM program's output file. Return error if fail. Also returns
@@ -57,7 +74,48 @@ type Handle interface { /*NOTE: Handle could be divided in Handle and handle+Rea
 	//in calculation") if there is a geometry but the calculation didnt
 	//end properly*
 	OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error) /*NOTE: The "Probable problem..." error should have a type, and should report the program used. Also, chem.Ref is probably not needed here. Atomer is probably enough*/
+
 }
+
+//This allows to set QM calculations using different programs.
+type Handle interface {
+	BuilderRunner
+	EnergyGeo
+
+}
+
+
+const (
+	ProbableProblem  = "goChem/QM: Probable problem with calculations" //this is never to be used for fatal errors
+	MissingCharges   = "goChem/QM: Missing charges or coordinates"
+	NoEnergy  =   "goChem/QM: No energy in output"
+	NoGeometry =  "gochem/QM: Unable to read Geometry from input"
+	NotRunning =  "gochem/QM: Couldn't run calculation"
+	NoInput =  "goChem/QM: Can't build input file"
+
+)
+
+const (
+	Orca = "Orca"
+	Mopac = "Mopac"
+	Turbomole = "Turbomole"
+	NWChem = "NWChem"
+	Fermions = "Fermions++"
+
+)
+
+type Error  struct {
+	message string
+	code string //the name of the QM program giving the problem, or empty string if none
+	inputname string //the input file that has problems, or empty string if none.
+	additional string
+}
+func (err Error) Error() string { return fmt.Sprintf("%s (%s/%s)",err.message,err.inputname, err.code)  }
+
+func (err Error) Code() string {return err.code} //May not be needed
+
+
+
 
 type IntConstraint struct {
 	Kind  byte

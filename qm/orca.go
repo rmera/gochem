@@ -36,6 +36,7 @@ import "os/exec"
 import "strconv"
 import "github.com/rmera/gochem"
 
+
 //Note that the default methods and basis vary with each program, and even
 //for a given program they are NOT considered part of the API, so they can always change.
 type OrcaHandle struct {
@@ -96,7 +97,7 @@ func (O *OrcaHandle) SetDefaults() {
 func (O *OrcaHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q *Calc) error {
 	//Only error so far
 	if atoms == nil || coords == nil {
-		return fmt.Errorf("Missing charges or coordinates")
+		return  Error{MissingCharges,Orca,O.inputname,""}
 	}
 	if Q.Basis == "" {
 		fmt.Fprintf(os.Stderr, "no basis set assigned for ORCA calculation, will used the default %s, \n", O.defbasis)
@@ -112,7 +113,7 @@ func (O *OrcaHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q *C
 	//Set RI or RIJCOSX if needed
 	ri := ""
 	if Q.RI && Q.RIJ {
-		return fmt.Errorf("RI and RIJ cannot be activated at the same time")
+		return Error{"goChem/QM: RI and RIJ cannot be activated at the same time",Orca, O.inputname,""}
 	}
 	if Q.RI {
 		Q.auxBasis = Q.Basis + "/J"
@@ -134,7 +135,7 @@ func (O *OrcaHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q *C
 	trustradius:=""
 	if Q.Optimize == true {
 		opt = "Opt"
-		trustradius = "%geom trust 0.3\nend\n\n" //Orca uses a foxed trust radius by default. This goChem makes an input that activates variable trust radius.
+		trustradius = "%geom trust 0.3\nend\n\n" //Orca uses a fixed trust radius by default. This goChem makes an input that activates variable trust radius.
 	}
 	//If this flag is set we'll look for a suitable MO file.
 	//If not found, we'll just use the default ORCA guess
@@ -284,11 +285,10 @@ func (O *OrcaHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q *C
 //Not waiting for results works
 //only for unix-compatible systems, as it uses bash and nohup.
 func (O *OrcaHandle) Run(wait bool) (err error) {
-
 	if wait == true {
 		out, err := os.Create(fmt.Sprintf("%s.out", O.inputname))
 		if err != nil {
-			return err
+			return Error{NotRunning,Orca,O.inputname,""}
 		}
 		defer out.Close()
 		command := exec.Command(O.command, fmt.Sprintf("%s.inp", O.inputname))
@@ -298,6 +298,9 @@ func (O *OrcaHandle) Run(wait bool) (err error) {
 	} else {
 		command := exec.Command("sh", "-c", "nohup "+O.command+fmt.Sprintf(" %s.inp > %s.out &", O.inputname, O.inputname))
 		err = command.Start()
+	}
+	if err!=nil{
+		err=Error{NotRunning,Orca,O.inputname,err.Error()}
 	}
 	return err
 }
@@ -314,7 +317,7 @@ func (O *OrcaHandle) buildIConstraints(C []*IConstraint) (string, error) {
 
 		if iConstraintOrder[val.Class] != len(val.CAtoms) {
 			return "", fmt.Errorf("Internal constraint ill-formated")
-		}
+			}
 
 		var temp string
 		if val.Class == 'B' {
@@ -414,12 +417,12 @@ func (O *OrcaHandle) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error) 
 	geofile := fmt.Sprintf("%s.xyz", O.inputname)
 	//Here any error of orcaNormal... or false means the same, so the error can be ignored.
 	if trust := O.orcaNormalTermination(); !trust {
-		err = fmt.Errorf("Probable problem in calculation")
+		err = Error{ProbableProblem,Orca,O.inputname,""}
 	}
 	//This might not be super efficient but oh well.
 	mol, err1 := chem.XYZRead(geofile)
 	if err1 != nil {
-		return nil, err1
+		return nil, Error{NoEnergy,Orca,O.inputname,err1.Error()}
 	}
 	return mol.Coords[0], err //returns the coords, the error indicates whether the structure is trusty (normal calculation) or not
 }
@@ -429,7 +432,8 @@ func (O *OrcaHandle) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error) 
 //abnormally-terminated ORCA calculation. (in this case error is "Probable problem
 //in calculation")
 func (O *OrcaHandle) Energy() (float64, error) {
-	err := fmt.Errorf("Probable problem in calculation")
+	var err error
+	err = Error{ProbableProblem,Orca,O.inputname,""}
 	f, err1 := os.Open(fmt.Sprintf("%s.out", O.inputname))
 	if err1 != nil {
 		return 0, err1
@@ -450,14 +454,15 @@ func (O *OrcaHandle) Energy() (float64, error) {
 			splitted := strings.Fields(line)
 			energy, err1 = strconv.ParseFloat(splitted[4], 64)
 			if err1 != nil {
-				return 0.0, err1
+				return 0.0, Error{NoEnergy,Orca,O.inputname,err1.Error()}
+
 			}
 			found = true
 			break
 		}
 	}
 	if !found {
-		return 0.0, fmt.Errorf("Output does not contain energy")
+		return 0.0, Error{NoEnergy,Orca,O.inputname,""}
 	}
 	return energy * chem.H2Kcal, err
 }

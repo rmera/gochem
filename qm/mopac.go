@@ -81,7 +81,7 @@ func (O *MopacHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q *
 	}
 	//Only error so far
 	if atoms == nil || coords == nil {
-		return fmt.Errorf("Missing charges or coordinates")
+		return Error{MissingCharges,Mopac,O.inputname,""}
 	}
 	ValidMethods := []string{"PM3", "PM6", "PM7", "AM1"}
 	if Q.Method == "" || !isInString(ValidMethods, Q.Method[0:3]) { //not found
@@ -161,7 +161,10 @@ func (O *MopacHandle) Run(wait bool) (err error) {
 		command := exec.Command("sh", "-c", "nohup "+O.command+fmt.Sprintf(" %s.mop &", O.inputname))
 		err = command.Start()
 	}
-	return err
+	if err!=nil{
+		err=Error{NotRunning,Mopac,O.inputname,err.Error()}
+	}
+	return 
 }
 
 /*Energy gets the last energy for a MOPAC2009/2012 calculation by
@@ -173,11 +176,11 @@ func (O *MopacHandle) Energy() (float64, error) {
 	var energy float64
 	file, err := os.Open(fmt.Sprintf("%s.out", O.inputname))
 	if err != nil {
-		return 0, err
+		return 0, Error{NoEnergy,Mopac,O.inputname,err.Error()}
 	}
 	defer file.Close()
 	out := bufio.NewReader(file)
-	err = fmt.Errorf("Mopac Energy not found in %s", O.inputname)
+	err = Error{NoEnergy,Mopac, O.inputname,""}
 	trust_radius_warning := false
 	for {
 		var line string
@@ -192,7 +195,7 @@ func (O *MopacHandle) Energy() (float64, error) {
 		if strings.Contains(line, "TOTAL ENERGY") {
 			splitted := strings.Fields(line)
 			if len(splitted) < 4 {
-				err = fmt.Errorf("Error reading energy from MOPAC output file!")
+				err = Error{NoEnergy,Mopac,O.inputname,""}
 				break
 			}
 			energy, err = strconv.ParseFloat(splitted[3], 64)
@@ -208,7 +211,7 @@ func (O *MopacHandle) Energy() (float64, error) {
 		return 0, err
 	}
 	if trust_radius_warning {
-		err = fmt.Errorf("Probable problem in calculation")
+		err = Error{ProbableProblem,Mopac,O.inputname,""}
 	}
 	return energy, err
 }
@@ -226,7 +229,7 @@ func (O *MopacHandle) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error)
 	}
 	defer file.Close()
 	out := bufio.NewReader(file)
-	err = fmt.Errorf("Mopac Geometries not found in %s", O.inputname)
+	err = Error{NoGeometry,Mopac,O.inputname,""}
 	//some variables that will be changed/increased during the next for loop
 	final_point := false //to see if we got to the right part of the file
 	reading := false     //start reading
@@ -275,13 +278,14 @@ func (O *MopacHandle) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error)
 		}
 	}
 	if err != nil {
-		return nil, err
+		return nil, Error{NoGeometry,Mopac,O.inputname,err.Error()}
 	}
 	mcoords, err := chem.NewVecs(coords)
 	if trust_radius_warning {
-		return mcoords, fmt.Errorf("Probable problem in calculation")
+		return mcoords, Error{ProbableProblem,Mopac,O.inputname,""}
 	}
-	return mcoords, err
+	return mcoords,  Error{NoGeometry,Mopac,O.inputname,err.Error()}
+
 }
 
 //Support function, gets a slice of errors and returns the first
