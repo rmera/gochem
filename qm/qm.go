@@ -110,9 +110,13 @@ type Error  struct {
 	inputname string //the input file that has problems, or empty string if none.
 	additional string
 }
-func (err Error) Error() string { return fmt.Sprintf("%s (%s/%s)",err.message,err.inputname, err.code)  }
+func (err Error) Error() string { return fmt.Sprintf("%s (%s/%s) Message: %s",err.message,err.inputname, err.code,err.additional)  }
 
 func (err Error) Code() string {return err.code} //May not be needed
+
+func (err Error) InputName() string {return err.inputname}
+
+
 
 
 
