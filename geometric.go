@@ -25,9 +25,12 @@
 
 package chem
 
-import "fmt"
-import "math"
-import "sort"
+import (
+	"fmt"
+	"math"
+	"sort"
+	"github.com/gonum/matrix/mat64"
+)
 
 /*
    """projects any vector V in a plane with contains the 0 and which normal vector is  N. V and N must be numeric arrays"""
@@ -157,23 +160,25 @@ func RotatorTranslatorToSuper(test, templa *VecMatrix) (*VecMatrix, *VecMatrix, 
 	Maux := ZeroVecs(r)
 	Maux.Mul(aux2, ctest)
 	Maux.TCopy(Maux) //Dont understand why this is needed
-	U, _, Vt := gnSVD(vecMatrix2chemDense(Maux))
+	factors := mat64.SVD(VecMatrix2Dense(Maux),appzero, math.SmallestNonzeroFloat64, true, true)
+	U := factors.U
+	V := factors.V
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
 	U.Scale(-1, U)
-	Vt.Scale(-1, Vt)
-	//SVD gives different results here than in numpy. U and Vt are multiplide by -1 in one of them
-	//and gomatrix gives as Vt the transpose of the matrix given as Vt by numpy. I guess is not an
+	V.Scale(-1, V)
+	//SVD gives different results here than in numpy. U and V are multiplide by -1 in one of them
+	//and gomatrix gives as V the transpose of the matrix given as V by numpy. I guess is not an
 	//error, but don't know for sure. 
-	vtr, _ := Vt.Dims()
+	vtr, _ := V.Dims()
 	Rotation := ZeroVecs(vtr)
-	Rotation.Mul(Vt, gnT(U))
+	Rotation.Mul(V, gnT(U))
 	Rotation.TCopy(Rotation) //Don't know why does this work :(
 	RightHand:=gnEye(3)
 	if det(Rotation) < 0 {
 		RightHand.Set(2,2,-1)
-		Rotation.Mul(Vt,RightHand)
+		Rotation.Mul(V,RightHand)
 		Rotation.Mul(Rotation,gnT(U))  //If I get this to work Ill arrange so gnT(U) is calculated once, not twice as now.
 		Rotation.TCopy(Rotation) //Same, no ide why I need this
 	  //return nil, nil, nil, nil, fmt.Errorf("Got a reflection instead of a translations. The objects may be specular images of each others")
@@ -353,7 +358,7 @@ func BestPlane(coords *VecMatrix, mol ReadRef) (*VecMatrix, error) {
 
 //CenterOfMass returns the center of mass the atoms represented by the coordinates in geometry
 //and the masses in mass, and an error. If mass is nil, it calculates the geometric center
-func CenterOfMass(geometry *VecMatrix, mass *chemDense) (*VecMatrix, error) {
+func CenterOfMass(geometry *VecMatrix, mass *mat64.Dense) (*VecMatrix, error) {
 	if geometry == nil {
 		return nil, fmt.Errorf("nil matrix to get the center of mass")
 	}
@@ -372,7 +377,7 @@ func CenterOfMass(geometry *VecMatrix, mass *chemDense) (*VecMatrix, error) {
 
 //MassCentrate centers in in the center of mass of oref. Mass must be
 //A column vector. Returns the centered matrix and the displacement matrix.
-func MassCentrate(in, oref *VecMatrix, mass *chemDense) (*VecMatrix, *VecMatrix, error) {
+func MassCentrate(in, oref *VecMatrix, mass *mat64.Dense) (*VecMatrix, *VecMatrix, error) {
 	or, _ := oref.Dims()
 	ir, _ := in.Dims()
 	if mass == nil { //just obtain the geometric center
@@ -408,30 +413,29 @@ func MassCentrate(in, oref *VecMatrix, mass *chemDense) (*VecMatrix, *VecMatrix,
 func MomentTensor(A *VecMatrix, massslice []float64) (*VecMatrix, error) {
 	ar, ac := A.Dims()
 	var err error
-	var mass *chemDense
+	var mass *mat64.Dense
 	if massslice == nil {
 		mass = gnOnes(ar, 1)
 	} else {
-		mass, err = newchemDense(massslice, ar, 1)
-		if err != nil {
-			return nil, err
-		}
+		mass = mat64.NewDense(ar,1, massslice)
+//		if err != nil {
+//			return nil, err
+//		}
 	}
-	center, _, err := MassCentrate(A, chemDense2VecMatrix(gnCopy(A)), mass)
+	center, _, err := MassCentrate(A, Dense2VecMatrix(gnCopy(A)), mass)
 	if err != nil {
 		return nil, err
 	}
 	sqrmass := gnZeros(ar, 1)
-	sqrmass.Pow(mass, 0.5)
+	pow(mass,sqrmass, 0.5) //the result is stored in sqrmass
 	//	fmt.Println(center,sqrmass) ////////////////////////
 	center.ScaleByCol(center, sqrmass)
 	//	fmt.Println(center,"scaled center")
 	centerT := gnZeros(ac, ar)
 	centerT.TCopy(center)
 	moment := gnMul(centerT, center)
-	return chemDense2VecMatrix(moment), err
+	return Dense2VecMatrix(moment), err
 }
-
 //The projection of test in ref.
 func Projection(test, ref *VecMatrix) *VecMatrix {
 	rr, _ := ref.Dims()

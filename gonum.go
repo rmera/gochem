@@ -1,5 +1,3 @@
-// +build gonum
-
 /*
  * gonum.go, part of gochem.
  *
@@ -28,6 +26,11 @@
 //files used in computational chemistry and some functions for geometric manipulations and shape
 //indicators.
 
+//gonum.go contains most of what is needed for handling the gonum/mat64 types and facilities.
+//At this point the name is mostly historical: It used to be the only file importing gonum,
+//Now that gomatrix support is discontinued, there is a tighter integration with gonum and 
+//other files import mat64.
+
 //All the *Vec functions will operate/produce column or row vectors depending on whether the matrix underlying Dense
 //is row or column major.
 
@@ -35,34 +38,26 @@ package chem
 
 import (
 	"fmt"
-	"github.com/gonum/blas/cblas"
 	"github.com/gonum/matrix/mat64"
 	"math"
 	"sort"
 )
 
-//For now this is here as we do not have other blas engine options.
-//When we do, there will be several files with different inits,
-//That will be chosen with compiler flags.
-func init() {
-	mat64.Register(cblas.Blas{})
-}
 
-//INTERFACES  This part is from GONUM, copyright, the gonum authors.
 
 //The main container, must be able to implement any
 //gonum interface.
 //VecMatrix is a set of vectors in 3D space. The underlying implementation varies.
-type VecMatrix struct {
-	*mat64.Dense
+type VecMatrix	struct {
+  *mat64.Dense
 }
 
 func VecMatrix2Dense(A *VecMatrix) *mat64.Dense {
-	return A.Dense
+	return  A.Dense
 }
 
 func Dense2VecMatrix(A *mat64.Dense) *VecMatrix {
-	return &VecMatrix{A}
+	return  &VecMatrix{A}
 }
 
 //Generate and returns a VecMatrix with 3 columns from data.
@@ -79,16 +74,16 @@ func NewVecs(data []float64) (*VecMatrix, error) {
 
 //Puts a view of the given col of the matrix on the receiver
 func (F *VecMatrix) ColView(i int) *VecMatrix {
-	r := new(mat64.Dense)
+//	r := new(mat64.Dense)
 	Fr, _ := F.Dims()
-	r.View(F.Dense, 0, i, Fr, 1)
+	r:=F.Dense.View( 0, i, Fr, 1).(*mat64.Dense)
 	return &VecMatrix{r}
 }
 
 //Returns view of the given vector of the matrix in the receiver
 func (F *VecMatrix) VecView(i int) *VecMatrix {
-	r := new(mat64.Dense)
-	r.View(F.Dense, i, 0, 1, 3)
+	//r := new(mat64.Dense)
+	r:=F.Dense.View( i, 0, 1, 3).(*mat64.Dense)
 	return &VecMatrix{r}
 }
 
@@ -98,8 +93,7 @@ func (F *VecMatrix) VecView(i int) *VecMatrix {
 //But the right signatur was not possible to implement. Notice that very little
 //memory allocation happens, only a couple of ints and pointers.
 func (F *VecMatrix) View(i, j, r, c int) *VecMatrix {
-	ret := new(mat64.Dense)
-	ret.View(F.Dense, i, j, r, c)
+	ret:=F.Dense.View( i, j, r, c).(*mat64.Dense)
 	return &VecMatrix{ret}
 }
 
@@ -120,61 +114,6 @@ func (F *VecMatrix) SetMatrix(i, j int, A *VecMatrix) {
 	}
 }
 
-//The following functions are here because directly calling the method
-//on the embeded mat64.Dense gives wrong behavior.
-
-/*
-
-func (F *VecMatrix) Copy(A Matrix) {
-	switch A := A.(type) {
-	case *VecMatrix:
-		F.Dense.Copy(A.Dense)
-	case *chemDense:
-		F.Dense.Copy(A.Dense)
-	default:
-		F.Dense.Copy(A)
-	}
-}
-
-
-func (F *VecMatrix)Add(A *VecMatrix, B Matrix){
-	switch B := B.(type) {
-	case *VecMatrix:
-		F.Dense.Add(A.Dense,B.Dense)
-	case *chemDense:
-		F.Dense.Add(A.Dense,B.Dense)
-	default:
-		F.Dense.Add(A.Dense,B)
-	}
-}
-
-func (F *VecMatrix)Scale(i float64, A Matrix){
-	switch A := A.(type) {
-	case *VecMatrix:
-		F.Dense.Scale(i,A.Dense)
-	case *chemDense:
-		F.Dense.Scale(i,A.Dense)
-	default:
-		F.Dense.Scale(i,A)
-	}
-}
-
-
-func (F *VecMatrix) Sub(A *VecMatrix, B Matrix){
-	switch B := B.(type) {
-	case *VecMatrix:
-		F.Dense.Sub(A.Dense,B.Dense)
-	case *chemDense:
-		F.Dense.Sub(A.Dense,B.Dense)
-	default:
-		F.Dense.Sub(A.Dense,B)
-	}
-}
-
-
-*/
-
-//It seems that I don't actually use this function!
 func gnInverse(F *VecMatrix) (*VecMatrix, error) {
 	a,err := mat64.Inverse(F.Dense)
 	return &VecMatrix{a}, err
@@ -183,8 +122,9 @@ func gnInverse(F *VecMatrix) (*VecMatrix, error) {
 
 //Mul Wrapps mat64.Mul to take care of the case when one of the
 //argumenst is also the receiver.
-func (F *VecMatrix) Mul(A, B Matrix) {
-	if F == A {
+/*
+func (F *VecMatrix) Mul(A, B mat64.Matrix) {
+/*	if F == A {
 		A := A.(*VecMatrix)
 		F.Dense.Mul(A.Dense, B)
 	} else if F == B {
@@ -193,30 +133,24 @@ func (F *VecMatrix) Mul(A, B Matrix) {
 	} else {
 		F.Dense.Mul(A, B)
 	}
-	/*
-		if C, ok := A.(*VecMatrix); ok {
-			switch B := B.(type) {
-			case *VecMatrix:
-				F.Dense.Mul(C.Dense, B.Dense)
-			case *chemDense:
-				F.Dense.Mul(C.Dense, B.Dense)
-			default:
-				F.Dense.Mul(C.Dense, B)
+
+	if C, ok := A.(*VecMatrix); ok {
+		if D, ok2 := B.(*VecMatrix); ok2 {
+				F.Dense.Mul(C.Dense, D.Dense)
+			}else{
+				F.Dense.Mul(C.Dense,D)
 			}
-		} else if C,ok:=A.(*chemDense); ok {
-			switch B := B.(type) {
-			case *VecMatrix:
-				F.Dense.Mul(C.Dense, B.Dense)
-			case *chemDense:
-				F.Dense.Mul(C.Dense, B.Dense)
-			default:
-				F.Dense.Mul(C.Dense, B)
-			}
-		} else {
-			F.Dense.Mul(A, B)
+
+		}else{
+			if D, ok2 := B.(*VecMatrix); ok2 {
+				F.Dense.Mul(A,D.Dense)
+		}else{
+			F.Dense.Mul(A,B)
 		}
-	*/
+	}
 }
+*/
+
 
 //puts A stacked over B in F
 func (F *VecMatrix) Stack(A, B *VecMatrix) {
@@ -242,20 +176,11 @@ func (F *VecMatrix) Stack(A, B *VecMatrix) {
 //
 //}
 
-//Just a dense matrix to allow different implementations of gonum.
-//This might change to Dense at some point, but the API change should be barely noticeable.
-type chemDense struct {
-	*mat64.Dense
-}
 
 //Some of the following function have an err return type in the signature, but they always return a nil error. This is
 //Because of a change in gonum/matrix. The NewDense function used to return error and now panics.
 //I do not think it is worth to fix these functions.
 
-func newchemDense(data []float64, r, c int) (*chemDense, error) {
-	d := mat64.NewDense(r, c, data)
-	return &chemDense{d}, nil
-}
 
 //Returns and empty, but not nil, Dense. It barely allocates memory
 func emptyDense() (*mat64.Dense, error) {
@@ -266,15 +191,14 @@ func emptyDense() (*mat64.Dense, error) {
 
 //Returns an zero-filled Dense with the given dimensions
 //It is to be substituted by the Gonum function.
-func gnZeros(r, c int) *chemDense {
+func gnZeros(r, c int) *mat64.Dense {
 	f := make([]float64, r*c, r*c)
-	ret := mat64.NewDense(r, c, f)
-	return &chemDense{ret}
+	return mat64.NewDense(r, c, f)
 
 }
 
 //Returns an identity matrix spanning span cols and rows
-func gnEye(span int) *chemDense {
+func gnEye(span int) *mat64.Dense {
 	A := gnZeros(span, span)
 	for i := 0; i < span; i++ {
 		A.Set(i, i, 1.0)
@@ -342,7 +266,7 @@ func EigenWrap(in *VecMatrix, epsilon float64) (*VecMatrix, []float64, error) {
 	//evecs.TCopy(evecs.Dense)
 	//	fmt.Println("evecs presort", evecs) /////////
 	eig := eigenpair{evecs, evals[:]}
-
+	//fmt.Println("EVEECS", evecs) /////////////////////////
 	sort.Sort(eig)
 	//Here I should orthonormalize vectors if needed instead of just complaining.
 	//I think orthonormality is guaranteed by  DenseMatrix.Eig() If it is, Ill delete all this
@@ -350,12 +274,12 @@ func EigenWrap(in *VecMatrix, epsilon float64) (*VecMatrix, []float64, error) {
 	eigrows, _ := eig.evecs.Dims()
 	//	fmt.Println("evecs", eig.evecs) /////////
 	for i := 0; i < eigrows; i++ {
-		vectori := eig.evecs.RowView(i)
+		vectori := eig.evecs.VecView(i)
 		for j := i + 1; j < eigrows; j++ {
-			vectorj := eig.evecs.RowView(j)
+			vectorj := eig.evecs.VecView(j)
 			if math.Abs(vectori.Dot(vectorj)) > epsilon && i != j {
-				fmt.Println("FAAAAILL", eig.evecs, i, j, math.Abs(vectori.Dot(vectorj)), vectori, vectorj)
-				return eig.evecs, evals[:], notOrthogonal
+				reterr:=VecError(fmt.Sprintln("Eigenvectors ",i,"and",j," not orthogonal. v",i,":",vectori,"\nv",j,":",vectorj,"\nDot:", math.Abs(vectori.Dot(vectorj)),"eigmatrix:", eig.evecs))
+				return eig.evecs, evals[:], reterr
 			}
 		}
 		if math.Abs(vectori.Norm(0)-1) > epsilon {
@@ -382,8 +306,9 @@ func EigenWrap(in *VecMatrix, epsilon float64) (*VecMatrix, []float64, error) {
 	return eig.evecs, eig.evals, err //Returns a slice of evals
 }
 
+/*
 //Returns the singular value decomposition of matrix A
-func gnSVD(A *chemDense) (*chemDense, *chemDense, *chemDense) {
+func gnSVD(A *mat64.Dense) ( *mat64.Dense,*mat64.Dense,*mat64.Dense) {
 	facts := mat64.SVD(A.Dense, appzero, math.SmallestNonzeroFloat64, true, true) //I am not sure that the second appzero is appropiate
 	//make sigma a matrix
 	//	lens:=len(s)
@@ -394,8 +319,15 @@ func gnSVD(A *chemDense) (*chemDense, *chemDense, *chemDense) {
 	return &chemDense{facts.U}, &chemDense{facts.S()}, &chemDense{facts.V}
 
 }
+*/
 
-func (F *VecMatrix) TCopy(A Matrix) {
+//Just a wrapper for the mat64.Dense.TCopy method
+func (F *VecMatrix) TCopy(A mat64.Matrix) {
+	//Somehow the mat64.TCopy method seems to misbehave if I give it a mat64.Matrix.
+	//Although I can't see a bug in the mat64.Dense.TCopy function, it seems that if I
+	//call it with an A which is not a mat64.Dense, it doesn't work. That is why this wrapper
+	//has not been deleted. This seems to be a bug in gochem somehow, not in gonum.
+	//to the gonum guys.
 	if A, ok := A.(*VecMatrix); ok {
 		F.Dense.TCopy(A.Dense)
 	} else {
@@ -403,8 +335,9 @@ func (F *VecMatrix) TCopy(A Matrix) {
 	}
 }
 
+
 //returns a rows,cols matrix filled with gnOnes.
-func gnOnes(rows, cols int) *chemDense {
+func gnOnes(rows, cols int) *mat64.Dense {
 	gnOnes := gnZeros(rows, cols)
 	for i := 0; i < rows; i++ {
 		for j := 0; j < cols; j++ {
@@ -414,7 +347,8 @@ func gnOnes(rows, cols int) *chemDense {
 	return gnOnes
 }
 
-func gnMul(A, B mat64.Matrix) *chemDense {
+//The 2 following functions may not even be used.
+func gnMul(A, B mat64.Matrix) *mat64.Dense {
 	ar, _ := A.Dims()
 	_, bc := B.Dims()
 	C := gnZeros(ar, bc)
@@ -422,22 +356,25 @@ func gnMul(A, B mat64.Matrix) *chemDense {
 	return C
 }
 
-func gnCopy(A mat64.Matrix) *chemDense {
+func gnCopy(A mat64.Matrix) *mat64.Dense {
 	r, c := A.Dims()
 	B := gnZeros(r, c)
 	B.Copy(A)
 	return B
 }
 
-func gnT(A mat64.Matrix) *chemDense {
+func gnT(A mat64.Matrix) *mat64.Dense {
 	r, c := A.Dims()
 	B := gnZeros(c, r)
 	B.TCopy(A)
 	return B
 }
 
+
+
+
 //This is a temporal function. It returns the determinant of a 3x3 matrix. Panics if the matrix is not 3x3
-func det(A Matrix) float64 {
+func det(A mat64.Matrix) float64 {
 	r, c := A.Dims()
 	if r != 3 || c != 3 {
 		panic("Determinants are for now only available for 3x3 matrices")
@@ -450,48 +387,43 @@ func det(A Matrix) float64 {
  * unimported and to allow easy use of search/replace to add the "num" prefix when I change to
  * gonum.**/
 
-//OK I think I cant take all these out now. I will as soon as I can.
 
 
 
-// A Panicker is a function that may panic.
+// A gnPanicker is a function that may panic.
 type gnPanicker func()
 
-// Maybe will recover a panic with a type matrix.Error from fn, and return this error.
-// Any other error is re-panicked.
-func gnMaybe(fn gnPanicker) (err error) {
-	defer func() {
+// Maybe will recover a panic with a type mat64.Error or a VecError from fn, and return this error.
+// Any other error is re-panicked. It is a small modification
+//Maybe this funciton should be exported.
+func gnMaybe(fn gnPanicker) error {
+	var err error
+	defer func() error {
 		if r := recover(); r != nil {
-			var ok bool
-			if err, ok = r.(gnError); ok {
-				return
-			}
+			switch err := r.(type) {
+			case VecError:
+				return err
+			case mat64.Error:
+				return err
+			default:
 			panic(r)
+			}
 		}
+	return nil
 	}()
 	fn()
-	return
+	return err
 }
 
-// Type Error represents matrix package errors. These errors can be recovered by Maybe wrappers.
-type gnError string
+// Type Error represents matrix package errors. These errors can be recovered by gnMaybe wrappers.
 
-func (err gnError) Error() string { return string(err) }
+
+type VecError string
+
+func (err VecError) Error() string { return string(err) }
 
 const (
-	//RM
-	not3xXMatrix      = gnError("matrix: The other dimmension should be 3")
-	notOrthogonal     = gnError("matrix: Vectors nor orthogonal")
-	notEnoughElements = gnError("matrix: not enough elements")
-	//end RM
-	gnErrIndexOutOfRange = gnError("matrix: index out of range")
-	gnErrZeroLength      = gnError("matrix: zero length in matrix definition")
-	gnErrRowLength       = gnError("matrix: row length mismatch")
-	gnErrColLength       = gnError("matrix: col length mismatch")
-	gnErrSquare          = gnError("matrix: expect square matrix")
-	gnErrNormOrder       = gnError("matrix: invalid norm order for matrix")
-	gnErrSingular        = gnError("matrix: matrix is singular")
-	gnErrShape           = gnError("matrix: dimension mismatch")
-	gnErrIllegalStride   = gnError("matrix: illegal stride")
-	gnErrPivot           = gnError("matrix: malformed pivot list")
+	not3xXMatrix      = VecError("goChem/VecMatrix: A VecMatrix should have 3 columns")
+	notOrthogonal     = VecError("goChem/VecMatrix: Vectors nor orthogonal")
+	notEnoughElements = VecError("goChem/VecMatrix: not enough elements in VecMatrix")
 )

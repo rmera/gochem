@@ -33,36 +33,19 @@ import (
 	"fmt"
 	"math"
 	"strings"
+	"github.com/gonum/matrix/mat64"
 )
 
-// Matrix is the basic matrix interface type. This is redundant and exactly equivalent to the implementation in gonum
-type Matrix interface {
-	// Dims returns the dimensions of a Matrix.
-	Dims() (r, c int)
-
-	// At returns the value of a matrix element at (r, c). It will panic if r or c are
-	// out of bounds for the matrix.
-	At(r, c int) float64
-}
 
 const appzero float64 = 0.000000000001 //used to correct floating point
-//errors. Everything equal or less than this is considered zero.
+//errors. Everything equal or less than this is considered zero. This probably sucks.
 
 //Returns a zero-filled VecMatrix with cos vectors and 3 in the other dimension.
 func ZeroVecs(cos int) *VecMatrix {
 	const cols int = 3
-	dens := gnZeros(cos, cols)
-	return &VecMatrix{dens.Dense}
+	dens := gnZeros(cos, cols) //Maybe it would be better to just put the gnZeros code here for efficiency.
+	return &VecMatrix{dens}
 }
-
-func chemDense2VecMatrix(A *chemDense) *VecMatrix {
-	return &VecMatrix{A.Dense}
-}
-
-func vecMatrix2chemDense(A *VecMatrix) *chemDense {
-	return &chemDense{A.Dense}
-}
-
 //METHODS
 
 func (F *VecMatrix) SwapVecs(i, j int) {
@@ -85,7 +68,7 @@ func (F *VecMatrix) AddVec(A, vec *VecMatrix) {
 	rr, rc := vec.Dims()
 	fr, fc := F.Dims()
 	if ac != rc || rr != 1 || ac != fc || ar != fr {
-		panic(gnErrShape)
+		panic(mat64.ErrShape)
 	}
 	for i := 0; i < ar; i++ {
 		j := A.VecView(i)
@@ -105,7 +88,7 @@ func (F *VecMatrix) DelRow(A *VecMatrix, i int) {
 	ar, ac := A.Dims()
 	fr, fc := F.Dims()
 	if i >= ar || fc != ac || fr != (ar-1) {
-		panic(gnErrShape)
+		panic(mat64.ErrShape)
 	}
 	tempA1 := A.View(0, 0, i, ac)
 	tempF1 := F.View(0, 0, i, ac)
@@ -141,7 +124,7 @@ func (F *VecMatrix) SetVecs(A *VecMatrix, clist []int) {
 	ar, ac := A.Dims()
 	fr, fc := F.Dims()
 	if ac != fc || fr < len(clist) || ar < len(clist) {
-		panic(gnErrShape)
+		panic(mat64.ErrShape)
 	}
 	for key, val := range clist {
 		for j := 0; j < ac; j++ {
@@ -157,7 +140,7 @@ func (F *VecMatrix) SomeVecs(A *VecMatrix, clist []int) {
 	ar, ac := A.Dims()
 	fr, fc := F.Dims()
 	if ac != fc || fr != len(clist) || ar < len(clist) {
-		panic(gnErrShape)
+		panic(mat64.ErrShape)
 	}
 	for key, val := range clist {
 		for j := 0; j < ac; j++ {
@@ -250,11 +233,11 @@ func (F *VecMatrix) AddRow(A, row *VecMatrix) {
 
 //Puts A**exp on the receiver. This function could probably
 //be written in a concurrent way
-func (F *chemDense) Pow(A Matrix, exp float64) {
+func pow(A mat64.Matrix, F *mat64.Dense, exp float64) {
 	ar, ac := A.Dims()
 	fr, fc := F.Dims()
 	if ar != fr || ac != fc {
-		panic(gnErrShape)
+		panic(mat64.ErrShape)
 	}
 	for i := 0; i < ar; i++ {
 		for j := 0; j < ac; j++ {
@@ -266,12 +249,12 @@ func (F *chemDense) Pow(A Matrix, exp float64) {
 
 //ScaleByCol scales each column of matrix A by Col, putting the result
 //in the received.
-func (F *VecMatrix) ScaleByCol(A, Col Matrix) {
+func (F *VecMatrix) ScaleByCol(A, Col mat64.Matrix) {
 	ar, ac := A.Dims()
 	cr, cc := Col.Dims()
 	fr, fc := F.Dims()
 	if ar != cr || cc > 1 || ar != fr || ac != fc {
-		panic(gnErrShape)
+		panic(mat64.ErrShape)
 	}
 	if F != A {
 		F.Copy(A)
@@ -290,7 +273,7 @@ func (F *VecMatrix) ScaleByRow(A, Row *VecMatrix) {
 	rr, rc := Row.Dims()
 	fr, fc := F.Dims()
 	if ac != rc || rr != 1 || ar != fr || ac != fc {
-		panic(gnErrShape)
+		panic(mat64.ErrShape)
 	}
 	if F != A {
 		F.Copy(A)

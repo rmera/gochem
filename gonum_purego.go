@@ -1,4 +1,4 @@
-// +build !gonum
+// +build ignored
 
 /*
  * gonum_go.go, part of gochem.
@@ -107,6 +107,7 @@ func newchemDense(data []float64, rows, cols int) (*chemDense, error) {
 
 //Generate and returns a VecMatrix with 3 columns from data.
 func NewVecs(data []float64) (*VecMatrix, error) {
+	fmt.Println("JAJAJA BIENVENIDO AL INFIERNO!!!!")
 	const cols int = 3
 	l := len(data)
 	rows := l / cols
