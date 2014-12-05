@@ -74,16 +74,16 @@ func NewVecs(data []float64) (*VecMatrix, error) {
 
 //Puts a view of the given col of the matrix on the receiver
 func (F *VecMatrix) ColView(i int) *VecMatrix {
-	r := new(mat64.Dense)
+//	r := new(mat64.Dense)
 	Fr, _ := F.Dims()
-	r.View(F.Dense, 0, i, Fr, 1)
+	r:=F.Dense.View( 0, i, Fr, 1).(*mat64.Dense)
 	return &VecMatrix{r}
 }
 
 //Returns view of the given vector of the matrix in the receiver
 func (F *VecMatrix) VecView(i int) *VecMatrix {
-	r := new(mat64.Dense)
-	r.View(F.Dense, i, 0, 1, 3)
+	//r := new(mat64.Dense)
+	r:=F.Dense.View( i, 0, 1, 3).(*mat64.Dense)
 	return &VecMatrix{r}
 }
 
@@ -93,8 +93,7 @@ func (F *VecMatrix) VecView(i int) *VecMatrix {
 //But the right signatur was not possible to implement. Notice that very little
 //memory allocation happens, only a couple of ints and pointers.
 func (F *VecMatrix) View(i, j, r, c int) *VecMatrix {
-	ret := new(mat64.Dense)
-	ret.View(F.Dense, i, j, r, c)
+	ret:=F.Dense.View( i, j, r, c).(*mat64.Dense)
 	return &VecMatrix{ret}
 }
 
