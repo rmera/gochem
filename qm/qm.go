@@ -157,7 +157,7 @@ type Calc struct {
 	//	IConstraints []IntConstraint //internal constraints
 	Dielectric float64
 	//	Solventmethod string
-	Disperssion string //D2, D3, etc.
+	Dispersion string //D2, D3, etc.
 	Others      string //analysis methods, etc
 	//	PCharges []PointCharge
 	Guess        string //initial guess
@@ -173,8 +173,8 @@ type Calc struct {
 
 func (Q *Calc) SetDefaults() {
 	Q.RI = true
-	Q.BSSE = "gcp"
-	Q.Disperssion = "D3"
+//	Q.BSSE = "gcp"
+	Q.Dispersion = "D3"
 }
 
 //Utilities here
