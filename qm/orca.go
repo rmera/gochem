@@ -128,8 +128,8 @@ func (O *OrcaHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q *C
 	}
 
 	disp := "D3"
-	if Q.Disperssion != "" {
-		disp = orcaDisp[Q.Disperssion]
+	if Q.Dispersion != "" {
+		disp = orcaDisp[Q.Dispersion]
 	}
 	opt := ""
 	trustradius:=""

@@ -106,7 +106,7 @@ func (O *FermionsHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, 
 		Q.Method = O.defmethod
 	}
 
-	disp, ok := fermionsDisp[strings.ToLower(Q.Disperssion)]
+	disp, ok := fermionsDisp[strings.ToLower(Q.Dispersion)]
 	if !ok {
 		disp = "disp_corr  D3"
 	}

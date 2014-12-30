@@ -145,7 +145,7 @@ func (O *NWChemHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q 
 	}
 	vectors = "vectors " + vectors
 
-	disp, ok := nwchemDisp[Q.Disperssion]
+	disp, ok := nwchemDisp[Q.Dispersion]
 	if !ok {
 		disp = "vdw 3"
 	}

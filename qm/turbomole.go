@@ -311,7 +311,7 @@ func (O *TMHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q *Cal
 	}
 	//Now modify control
 	args := make([]string, 1, 2)
-	args[0], ok = tMDisp[Q.Disperssion]
+	args[0], ok = tMDisp[Q.Dispersion]
 	if !ok {
 		fmt.Fprintf(os.Stderr, "Dispersion correction requested not supported, will used the default: D3, \n")
 		args[0] = "$disp3"

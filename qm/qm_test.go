@@ -164,7 +164,7 @@ func TesstTurbo(Te *testing.T) {
 	calc.HighBasis = "def2-TZVP"
 	calc.HBElements = []string{"O"}
 	calc.RI = true
-	calc.Disperssion = "D3"
+	calc.Dispersion = "D3"
 	calc.CConstraints = []int{0, 3}
 	tm := NewTMHandle()
 	atoms := mol.Coords[0]
@@ -209,7 +209,7 @@ func TestFermions(Te *testing.T) {
 	calc.Dielectric = 4
 	calc.Basis = "def2-SVP"
 	calc.Grid = 4
-	calc.Disperssion = "D3"
+	calc.Dispersion = "D3"
 	calc.CConstraints = []int{0, 10, 20}
 	cs := NewFermionsHandle()
 	cs.SetName("gochemF")
