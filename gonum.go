@@ -121,10 +121,11 @@ func gnInverse(F *VecMatrix) (*VecMatrix, error) {
 }
 
 //Mul Wrapps mat64.Mul to take care of the case when one of the
-//argumenst is also the receiver.
-/*
+//arguments is also the received. Since the received is a VecMatrix,
+//the mat64 function could check A (mat64.Dense) vs F (VecMatrix) and
+//it would not know that internally F.Dense==A, hence the need for this function.
 func (F *VecMatrix) Mul(A, B mat64.Matrix) {
-/*	if F == A {
+	if F == A {
 		A := A.(*VecMatrix)
 		F.Dense.Mul(A.Dense, B)
 	} else if F == B {
@@ -134,6 +135,7 @@ func (F *VecMatrix) Mul(A, B mat64.Matrix) {
 		F.Dense.Mul(A, B)
 	}
 
+/*
 	if C, ok := A.(*VecMatrix); ok {
 		if D, ok2 := B.(*VecMatrix); ok2 {
 				F.Dense.Mul(C.Dense, D.Dense)
@@ -148,8 +150,9 @@ func (F *VecMatrix) Mul(A, B mat64.Matrix) {
 			F.Dense.Mul(A,B)
 		}
 	}
-}
 */
+}
+
 
 
 //puts A stacked over B in F
