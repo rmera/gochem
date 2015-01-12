@@ -96,8 +96,7 @@ func (R *paravector) unit (P *paravector) {
 
 //Clifford product of 2 paravectors, the imaginary parts are simply set to zero, since this is the case
 //when rotating 3D real vectors. The proper Cliffor product is in fullCliProduct
-func cliProduct(A, B *paravector) *paravector {
-	R := makeParavector()
+func (R *paravector) cliProduct(A, B *paravector)  {
 	R.Real = A.Real*B.Real - A.Imag*B.Imag
 	for i := 0; i < 3; i++ {
 		R.Real += (A.Vreal.At(0, i)*B.Vreal.At(0, i) - A.Vimag.At(0, i)*B.Vimag.At(0, i))
@@ -137,7 +136,7 @@ func cliProduct(A, B *paravector) *paravector {
 	// A.Real, B.Vimag.At(0,0), "g2", B.Real,A.Vimag.At(0,0),"g3", A.Imag, B.Vreal.At(0,0),"g4" ,B.Imag,A.Vreal.At(0,0),
 	//"g5", A.Vreal.At(0,2), B.Vreal.At(0,1), -1*A.Vreal.At(0,1)*B.Vreal.At(0,2), A.Vimag.At(0,2)*B.Vimag.At(0,1), -1*
 	//A.Vimag.At(0,1)*B.Vimag.At(0,2))
-	return R
+//	return R
 }
 
 //cliRotation uses Clifford algebra to rotate a paravector Aby angle radians around axis. Returns the rotated
@@ -149,9 +148,11 @@ func cliRotation(A, axis *paravector, angle float64) *paravector {
 		R.Vimag.Set(0, i, math.Sin(angle/2.0)*axis.Vreal.At(0, i))
 	}
 	R.reverse(R)
-	tmp := cliProduct(R, A)
-	Rotated := cliProduct(tmp, R)
-	return Rotated
+	tmp:=makeParavector()
+	tmp2:=makeParavector()
+	tmp.cliProduct(R, A)
+	tmp2.cliProduct(tmp, R)
+	return tmp2
 }
 
 //CliRotate takes the matrix Target and uses Clifford algebra to rotate each of its rows
@@ -169,10 +170,12 @@ func RotateSer(Target, axis *VecMatrix, angle float64) *VecMatrix {
 	Rrev:=makeParavector()
 	Rrev.reverse(R)
 	Res := ZeroVecs(tarr)
+	tmp:=makeParavector()
+	Rotated:=makeParavector()
 	for i := 0; i < tarr; i++ {
 		rowvec := Target.VecView(i)
-		tmp := cliProduct(Rrev, paravectorFromVector(rowvec,ZeroVecs(1)))
-		Rotated := cliProduct(tmp, R)
+		tmp.cliProduct(Rrev, paravectorFromVector(rowvec,ZeroVecs(1)))
+		Rotated.cliProduct(tmp, R)
 		Res.SetMatrix(i, 0, Rotated.Vreal)
 	}
 	return Res
