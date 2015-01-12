@@ -30,6 +30,7 @@
 package chem
 
 import "math"
+import "runtime"
 
 //import "fmt"
 
@@ -210,13 +211,75 @@ func RotateSerP(Target,ToRot, axis,tmpv,Rv,Rvrev,Rotatedv, itmp1,itmp2,itmp3,itm
 	}
 }
 
+
+//Rotate takes the matrix Target and uses Clifford algebra to _concurrently_ rotate each
+//of its rows by angle radians around axis. Axis must be a 3D row vector.
+//Target must be an N,3 matrix. The result is returned.
+func Rotate(Target, axis *VecMatrix, angle float64) *VecMatrix {
+	Res := ZeroVecs(Target.NVecs())
+	RotateP(Target, Res, axis, angle)
+	return Res
+}
+
+
 //Rotate takes the matrix Target and uses Clifford algebra to _concurrently_ rotate each
 //of its rows by angle radians around axis. Axis must be a 3D row vector.
 //Target must be an N,3 matrix.
 
-func Rotate(Target, axis *VecMatrix, angle float64) *VecMatrix {
-	return ZeroVecs(1)   //temporary, of course
+func RotateP(Target, Res, axis *VecMatrix, angle float64) {
+	gorut := runtime.GOMAXPROCS(-1) //Do not change anything, only query
+	rows := Target.NVecs()
+	rrows := Res.NVecs()
+	if rrows != rows || Target.Dense == Res.Dense {
+		panic("RotateP: Target and Res must have the same dimensions. Target and Res cannot reference the same matrix.")
+	}
+	paxis := paravectorFromVector(axis,ZeroVecs(1))
+	paxis.unit(paxis)
+	R := makeParavector() //build the rotor (R)
+	R.Real = math.Cos(angle / 2.0)
+	for i := 0; i < 3; i++ {
+		R.Vimag.Set(0, i, math.Sin(angle/2.0)*paxis.Vreal.At(0, i))
+	}
+	Rrev := makeParavector() //R-dagger
+	Rrev.reverse(R)
+	ended := make(chan bool, gorut)
+	//Just temporal skit to be used by the gorutines
+	tmp1 := ZeroVecs(gorut)
+	tmp2 := ZeroVecs(gorut)
+	tmp3 := ZeroVecs(gorut)
+	tmp4 := ZeroVecs(gorut)
+	fragmentlen := int(math.Ceil(float64(rows) / float64(gorut))) //len of the fragment of target that each gorutine will handle
+	for i := 0; i < gorut; i++ {
+		//These are the limits of the fragment of Target in which the gorutine will operate
+		ini := i * fragmentlen
+		end := i*fragmentlen + (fragmentlen - 1)
+		if i == gorut-1 {
+			end = rows - 1 //The last fragment may be smaller than fragmentlen
+		}
+		go func(ini, end, i int) {
+			t1 := tmp1.VecView(i)
+			t2 := tmp2.VecView(i)
+			t4 := tmp4.VecView(i)
+			pv := paravectorFromVector(t2, t4)
+			t3 := tmp3.VecView(i)
+			for j := ini; j <= end; j++ {
+				//Here we simply do R^dagger A R, and assign to the corresponding row.
+				Rotated := paravectorFromVector(Res.VecView(j), t3)
+				targetparavec := paravectorFromVector(Target.VecView(j), t1)
+				pv.cliProduct(Rrev, targetparavec)
+				Rotated.cliProduct(pv, R)
+			}
+			ended <- true
+			return
+		}(ini, end, i)
+	}
+	//Takes care of the concurrency
+	for i := 0; i < gorut; i++ {
+		<-ended
+	}
+	return 
 }
+
 /*
 	rows, _ := Target.Dims()
 	paxis := paravectorFromVector(axis,ZeroVecs(1))
