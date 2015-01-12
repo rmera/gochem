@@ -157,35 +157,57 @@ func (R *paravector) cliRotation(A, axis, tmp, tmp2 *paravector, angle float64) 
 
 
 
-
 //RotateSer takes the matrix Target and uses Clifford algebra to rotate each of its rows
 //by angle radians around axis. Axis must be a 3D row vector. Target must be an N,3 matrix.
 //The Ser in the name is from "serial". ToRot will be overwritten and returned
 func RotateSer(Target,ToRot, axis *VecMatrix, angle float64) *VecMatrix {
+	cake:=ZeroVecs(10) //Better ask for one chunk of memory than allocate 10 different times.
+	R:=cake.VecView(0)
+	Rrev:=cake.VecView(1)
+	tmp:=cake.VecView(2)
+	Rotated:=cake.VecView(3)
+	itmp1:=cake.VecView(4)
+	itmp2:=cake.VecView(5)
+	itmp3:=cake.VecView(6)
+	itmp4:=cake.VecView(7)
+	itmp5:=cake.VecView(8)
+	itmp6:=cake.VecView(9)
+	RotateSerP(Target,ToRot,axis,tmp,R,Rrev,Rotated,itmp1,itmp2,itmp3,itmp4,itmp5,itmp6,angle)
+	return ToRot
+}
+
+
+//RotateSerP takes the matrix Target and uses Clifford algebra to rotate each of its rows
+//by angle radians around axis. Axis must be a 3D row vector. Target must be an N,3 matrix.
+//The Ser in the name is from "serial". ToRot will be overwritten and returned. RotateSerP only allocates some floats but not
+//any VecMatrix. Instead, it takes the needed intermediates as arguments, hence the "P" for "performance" If performance is not an issue,
+//use RotateSer instead, it will perform the allocations for you and call this function. Notice that if you use this function directly
+//you may have to zero at least some of the intermediates before reusing them.
+func RotateSerP(Target,ToRot, axis,tmpv,Rv,Rvrev,Rotatedv, itmp1,itmp2,itmp3,itmp4,itmp5,itmp6 *VecMatrix, angle float64) {
 	tarr, _ := Target.Dims()
 	torotr := ToRot.NVecs()
 	if tarr != torotr || Target.Dense == ToRot.Dense {
 		panic("RotateSerP: Target and Res must have the same dimensions. Target and Res cannot reference the same matrix")
 	}
-	paxis := paravectorFromVector(axis,ZeroVecs(1))  ////////////Alloc
+	//Make the paravectors from the passed vectors:
+	tmp:=paravectorFromVector(tmpv,itmp3)
+	R:=paravectorFromVector(Rv,itmp4)
+	Rrev:=paravectorFromVector(Rvrev,itmp5)
+	Rotated:=paravectorFromVector(Rotatedv,itmp6)
+	//That is with the building of temporary paravectors.
+	paxis := paravectorFromVector(axis,itmp1)
 	paxis.unit(paxis)
-	R := makeParavector()  ///////////Alloc
 	R.Real = math.Cos(angle / 2.0)
 	for i := 0; i < 3; i++ {
 		R.Vimag.Set(0, i, math.Sin(angle/2.0)*paxis.Vreal.At(0, i))
 	}
-	Rrev:=makeParavector() ////////////Alloc
 	Rrev.reverse(R)
-	tmp:=makeParavector()  ////////////Alloc
-	Rotated:=makeParavector() ////////////Alloc
-	Imaginarytmp:=ZeroVecs(1) ///////////Alloc
 	for i := 0; i < tarr; i++ {
 		rowvec := Target.VecView(i)
-		tmp.cliProduct(Rrev, paravectorFromVector(rowvec,Imaginarytmp))
+		tmp.cliProduct(Rrev, paravectorFromVector(rowvec,itmp2))
 		Rotated.cliProduct(tmp, R)
 		ToRot.SetMatrix(i, 0, Rotated.Vreal)
 	}
-	return ToRot
 }
 
 //Rotate takes the matrix Target and uses Clifford algebra to _concurrently_ rotate each
