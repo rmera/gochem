@@ -141,44 +141,51 @@ func (R *paravector) cliProduct(A, B *paravector)  {
 
 //cliRotation uses Clifford algebra to rotate a paravector Aby angle radians around axis. Returns the rotated
 //paravector. axis must be normalized.
-func cliRotation(A, axis *paravector, angle float64) *paravector {
-	R := makeParavector()
+func (R *paravector) cliRotation(A, axis, tmp, tmp2 *paravector, angle float64) {
+//	R := makeParavector()
 	R.Real = math.Cos(angle / 2.0)
 	for i := 0; i < 3; i++ {
 		R.Vimag.Set(0, i, math.Sin(angle/2.0)*axis.Vreal.At(0, i))
 	}
 	R.reverse(R)
-	tmp:=makeParavector()
-	tmp2:=makeParavector()
+//	tmp:=makeParavector()
+//	tmp2:=makeParavector()
 	tmp.cliProduct(R, A)
 	tmp2.cliProduct(tmp, R)
-	return tmp2
+	R.Copy(tmp2)
 }
 
-//CliRotate takes the matrix Target and uses Clifford algebra to rotate each of its rows
+
+
+
+//RotateSer takes the matrix Target and uses Clifford algebra to rotate each of its rows
 //by angle radians around axis. Axis must be a 3D row vector. Target must be an N,3 matrix.
-//The Ser in the name is from "serial". The CliRotate is concurrent.
-func RotateSer(Target, axis *VecMatrix, angle float64) *VecMatrix {
+//The Ser in the name is from "serial". ToRot will be overwritten and returned
+func RotateSer(Target,ToRot, axis *VecMatrix, angle float64) *VecMatrix {
 	tarr, _ := Target.Dims()
-	paxis := paravectorFromVector(axis,ZeroVecs(1))
+	torotr := ToRot.NVecs()
+	if tarr != torotr || Target.Dense == ToRot.Dense {
+		panic("RotateSerP: Target and Res must have the same dimensions. Target and Res cannot reference the same matrix")
+	}
+	paxis := paravectorFromVector(axis,ZeroVecs(1))  ////////////Alloc
 	paxis.unit(paxis)
-	R := makeParavector()
+	R := makeParavector()  ///////////Alloc
 	R.Real = math.Cos(angle / 2.0)
 	for i := 0; i < 3; i++ {
 		R.Vimag.Set(0, i, math.Sin(angle/2.0)*paxis.Vreal.At(0, i))
 	}
-	Rrev:=makeParavector()
+	Rrev:=makeParavector() ////////////Alloc
 	Rrev.reverse(R)
-	Res := ZeroVecs(tarr)
-	tmp:=makeParavector()
-	Rotated:=makeParavector()
+	tmp:=makeParavector()  ////////////Alloc
+	Rotated:=makeParavector() ////////////Alloc
+	Imaginarytmp:=ZeroVecs(1) ///////////Alloc
 	for i := 0; i < tarr; i++ {
 		rowvec := Target.VecView(i)
-		tmp.cliProduct(Rrev, paravectorFromVector(rowvec,ZeroVecs(1)))
+		tmp.cliProduct(Rrev, paravectorFromVector(rowvec,Imaginarytmp))
 		Rotated.cliProduct(tmp, R)
-		Res.SetMatrix(i, 0, Rotated.Vreal)
+		ToRot.SetMatrix(i, 0, Rotated.Vreal)
 	}
-	return Res
+	return ToRot
 }
 
 //Rotate takes the matrix Target and uses Clifford algebra to _concurrently_ rotate each
