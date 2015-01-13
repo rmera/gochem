@@ -32,6 +32,7 @@ package chem
 import "math"
 import "runtime"
 
+
 //import "fmt"
 
 type paravector struct {
@@ -212,12 +213,29 @@ func RotateSerP(Target,ToRot, axis,tmpv,Rv,Rvrev,Rotatedv, itmp1,itmp2,itmp3,itm
 }
 
 
+func getChunk(cake *VecMatrix, i,j,r,c int) *VecMatrix{
+	ret:=cake.View(i,j,r,c)
+	return ret
+
+}
+
+
 //Rotate takes the matrix Target and uses Clifford algebra to _concurrently_ rotate each
 //of its rows by angle radians around axis. Axis must be a 3D row vector.
 //Target must be an N,3 matrix. The result is returned.
-func Rotate(Target, axis *VecMatrix, angle float64) *VecMatrix {
-	Res := ZeroVecs(Target.NVecs())
-	RotateP(Target, Res, axis, angle)
+func Rotate(Target, Res, axis *VecMatrix, angle float64) *VecMatrix {
+	gorut:=runtime.GOMAXPROCS(-1)
+	cake:=ZeroVecs(5+gorut*4)
+	Rv:=cake.VecView(0)
+	Rvrev:=cake.VecView(1)
+	itmp1:=cake.VecView(2)
+	itmp2:=cake.VecView(3)
+	itmp3:=cake.VecView(4)
+	tmp1:=getChunk(cake,5,0,gorut,3)
+	tmp2:=getChunk(cake,5+gorut,0,gorut,3)
+	tmp3:=getChunk(cake,5+2*gorut,0,gorut,3)
+	tmp4:=getChunk(cake,5+3*gorut,0,gorut,3)
+	RotateP(Target, Res, axis,Rv,Rvrev,tmp1,tmp2,tmp3,tmp4,itmp1,itmp2,itmp3, angle, gorut)
 	return Res
 }
 
@@ -226,28 +244,28 @@ func Rotate(Target, axis *VecMatrix, angle float64) *VecMatrix {
 //of its rows by angle radians around axis. Axis must be a 3D row vector.
 //Target must be an N,3 matrix.
 
-func RotateP(Target, Res, axis *VecMatrix, angle float64) {
-	gorut := runtime.GOMAXPROCS(-1) //Do not change anything, only query
+func RotateP(Target, Res, axis,Rv,Rvrev,tmp1,tmp2,tmp3,tmp4,itmp1,itmp2,itmp3 *VecMatrix, angle float64, gorut int) {
+//	gorut := runtime.GOMAXPROCS(-1) //Do not change anything, only query
 	rows := Target.NVecs()
 	rrows := Res.NVecs()
 	if rrows != rows || Target.Dense == Res.Dense {
 		panic("RotateP: Target and Res must have the same dimensions. Target and Res cannot reference the same matrix.")
 	}
-	paxis := paravectorFromVector(axis,ZeroVecs(1))
+	paxis := paravectorFromVector(axis,itmp1) //alloc
 	paxis.unit(paxis)
-	R := makeParavector() //build the rotor (R)
+	R := paravectorFromVector(Rv,itmp2)  // makeParavector() //build the rotor (R)  //alloc
 	R.Real = math.Cos(angle / 2.0)
 	for i := 0; i < 3; i++ {
 		R.Vimag.Set(0, i, math.Sin(angle/2.0)*paxis.Vreal.At(0, i))
 	}
-	Rrev := makeParavector() //R-dagger
+	Rrev :=paravectorFromVector(Rvrev,itmp3) // makeParavector() //R-dagger //alloc
 	Rrev.reverse(R)
 	ended := make(chan bool, gorut)
 	//Just temporal skit to be used by the gorutines
-	tmp1 := ZeroVecs(gorut)
+/*	tmp1 := ZeroVecs(gorut)  //alloc
 	tmp2 := ZeroVecs(gorut)
 	tmp3 := ZeroVecs(gorut)
-	tmp4 := ZeroVecs(gorut)
+	tmp4 := ZeroVecs(gorut) */
 	fragmentlen := int(math.Ceil(float64(rows) / float64(gorut))) //len of the fragment of target that each gorutine will handle
 	for i := 0; i < gorut; i++ {
 		//These are the limits of the fragment of Target in which the gorutine will operate

@@ -129,7 +129,8 @@ func Super(test, templa *VecMatrix, testlst, templalst []int) (*VecMatrix, error
 //given by the vector axis. It returns the rotated coordsorig, since the original is not affected.
 //Uses Clifford algebra.
 func RotateAbout(coordsorig, ax1, ax2 *VecMatrix, angle float64) (*VecMatrix, error) {
-	coords := ZeroVecs(coordsorig.NVecs())
+	coordsLen:=coordsorig.NVecs()
+	coords := ZeroVecs(coordsLen)
 	translation := ZeroVecs(ax1.NVecs())
 	translation.Copy(ax1)
 	axis := ZeroVecs(ax2.NVecs())
@@ -138,7 +139,8 @@ func RotateAbout(coordsorig, ax1, ax2 *VecMatrix, angle float64) (*VecMatrix, er
 	if err := gnMaybe(gnPanicker(f)); err != nil {
 		return nil, err
 	}
-	Rot := Rotate(coords, axis, angle)
+	Rot:=ZeroVecs(coordsLen)
+	Rot = Rotate(coords,Rot, axis, angle)
 	g := func() { Rot.AddVec(Rot, translation) }
 	if err := gnMaybe(gnPanicker(g)); err != nil {
 		return nil, err
