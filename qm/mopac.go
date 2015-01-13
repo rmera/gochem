@@ -284,8 +284,7 @@ func (O *MopacHandle) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error)
 	if trust_radius_warning {
 		return mcoords, Error{ProbableProblem,Mopac,O.inputname,""}
 	}
-	return mcoords,  Error{NoGeometry,Mopac,O.inputname,err.Error()}
-
+	return mcoords, err
 }
 
 //Support function, gets a slice of errors and returns the first

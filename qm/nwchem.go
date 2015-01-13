@@ -511,8 +511,7 @@ func (O *NWChemHandle) Energy() (float64, error) {
 		return 0.0, Error{NoEnergy,NWChem,O.inputname,""}
 
 	}
-	return energy * chem.H2Kcal, Error{NoEnergy,NWChem,O.inputname,err.Error()}
-
+	return energy * chem.H2Kcal, err
 }
 
 //This checks that an NWChem calculation has terminated normally
