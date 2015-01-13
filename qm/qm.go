@@ -117,6 +117,7 @@ func (err Error) Code() string {return err.code} //May not be needed
 
 func (err Error) InputName() string {return err.inputname}
 
+func (err Error) Critical() bool {return err.critical}
 
 
 

@@ -139,12 +139,12 @@ func (O *TMHandle) addCosmo(epsilon float64) error {
 	def := exec.Command("cosmoprep")
 	pipe, err := def.StdinPipe()
 	if err != nil {
-		return Error{noCosmoPrep,Turbomole,O.inputname, err.Error()}
+		return Error{noCosmoPrep,Turbomole,O.inputname, err.Error(),true}
 	}
 	defer pipe.Close()
 	pipe.Write([]byte(cosmostring))
 	if err := def.Run(); err != nil {
-		return Error{noCosmoPrep,Turbomole,O.inputname, err.Error()}
+		return Error{noCosmoPrep,Turbomole,O.inputname, err.Error(),true}
 
 	}
 	return nil
@@ -210,7 +210,7 @@ func (O *TMHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q *Cal
 			O.inputname = fmt.Sprintf("%s%d", O.inputname, i)
 			err = os.Mkdir(O.inputname, os.FileMode(0755))
 		} else {
-			return Error{"goChem/QM: Unable to build input",Turbomole,O.inputname,err.Error()}
+			return Error{"goChem/QM: Unable to build input",Turbomole,O.inputname,err.Error(),true}
 		}
 	}
 	_ = os.Chdir(O.inputname)
@@ -220,15 +220,15 @@ func (O *TMHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q *Cal
 	x2t := exec.Command("x2t", "file.xyz")
 	stdout, err := x2t.StdoutPipe()
 	if err != nil {
-		return Error{nox2t,Turbomole,O.inputname, err.Error()}
+		return Error{nox2t,Turbomole,O.inputname, err.Error(),true}
 	}
 	coord, err := os.Create("coord")
 	if err != nil {
-		return Error{nox2t,Turbomole,O.inputname, err.Error()}
+		return Error{nox2t,Turbomole,O.inputname, err.Error(),true}
 
 	}
 	if err := x2t.Start(); err != nil {
-		return Error{nox2t,Turbomole,O.inputname, err.Error()}
+		return Error{nox2t,Turbomole,O.inputname, err.Error(),true}
 
 	}
 	//	var end chan bool
@@ -238,7 +238,7 @@ func (O *TMHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q *Cal
 	coord.Close() //not defearable
 	defstring := "\n\na coord\n*\nno\n"
 	if atoms == nil || coords == nil {
-		return Error{MissingCharges,Turbomole,O.inputname,""}
+		return Error{MissingCharges,Turbomole,O.inputname,"",true}
 	}
 	if Q.Basis == "" {
 		fmt.Fprintf(os.Stderr, "no basis set assigned for TM calculation, will used the default %s, \n", O.defbasis)
@@ -294,12 +294,12 @@ func (O *TMHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q *Cal
 	def := exec.Command("define")
 	pipe, err := def.StdinPipe()
 	if err != nil {
-		return Error{noDefine,Turbomole,O.inputname, err.Error()}
+		return Error{noDefine,Turbomole,O.inputname, err.Error(),true}
 	}
 	defer pipe.Close()
 	pipe.Write([]byte(defstring))
 	if err := def.Run(); err != nil {
-		return  Error{noDefine,Turbomole,O.inputname, err.Error()}
+		return  Error{noDefine,Turbomole,O.inputname, err.Error(),true}
 	}
 	if Q.Optimize {
 		O.command = "jobex"
@@ -371,7 +371,7 @@ func (O *TMHandle) Run(wait bool) (err error) {
 		err = command.Start()
 	}
 	if err!=nil{
-		err=Error{NotRunning,Turbomole,O.inputname,err.Error()}
+		err=Error{NotRunning,Turbomole,O.inputname,err.Error(),true}
 
 	}
 	return  err
@@ -383,19 +383,19 @@ func (O *TMHandle) Energy() (float64, error) {
 	defer os.Chdir("..")
 	f, err := os.Open("energy")
 	if err != nil {
-		return 0, Error{NoEnergy,Turbomole,O.inputname,err.Error()}
+		return 0, Error{NoEnergy,Turbomole,O.inputname,err.Error(),true}
 	}
 	defer f.Close()
 	fio := bufio.NewReader(f)
 	line, err := getSecondToLastLine(fio)
 	if err != nil {
-		return 0, Error{NoEnergy,Turbomole,O.inputname,err.Error()}
+		return 0, Error{NoEnergy,Turbomole,O.inputname,err.Error(),true}
 
 	}
 	en := strings.Fields(line)[1]
 	energy, err := strconv.ParseFloat(en, 64)
 	if err!=nil{
-		err=Error{NoEnergy,Turbomole,O.inputname,err.Error()}
+		err=Error{NoEnergy,Turbomole,O.inputname,err.Error(),true}
 	}
 	return energy * chem.H2Kcal, err
 }
@@ -408,16 +408,16 @@ func (O *TMHandle) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error) {
 	x2t := exec.Command("t2x")
 	stdout, err := x2t.StdoutPipe()
 	if err != nil {
-		return nil, Error{NoGeometry,Turbomole,O.inputname, not2x+err.Error()}
+		return nil, Error{NoGeometry,Turbomole,O.inputname, not2x+err.Error(),true}
 	}
 	if err := x2t.Start(); err != nil {
-		return nil,  Error{NoGeometry,Turbomole,O.inputname, not2x+err.Error()}
+		return nil,  Error{NoGeometry,Turbomole,O.inputname, not2x+err.Error(),true}
 
 	}
 	xyz := bufio.NewReader(stdout)
 	mol, err := chem.XYZBufIORead(xyz)
 	if err != nil {
-		return nil, Error{NoGeometry,Turbomole,O.inputname, err.Error()}
+		return nil, Error{NoGeometry,Turbomole,O.inputname, err.Error(),true}
 	}
 	return mol.Coords[len(mol.Coords)-1], nil
 
