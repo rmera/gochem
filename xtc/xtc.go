@@ -231,6 +231,8 @@ func (E *lastFrameError) FileName() string {
 func (E *lastFrameError) NormalLastFrameTermination() {
 }
 
+func (E *lastFrameError) Critical() bool {return false}
+
 func newlastFrameError(filename string) *lastFrameError {
 	e := new(lastFrameError)
 	e.fileName = filename

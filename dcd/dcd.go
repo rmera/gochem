@@ -467,3 +467,6 @@ func newlastFrameError(filename string) *lastFrameError {
 	e.fileName = filename
 	return e
 }
+
+func (E *lastFrameError) Critical() bool {return false}
+
