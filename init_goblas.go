@@ -25,21 +25,16 @@
  */
 /***Dedicated to the long life of the Ven. Khenpo Phuntzok Tenzin Rinpoche***/
 
-//The point of this is that the user can use compile tags to get their programs compiled with goblas or cblas. 
+//The point of this is that the user can use compile tags to get their programs compiled with goblas or cblas.
 //goblas is the default, the cblas tag being required to use, well, cblas.
 
 package chem
 
-
-import(	
-
-"github.com/gonum/blas/goblas"
-"github.com/gonum/matrix/mat64"
-
-
+import (
+	"github.com/gonum/blas/goblas"
+	"github.com/gonum/matrix/mat64"
 )
 
 func init() {
 	mat64.Register(goblas.Blas{})
 }
-

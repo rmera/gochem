@@ -28,7 +28,7 @@
 
 //gonum.go contains most of what is needed for handling the gonum/mat64 types and facilities.
 //At this point the name is mostly historical: It used to be the only file importing gonum,
-//Now that gomatrix support is discontinued, there is a tighter integration with gonum and 
+//Now that gomatrix support is discontinued, there is a tighter integration with gonum and
 //other files import mat64.
 
 //All the *Vec functions will operate/produce column or row vectors depending on whether the matrix underlying Dense
@@ -43,21 +43,19 @@ import (
 	"sort"
 )
 
-
-
 //The main container, must be able to implement any
 //gonum interface.
 //VecMatrix is a set of vectors in 3D space. The underlying implementation varies.
-type VecMatrix	struct {
-  *mat64.Dense
+type VecMatrix struct {
+	*mat64.Dense
 }
 
 func VecMatrix2Dense(A *VecMatrix) *mat64.Dense {
-	return  A.Dense
+	return A.Dense
 }
 
 func Dense2VecMatrix(A *mat64.Dense) *VecMatrix {
-	return  &VecMatrix{A}
+	return &VecMatrix{A}
 }
 
 //Generate and returns a VecMatrix with 3 columns from data.
@@ -74,16 +72,16 @@ func NewVecs(data []float64) (*VecMatrix, error) {
 
 //Puts a view of the given col of the matrix on the receiver
 func (F *VecMatrix) ColView(i int) *VecMatrix {
-//	r := new(mat64.Dense)
+	//	r := new(mat64.Dense)
 	Fr, _ := F.Dims()
-	r:=F.Dense.View( 0, i, Fr, 1).(*mat64.Dense)
+	r := F.Dense.View(0, i, Fr, 1).(*mat64.Dense)
 	return &VecMatrix{r}
 }
 
 //Returns view of the given vector of the matrix in the receiver
 func (F *VecMatrix) VecView(i int) *VecMatrix {
 	//r := new(mat64.Dense)
-	r:=F.Dense.View( i, 0, 1, 3).(*mat64.Dense)
+	r := F.Dense.View(i, 0, 1, 3).(*mat64.Dense)
 	return &VecMatrix{r}
 }
 
@@ -93,7 +91,7 @@ func (F *VecMatrix) VecView(i int) *VecMatrix {
 //But the right signatur was not possible to implement. Notice that very little
 //memory allocation happens, only a couple of ints and pointers.
 func (F *VecMatrix) View(i, j, r, c int) *VecMatrix {
-	ret:=F.Dense.View( i, j, r, c).(*mat64.Dense)
+	ret := F.Dense.View(i, j, r, c).(*mat64.Dense)
 	return &VecMatrix{ret}
 }
 
@@ -115,7 +113,7 @@ func (F *VecMatrix) SetMatrix(i, j int, A *VecMatrix) {
 }
 
 func gnInverse(F *VecMatrix) (*VecMatrix, error) {
-	a,err := mat64.Inverse(F.Dense)
+	a, err := mat64.Inverse(F.Dense)
 	return &VecMatrix{a}, err
 
 }
@@ -135,25 +133,23 @@ func (F *VecMatrix) Mul(A, B mat64.Matrix) {
 		F.Dense.Mul(A, B)
 	}
 
-/*
-	if C, ok := A.(*VecMatrix); ok {
-		if D, ok2 := B.(*VecMatrix); ok2 {
-				F.Dense.Mul(C.Dense, D.Dense)
-			}else{
-				F.Dense.Mul(C.Dense,D)
-			}
-
-		}else{
+	/*
+		if C, ok := A.(*VecMatrix); ok {
 			if D, ok2 := B.(*VecMatrix); ok2 {
-				F.Dense.Mul(A,D.Dense)
-		}else{
-			F.Dense.Mul(A,B)
+					F.Dense.Mul(C.Dense, D.Dense)
+				}else{
+					F.Dense.Mul(C.Dense,D)
+				}
+
+			}else{
+				if D, ok2 := B.(*VecMatrix); ok2 {
+					F.Dense.Mul(A,D.Dense)
+			}else{
+				F.Dense.Mul(A,B)
+			}
 		}
-	}
-*/
+	*/
 }
-
-
 
 //puts A stacked over B in F
 func (F *VecMatrix) Stack(A, B *VecMatrix) {
@@ -179,11 +175,9 @@ func (F *VecMatrix) Stack(A, B *VecMatrix) {
 //
 //}
 
-
 //Some of the following function have an err return type in the signature, but they always return a nil error. This is
 //Because of a change in gonum/matrix. The NewDense function used to return error and now panics.
 //I do not think it is worth to fix these functions.
-
 
 //Returns and empty, but not nil, Dense. It barely allocates memory
 func emptyDense() (*mat64.Dense, error) {
@@ -281,7 +275,7 @@ func EigenWrap(in *VecMatrix, epsilon float64) (*VecMatrix, []float64, error) {
 		for j := i + 1; j < eigrows; j++ {
 			vectorj := eig.evecs.VecView(j)
 			if math.Abs(vectori.Dot(vectorj)) > epsilon && i != j {
-				reterr:=VecError(fmt.Sprintln("Eigenvectors ",i,"and",j," not orthogonal. v",i,":",vectori,"\nv",j,":",vectorj,"\nDot:", math.Abs(vectori.Dot(vectorj)),"eigmatrix:", eig.evecs))
+				reterr := VecError(fmt.Sprintln("Eigenvectors ", i, "and", j, " not orthogonal. v", i, ":", vectori, "\nv", j, ":", vectorj, "\nDot:", math.Abs(vectori.Dot(vectorj)), "eigmatrix:", eig.evecs))
 				return eig.evecs, evals[:], reterr
 			}
 		}
@@ -338,7 +332,6 @@ func (F *VecMatrix) TCopy(A mat64.Matrix) {
 	}
 }
 
-
 //returns a rows,cols matrix filled with gnOnes.
 func gnOnes(rows, cols int) *mat64.Dense {
 	gnOnes := gnZeros(rows, cols)
@@ -373,9 +366,6 @@ func gnT(A mat64.Matrix) *mat64.Dense {
 	return B
 }
 
-
-
-
 //This is a temporal function. It returns the determinant of a 3x3 matrix. Panics if the matrix is not 3x3
 func det(A mat64.Matrix) float64 {
 	r, c := A.Dims()
@@ -389,9 +379,6 @@ func det(A mat64.Matrix) float64 {
  * from here when gonum is implemented. The gn prefix is appended to the names to make them
  * unimported and to allow easy use of search/replace to add the "num" prefix when I change to
  * gonum.**/
-
-
-
 
 // A gnPanicker is a function that may panic.
 type gnPanicker func()
@@ -409,17 +396,16 @@ func gnMaybe(fn gnPanicker) error {
 			case mat64.Error:
 				return err
 			default:
-			panic(r)
+				panic(r)
 			}
 		}
-	return nil
+		return nil
 	}()
 	fn()
 	return err
 }
 
 // Type Error represents matrix package errors. These errors can be recovered by gnMaybe wrappers.
-
 
 type VecError string
 

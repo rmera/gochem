@@ -82,7 +82,7 @@ func (X *XTCObj) initRead(name string) error {
 	totalcoords := X.natoms * 3
 	X.fp = C.openfile(Cfilename)
 	if X.fp == nil {
-		return fmt.Errorf("Unable to open xtc file")
+		return Error{UnableToOpen, X.filename, true}
 	}
 	//The idea is to reserve less memory, using the same buffer many times.
 	//X.goCoords = make([]float64, totalcoords, totalcoords)
@@ -103,7 +103,7 @@ func (X *XTCObj) initRead(name string) error {
 //returns nil.
 func (X *XTCObj) Next(output *chem.VecMatrix) error {
 	if !X.Readable() {
-		return fmt.Errorf("Traj object uninitialized to read")
+		return Error{TrajUnIni, X.filename, true}
 	}
 	cnatoms := C.int(X.natoms)
 	worked := C.get_coords(X.fp, &X.cCoords[0], cnatoms)
@@ -113,7 +113,7 @@ func (X *XTCObj) Next(output *chem.VecMatrix) error {
 	}
 	if worked != 0 {
 		X.readable = false
-		return fmt.Errorf("Error reading frame")
+		return Error{ReadError, X.filename, true}
 	}
 	if output != nil { //col the frame
 		r, c := output.Dims()
@@ -161,7 +161,7 @@ func (X *XTCObj) NextConc(frames []*chem.VecMatrix) ([]chan *chem.VecMatrix, err
 		X.setConcBuffer(len(frames))
 	}
 	if X.natoms == 0 {
-		return nil, fmt.Errorf("Traj object uninitialized to read")
+		return nil, Error{TrajUnIni, X.filename, true}
 	}
 	framechans := make([]chan *chem.VecMatrix, len(frames)) //the slice of chans that will be returned
 	cnatoms := C.int(X.natoms)
@@ -181,7 +181,7 @@ func (X *XTCObj) NextConc(frames []*chem.VecMatrix) ([]chan *chem.VecMatrix, err
 		}
 		if worked != 0 {
 			X.readable = false
-			return nil, fmt.Errorf("Error reading frame")
+			return nil, Error{ReadError, X.filename, true}
 		}
 		if val == nil {
 			framechans[key] = nil //ignored frame
@@ -231,10 +231,32 @@ func (E *lastFrameError) FileName() string {
 func (E *lastFrameError) NormalLastFrameTermination() {
 }
 
-func (E *lastFrameError) Critical() bool {return false}
+func (E *lastFrameError) Critical() bool { return false }
 
 func newlastFrameError(filename string) *lastFrameError {
 	e := new(lastFrameError)
 	e.fileName = filename
 	return e
 }
+
+type Error struct {
+	message  string
+	filename string //the input file that has problems, or empty string if none.
+	critical bool
+}
+
+func (err Error) Error() string {
+	return fmt.Sprintf("xtc file %s error: %s", err.filename, err.message)
+}
+
+func (err Error) FileName() string { return err.filename }
+
+func (err Error) Format() string { return "xtc" }
+
+func (err Error) Critical() bool { return err.critical }
+
+const (
+	TrajUnIni    = "Traj object uninitialized to read"
+	ReadError    = "Error reading frame"
+	UnableToOpen = "Unable to open file"
+)

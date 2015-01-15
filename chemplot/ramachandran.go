@@ -36,25 +36,21 @@ import (
 	"strings"
 )
 
-
-type Error  struct {
-	message string //The error message itself.
-	code string //the name of the QM program giving the problem, or empty string if none
-	function string //the function returning the error.
+type Error struct {
+	message    string //The error message itself.
+	code       string //the name of the QM program giving the problem, or empty string if none
+	function   string //the function returning the error.
 	additional string //anything else!
-	critical bool
+	critical   bool
 }
-func (err Error) Error() string { return fmt.Sprintf("%s  Message: %s",err.function,err.message)  }
 
-func (err Error) Code() string {return err.code} //May not be needed
+func (err Error) Error() string { return fmt.Sprintf("%s  Message: %s", err.function, err.message) }
 
-func (err Error) FunctionName() string {return err.function}
+func (err Error) Code() string { return err.code } //May not be needed
 
-func (err Error) Critical() bool {return err.critical}
+func (err Error) FunctionName() string { return err.function }
 
-
-
-
+func (err Error) Critical() bool { return err.critical }
 
 type RamaSet struct {
 	Cprev   int
@@ -85,7 +81,6 @@ func basicRamaPlot(title string) (*plot.Plot, error) {
 
 }
 
-
 // RamaPlotParts produces plots, in png format for the ramachandran data (phi and psi dihedrals)
 // contained in data. Data points in tag (maximun 4) are highlighted in the plot.
 // the extension must be included in plotname. Returns an error or nil. In RamaPlotParts
@@ -99,7 +94,7 @@ func RamaPlotParts(data [][][]float64, tag [][]int, title, plotname string) erro
 	// axis labels.
 	p, err2 := basicRamaPlot(title)
 	if err2 != nil {
-		return Error{err2.Error(),"","RamaPlotParts","",true}
+		return Error{err2.Error(), "", "RamaPlotParts", "", true}
 	}
 	var tagged int
 	for key, val := range data {
@@ -111,7 +106,7 @@ func RamaPlotParts(data [][][]float64, tag [][]int, title, plotname string) erro
 			// Make a scatter plotter and set its style.
 			s, err := plotter.NewScatter(temp) //(pts)
 			if err != nil {
-				return Error{err.Error(),"","RamaPlotParts","",true}
+				return Error{err.Error(), "", "RamaPlotParts", "", true}
 
 			}
 			if tag != nil {
@@ -135,7 +130,7 @@ func RamaPlotParts(data [][][]float64, tag [][]int, title, plotname string) erro
 	filename := fmt.Sprintf("%s.png", plotname)
 	//here I  intentionally shadow err.
 	if err := p.Save(5, 5, filename); err != nil {
-		return Error{err2.Error(),"","RamaPlotParts","",true}
+		return Error{err2.Error(), "", "RamaPlotParts", "", true}
 	}
 
 	return err
@@ -238,13 +233,13 @@ func colorsOld(key, steps int) (r, g, b uint8) {
 func RamaPlot(data [][]float64, tag []int, title, plotname string) error {
 	var err error
 	if data == nil {
-		return Error{"Given nil data","","RamaPlot","",true}
+		return Error{"Given nil data", "", "RamaPlot", "", true}
 	}
 	// Create a new plot, set its title and
 	// axis labels.
 	p, err := basicRamaPlot(title)
 	if err != nil {
-		return Error{err.Error(),"","RamaPlot","",true}
+		return Error{err.Error(), "", "RamaPlot", "", true}
 
 	}
 	temp := make(plotter.XYs, 1)
@@ -255,7 +250,7 @@ func RamaPlot(data [][]float64, tag []int, title, plotname string) error {
 		// Make a scatter plotter and set its style.
 		s, err := plotter.NewScatter(temp) //(pts)
 		if err != nil {
-			return Error{err.Error(),"","RamaPlot","",true}
+			return Error{err.Error(), "", "RamaPlot", "", true}
 		}
 		r, g, b := colors(key, len(data))
 		if tag != nil && isInInt(tag, key) {
@@ -271,7 +266,7 @@ func RamaPlot(data [][]float64, tag []int, title, plotname string) error {
 	filename := fmt.Sprintf("%s.png", plotname)
 	//here I  intentionally shadow err.
 	if err := p.Save(4, 4, filename); err != nil {
-		return Error{err.Error(),"","RamaPlot","",true}
+		return Error{err.Error(), "", "RamaPlot", "", true}
 	}
 	return err
 }
@@ -287,23 +282,22 @@ func getShape(tagged int) (plot.GlyphDrawer, error) {
 	case 3:
 		return plot.CrossGlyph{}, nil
 	default:
-		return plot.RingGlyph{},Error{"Maximun number of tagable residues is 4","","getShape","",false}  // you can still ignore the error and will get just the regular glyph (your residue will not be tagegd)
+		return plot.RingGlyph{}, Error{"Maximun number of tagable residues is 4", "", "getShape", "", false} // you can still ignore the error and will get just the regular glyph (your residue will not be tagegd)
 	}
 }
 
-
-// RamaCalc Obtains the values for the phi and psi dihedrals indicated in []Ramaset, for the 
+// RamaCalc Obtains the values for the phi and psi dihedrals indicated in []Ramaset, for the
 // structure M.  It returns a slice of 2-element slices, one for the phi the next for the psi
 // dihedral, a and an error or nil.
 func RamaCalc(M *chem.VecMatrix, dihedrals []RamaSet) ([][]float64, error) {
 	if M == nil || dihedrals == nil {
-		return nil, Error{"Given nil data","","RamaCalc","",true}
+		return nil, Error{"Given nil data", "", "RamaCalc", "", true}
 	}
 	r, _ := M.Dims()
 	Rama := make([][]float64, 0, len(dihedrals))
 	for _, j := range dihedrals {
 		if j.Npost >= r {
-			return nil, Error{"RamaCalc: Index requested out of range","","RamaCalc","",true}
+			return nil, Error{"RamaCalc: Index requested out of range", "", "RamaCalc", "", true}
 		}
 		Cprev := M.VecView(j.Cprev)
 		N := M.VecView(j.N)
@@ -339,8 +333,6 @@ func RamaResidueFilter(dihedrals []RamaSet, filterdata []string, shouldBePresent
 	return RetList, Index
 }
 
-
-
 // RamaList takes a molecule and returns a slice of RamaSet, which contains the
 // indexes for each dihedral to be included in a Ramachandran plot. It gets the dihedral
 // indices for all residues in the range resran. if resran has 2 elements defining the
@@ -356,7 +348,7 @@ func RamaList(M chem.Atomer, chains string, resran []int) ([]RamaSet, error) {
 		}
 	}
 	if M == nil {
-		return nil, Error{"nil Molecule","","RamaList","",true}
+		return nil, Error{"nil Molecule", "", "RamaList", "", true}
 	}
 	C := -1
 	N := -1
@@ -401,7 +393,7 @@ func RamaList(M chem.Atomer, chains string, resran []int) ([]RamaSet, error) {
 				r3 := M.Atom(Npost).Molid
 				if (len(resran) == 2 && (r2 >= resran[0] && r2 <= resran[1])) || isInInt(resran, r2) {
 					if r1 != r2-1 || r2 != r2a || r2a != r2b || r2b != r3-1 {
-						return nil, Error{fmt.Sprintf("Incorrect backbone Cprev: %d N-1: %d CA: %d C: %d Npost-1: %d", r1, r2-1, r2a, r2b, r3-1),"","RamaList","",true}
+						return nil, Error{fmt.Sprintf("Incorrect backbone Cprev: %d N-1: %d CA: %d C: %d Npost-1: %d", r1, r2-1, r2a, r2b, r3-1), "", "RamaList", "", true}
 					}
 					temp := RamaSet{Cprev, N, Ca, C, Npost, r2, M.Atom(Ca).Molname}
 					RamaList = append(RamaList, temp)

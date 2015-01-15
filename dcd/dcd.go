@@ -109,7 +109,7 @@ func (D *DCDObj) initRead(name string) error {
 		return err
 	}
 	if string(magic) != "CORD" {
-		return fmt.Errorf("Wrong magic number")
+		return Error{WrongFormat + ": Wrong magic number", D.filename, true}
 	}
 
 	//We first read a big chuck for random access.
@@ -141,7 +141,7 @@ func (D *DCDObj) initRead(name string) error {
 		}
 
 	} else {
-		return fmt.Errorf("X-plor DCD not supported")
+		return Error{WrongFormat + ": X-plor DCD not supported", D.filename, true}
 	}
 	if err := binary.Read(NB(buf[32:]), D.endian, &D.fixed); err != nil {
 		return err
@@ -157,7 +157,7 @@ func (D *DCDObj) initRead(name string) error {
 		return err
 	}
 	if check != 84 {
-		return fmt.Errorf("Wrong DCD format")
+		return Error{WrongFormat, D.filename, true}
 	}
 	var input_int int32
 	if err := binary.Read(D.dcd, D.endian, &input_int); err != nil {
@@ -180,7 +180,7 @@ func (D *DCDObj) initRead(name string) error {
 		return err
 	}
 	if check != 4 { //one must read a 4 before the natoms
-		return fmt.Errorf("Wrong format in DCD")
+		return Error{WrongFormat, D.filename, true}
 	}
 	if err := binary.Read(D.dcd, D.endian, &D.natoms); err != nil {
 		return err
@@ -190,7 +190,7 @@ func (D *DCDObj) initRead(name string) error {
 		return err
 	}
 	if check != 4 { //and one more 4
-		return fmt.Errorf("DCD has wrong format")
+		return Error{WrongFormat, D.filename, true}
 	}
 	if D.fixed == 0 {
 		runtime.SetFinalizer(D, func(D *DCDObj) {
@@ -210,7 +210,7 @@ func (D *DCDObj) initRead(name string) error {
 //returns nil.
 func (D *DCDObj) Next(keep *chem.VecMatrix) error {
 	if !D.readable {
-		return fmt.Errorf("Not readable")
+		return Error{TrajUnIni, D.filename, true}
 	}
 	if D.dcdFields == nil {
 		D.dcdFields = make([][]float32, 3, 3)
@@ -245,7 +245,7 @@ func (D *DCDObj) Next(keep *chem.VecMatrix) error {
 //returns nil.
 func (D *DCDObj) nextRaw(blocks [][]float32) error {
 	if len(blocks[0]) != int(D.natoms) || len(blocks[1]) != int(D.natoms) || len(blocks[2]) != int(D.natoms) {
-		return fmt.Errorf("Not enough space in passed blocks")
+		return Error{NotEnoughSpace, D.filename, true}
 	}
 	D.new = false
 	if D.readLast {
@@ -336,7 +336,7 @@ func (D *DCDObj) readFloat32Block(blocksize int32, block []float32) error {
 		return err
 	}
 	if check != blocksize {
-		return fmt.Errorf("Wrong format in DCD snapshot")
+		return Error{WrongFormat, D.filename, true}
 	}
 	return nil
 }
@@ -355,7 +355,7 @@ func (D *DCDObj) readByteBlock(blocksize int32) ([]byte, error) {
 		return nil, err
 	}
 	if check != blocksize {
-		return nil, fmt.Errorf("Failed security check")
+		return nil, Error{SecurityCheckFailed, D.filename, true}
 	}
 	return block, nil
 }
@@ -408,7 +408,7 @@ form the trajectory. The frames are discarted if the corresponding elemetn of th
 * a *matrix.DenseMatrix will be transmited*/
 func (D *DCDObj) NextConc(frames []*chem.VecMatrix) ([]chan *chem.VecMatrix, error) {
 	if !D.Readable() {
-		return nil, fmt.Errorf("Traj object uninitialized to read")
+		return nil, Error{TrajUnIni, D.filename, true}
 	}
 	framechans := make([]chan *chem.VecMatrix, len(frames)) //the slice of chans that will be returned
 	if D.buffSize < len(frames) {
@@ -443,6 +443,31 @@ func (D *DCDObj) NextConc(frames []*chem.VecMatrix) ([]chan *chem.VecMatrix, err
 
 //Errors
 
+type Error struct {
+	message  string
+	filename string //the input file that has problems, or empty string if none.
+	critical bool
+}
+
+func (err Error) Error() string {
+	return fmt.Sprintf("xtc file %s error: %s", err.filename, err.message)
+}
+
+func (err Error) FileName() string { return err.filename }
+
+func (err Error) Format() string { return "dcd" }
+
+func (err Error) Critical() bool { return err.critical }
+
+const (
+	TrajUnIni           = "Traj object uninitialized to read"
+	ReadError           = "Error reading frame"
+	UnableToOpen        = "Unable to open file"
+	SecurityCheckFailed = "FailedSecurityCheck"
+	WrongFormat         = "Wrong format in the DCD file or frame"
+	NotEnoughSpace      = "Not enough space in passed blocks"
+)
+
 type lastFrameError struct {
 	fileName string
 }
@@ -468,5 +493,4 @@ func newlastFrameError(filename string) *lastFrameError {
 	return e
 }
 
-func (E *lastFrameError) Critical() bool {return false}
-
+func (E *lastFrameError) Critical() bool { return false }

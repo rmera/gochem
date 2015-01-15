@@ -519,7 +519,7 @@ func (M *Molecule) Next(V *VecMatrix) error {
 	if M.current >= len(M.Coords) {
 		return newlastFrameError("", len(M.Coords)-1)
 	}
-//	fmt.Println("CURR", M.current, len(M.Coords), V.NVecs(), M.Coords[M.current].NVecs()) ////////////////
+	//	fmt.Println("CURR", M.current, len(M.Coords), V.NVecs(), M.Coords[M.current].NVecs()) ////////////////
 	M.current++
 	if V == nil {
 		return nil

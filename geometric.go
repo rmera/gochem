@@ -27,9 +27,9 @@ package chem
 
 import (
 	"fmt"
+	"github.com/gonum/matrix/mat64"
 	"math"
 	"sort"
-	"github.com/gonum/matrix/mat64"
 )
 
 /*
@@ -160,7 +160,7 @@ func RotatorTranslatorToSuper(test, templa *VecMatrix) (*VecMatrix, *VecMatrix, 
 	Maux := ZeroVecs(r)
 	Maux.Mul(aux2, ctest)
 	Maux.TCopy(Maux) //Dont understand why this is needed
-	factors := mat64.SVD(VecMatrix2Dense(Maux),appzero, math.SmallestNonzeroFloat64, true, true)
+	factors := mat64.SVD(VecMatrix2Dense(Maux), appzero, math.SmallestNonzeroFloat64, true, true)
 	U := factors.U
 	V := factors.V
 	if err != nil {
@@ -170,18 +170,18 @@ func RotatorTranslatorToSuper(test, templa *VecMatrix) (*VecMatrix, *VecMatrix, 
 	V.Scale(-1, V)
 	//SVD gives different results here than in numpy. U and V are multiplide by -1 in one of them
 	//and gomatrix gives as V the transpose of the matrix given as V by numpy. I guess is not an
-	//error, but don't know for sure. 
+	//error, but don't know for sure.
 	vtr, _ := V.Dims()
 	Rotation := ZeroVecs(vtr)
 	Rotation.Mul(V, gnT(U))
 	Rotation.TCopy(Rotation) //Don't know why does this work :(
-	RightHand:=gnEye(3)
+	RightHand := gnEye(3)
 	if det(Rotation) < 0 {
-		RightHand.Set(2,2,-1)
-		Rotation.Mul(V,RightHand)
-		Rotation.Mul(Rotation,gnT(U))  //If I get this to work Ill arrange so gnT(U) is calculated once, not twice as now.
-		Rotation.TCopy(Rotation) //Same, no ide why I need this
-	  //return nil, nil, nil, nil, fmt.Errorf("Got a reflection instead of a translations. The objects may be specular images of each others")
+		RightHand.Set(2, 2, -1)
+		Rotation.Mul(V, RightHand)
+		Rotation.Mul(Rotation, gnT(U)) //If I get this to work Ill arrange so gnT(U) is calculated once, not twice as now.
+		Rotation.TCopy(Rotation)       //Same, no ide why I need this
+		//return nil, nil, nil, nil, fmt.Errorf("Got a reflection instead of a translations. The objects may be specular images of each others")
 	}
 	jT.Scale(Scal, jT)
 	subtempla := ZeroVecs(tmr)
@@ -417,17 +417,17 @@ func MomentTensor(A *VecMatrix, massslice []float64) (*VecMatrix, error) {
 	if massslice == nil {
 		mass = gnOnes(ar, 1)
 	} else {
-		mass = mat64.NewDense(ar,1, massslice)
-//		if err != nil {
-//			return nil, err
-//		}
+		mass = mat64.NewDense(ar, 1, massslice)
+		//		if err != nil {
+		//			return nil, err
+		//		}
 	}
 	center, _, err := MassCentrate(A, Dense2VecMatrix(gnCopy(A)), mass)
 	if err != nil {
 		return nil, err
 	}
 	sqrmass := gnZeros(ar, 1)
-	pow(mass,sqrmass, 0.5) //the result is stored in sqrmass
+	pow(mass, sqrmass, 0.5) //the result is stored in sqrmass
 	//	fmt.Println(center,sqrmass) ////////////////////////
 	center.ScaleByCol(center, sqrmass)
 	//	fmt.Println(center,"scaled center")
@@ -436,6 +436,7 @@ func MomentTensor(A *VecMatrix, massslice []float64) (*VecMatrix, error) {
 	moment := gnMul(centerT, center)
 	return Dense2VecMatrix(moment), err
 }
+
 //The projection of test in ref.
 func Projection(test, ref *VecMatrix) *VecMatrix {
 	rr, _ := ref.Dims()

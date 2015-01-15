@@ -31,11 +31,10 @@ package chem
 
 import (
 	"fmt"
+	"github.com/gonum/matrix/mat64"
 	"math"
 	"strings"
-	"github.com/gonum/matrix/mat64"
 )
-
 
 const appzero float64 = 0.000000000001 //used to correct floating point
 //errors. Everything equal or less than this is considered zero. This probably sucks.
@@ -46,6 +45,7 @@ func ZeroVecs(cos int) *VecMatrix {
 	dens := gnZeros(cos, cols) //Maybe it would be better to just put the gnZeros code here for efficiency.
 	return &VecMatrix{dens}
 }
+
 //METHODS
 
 func (F *VecMatrix) SwapVecs(i, j int) {

@@ -95,7 +95,7 @@ func (O *FermionsHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, 
 	//Only error so far
 
 	if atoms == nil || coords == nil {
-		return Error{MissingCharges,Fermions,O.inputname,"",true}
+		return Error{MissingCharges, Fermions, O.inputname, "", true}
 	}
 	if Q.Basis == "" {
 		fmt.Fprintf(os.Stderr, "no basis set assigned for Fermions++ calculation, will used the default %s, \n", O.defbasis)
@@ -147,7 +147,7 @@ func (O *FermionsHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, 
 	//////////////////////////////////////////////////////////////
 	file, err := os.Create(fmt.Sprintf("%s.in", O.inputname))
 	if err != nil {
-		return  Error{NoInput,Fermions,O.inputname,err.Error(),true}
+		return Error{NoInput, Fermions, O.inputname, err.Error(), true}
 	}
 	defer file.Close()
 	//Start with the geometry part (coords, charge and multiplicity)
@@ -187,8 +187,8 @@ func (O *FermionsHandle) Run(wait bool) (err error) {
 		command := exec.Command("sh", "-c", "nohup "+O.command+fmt.Sprintf(" %s.in > %s.out &", O.inputname, O.inputname))
 		err = command.Start()
 	}
-	if err!=nil{
-		err=Error{NotRunning,Fermions,O.inputname,err.Error(),true}
+	if err != nil {
+		err = Error{NotRunning, Fermions, O.inputname, err.Error(), true}
 
 	}
 	return err
@@ -268,10 +268,10 @@ func (O *FermionsHandle) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, err
 //in calculation")
 func (O *FermionsHandle) Energy() (float64, error) {
 	var err error
-	err = Error{ProbableProblem,Fermions,O.inputname,"",false}
+	err = Error{ProbableProblem, Fermions, O.inputname, "", false}
 	f, err1 := os.Open(fmt.Sprintf("%s.out", O.inputname))
 	if err1 != nil {
-		return 0, Error{NoEnergy,Fermions,O.inputname,err1.Error(),true}
+		return 0, Error{NoEnergy, Fermions, O.inputname, err1.Error(), true}
 	}
 	defer f.Close()
 	f.Seek(-1, 2) //We start at the end of the file
@@ -280,7 +280,7 @@ func (O *FermionsHandle) Energy() (float64, error) {
 	for i := 0; ; i++ {
 		line, err1 := getTailLine(f)
 		if err1 != nil {
-			return 0.0, Error{NoEnergy,Fermions,O.inputname,err1.Error(),true}
+			return 0.0, Error{NoEnergy, Fermions, O.inputname, err1.Error(), true}
 		}
 		if strings.Contains(line, "Timing report") {
 			err = nil
@@ -289,14 +289,14 @@ func (O *FermionsHandle) Energy() (float64, error) {
 			splitted := strings.Fields(line)
 			energy, err1 = strconv.ParseFloat(splitted[len(splitted)-3], 64)
 			if err1 != nil {
-				return 0.0, Error{NoEnergy,Fermions,O.inputname,err1.Error(),true}
+				return 0.0, Error{NoEnergy, Fermions, O.inputname, err1.Error(), true}
 			}
 			found = true
 			break
 		}
 	}
 	if !found {
-		return 0.0, Error{NoEnergy,Fermions,O.inputname,"",true}
+		return 0.0, Error{NoEnergy, Fermions, O.inputname, "", true}
 	}
 	return energy * chem.H2Kcal, err
 }

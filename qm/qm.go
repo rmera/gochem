@@ -29,12 +29,12 @@
 package qm
 
 import (
-	"github.com/rmera/gochem"
 	"fmt"
-	)
+	"github.com/rmera/gochem"
+)
 
-//builds an input for a QM calculation 
-type  InputBuilder interface {
+//builds an input for a QM calculation
+type InputBuilder interface {
 	//Sets the name for the job, used for input
 	//and output files. The extentions will depend on the program.
 	SetName(name string)
@@ -44,20 +44,17 @@ type  InputBuilder interface {
 	BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q *Calc) error
 }
 
-
 //Runs a QM calculation
 type Runner interface {
 	//Run runs the QM program for a calculation previously set.
 	//it waits or not for the result depending of the value of
 	//wait.
 	Run(wait bool) (err error)
-
 }
 
-
 type BuilderRunner interface {
-		InputBuilder
-		Runner
+	InputBuilder
+	Runner
 }
 
 //Allows to recover energy and optimized geometries from a QM calculation
@@ -81,48 +78,42 @@ type EnergyGeo interface {
 type Handle interface {
 	BuilderRunner
 	EnergyGeo
-
 }
 
-
 const (
-	ProbableProblem  = "goChem/QM: Probable problem with calculations" //this is never to be used for fatal errors
-	MissingCharges   = "goChem/QM: Missing charges or coordinates"
-	NoEnergy  =   "goChem/QM: No energy in output"
-	NoGeometry =  "gochem/QM: Unable to read Geometry from input"
-	NotRunning =  "gochem/QM: Couldn't run calculation"
-	NoInput =  "goChem/QM: Can't build input file"
-
+	ProbableProblem = "goChem/QM: Probable problem with calculations" //this is never to be used for fatal errors
+	MissingCharges  = "goChem/QM: Missing charges or coordinates"
+	NoEnergy        = "goChem/QM: No energy in output"
+	NoGeometry      = "gochem/QM: Unable to read Geometry from input"
+	NotRunning      = "gochem/QM: Couldn't run calculation"
+	NoInput         = "goChem/QM: Can't build input file"
 )
 
 const (
-	Orca = "Orca"
-	Mopac = "Mopac"
+	Orca      = "Orca"
+	Mopac     = "Mopac"
 	Turbomole = "Turbomole"
-	NWChem = "NWChem"
-	Fermions = "Fermions++"
-
+	NWChem    = "NWChem"
+	Fermions  = "Fermions++"
 )
 
-type Error  struct {
-	message string
-	code string //the name of the QM program giving the problem, or empty string if none
-	inputname string //the input file that has problems, or empty string if none.
+type Error struct {
+	message    string
+	code       string //the name of the QM program giving the problem, or empty string if none
+	inputname  string //the input file that has problems, or empty string if none.
 	additional string
-	critical bool
+	critical   bool
 }
-func (err Error) Error() string { return fmt.Sprintf("%s (%s/%s) Message: %s",err.message,err.inputname, err.code,err.additional)  }
 
-func (err Error) Code() string {return err.code} //May not be needed
+func (err Error) Error() string {
+	return fmt.Sprintf("%s (%s/%s) Message: %s", err.message, err.inputname, err.code, err.additional)
+}
 
-func (err Error) InputName() string {return err.inputname}
+func (err Error) Code() string { return err.code } //May not be needed
 
-func (err Error) Critical() bool {return err.critical}
+func (err Error) InputName() string { return err.inputname }
 
-
-
-
-
+func (err Error) Critical() bool { return err.critical }
 
 type IntConstraint struct {
 	Kind  byte
@@ -161,7 +152,7 @@ type Calc struct {
 	Dielectric float64
 	//	Solventmethod string
 	Dispersion string //D2, D3, etc.
-	Others      string //analysis methods, etc
+	Others     string //analysis methods, etc
 	//	PCharges []PointCharge
 	Guess        string //initial guess
 	Grid         int
@@ -176,7 +167,7 @@ type Calc struct {
 
 func (Q *Calc) SetDefaults() {
 	Q.RI = true
-//	Q.BSSE = "gcp"
+	//	Q.BSSE = "gcp"
 	Q.Dispersion = "D3"
 }
 

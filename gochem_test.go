@@ -92,9 +92,9 @@ func TestChangeAxis(Te *testing.T) {
 	Z, _ := NewVecs([]float64{0, 0, 1})
 	axis := cross(orient, Z)
 	angle := Angle(orient, Z)
-	oldcoords:=ZeroVecs(mol.Coords[0].NVecs())
+	oldcoords := ZeroVecs(mol.Coords[0].NVecs())
 	oldcoords.Copy(mol.Coords[0])
-	mol.Coords[0] = Rotate(oldcoords,mol.Coords[0], axis, angle)
+	mol.Coords[0] = Rotate(oldcoords, mol.Coords[0], axis, angle)
 	if err != nil {
 		Te.Error(err)
 	}
@@ -304,9 +304,6 @@ func TestSuper(Te *testing.T) {
 
 }
 
-
-
-
 func TestRotateBz(Te *testing.T) {
 	runtime.GOMAXPROCS(2)
 	fmt.Println("Here we go!")
@@ -342,29 +339,29 @@ func TestRotateBz(Te *testing.T) {
 	origin := ZeroVecs(1)
 	bzcopy := ZeroVecs(12)
 	bzcopy2 := ZeroVecs(12) //testing
-	rot:=ZeroVecs(12)
-	rot3:=ZeroVecs(12)
-	for _, angle := range []float64{0, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60,180} {
+	rot := ZeroVecs(12)
+	rot3 := ZeroVecs(12)
+	for _, angle := range []float64{0, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 180} {
 		bzcopy.Copy(bz)
 		bzcopy2.Copy(bz) //testing
-		rot = Rotate(bzcopy, rot, planevec,  Deg2Rad*angle)
-		rot3 = RotateSer(bzcopy,rot, planevec,  Deg2Rad*angle)
+		rot = Rotate(bzcopy, rot, planevec, Deg2Rad*angle)
+		rot3 = RotateSer(bzcopy, rot, planevec, Deg2Rad*angle)
 		rot2, _ := EulerRotateAbout(bzcopy2, origin, planevec, Deg2Rad*angle) //should be the same as the previous
-		if !rot.EqualsApprox(rot2,0.01){
+		if !rot.EqualsApprox(rot2, 0.01) {
 			Te.Fatal("Rotors Rotate and EulerRotate not equal for angle %3.2f", angle)
-		}else if !rot3.EqualsApprox(rot2,0.01){
+		} else if !rot3.EqualsApprox(rot2, 0.01) {
 			Te.Fatal("Rotors RotateSer and EulerRotate not equal for angle %3.2f", angle)
 
-		}else{
+		} else {
 			fmt.Println("Rotors EQUAL for angle", angle)
 
-			}
-		fmt.Println("rot",rot, "rot2", rot2)
-	//	panic("puto fail")
-	//		}
-//		if err != nil {
-//			panic(err.Error())
-//		}
+		}
+		fmt.Println("rot", rot, "rot2", rot2)
+		//	panic("puto fail")
+		//		}
+		//		if err != nil {
+		//			panic(err.Error())
+		//		}
 		newcoords.Copy(coords)
 		newcoords.SetVecs(rot, bzIn)
 		//test
@@ -374,5 +371,5 @@ func TestRotateBz(Te *testing.T) {
 		XYZWrite(fmt.Sprintf("test/%s-%3.1f.xyz", basename, angle), newcoords, mol)
 
 	}
-//	fmt.Println(mol, planevec)
+	//	fmt.Println(mol, planevec)
 }

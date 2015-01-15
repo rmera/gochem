@@ -277,7 +277,7 @@ func TestNWChem(Te *testing.T) {
 		Te.Error(err)
 	}
 	err = nw.BuildInput(atoms, mol, calc)
-	if err!=nil{
+	if err != nil {
 		Te.Error(err)
 	}
 	_ = orca.BuildInput(atoms, mol, calc)
