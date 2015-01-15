@@ -297,7 +297,7 @@ func pdbBufIORead(pdb *bufio.Reader, read_additional bool) (*Molecule, error) {
 	}
 	//This could be done faster if done in the same loop where the coords are read
 	//Instead of having another loop just for them.
-	top, err := NewTopology(molecule, 0, 0)
+	top, err := NewTopology(molecule, 0, 1)
 	if err != nil {
 		return nil, err
 	}
@@ -487,7 +487,7 @@ func XYZBufIORead(xyz *bufio.Reader) (*Molecule, error) {
 			if err != nil {
 				return nil, err
 			}
-			top, err = NewTopology(molecule, 0, 0)
+			top, err = NewTopology(molecule, 0, 1)
 			if err != nil {
 				return nil, err
 			}
