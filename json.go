@@ -166,7 +166,7 @@ func DecodeJSONMolecule(stream *bufio.Reader, atomnumber, frames int) (*Topology
 		}
 		rawcoords = append(rawcoords, ctemp.Coords...)
 	}
-	mol, _ := NewTopology(atoms, 0, 0) //no idea of the charge or multiplicity
+	mol, _ := NewTopology(atoms, 0, 1) //no idea of the charge or multiplicity
 	coords, err := NewVecs(rawcoords)
 	if err != nil {
 		return nil, nil, MakeJSONError("selection", "DecodeJSONMolecule", err)
