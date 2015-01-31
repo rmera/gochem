@@ -81,12 +81,12 @@ type Handle interface {
 }
 
 const (
-	ProbableProblem = "goChem/QM: Probable problem with calculations" //this is never to be used for fatal errors
-	MissingCharges  = "goChem/QM: Missing charges or coordinates"
-	NoEnergy        = "goChem/QM: No energy in output"
-	NoGeometry      = "gochem/QM: Unable to read Geometry from input"
-	NotRunning      = "gochem/QM: Couldn't run calculation"
-	NoInput         = "goChem/QM: Can't build input file"
+	ErrProbableProblem = "goChem/QM: Probable problem with calculations" //this is never to be used for fatal errors
+	ErrMissingCharges  = "goChem/QM: Missing charges or coordinates"
+	ErrNoEnergy        = "goChem/QM: No energy in output"
+	ErrNoGeometry      = "gochem/QM: Unable to read Geometry from input"
+	ErrNotRunning      = "gochem/QM: Couldn't run calculation"
+	ErrCantInput         = "goChem/QM: Can't build input file"
 )
 
 const (

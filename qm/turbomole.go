@@ -238,7 +238,7 @@ func (O *TMHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q *Cal
 	coord.Close() //not defearable
 	defstring := "\n\na coord\n*\nno\n"
 	if atoms == nil || coords == nil {
-		return Error{MissingCharges, Turbomole, O.inputname, "", true}
+		return Error{ErrMissingCharges, Turbomole, O.inputname, "", true}
 	}
 	if Q.Basis == "" {
 		fmt.Fprintf(os.Stderr, "no basis set assigned for TM calculation, will used the default %s, \n", O.defbasis)
@@ -371,7 +371,7 @@ func (O *TMHandle) Run(wait bool) (err error) {
 		err = command.Start()
 	}
 	if err != nil {
-		err = Error{NotRunning, Turbomole, O.inputname, err.Error(), true}
+		err = Error{ErrNotRunning, Turbomole, O.inputname, err.Error(), true}
 
 	}
 	return err
@@ -383,19 +383,19 @@ func (O *TMHandle) Energy() (float64, error) {
 	defer os.Chdir("..")
 	f, err := os.Open("energy")
 	if err != nil {
-		return 0, Error{NoEnergy, Turbomole, O.inputname, err.Error(), true}
+		return 0, Error{ErrNoEnergy, Turbomole, O.inputname, err.Error(), true}
 	}
 	defer f.Close()
 	fio := bufio.NewReader(f)
 	line, err := getSecondToLastLine(fio)
 	if err != nil {
-		return 0, Error{NoEnergy, Turbomole, O.inputname, err.Error(), true}
+		return 0, Error{ErrNoEnergy, Turbomole, O.inputname, err.Error(), true}
 
 	}
 	en := strings.Fields(line)[1]
 	energy, err := strconv.ParseFloat(en, 64)
 	if err != nil {
-		err = Error{NoEnergy, Turbomole, O.inputname, err.Error(), true}
+		err = Error{ErrNoEnergy, Turbomole, O.inputname, err.Error(), true}
 	}
 	return energy * chem.H2Kcal, err
 }
@@ -408,16 +408,16 @@ func (O *TMHandle) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error) {
 	x2t := exec.Command("t2x")
 	stdout, err := x2t.StdoutPipe()
 	if err != nil {
-		return nil, Error{NoGeometry, Turbomole, O.inputname, not2x + err.Error(), true}
+		return nil, Error{ErrNoGeometry, Turbomole, O.inputname, not2x + err.Error(), true}
 	}
 	if err := x2t.Start(); err != nil {
-		return nil, Error{NoGeometry, Turbomole, O.inputname, not2x + err.Error(), true}
+		return nil, Error{ErrNoGeometry, Turbomole, O.inputname, not2x + err.Error(), true}
 
 	}
 	xyz := bufio.NewReader(stdout)
 	mol, err := chem.XYZBufIORead(xyz)
 	if err != nil {
-		return nil, Error{NoGeometry, Turbomole, O.inputname, err.Error(), true}
+		return nil, Error{ErrNoGeometry, Turbomole, O.inputname, err.Error(), true}
 	}
 	return mol.Coords[len(mol.Coords)-1], nil
 

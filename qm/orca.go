@@ -96,7 +96,7 @@ func (O *OrcaHandle) SetDefaults() {
 func (O *OrcaHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q *Calc) error {
 	//Only error so far
 	if atoms == nil || coords == nil {
-		return Error{MissingCharges, Orca, O.inputname, "", true}
+		return Error{ErrMissingCharges, Orca, O.inputname, "", true}
 	}
 	if Q.Basis == "" {
 		fmt.Fprintf(os.Stderr, "no basis set assigned for ORCA calculation, will used the default %s, \n", O.defbasis)
@@ -287,7 +287,7 @@ func (O *OrcaHandle) Run(wait bool) (err error) {
 	if wait == true {
 		out, err := os.Create(fmt.Sprintf("%s.out", O.inputname))
 		if err != nil {
-			return Error{NotRunning, Orca, O.inputname, "", true}
+			return Error{ErrNotRunning, Orca, O.inputname, "", true}
 		}
 		defer out.Close()
 		command := exec.Command(O.command, fmt.Sprintf("%s.inp", O.inputname))
@@ -299,7 +299,7 @@ func (O *OrcaHandle) Run(wait bool) (err error) {
 		err = command.Start()
 	}
 	if err != nil {
-		err = Error{NotRunning, Orca, O.inputname, err.Error(), true}
+		err = Error{ErrNotRunning, Orca, O.inputname, err.Error(), true}
 	}
 	return err
 }
@@ -416,12 +416,12 @@ func (O *OrcaHandle) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error) 
 	geofile := fmt.Sprintf("%s.xyz", O.inputname)
 	//Here any error of orcaNormal... or false means the same, so the error can be ignored.
 	if trust := O.orcaNormalTermination(); !trust {
-		err = Error{ProbableProblem, Orca, O.inputname, "", false}
+		err = Error{ErrProbableProblem, Orca, O.inputname, "", false}
 	}
 	//This might not be super efficient but oh well.
 	mol, err1 := chem.XYZRead(geofile)
 	if err1 != nil {
-		return nil, Error{NoEnergy, Orca, O.inputname, err1.Error(), true}
+		return nil, Error{ErrNoEnergy, Orca, O.inputname, err1.Error(), true}
 	}
 	return mol.Coords[0], err //returns the coords, the error indicates whether the structure is trusty (normal calculation) or not
 }
@@ -432,7 +432,7 @@ func (O *OrcaHandle) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error) 
 //in calculation")
 func (O *OrcaHandle) Energy() (float64, error) {
 	var err error
-	err = Error{ProbableProblem, Orca, O.inputname, "", false}
+	err = Error{ErrProbableProblem, Orca, O.inputname, "", false}
 	f, err1 := os.Open(fmt.Sprintf("%s.out", O.inputname))
 	if err1 != nil {
 		return 0, err1
@@ -453,7 +453,7 @@ func (O *OrcaHandle) Energy() (float64, error) {
 			splitted := strings.Fields(line)
 			energy, err1 = strconv.ParseFloat(splitted[4], 64)
 			if err1 != nil {
-				return 0.0, Error{NoEnergy, Orca, O.inputname, err1.Error(), true}
+				return 0.0, Error{ErrNoEnergy, Orca, O.inputname, err1.Error(), true}
 
 			}
 			found = true
@@ -461,7 +461,7 @@ func (O *OrcaHandle) Energy() (float64, error) {
 		}
 	}
 	if !found {
-		return 0.0, Error{NoEnergy, Orca, O.inputname, "", false}
+		return 0.0, Error{ErrNoEnergy, Orca, O.inputname, "", false}
 	}
 	return energy * chem.H2Kcal, err
 }
