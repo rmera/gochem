@@ -257,18 +257,18 @@ type Molecule struct {
 //one of the slices is nil. It doesnt check for consitensy across slices or correct charge
 //or unpaired electrons.
 func NewMolecule(coords []*VecMatrix, ats Ref, bfactors [][]float64) (*Molecule, error) {
-	if ats == nil {
-		return nil, fmt.Errorf("Supplied a nil Reference")
-	}
-	if coords == nil {
-		return nil, fmt.Errorf("Supplied a nil Coords slice")
-	}
-	if bfactors == nil {
-		return nil, fmt.Errorf("Supplied a nil Bfactors slice")
-	}
+//	if ats == nil {
+//		return nil, fmt.Errorf("Supplied a nil Reference")
+//	}
+//	if coords == nil {
+//		return nil, fmt.Errorf("Supplied a nil Coords slice")
+//	}
+//	if bfactors == nil {
+//		return nil, fmt.Errorf("Supplied a nil Bfactors slice")
+//	}
 	mol := new(Molecule)
-	top, ok := ats.(*Topology) //for speed
-	if ok == true {
+	if ats==nil{
+	}else if top, ok := ats.(*Topology); ok == true { //for speed
 		mol.Topology = top
 	} else {
 		mol.Topology = new(Topology)
@@ -391,7 +391,7 @@ func (M *Molecule) Coord(atom, frame int) *VecMatrix {
 	return ret
 }
 
-//Current returns the number of the next readed frame
+//Current returns the number of the next read frame
 func (M *Molecule) Current() int {
 	if M == nil {
 		return -1
