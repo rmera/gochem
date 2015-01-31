@@ -36,6 +36,14 @@ import (
 	"strings"
 )
 
+
+const (
+	ErrNilData = "goChem/ChemPlot: Nil data given " 
+	ErrInconsistentData= "goChem/ChemPlot: Inconsistent data length "
+	ErrTooManyTags="goChem/ChemPlot: Maximun number of tagable residues is 4"
+	ErrOutOfRange="goChem/ChemPlot: Index requested out of range"
+)
+
 type Error struct {
 	message    string //The error message itself.
 	code       string //the name of the QM program giving the problem, or empty string if none
@@ -88,7 +96,7 @@ func basicRamaPlot(title string) (*plot.Plot, error) {
 func RamaPlotParts(data [][][]float64, tag [][]int, title, plotname string) error {
 	var err error
 	if data == nil {
-		panic("Given nil data")
+		return Error{ErrNilData, "", "RamaPlot", "", true}
 	}
 	// Create a new plot, set its title and
 	// axis labels.
@@ -111,7 +119,7 @@ func RamaPlotParts(data [][][]float64, tag [][]int, title, plotname string) erro
 			}
 			if tag != nil {
 				if len(tag) < len(data) {
-					panic("RamaPlotParts: If a non-nil tag slice is provided it must contain an element (which can be nil) for each element in the dihedral slice")
+					Error{ErrInconsistentData, "", "RamaPlotParts", "If a non-nil tag slice is provided it must contain an element (which can be nil) for each element in the dihedral slice", true}
 				}
 				if tag[key] != nil && isInInt(tag[key], k) {
 					s.GlyphStyle.Shape, err = getShape(tagged)
@@ -233,7 +241,7 @@ func colorsOld(key, steps int) (r, g, b uint8) {
 func RamaPlot(data [][]float64, tag []int, title, plotname string) error {
 	var err error
 	if data == nil {
-		return Error{"Given nil data", "", "RamaPlot", "", true}
+		return Error{ErrNilData, "", "RamaPlot", "", true}
 	}
 	// Create a new plot, set its title and
 	// axis labels.
@@ -282,7 +290,7 @@ func getShape(tagged int) (plot.GlyphDrawer, error) {
 	case 3:
 		return plot.CrossGlyph{}, nil
 	default:
-		return plot.RingGlyph{}, Error{"Maximun number of tagable residues is 4", "", "getShape", "", false} // you can still ignore the error and will get just the regular glyph (your residue will not be tagegd)
+		return plot.RingGlyph{}, Error{ErrTooManyTags, "", "getShape", "", false} // you can still ignore the error and will get just the regular glyph (your residue will not be tagegd)
 	}
 }
 
@@ -291,13 +299,13 @@ func getShape(tagged int) (plot.GlyphDrawer, error) {
 // dihedral, a and an error or nil.
 func RamaCalc(M *chem.VecMatrix, dihedrals []RamaSet) ([][]float64, error) {
 	if M == nil || dihedrals == nil {
-		return nil, Error{"Given nil data", "", "RamaCalc", "", true}
+		return nil, Error{ErrNilData, "", "RamaCalc", "", true}
 	}
 	r, _ := M.Dims()
 	Rama := make([][]float64, 0, len(dihedrals))
 	for _, j := range dihedrals {
 		if j.Npost >= r {
-			return nil, Error{"RamaCalc: Index requested out of range", "", "RamaCalc", "", true}
+			return nil, Error{ErrOutOfRange, "", "RamaCalc", "", true}
 		}
 		Cprev := M.VecView(j.Cprev)
 		N := M.VecView(j.N)
@@ -348,7 +356,7 @@ func RamaList(M chem.Atomer, chains string, resran []int) ([]RamaSet, error) {
 		}
 	}
 	if M == nil {
-		return nil, Error{"nil Molecule", "", "RamaList", "", true}
+		return nil, Error{ErrNilData, "", "RamaList", "nil molecule", true}
 	}
 	C := -1
 	N := -1
