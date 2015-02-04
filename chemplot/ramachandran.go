@@ -66,7 +66,7 @@ type RamaSet struct {
 	Ca      int
 	C       int
 	Npost   int
-	Molid   int
+	MolID   int
 	Molname string
 }
 
@@ -119,7 +119,7 @@ func RamaPlotParts(data [][][]float64, tag [][]int, title, plotname string) erro
 			}
 			if tag != nil {
 				if len(tag) < len(data) {
-					Error{ErrInconsistentData, "", "RamaPlotParts", "If a non-nil tag slice is provided it must contain an element (which can be nil) for each element in the dihedral slice", true}
+					return Error{ErrInconsistentData, "", "RamaPlotParts", "If a non-nil tag slice is provided it must contain an element (which can be nil) for each element in the dihedral slice", true}
 				}
 				if tag[key] != nil && isInInt(tag[key], k) {
 					s.GlyphStyle.Shape, err = getShape(tagged)
@@ -379,26 +379,26 @@ func RamaList(M chem.Atomer, chains string, resran []int) ([]RamaSet, error) {
 			if at.Name == "C" && Cprev == -1 {
 				Cprev = num
 			}
-			if at.Name == "N" && Cprev != -1 && N == -1 && at.Molid > M.Atom(Cprev).Molid {
+			if at.Name == "N" && Cprev != -1 && N == -1 && at.MolID > M.Atom(Cprev).MolID {
 				N = num
 			}
-			if at.Name == "C" && Cprev != -1 && at.Molid > M.Atom(Cprev).Molid {
+			if at.Name == "C" && Cprev != -1 && at.MolID > M.Atom(Cprev).MolID {
 				C = num
 			}
-			if at.Name == "CA" && Cprev != -1 && at.Molid > M.Atom(Cprev).Molid {
+			if at.Name == "CA" && Cprev != -1 && at.MolID > M.Atom(Cprev).MolID {
 				Ca = num
 			}
-			if at.Name == "N" && Ca != -1 && at.Molid > M.Atom(Ca).Molid {
+			if at.Name == "N" && Ca != -1 && at.MolID > M.Atom(Ca).MolID {
 				Npost = num
 			}
 			//when we have them all, we save
 			if Cprev != -1 && Ca != -1 && N != -1 && C != -1 && Npost != -1 {
 				//We check that the residue ids are what they are supposed to be
-				r1 := M.Atom(Cprev).Molid
-				r2 := M.Atom(N).Molid
-				r2a := M.Atom(Ca).Molid
-				r2b := M.Atom(C).Molid
-				r3 := M.Atom(Npost).Molid
+				r1 := M.Atom(Cprev).MolID
+				r2 := M.Atom(N).MolID
+				r2a := M.Atom(Ca).MolID
+				r2b := M.Atom(C).MolID
+				r3 := M.Atom(Npost).MolID
 				if (len(resran) == 2 && (r2 >= resran[0] && r2 <= resran[1])) || isInInt(resran, r2) {
 					if r1 != r2-1 || r2 != r2a || r2a != r2b || r2b != r3-1 {
 						return nil, Error{fmt.Sprintf("Incorrect backbone Cprev: %d N-1: %d CA: %d C: %d Npost-1: %d", r1, r2-1, r2a, r2b, r3-1), "", "RamaList", "", true}
