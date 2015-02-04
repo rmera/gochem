@@ -69,7 +69,7 @@ func TestChangeAxis(Te *testing.T) {
 	orient_atoms := [2]int{0, 0}
 	for index := 0; index < mol.Len(); index++ {
 		atom := mol.Atom(index)
-		if atom.Chain == "A" && atom.Molid == 124 {
+		if atom.Chain == "A" && atom.MolID == 124 {
 			if atom.Name == "CA" {
 				orient_atoms[0] = index
 			} else if atom.Name == "CB" {
@@ -102,13 +102,13 @@ func TestChangeAxis(Te *testing.T) {
 	fmt.Println("bench1")
 }
 
-func TestMoldidNameChain2Index(Te *testing.T) {
+func TestMolidNameChain2Index(Te *testing.T) {
 	//runtime.GOMAXPROCS(2) ///////////////////////////
 	mol, err := PDBRead("test/2c9v.pdb", true)
 	if err != nil {
 		Te.Error(err)
 	}
-	index, err := MolidNameChain2Index(mol, 46, "ND1", "A")
+	index, err := MolIDNameChain2Index(mol, 46, "ND1", "A")
 	if err != nil {
 		Te.Error(err)
 	}
@@ -129,7 +129,7 @@ func TestOldChangeAxis(Te *testing.T) {
 	orient_atoms := [2]int{0, 0}
 	for index := 0; index < mol.Len(); index++ {
 		atom := mol.Atom(index)
-		if atom.Chain == "A" && atom.Molid == 124 {
+		if atom.Chain == "A" && atom.MolID == 124 {
 			if atom.Name == "CA" {
 				orient_atoms[0] = index
 			} else if atom.Name == "CB" {

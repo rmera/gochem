@@ -39,7 +39,7 @@ func Molecules2Atoms(mol Atomer, residues []int, chains []string) []int {
 	atlist := make([]int, 0, len(residues)*3)
 	for key := 0; key < mol.Len(); key++ {
 		at := mol.Atom(key)
-		if isInInt(residues, at.Molid) && (isInString(chains, at.Chain) || len(chains) == 0) {
+		if isInInt(residues, at.MolID) && (isInString(chains, at.Chain) || len(chains) == 0) {
 			atlist = append(atlist, key)
 		}
 	}
@@ -47,10 +47,10 @@ func Molecules2Atoms(mol Atomer, residues []int, chains []string) []int {
 
 }
 
-//This functions takes a molid (residue number), atom name, chain index and a molecule Ref.
+//This functions takes a molID (residue number), atom name, chain index and a molecule Ref.
 //it returns the index associated with the atom in question in the Ref. The function returns also an error (if failure of warning)
 // or nil (if succses and no warnings). Note that this function is not efficient to call several times to retrieve many atoms.
-func MolidNameChain2Index(mol Ref, molid int, name, chain string) (int, error) {
+func MolIDNameChain2Index(mol Ref, molID int, name, chain string) (int, error) {
 	var ret int = -1
 	var err error
 	if mol == nil {
@@ -61,7 +61,7 @@ func MolidNameChain2Index(mol Ref, molid int, name, chain string) (int, error) {
 		if a.Name == "" && err == nil {
 			err = fmt.Errorf("Warning: The Ref does not seem to contain PDB-type information") //We set this error but will still keep running the function in case the data is present later in the molecule.
 		}
-		if a.Molid == molid && a.Name == name && a.Chain == chain {
+		if a.MolID == molID && a.Name == name && a.Chain == chain {
 			ret = i
 			break
 		}
@@ -308,12 +308,12 @@ func FixNumbering(r Ref) { /*NOTICE: Ref is not needed here, only the Len and At
 	prevres := -1
 	for i := 0; i < r.Len(); i++ {
 		at := r.Atom(i)
-		at.Id = i + 1
-		if prevres != at.Molid {
-			prevres = at.Molid
+		at.ID = i + 1
+		if prevres != at.MolID {
+			prevres = at.MolID
 			resid++
 		}
-		at.Molid = resid
+		at.MolID = resid
 	}
 }
 
@@ -336,7 +336,7 @@ func CutBackRef(r Atomer, chains []string, list [][]int) ([]int, error) {
 		nresname := ""
 		cresname := ""
 		for j := 0; j < r.Len(); j++ {
-			if r.Atom(j).Molid == nter && r.Atom(j).Chain == chains[k] {
+			if r.Atom(j).MolID == nter && r.Atom(j).Chain == chains[k] {
 				nresname = r.Atom(j).Molname
 				break
 			}
@@ -351,13 +351,13 @@ func CutBackRef(r Atomer, chains []string, list [][]int) ([]int, error) {
 			if curr.Chain != chains[k] {
 				continue
 			}
-			if curr.Molid == cter {
+			if curr.MolID == cter {
 				cresname = curr.Molname
 			}
-			if curr.Molid == nter-1 {
+			if curr.MolID == nter-1 {
 				makeNcap(curr, nresname)
 			}
-			if curr.Molid == cter+1 {
+			if curr.MolID == cter+1 {
 				makeCcap(curr, cresname)
 			}
 		}
@@ -385,7 +385,7 @@ func makeNcap(at *Atom, resname string) {
 	if !isInString([]string{"C", "O", "CA"}, at.Name) {
 		return
 	}
-	at.Molid = at.Molid + 1
+	at.MolID = at.MolID + 1
 	at.Molname = resname
 	if at.Name == "C" {
 		at.Name = "CTZ"
@@ -400,7 +400,7 @@ func makeCcap(at *Atom, resname string) {
 	if !isInString([]string{"N", "H", "CA"}, at.Name) {
 		return
 	}
-	at.Molid = at.Molid - 1
+	at.MolID = at.MolID - 1
 	at.Molname = resname
 	if at.Name == "N" {
 		at.Name = "NTZ"
@@ -443,7 +443,7 @@ func CutBetaRef(r Atomer, chain []string, list []int) []int {
 	//	pairs[0]=make([]int,0,2)
 	for i := 0; i < r.Len(); i++ {
 		curr := r.Atom(i)
-		if isInInt(list, curr.Molid) && isInString(chain, curr.Chain) {
+		if isInInt(list, curr.MolID) && isInString(chain, curr.Chain) {
 			if curr.Name == "CB" {
 				//			pairs[len(pairs)-1][1]=i //I am assuming that CA will show before CB in the PDB, which is rather weak
 				//		paairs=append(pairs,make([]int,1,2))
@@ -453,7 +453,7 @@ func CutBetaRef(r Atomer, chain []string, list []int) []int {
 				curr.Symbol = "H"
 				//		pairs[len(pairs)-1]=append(pairs[len(pairs)-1],i)
 			} else if isInString([]string{"C", "H", "HA", "O", "N"}, curr.Name) { //change the res number of the backbone so it is not considered
-				curr.Molid = -1
+				curr.MolID = -1
 			}
 
 		}
@@ -465,7 +465,7 @@ func CutBetaRef(r Atomer, chain []string, list []int) []int {
 func CutAlphaRef(r Atomer, chain []string, list []int) []int {
 	for i := 0; i < r.Len(); i++ {
 		curr := r.Atom(i)
-		if isInInt(list, curr.Molid) && isInString(chain, curr.Chain) {
+		if isInInt(list, curr.MolID) && isInString(chain, curr.Chain) {
 			if curr.Name == "C" {
 				curr.Name = "HA2"
 				curr.Symbol = "H"
@@ -473,7 +473,7 @@ func CutAlphaRef(r Atomer, chain []string, list []int) []int {
 				curr.Name = "HA3"
 				curr.Symbol = "H"
 			} else if isInString([]string{"H", "O"}, curr.Name) { //change the res number of the backbone so it is not considered
-				curr.Molid = -1
+				curr.MolID = -1
 			}
 
 		}
@@ -506,7 +506,7 @@ func ScaleBonds(coords *VecMatrix, mol Atomer, n1, n2 string, finallenght float6
 		}
 		for j := 0; j < mol.Len(); j++ {
 			c2 := mol.Atom(j)
-			if c1.Molid == c2.Molid && c1.Name == n1 && c2.Name == n2 {
+			if c1.MolID == c2.MolID && c1.Name == n1 && c2.Name == n2 {
 				A := coords.VecView(i)
 				B := coords.VecView(j)
 				ScaleBond(A, B, finallenght)

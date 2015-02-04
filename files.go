@@ -139,14 +139,14 @@ func read_full_pdb_line(line string, read_additional bool, contlines int) (*Atom
 	coords := make([]float64, 3, 3)
 	atom := new(Atom)
 	atom.Het = strings.HasPrefix(line, "HETATM") //this is called twice in the worst case. should fix
-	atom.Id, err[0] = strconv.Atoi(strings.TrimSpace(line[6:12]))
+	atom.ID, err[0] = strconv.Atoi(strings.TrimSpace(line[6:12]))
 	atom.Name = strings.TrimSpace(line[12:16])
 	//PDB says that pos. 17 is for other thing but I see that is
 	//used for residue name in many cases*/
 	atom.Molname = line[17:20]
 	atom.Molname1 = three2OneLetter[atom.Molname]
 	atom.Chain = string(line[21])
-	atom.Molid, err[1] = strconv.Atoi(strings.TrimSpace(line[22:30]))
+	atom.MolID, err[1] = strconv.Atoi(strings.TrimSpace(line[22:30]))
 	//Here we shouldn't need TrimSpace, but I keep it just in case someone
 	// doesn's use all the fields when writting a PDB*/
 	coords[0], err[2] = strconv.ParseFloat(strings.TrimSpace(line[30:38]), 64)
@@ -356,8 +356,8 @@ func writePDBLine(atom *Atom, coord *VecMatrix, bfact float64, chainprev string)
 		return "", chainprev, fmt.Errorf("Cant print PDB line")
 	}
 	//"%-6s%5d  %-3s %3s %1c%4d    %8.3f%8.3f%8.3f%6.2f%6.2f          %2s  \n"
-	out = fmt.Sprintf(formatstring, first, atom.Id, atom.Name, atom.Molname, atom.Chain,
-		atom.Molid, coord.At(0, 0), coord.At(0, 1), coord.At(0, 2), atom.Occupancy, bfact, atom.Symbol)
+	out = fmt.Sprintf(formatstring, first, atom.ID, atom.Name, atom.Molname, atom.Chain,
+		atom.MolID, coord.At(0, 0), coord.At(0, 1), coord.At(0, 2), atom.Occupancy, bfact, atom.Symbol)
 
 	out = strings.Join([]string{ter, out}, "")
 	return out, chainprev, nil

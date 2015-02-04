@@ -38,11 +38,11 @@ import "fmt"
 //and the b-factors, which are in a separate slice of float64.
 type Atom struct {
 	Name      string  //PDB name of the atom
-	Id        int     //The PDB index of the atom
+	ID        int     //The PDB index of the atom
 	Tag       int     //Just added this for something that someone might want to keep that is not a float.
 	Molname   string  //PDB name of the residue or molecule (3-letter code for residues)
 	Molname1  byte    //the one letter name for residues and nucleotids
-	Molid     int     //PDB index of the corresponding residue or molecule
+	MolID     int     //PDB index of the corresponding residue or molecule
 	Chain     string  //One-character PDB name for a chain.
 	Mass      float64 //hopefully all these float64 are not too much memory
 	Occupancy float64 //a PDB crystallographic field, often used to store values of interest.
@@ -61,11 +61,11 @@ func (N *Atom) Copy(A *Atom) {
 		panic("Attempted to copy from or to a nil atom")
 	}
 	N.Name = A.Name
-	N.Id = A.Id
+	N.ID = A.ID
 	N.Tag = A.Tag
 	N.Molname = A.Molname
 	N.Molname1 = A.Molname1
-	N.Molid = A.Molid
+	N.MolID = A.MolID
 	N.Chain = A.Chain
 	N.Mass = A.Mass
 	N.Occupancy = A.Occupancy
@@ -122,29 +122,29 @@ func (T *Topology) SetMulti(i int) {
 }
 
 //Sets the current order of atoms as Id and the order of molecules as
-//Molid for all atoms
+//MolID for all atoms
 func (T *Topology) ResetIds() {
 	currid := 1
 	currid2 := 1
 	for key, val := range T.Atoms {
-		T.Atoms[key].Id = key + 1
-		if currid == val.Molid {
+		T.Atoms[key].ID = key + 1
+		if currid == val.MolID {
 			continue
 		}
-		if currid == val.Molid-1 { //We hit a new molecule
+		if currid == val.MolID-1 { //We hit a new molecule
 			currid2++
 			currid++
 			continue
 		}
 		//change of residue after fixing one that didnt match position
-		if currid2 != val.Molid {
-			currid2 = T.Atoms[key].Molid
-			T.Atoms[key].Molid = currid + 1
+		if currid2 != val.MolID {
+			currid2 = T.Atoms[key].MolID
+			T.Atoms[key].MolID = currid + 1
 			currid = currid + 1
 			continue
 		}
 		//A residue's index doesnt match its position
-		T.Atoms[key].Molid = currid
+		T.Atoms[key].MolID = currid
 
 	}
 }
