@@ -86,7 +86,7 @@ const (
 	ErrNoEnergy        = "goChem/QM: No energy in output"
 	ErrNoGeometry      = "gochem/QM: Unable to read Geometry from input"
 	ErrNotRunning      = "gochem/QM: Couldn't run calculation"
-	ErrCantInput         = "goChem/QM: Can't build input file"
+	ErrCantInput       = "goChem/QM: Can't build input file"
 )
 
 const (

@@ -36,12 +36,11 @@ import (
 	"strings"
 )
 
-
 const (
-	ErrNilData = "goChem/ChemPlot: Nil data given " 
-	ErrInconsistentData= "goChem/ChemPlot: Inconsistent data length "
-	ErrTooManyTags="goChem/ChemPlot: Maximun number of tagable residues is 4"
-	ErrOutOfRange="goChem/ChemPlot: Index requested out of range"
+	ErrNilData          = "goChem/ChemPlot: Nil data given "
+	ErrInconsistentData = "goChem/ChemPlot: Inconsistent data length "
+	ErrTooManyTags      = "goChem/ChemPlot: Maximun number of tagable residues is 4"
+	ErrOutOfRange       = "goChem/ChemPlot: Index requested out of range"
 )
 
 type Error struct {

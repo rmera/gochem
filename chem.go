@@ -123,7 +123,7 @@ func (T *Topology) SetMulti(i int) {
 
 //Sets the current order of atoms as Id and the order of molecules as
 //MolID for all atoms
-func (T *Topology) ResetIds() {
+func (T *Topology) ResetIDs() {
 	currid := 1
 	currid2 := 1
 	for key, val := range T.Atoms {
@@ -257,18 +257,18 @@ type Molecule struct {
 //one of the slices is nil. It doesnt check for consitensy across slices or correct charge
 //or unpaired electrons.
 func NewMolecule(coords []*VecMatrix, ats Ref, bfactors [][]float64) (*Molecule, error) {
-//	if ats == nil {
-//		return nil, fmt.Errorf("Supplied a nil Reference")
-//	}
-//	if coords == nil {
-//		return nil, fmt.Errorf("Supplied a nil Coords slice")
-//	}
-//	if bfactors == nil {
-//		return nil, fmt.Errorf("Supplied a nil Bfactors slice")
-//	}
+	//	if ats == nil {
+	//		return nil, fmt.Errorf("Supplied a nil Reference")
+	//	}
+	//	if coords == nil {
+	//		return nil, fmt.Errorf("Supplied a nil Coords slice")
+	//	}
+	//	if bfactors == nil {
+	//		return nil, fmt.Errorf("Supplied a nil Bfactors slice")
+	//	}
 	mol := new(Molecule)
-	if ats==nil{
-	}else if top, ok := ats.(*Topology); ok == true { //for speed
+	if ats == nil {
+	} else if top, ok := ats.(*Topology); ok == true { //for speed
 		mol.Topology = top
 	} else {
 		mol.Topology = new(Topology)

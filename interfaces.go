@@ -111,7 +111,7 @@ type WriteRef interface { /*NOTE: This whole interface can probably be removed, 
 	DelAtom(i int)
 
 	//Changes the Ids and Molids of atoms for ones matching their current order
-	ResetIds()
+	ResetIDs()
 }
 
 //Ref (reference) is an interface for any description of the type of atoms in a molecule,
