@@ -107,7 +107,7 @@ func newchemDense(data []float64, rows, cols int) (*chemDense, error) {
 
 //Generate and returns a VecMatrix with 3 columns from data.
 func NewVecs(data []float64) (*VecMatrix, error) {
-	fmt.Println("JAJAJA BIENVENIDO AL INFIERNO!!!!")
+	///fmt.Println("JAJAJA BIENVENIDO AL INFIERNO!!!!") //Surely a debugging msg I had forgotten about. It would have rather surprised any Spanish-speaking user :-)
 	const cols int = 3
 	l := len(data)
 	rows := l / cols

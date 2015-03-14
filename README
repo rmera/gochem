@@ -7,10 +7,10 @@ written in the Go programming language.
 Check out www.gochem.org for more information.
 
 
-goChem uses either a zero-runtime-dependency, pure go 
-implementation for the matrix operations, based in go.matrix 
-(https://github.com/skelterjohn/go.matrix) Or a more efficient, 
-cBlas based library (https://github.com/gonum/matrix)
+goChem uses gonum (https://github.com/gonum/matrix) for matrix
+operations. The user can choose to have gonum backed by a pure-go 
+(and some assembly) implementation of BLAS (which allows not having 
+runtime dependencies) or by the somewhat more efficient cBLAS. 
 
 Ramachandran plots require the Plotinum 
 (http://code.google.com/p/plotinum/) library.
@@ -77,7 +77,7 @@ Current capabilities.
         for an aminoacidic chain or a subset of it.
 
 11.  Generates input for, run and recover results from QM calculations
-	 with Turbomole, Orca and MOPAC (which must be obtained independently 
+	 with NWChem, Turbomole, Orca and MOPAC (which must be obtained independently 
 	 from their respective distributors.)
 
 12.	Implements a JSON interface that allows easy communication of goChem
@@ -85,6 +85,20 @@ Current capabilities.
 
 
 NOTE ON THE API:
+
+On XX/XX/2015 the API has suffered a few changes. The main ones are: 
+
+1) All names involving identification numbers (IDs) have changed
+from Id or id to ID. e.g., the Atom.Molid field has become 
+Atom.MolID.
+
+2) Some functions have been moved into new packages under the library.
+all funcitons for JSON serialization of goChem objects or options
+(intended for communicating Go programs with programs written in other
+languages, PyMOL plugins in particular) have been moved to their 
+own package, "chson" (github.com/rmera/gochem/chson).
+Several convenience functions have been taken from the chem package
+and upt into the  XXXXX package.
 
 On 13/11/2013 the API has been made stable. This means that only 
 backward-compatible changes to the current API will be made 
