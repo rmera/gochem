@@ -29,16 +29,19 @@
 
 package chem
 
-import "math"
-import "runtime"
+import (
+	"math"
+	"runtime"
+	"github.com/rmera/gochem/v3"
+	)
 
 //import "fmt"
 
 type paravector struct {
 	Real  float64
 	Imag  float64
-	Vreal *VecMatrix
-	Vimag *VecMatrix
+	Vreal *v3.Matrix
+	Vimag *v3.Matrix
 }
 
 //creates a new paravector
@@ -46,14 +49,14 @@ func makeParavector() *paravector {
 	R := new(paravector)
 	R.Real = 0 //I shouldnt need this
 	R.Imag = 0
-	R.Vreal = ZeroVecs(1)
-	R.Vimag = ZeroVecs(1)
+	R.Vreal = v3.Zeros(1)
+	R.Vimag = v3.Zeros(1)
 	return R
 }
 
 //Takes a vector and creates a paravector. Uses copy so the vector is not affected
 //By future changes to the paravector.
-func paravectorFromVector(A, B *VecMatrix) *paravector {
+func paravectorFromVector(A, B *v3.Matrix) *paravector {
 	R := new(paravector)
 	R.Real = 0 //I shouldnt need this
 	R.Imag = 0
@@ -159,8 +162,8 @@ func (R *paravector) cliRotation(A, axis, tmp, tmp2 *paravector, angle float64) 
 //RotateSer takes the matrix Target and uses Clifford algebra to rotate each of its rows
 //by angle radians around axis. Axis must be a 3D row vector. Target must be an N,3 matrix.
 //The Ser in the name is from "serial". ToRot will be overwritten and returned
-func RotateSer(Target, ToRot, axis *VecMatrix, angle float64) *VecMatrix {
-	cake := ZeroVecs(10) //Better ask for one chunk of memory than allocate 10 different times.
+func RotateSer(Target, ToRot, axis *v3.Matrix, angle float64) *v3.Matrix {
+	cake := v3.Zeros(10) //Better ask for one chunk of memory than allocate 10 different times.
 	R := cake.VecView(0)
 	Rrev := cake.VecView(1)
 	tmp := cake.VecView(2)
@@ -178,10 +181,10 @@ func RotateSer(Target, ToRot, axis *VecMatrix, angle float64) *VecMatrix {
 //RotateSerP takes the matrix Target and uses Clifford algebra to rotate each of its rows
 //by angle radians around axis. Axis must be a 3D row vector. Target must be an N,3 matrix.
 //The Ser in the name is from "serial". ToRot will be overwritten and returned. RotateSerP only allocates some floats but not
-//any VecMatrix. Instead, it takes the needed intermediates as arguments, hence the "P" for "performance" If performance is not an issue,
+//any v3.Matrix. Instead, it takes the needed intermediates as arguments, hence the "P" for "performance" If performance is not an issue,
 //use RotateSer instead, it will perform the allocations for you and call this function. Notice that if you use this function directly
 //you may have to zero at least some of the intermediates before reusing them.
-func RotateSerP(Target, ToRot, axis, tmpv, Rv, Rvrev, Rotatedv, itmp1, itmp2, itmp3, itmp4, itmp5, itmp6 *VecMatrix, angle float64) {
+func RotateSerP(Target, ToRot, axis, tmpv, Rv, Rvrev, Rotatedv, itmp1, itmp2, itmp3, itmp4, itmp5, itmp6 *v3.Matrix, angle float64) {
 	tarr, _ := Target.Dims()
 	torotr := ToRot.NVecs()
 	if tarr != torotr || Target.Dense == ToRot.Dense {
@@ -208,7 +211,7 @@ func RotateSerP(Target, ToRot, axis, tmpv, Rv, Rvrev, Rotatedv, itmp1, itmp2, it
 	}
 }
 
-func getChunk(cake *VecMatrix, i, j, r, c int) *VecMatrix {
+func getChunk(cake *v3.Matrix, i, j, r, c int) *v3.Matrix {
 	ret := cake.View(i, j, r, c)
 	return ret
 
@@ -217,9 +220,9 @@ func getChunk(cake *VecMatrix, i, j, r, c int) *VecMatrix {
 //Rotate takes the matrix Target and uses Clifford algebra to _concurrently_ rotate each
 //of its rows by angle radians around axis. Axis must be a 3D row vector.
 //Target must be an N,3 matrix. The result is returned.
-func Rotate(Target, Res, axis *VecMatrix, angle float64) *VecMatrix {
+func Rotate(Target, Res, axis *v3.Matrix, angle float64) *v3.Matrix {
 	gorut := runtime.GOMAXPROCS(-1)
-	cake := ZeroVecs(5 + gorut*4)
+	cake := v3.Zeros(5 + gorut*4)
 	Rv := cake.VecView(0)
 	Rvrev := cake.VecView(1)
 	itmp1 := cake.VecView(2)
@@ -237,7 +240,7 @@ func Rotate(Target, Res, axis *VecMatrix, angle float64) *VecMatrix {
 //of its rows by angle radians around axis. Axis must be a 3D row vector.
 //Target must be an N,3 matrix.
 
-func RotateP(Target, Res, axis, Rv, Rvrev, tmp1, tmp2, tmp3, tmp4, itmp1, itmp2, itmp3 *VecMatrix, angle float64, gorut int) {
+func RotateP(Target, Res, axis, Rv, Rvrev, tmp1, tmp2, tmp3, tmp4, itmp1, itmp2, itmp3 *v3.Matrix, angle float64, gorut int) {
 	//	gorut := runtime.GOMAXPROCS(-1) //Do not change anything, only query
 	rows := Target.NVecs()
 	rrows := Res.NVecs()
@@ -255,10 +258,10 @@ func RotateP(Target, Res, axis, Rv, Rvrev, tmp1, tmp2, tmp3, tmp4, itmp1, itmp2,
 	Rrev.reverse(R)
 	ended := make(chan bool, gorut)
 	//Just temporal skit to be used by the gorutines
-	/*	tmp1 := ZeroVecs(gorut)  //alloc
-		tmp2 := ZeroVecs(gorut)
-		tmp3 := ZeroVecs(gorut)
-		tmp4 := ZeroVecs(gorut) */
+	/*	tmp1 := v3.Zeros(gorut)  //alloc
+		tmp2 := v3.Zeros(gorut)
+		tmp3 := v3.Zeros(gorut)
+		tmp4 := v3.Zeros(gorut) */
 	fragmentlen := int(math.Ceil(float64(rows) / float64(gorut))) //len of the fragment of target that each gorutine will handle
 	for i := 0; i < gorut; i++ {
 		//These are the limits of the fragment of Target in which the gorutine will operate
@@ -293,7 +296,7 @@ func RotateP(Target, Res, axis, Rv, Rvrev, tmp1, tmp2, tmp3, tmp4, itmp1, itmp2,
 
 /*
 	rows, _ := Target.Dims()
-	paxis := paravectorFromVector(axis,ZeroVecs(1))
+	paxis := paravectorFromVector(axis,v3.Zeros(1))
 	paxis.unit(paxis)
 	R := makeParavector() //build the rotor (R)
 	R.Real = math.Cos(angle / 2.0)
@@ -302,13 +305,13 @@ func RotateP(Target, Res, axis, Rv, Rvrev, tmp1, tmp2, tmp3, tmp4, itmp1, itmp2,
 	}
 
 	Rrev := R.reverse() // R-dagger
-	Res := ZeroVecs(rows)
+	Res := v3.Zeros(rows)
 	ended := make(chan bool, rows)
 	for i := 0; i < rows; i++ {
 		go func(i int) {
 			//Here we simply do R^dagger A R, and assign to the corresponding row.
 			targetrow := Target.VecView(i)
-			tmp := cliProduct(Rrev, paravectorFromVector(targetrow,ZeroVecs(1)))
+			tmp := cliProduct(Rrev, paravectorFromVector(targetrow,v3.Zeros(1)))
 			Rotated := cliProduct(tmp, R)
 			//a,b:=Res.Dims() //debug
 			//c,d:=Rotated.Vreal.Dims()

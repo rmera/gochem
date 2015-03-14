@@ -49,7 +49,7 @@ import (
 
 //Angle takes 2 vectors and calculate the angle in radians between them
 //It does not check for correctness or return errors!
-func Angle(v1, v2 *VecMatrix) float64 {
+func Angle(v1, v2 *v3.Matrix) float64 {
 	normproduct := v1.Norm(0) * v2.Norm(0)
 	dotprod := v1.Dot(v2)
 	argument := dotprod / normproduct
@@ -71,7 +71,7 @@ func Angle(v1, v2 *VecMatrix) float64 {
 //a rotation matrix that, when applied to mol, will rotate it around the Z axis
 //in such a way that the projection of newy in the XY plane will be aligned with
 //the Y axis.
-func RotatorAroundZToNewY(newy *VecMatrix) (*VecMatrix, error) {
+func RotatorAroundZToNewY(newy *v3.Matrix) (*v3.Matrix, error) {
 	nr, nc := newy.Dims()
 	if nc != 3 || nr != 1 {
 		return nil, fmt.Errorf("Wrong newy vector")
@@ -85,26 +85,26 @@ func RotatorAroundZToNewY(newy *VecMatrix) (*VecMatrix, error) {
 	operator := []float64{cosgamma, singamma, 0,
 		-singamma, cosgamma, 0,
 		0, 0, 1}
-	return NewVecs(operator)
+	return v3.NewMatrix(operator)
 
 }
 
 //GetRotateAroundZ returns an operator that will rotate a set of
 //coordinates by gamma radians around the z axis.
-func RotatorAroundZ(gamma float64) (*VecMatrix, error) {
+func RotatorAroundZ(gamma float64) (*v3.Matrix, error) {
 	singamma := math.Sin(gamma)
 	cosgamma := math.Cos(gamma)
 	operator := []float64{cosgamma, singamma, 0,
 		-singamma, cosgamma, 0,
 		0, 0, 1}
-	return NewVecs(operator)
+	return v3.NewMatrix(operator)
 
 }
 
 //RotatorToNewZ takes a matrix a row vector (newz).
 //It returns a linear operator such that, when applied to a matrix mol ( with the operator on the right side)
 //it will rotate mol such that the z axis is aligned with newz.
-func RotatorToNewZ(newz *VecMatrix) *VecMatrix {
+func RotatorToNewZ(newz *v3.Matrix) *v3.Matrix {
 	r, c := newz.Dims()
 	if c != 3 || r != 1 {
 		panic("Wrong newz vector")
@@ -122,7 +122,7 @@ func RotatorToNewZ(newz *VecMatrix) *VecMatrix {
 	operator := []float64{cosphi*costheta*cospsi - sinphi*sinpsi, -sinphi*cospsi - cosphi*costheta*sinpsi, cosphi * sintheta,
 		sinphi*costheta*cospsi + cosphi*sinpsi, -sinphi*costheta*sinpsi + cosphi*cospsi, sintheta * sinphi,
 		-sintheta * cospsi, sintheta * sinpsi, costheta}
-	finalop, _ := NewVecs(operator) //we are hardcoding opperator so it must have the right dimensions.
+	finalop, _ := v3.NewMatrix(operator) //we are hardcoding opperator so it must have the right dimensions.
 	return finalop
 
 }
@@ -134,7 +134,7 @@ func RotatorToNewZ(newz *VecMatrix) *VecMatrix {
 //and finally the second translation has to be added.
 //This is a low level function, although one can use it directly since it returns the transformed matrix.
 //The math for this function is by Prof. Veronica Jimenez-Curihual, University of Concepcion, Chile.
-func RotatorTranslatorToSuper(test, templa *VecMatrix) (*VecMatrix, *VecMatrix, *VecMatrix, *VecMatrix, error) {
+func RotatorTranslatorToSuper(test, templa *v3.Matrix) (*v3.Matrix, *v3.Matrix, *v3.Matrix, *v3.Matrix, error) {
 	tmr, tmc := templa.Dims()
 	tsr, tsc := test.Dims()
 	if tmr != tsr || tmc != 3 || tsc != 3 {
@@ -157,10 +157,10 @@ func RotatorTranslatorToSuper(test, templa *VecMatrix) (*VecMatrix, *VecMatrix, 
 	ScaledjProd.Scale(Scal, ScaledjProd)
 	aux2 := gnMul(gnT(ctempla), Mid)
 	r, _ := aux2.Dims()
-	Maux := ZeroVecs(r)
+	Maux := v3.Zeros(r)
 	Maux.Mul(aux2, ctest)
 	Maux.TCopy(Maux) //Dont understand why this is needed
-	factors := mat64.SVD(VecMatrix2Dense(Maux), appzero, math.SmallestNonzeroFloat64, true, true)
+	factors := mat64.SVD(v3.Matrix2Dense(Maux), appzero, math.SmallestNonzeroFloat64, true, true)
 	U := factors.U
 	V := factors.V
 	if err != nil {
@@ -172,7 +172,7 @@ func RotatorTranslatorToSuper(test, templa *VecMatrix) (*VecMatrix, *VecMatrix, 
 	//and gomatrix gives as V the transpose of the matrix given as V by numpy. I guess is not an
 	//error, but don't know for sure.
 	vtr, _ := V.Dims()
-	Rotation := ZeroVecs(vtr)
+	Rotation := v3.Zeros(vtr)
 	Rotation.Mul(V, gnT(U))
 	Rotation.TCopy(Rotation) //Don't know why does this work :(
 	RightHand := gnEye(3)
@@ -184,17 +184,17 @@ func RotatorTranslatorToSuper(test, templa *VecMatrix) (*VecMatrix, *VecMatrix, 
 		//return nil, nil, nil, nil, fmt.Errorf("Got a reflection instead of a translations. The objects may be specular images of each others")
 	}
 	jT.Scale(Scal, jT)
-	subtempla := ZeroVecs(tmr)
+	subtempla := v3.Zeros(tmr)
 	subtempla.Copy(ctempla)
-	sub := ZeroVecs(ctest.NVecs())
+	sub := v3.Zeros(ctest.NVecs())
 	sub.Mul(ctest, Rotation)
 	subtempla.Sub(subtempla, sub)
 	jtr, _ := jT.Dims()
-	Translation := ZeroVecs(jtr)
+	Translation := v3.Zeros(jtr)
 	Translation.Mul(jT, subtempla)
 	Translation.Add(Translation, distempla)
 	//This allings the transformed with the original template, not the mean centrate one
-	transformed := ZeroVecs(ctest.NVecs())
+	transformed := v3.Zeros(ctest.NVecs())
 	transformed.Mul(ctest, Rotation)
 	transformed.AddVec(transformed, Translation)
 	//end transformed
@@ -219,7 +219,7 @@ func rmsd_fail(test, template *matrix.DenseMatrix) (float64, error) {
 
 //RMSD returns the RSMD (root of the mean square deviation) for the sets of cartesian
 //coordinates in test and template.
-func RMSD(test, template *VecMatrix) (float64, error) {
+func RMSD(test, template *v3.Matrix) (float64, error) {
 	//This is a VERY naive implementation.
 	tmr, tmc := template.Dims()
 	tsr, tsc := test.Dims()
@@ -227,7 +227,7 @@ func RMSD(test, template *VecMatrix) (float64, error) {
 		return 0, fmt.Errorf("Ill formed matrices for RMSD calculation")
 	}
 	tr := tmr
-	ctempla := ZeroVecs(template.NVecs())
+	ctempla := v3.Zeros(template.NVecs())
 	ctempla.Copy(template)
 	//the maybe thing might not be needed since we check the dimensions before.
 	f := func() { ctempla.Sub(ctempla, test) }
@@ -246,8 +246,8 @@ func RMSD(test, template *VecMatrix) (float64, error) {
 
 //Dihedral calculate the dihedral between the points a, b, c, d, where the first plane
 //is defined by abc and the second by bcd.
-func Dihedral(a, b, c, d *VecMatrix) float64 {
-	all := []*VecMatrix{a, b, c, d}
+func Dihedral(a, b, c, d *v3.Matrix) float64 {
+	all := []*v3.Matrix{a, b, c, d}
 	for number, point := range all {
 		pr, pc := point.Dims()
 		if point == nil {
@@ -258,10 +258,10 @@ func Dihedral(a, b, c, d *VecMatrix) float64 {
 		}
 	}
 	//bma=b minus a
-	bma := ZeroVecs(1)
-	cmb := ZeroVecs(1)
-	dmc := ZeroVecs(1)
-	bmascaled := ZeroVecs(1)
+	bma := v3.Zeros(1)
+	cmb := v3.Zeros(1)
+	dmc := v3.Zeros(1)
+	bmascaled := v3.Zeros(1)
 	bma.Sub(b, a)
 	cmb.Sub(c, b)
 	dmc.Sub(d, c)
@@ -311,21 +311,21 @@ func Rhos(evals []float64) ([]float64, error) {
 //Plane that best contains the molecule. Notice that the function can't possibly check
 //that the vectors are sorted. The P at the end of the name is for Performance. If
 //That is not an issue it is safer to use the BestPlane function that wraps this one.
-func BestPlaneP(evecs *VecMatrix) (*VecMatrix, error) {
+func BestPlaneP(evecs *v3.Matrix) (*v3.Matrix, error) {
 	evr, evc := evecs.Dims()
 	if evr != 3 || evc != 3 {
 		return evecs, fmt.Errorf("Eigenvectors matrix must be 3x3")
 	}
 	v1 := evecs.VecView(2)
 	v2 := evecs.VecView(1)
-	normal := ZeroVecs(1)
+	normal := v3.Zeros(1)
 	normal.Cross(v1, v2)
 	return normal, nil
 }
 
 //BestPlane returns a row vector that is normal to the plane that best contains the molecule
 //if passed a nil Ref, it will simply set all masses to 1.
-func BestPlane(coords *VecMatrix, mol ReadRef) (*VecMatrix, error) {
+func BestPlane(coords *v3.Matrix, mol ReadRef) (*v3.Matrix, error) {
 	var err error
 	var Mmass []float64
 	cr, _ := coords.Dims()
@@ -358,7 +358,7 @@ func BestPlane(coords *VecMatrix, mol ReadRef) (*VecMatrix, error) {
 
 //CenterOfMass returns the center of mass the atoms represented by the coordinates in geometry
 //and the masses in mass, and an error. If mass is nil, it calculates the geometric center
-func CenterOfMass(geometry *VecMatrix, mass *mat64.Dense) (*VecMatrix, error) {
+func CenterOfMass(geometry *v3.Matrix, mass *mat64.Dense) (*v3.Matrix, error) {
 	if geometry == nil {
 		return nil, fmt.Errorf("nil matrix to get the center of mass")
 	}
@@ -367,9 +367,9 @@ func CenterOfMass(geometry *VecMatrix, mass *mat64.Dense) (*VecMatrix, error) {
 		mass = gnOnes(gr, 1)
 	}
 	gnOnesvector := gnOnes(1, gr)
-	ref := ZeroVecs(gr)
+	ref := v3.Zeros(gr)
 	ref.ScaleByCol(geometry, mass)
-	ref2 := ZeroVecs(1)
+	ref2 := v3.Zeros(1)
 	ref2.Mul(gnOnesvector, ref)
 	ref2.Scale(1.0/mass.Sum(), ref2)
 	return ref2, nil
@@ -377,26 +377,26 @@ func CenterOfMass(geometry *VecMatrix, mass *mat64.Dense) (*VecMatrix, error) {
 
 //MassCentrate centers in in the center of mass of oref. Mass must be
 //A column vector. Returns the centered matrix and the displacement matrix.
-func MassCentrate(in, oref *VecMatrix, mass *mat64.Dense) (*VecMatrix, *VecMatrix, error) {
+func MassCentrate(in, oref *v3.Matrix, mass *mat64.Dense) (*v3.Matrix, *v3.Matrix, error) {
 	or, _ := oref.Dims()
 	ir, _ := in.Dims()
 	if mass == nil { //just obtain the geometric center
 		mass = gnOnes(or, 1)
 	}
-	ref := ZeroVecs(or)
+	ref := v3.Zeros(or)
 	ref.Copy(oref)
 	gnOnesvector := gnOnes(1, or)
 	f := func() { ref.ScaleByCol(ref, mass) }
 	if err := gnMaybe(gnPanicker(f)); err != nil {
 		return nil, nil, err
 	}
-	ref2 := ZeroVecs(1)
+	ref2 := v3.Zeros(1)
 	g := func() { ref2.Mul(gnOnesvector, ref) }
 	if err := gnMaybe(gnPanicker(g)); err != nil {
 		return nil, nil, err
 	}
 	ref2.Scale(1.0/mass.Sum(), ref2)
-	returned := ZeroVecs(ir)
+	returned := v3.Zeros(ir)
 	returned.Copy(in)
 	returned.SubVec(returned, ref2)
 	/*	for i := 0; i < ir; i++ {
@@ -410,7 +410,7 @@ func MassCentrate(in, oref *VecMatrix, mass *mat64.Dense) (*VecMatrix, *VecMatri
 
 //MomentTensor returns the moment tensor for a matrix A of coordinates and a column
 //vector mass with the respective massess.
-func MomentTensor(A *VecMatrix, massslice []float64) (*VecMatrix, error) {
+func MomentTensor(A *v3.Matrix, massslice []float64) (*v3.Matrix, error) {
 	ar, ac := A.Dims()
 	var err error
 	var mass *mat64.Dense
@@ -422,7 +422,7 @@ func MomentTensor(A *VecMatrix, massslice []float64) (*VecMatrix, error) {
 		//			return nil, err
 		//		}
 	}
-	center, _, err := MassCentrate(A, Dense2VecMatrix(gnCopy(A)), mass)
+	center, _, err := MassCentrate(A, v3.Dense2Matrix(gnCopy(A)), mass)
 	if err != nil {
 		return nil, err
 	}
@@ -434,13 +434,13 @@ func MomentTensor(A *VecMatrix, massslice []float64) (*VecMatrix, error) {
 	centerT := gnZeros(ac, ar)
 	centerT.TCopy(center)
 	moment := gnMul(centerT, center)
-	return Dense2VecMatrix(moment), err
+	return v3.Dense2Matrix(moment), err
 }
 
 //The projection of test in ref.
-func Projection(test, ref *VecMatrix) *VecMatrix {
+func Projection(test, ref *v3.Matrix) *v3.Matrix {
 	rr, _ := ref.Dims()
-	Uref := ZeroVecs(rr)
+	Uref := v3.Zeros(rr)
 	Uref.Unit(ref)
 	scalar := test.Dot(Uref) //math.Abs(la)*math.Cos(angle)
 	Uref.Scale(scalar, Uref)
@@ -453,8 +453,8 @@ func Projection(test, ref *VecMatrix) *VecMatrix {
 //If one starts from one given point, 2 cgnOnes, one in each direction, are possible. If whatcone is 0, both cgnOnes are considered.
 //if whatcone<0, only the cone opposite to the plane vector direction. If whatcone>0, only the cone in the plane vector direction.
 //the 'initial' argument  allows the construction of a truncate cone with a radius of initial.
-func SelCone(B, selection *VecMatrix, angle, distance, thickness, initial float64, whatcone int) []int {
-	A := ZeroVecs(B.NVecs())
+func SelCone(B, selection *v3.Matrix, angle, distance, thickness, initial float64, whatcone int) []int {
+	A := v3.Zeros(B.NVecs())
 	A.Copy(B) //We will be altering the input so its better to work with a copy.
 	ar, _ := A.Dims()
 	selected := make([]int, 0, 3)

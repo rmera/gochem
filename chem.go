@@ -25,7 +25,10 @@
 
 package chem
 
-import "fmt"
+import( 
+	"fmt"
+	"github.com/rmera/gochem/v3"
+	)
 
 //import "strings"
 
@@ -228,7 +231,7 @@ func (T *Topology) Len() int {
 	return len(T.Atoms) //This shouldnt be needed
 }
 
-//MassCol returns a VecMatrix with the masses of atoms, or nil and an error if they have not been calculated
+//MassCol returns a slice of float64 with the masses of atoms, or nil and an error if they have not been calculated
 func (T *Topology) Masses() ([]float64, error) {
 	mass := make([]float64, T.Len())
 	for i := 0; i < T.Len(); i++ {
@@ -247,7 +250,7 @@ func (T *Topology) Masses() ([]float64, error) {
 //Coordinates and b-factors are stored separately from other atomic info.
 type Molecule struct {
 	*Topology
-	Coords   []*VecMatrix
+	Coords   []*v3.Matrix
 	Bfactors [][]float64
 	current  int
 }
@@ -256,7 +259,7 @@ type Molecule struct {
 //charge charge and unpaired unpaired electrons, and returns it. It returns error if
 //one of the slices is nil. It doesnt check for consitensy across slices or correct charge
 //or unpaired electrons.
-func NewMolecule(coords []*VecMatrix, ats Ref, bfactors [][]float64) (*Molecule, error) {
+func NewMolecule(coords []*v3.Matrix, ats Ref, bfactors [][]float64) (*Molecule, error) {
 	//	if ats == nil {
 	//		return nil, fmt.Errorf("Supplied a nil Reference")
 	//	}
@@ -287,7 +290,7 @@ func (M *Molecule) DelCoord(i int) error {
 	r, _ := M.Coords[0].Dims()
 	var err error
 	for j := 0; j < len(M.Coords); j++ {
-		tmp := ZeroVecs(r - 1)
+		tmp := v3.Zeros(r - 1)
 		tmp.DelVec(M.Coords[j], i)
 		M.Coords[j] = tmp
 		if err != nil {
@@ -316,10 +319,10 @@ func (M *Molecule) Copy(A *Molecule) {
 	mol := new(Molecule)
 	mol.Topology = new(Topology)
 	mol.CopyAtoms(A)
-	mol.Coords = make([]*VecMatrix, 0, len(M.Coords))
+	mol.Coords = make([]*v3.Matrix, 0, len(M.Coords))
 	mol.Bfactors = make([][]float64, 0, len(M.Bfactors))
 	for key, val := range M.Coords {
-		tmp := ZeroVecs(r)
+		tmp := v3.Zeros(r)
 		tmp.Copy(val)
 		mol.Coords = append(mol.Coords, tmp)
 		tmp2 := copyB(M.Bfactors[key])
@@ -340,7 +343,7 @@ func copyB(b []float64) []float64 {
 
 //AddFrame akes a matrix of coordinates and appends them at the end of the Coords.
 // It checks that the number of coordinates matches the number of atoms.
-func (M *Molecule) AddFrame(newframe *VecMatrix) {
+func (M *Molecule) AddFrame(newframe *v3.Matrix) {
 	if newframe == nil {
 		panic("Attempted to add nil frame")
 	}
@@ -352,19 +355,19 @@ func (M *Molecule) AddFrame(newframe *VecMatrix) {
 		panic(VecError(fmt.Sprintf("Wrong number of coordinates (%d)", newframe.NVecs())))
 	}
 	if M.Coords == nil {
-		M.Coords = make([]*VecMatrix, 1, 1)
+		M.Coords = make([]*v3.Matrix, 1, 1)
 	}
 	M.Coords = append(M.Coords, newframe)
 }
 
 //AddManyFrames adds the array of matrices newfames to the molecule. It checks that
 //the number of coordinates matches the number of atoms.
-func (M *Molecule) AddManyFrames(newframes []*VecMatrix) {
+func (M *Molecule) AddManyFrames(newframes []*v3.Matrix) {
 	if newframes == nil {
 		panic("Attempted to add nil frames")
 	}
 	if M.Coords == nil {
-		M.Coords = make([]*VecMatrix, 1, len(newframes))
+		M.Coords = make([]*v3.Matrix, 1, len(newframes))
 	}
 	for key, val := range newframes {
 		f := func() { M.AddFrame(val) }
@@ -377,7 +380,7 @@ func (M *Molecule) AddManyFrames(newframes []*VecMatrix) {
 
 //Coord returns the coords for the atom atom in the frame frame.
 //panics if frame or coords are out of range.
-func (M *Molecule) Coord(atom, frame int) *VecMatrix {
+func (M *Molecule) Coord(atom, frame int) *v3.Matrix {
 	if frame >= len(M.Coords) {
 		panic(fmt.Sprintf("Frame requested (%d) out of range", frame))
 	}
@@ -385,7 +388,7 @@ func (M *Molecule) Coord(atom, frame int) *VecMatrix {
 	if atom >= r {
 		panic(fmt.Sprintf("Requested coordinate (%d) out of bounds (%d)", atom, M.Coords[frame].NVecs()))
 	}
-	ret := ZeroVecs(1)
+	ret := v3.Zeros(1)
 	empt := M.Coords[frame].VecView(atom)
 	ret.Copy(empt)
 	return ret
@@ -515,7 +518,7 @@ func (M *Molecule) Readable() bool {
 }
 
 //Returns the  next frame and an error
-func (M *Molecule) Next(V *VecMatrix) error {
+func (M *Molecule) Next(V *v3.Matrix) error {
 	if M.current >= len(M.Coords) {
 		return newlastFrameError("", len(M.Coords)-1)
 	}
@@ -541,8 +544,8 @@ func (M *Molecule) InitRead() error {
 form the trajectory. The frames are discarted if the corresponding elemetn of the slice
 * is false. The function returns a slice of channels through each of each of which
 * a *matrix.DenseMatrix will be transmited*/
-func (M *Molecule) NextConc(frames []bool) ([]chan *VecMatrix, error) {
-	toreturn := make([]chan *VecMatrix, 0, len(frames))
+func (M *Molecule) NextConc(frames []bool) ([]chan *v3.Matrix, error) {
+	toreturn := make([]chan *v3.Matrix, 0, len(frames))
 	used := false
 
 	for _, val := range frames {
@@ -560,8 +563,8 @@ func (M *Molecule) NextConc(frames []bool) ([]chan *VecMatrix, error) {
 			}
 		}
 		used = true
-		toreturn = append(toreturn, make(chan *VecMatrix))
-		go func(a *VecMatrix, pipe chan *VecMatrix) {
+		toreturn = append(toreturn, make(chan *v3.Matrix))
+		go func(a *v3.Matrix, pipe chan *v3.Matrix) {
 			pipe <- a
 		}(M.Coords[M.current], toreturn[len(toreturn)-1])
 		M.current++
