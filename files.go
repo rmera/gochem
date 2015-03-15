@@ -35,6 +35,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/rmera/gochem/v3"
 )
 
 //PDB_read family

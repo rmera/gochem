@@ -23,10 +23,15 @@
 
 package chem
 
-import "fmt"
-import "os"
-import "testing"
-import "runtime"
+import( 
+	"fmt"
+	"os"
+ 	"testing"
+ 	"runtime"
+
+	"github.com/rmera/gochem/v3"
+	)
+
 
 //import "runtime"
 
@@ -86,13 +91,13 @@ func TestChangeAxis(Te *testing.T) {
 	//Now the rotation
 	ov1 := mol.Coord(orient_atoms[0], 0) //make sure we have the correct versions
 	ov2 = mol.Coord(orient_atoms[1], 0)  //same
-	orient := ZeroVecs(ov2.NVecs())
+	orient := v3.Zeros(ov2.NVecs())
 	orient.Sub(ov2, ov1)
 	//	PDBWrite(mol,"test/2c9v-124centered.pdb")
-	Z, _ := NewVecs([]float64{0, 0, 1})
+	Z, _ := v3.NewMatrix([]float64{0, 0, 1})
 	axis := cross(orient, Z)
 	angle := Angle(orient, Z)
-	oldcoords := ZeroVecs(mol.Coords[0].NVecs())
+	oldcoords := v3.Zeros(mol.Coords[0].NVecs())
 	oldcoords.Copy(mol.Coords[0])
 	mol.Coords[0] = Rotate(oldcoords, mol.Coords[0], axis, angle)
 	if err != nil {
@@ -144,7 +149,7 @@ func TestOldChangeAxis(Te *testing.T) {
 	//Now the rotation
 	ov1 = mol.Coord(orient_atoms[0], 0) //make sure we have the correct versions
 	ov2 = mol.Coord(orient_atoms[1], 0) //same
-	orient := ZeroVecs(ov2.NVecs())
+	orient := v3.Zeros(ov2.NVecs())
 	orient.Sub(ov2, ov1)
 	rotation := RotatorToNewZ(orient)
 	cr, cc := mol.Coords[0].Dims()
@@ -165,7 +170,7 @@ func TestPutInXYPlane(Te *testing.T) {
 		Te.Error(err)
 	}
 	indexes := []int{0, 1, 2, 3, 23, 22, 21, 20, 25, 44, 39, 40, 41, 42, 61, 60, 59, 58, 63, 5}
-	some := ZeroVecs(len(indexes))
+	some := v3.Zeros(len(indexes))
 	some.SomeVecs(mol.Coords[0], indexes)
 	//for most rotation things it is good to have the molecule centered on its mean.
 	mol.Coords[0], _, _ = MassCentrate(mol.Coords[0], some, nil)
@@ -179,10 +184,10 @@ func TestPutInXYPlane(Te *testing.T) {
 		Te.Error(err)
 		panic(err.Error())
 	}
-	z, _ := NewVecs([]float64{0, 0, 1})
-	zero, _ := NewVecs([]float64{0, 0, 0})
+	z, _ := v3.NewMatrix([]float64{0, 0, 1})
+	zero, _ := v3.NewMatrix([]float64{0, 0, 0})
 	fmt.Println("Best  Plane", best, z)
-	axis := ZeroVecs(1)
+	axis := v3.Zeros(1)
 	axis.Cross(best, z)
 	fmt.Println("axis", axis)
 	//The main part of the program, where the rotation actually happens. Note that we rotate the whole
@@ -224,19 +229,19 @@ func TestWater(Te *testing.T) {
 	}
 	mol.SetCharge(1)
 	mol.SetMulti(1)
-	c2 := ZeroVecs(mol.Len())
-	v := ZeroVecs(6)
+	c2 := v3.Zeros(mol.Len())
+	v := v3.Zeros(6)
 	l, _ := mol.Coords[0].Dims()
 	fmt.Println(l, mol.Len())
 	c2.Stack(mol.Coords[0], v)
 	mol.Coords[0] = c2
 	c := mol.Coords[0].VecView(43)
 	h1 := mol.Coords[0].VecView(42)
-	coords := ZeroVecs(mol.Len())
+	coords := v3.Zeros(mol.Len())
 	coords.Copy(mol.Coords[0])
 	w1 := MakeWater(c, h1, 2, Deg2Rad*30, true)
 	w2 := MakeWater(c, h1, 2, Deg2Rad*-30, false)
-	tmp := ZeroVecs(6)
+	tmp := v3.Zeros(6)
 	tmp.Stack(w1, w2)
 	fmt.Println("tmp water", w1, w2, tmp, c, h1)
 	coords.SetMatrix(mol.Len()-6, 0, tmp)
@@ -323,10 +328,10 @@ func TestRotateBz(Te *testing.T) {
 		}
 	}
 	coordsI := mol.Coords[0]
-	carbons := ZeroVecs(6)
-	bz := ZeroVecs(12)
+	carbons := v3.Zeros(6)
+	bz := v3.Zeros(12)
 	carbons.SomeVecs(coordsI, carbonIn)
-	coords := ZeroVecs(mol.Len())
+	coords := v3.Zeros(mol.Len())
 	coords, _, _ = MassCentrate(coordsI, carbons, nil)
 	bz.SomeVecs(coords, bzIn)
 	carbons.SomeVecs(coords, carbonIn)
@@ -335,12 +340,12 @@ func TestRotateBz(Te *testing.T) {
 		panic(err.Error())
 	}
 	basename := "BZ"
-	newcoords := ZeroVecs(mol.Len())
-	origin := ZeroVecs(1)
-	bzcopy := ZeroVecs(12)
-	bzcopy2 := ZeroVecs(12) //testing
-	rot := ZeroVecs(12)
-	rot3 := ZeroVecs(12)
+	newcoords := v3.Zeros(mol.Len())
+	origin := v3.Zeros(1)
+	bzcopy := v3.Zeros(12)
+	bzcopy2 := v3.Zeros(12) //testing
+	rot := v3.Zeros(12)
+	rot3 := v3.Zeros(12)
 	for _, angle := range []float64{0, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 180} {
 		bzcopy.Copy(bz)
 		bzcopy2.Copy(bz) //testing

@@ -27,9 +27,12 @@ package chem
 
 import (
 	"fmt"
-	"github.com/gonum/matrix/mat64"
 	"math"
 	"sort"
+
+	"github.com/gonum/matrix/mat64"
+	"github.com/rmera/gochem/v3"
+
 )
 
 /*
@@ -344,7 +347,7 @@ func BestPlane(coords *v3.Matrix, mol ReadRef) (*v3.Matrix, error) {
 	if err != nil {
 		return nil, err
 	}
-	evecs, _, err := EigenWrap(moment, appzero)
+	evecs, _, err := v3.EigenWrap(moment, appzero)
 	if err != nil {
 		return nil, err
 	}
@@ -356,6 +359,15 @@ func BestPlane(coords *v3.Matrix, mol ReadRef) (*v3.Matrix, error) {
 	return normal, err
 }
 
+//returns a flat64 slice of the size requested filed with ones
+func ones(size int) []float64{
+	slice:=make([]float64,size,size)
+	for k,_:=range(slice){
+		slice[k]=1.0
+	}
+	return slice
+}
+
 //CenterOfMass returns the center of mass the atoms represented by the coordinates in geometry
 //and the masses in mass, and an error. If mass is nil, it calculates the geometric center
 func CenterOfMass(geometry *v3.Matrix, mass *mat64.Dense) (*v3.Matrix, error) {
@@ -364,9 +376,12 @@ func CenterOfMass(geometry *v3.Matrix, mass *mat64.Dense) (*v3.Matrix, error) {
 	}
 	gr, _ := geometry.Dims()
 	if mass == nil { //just obtain the geometric center
-		mass = gnOnes(gr, 1)
+		tmp:=ones(gr)
+		mass =mat64.NewDense(gr,1,tmp) //gnOnes(gr, 1)
 	}
-	gnOnesvector := gnOnes(1, gr)
+	tmp2:=ones(gr)
+	gnOnesvector :=mat64.NewDense(1,gr,tmp2)  //gnOnes(1, gr)
+
 	ref := v3.Zeros(gr)
 	ref.ScaleByCol(geometry, mass)
 	ref2 := v3.Zeros(1)
@@ -381,7 +396,8 @@ func MassCentrate(in, oref *v3.Matrix, mass *mat64.Dense) (*v3.Matrix, *v3.Matri
 	or, _ := oref.Dims()
 	ir, _ := in.Dims()
 	if mass == nil { //just obtain the geometric center
-		mass = gnOnes(or, 1)
+		tmp:=ones(or)
+		mass = mat64.NewDense(or,1,tmp) //gnOnes(or, 1)
 	}
 	ref := v3.Zeros(or)
 	ref.Copy(oref)
@@ -427,6 +443,7 @@ func MomentTensor(A *v3.Matrix, massslice []float64) (*v3.Matrix, error) {
 		return nil, err
 	}
 	sqrmass := gnZeros(ar, 1)
+//	sqrmass.Pow(mass,0.5)
 	pow(mass, sqrmass, 0.5) //the result is stored in sqrmass
 	//	fmt.Println(center,sqrmass) ////////////////////////
 	center.ScaleByCol(center, sqrmass)

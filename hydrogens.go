@@ -33,6 +33,8 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/rmera/gochem/v3"
 )
 
 //Reduce uses the Reduce program (Word, et. al. (1999) J. Mol. Biol. 285,
@@ -40,7 +42,7 @@ import (
 //To protonate a protein and flip residues. It writes the report from Reduce
 //to a file called Reduce.err in the current dir. The Reduce executable must
 //be a file called "reduce" and be in the PATH.
-func Reduce(mol Atomer, coords *VecMatrix, build int, report *os.File) (*Molecule, error) {
+func Reduce(mol Atomer, coords *v3.Matrix, build int, report *os.File) (*Molecule, error) {
 	/*Unfortunately, I need to write each pdb to be protonated to disk. I just couldnt possibly make it work passing a PDB string
 	  to reduce with a pipe. For some reason I only got a part of the PDB. It is something that should be fixed.*/
 	pdbname := "gochemreducetmp.pdb"

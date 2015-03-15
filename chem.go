@@ -199,7 +199,7 @@ func (R *Topology) SomeAtoms(T Atomer, atomlist []int) {
 	for k, j := range atomlist {
 		if j > lenatoms-1 {
 			err := fmt.Sprintf("Topology: Atom requested (Number: %d, value: %d) out of range", k, j)
-			panic(VecError(err))
+			panic(v3.Error(err)) //NOTE I'm not sure why did I do this. Change?
 		}
 		ret = append(ret, T.Atom(j))
 	}
@@ -352,7 +352,7 @@ func (M *Molecule) AddFrame(newframe *v3.Matrix) {
 		panic("Malformed coord matrix!")
 	}
 	if M.Len() != r {
-		panic(VecError(fmt.Sprintf("Wrong number of coordinates (%d)", newframe.NVecs())))
+		panic(v3.Error(fmt.Sprintf("Wrong number of coordinates (%d)", newframe.NVecs())))
 	}
 	if M.Coords == nil {
 		M.Coords = make([]*v3.Matrix, 1, 1)

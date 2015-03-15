@@ -34,6 +34,8 @@ import (
 	"fmt"
 	"io"
 	"strings"
+
+	"github.com/rmera/gochem/v3"
 )
 
 type JSONAtom struct {
@@ -141,9 +143,9 @@ func DecodeJSONOptions(stdin *bufio.Reader) (*JSONOptions, *JSONError) {
 
 //Decodes a JSON molecule into a gochem molecule. Can handle several frames (all of which need to have the same amount of atoms). It does
 //not collect the b-factors.
-func DecodeJSONMolecule(stream *bufio.Reader, atomnumber, frames int) (*Topology, []*VecMatrix, *JSONError) {
+func DecodeJSONMolecule(stream *bufio.Reader, atomnumber, frames int) (*Topology, []*v3.Matrix, *JSONError) {
 	atoms := make([]*Atom, 0, atomnumber)
-	coordset := make([]*VecMatrix, 0, frames)
+	coordset := make([]*v3.Matrix, 0, frames)
 	rawcoords := make([]float64, 0, 3*atomnumber)
 	for i := 0; i < atomnumber; i++ {
 		line, err := stream.ReadBytes('\n') //Using this function allocates a lot without need. There is no function that takes a []bytes AND a limit. I might write one at some point.
@@ -167,7 +169,7 @@ func DecodeJSONMolecule(stream *bufio.Reader, atomnumber, frames int) (*Topology
 		rawcoords = append(rawcoords, ctemp.Coords...)
 	}
 	mol, _ := NewTopology(atoms, 0, 1) //no idea of the charge or multiplicity
-	coords, err := NewVecs(rawcoords)
+	coords, err := v3.NewMatrix(rawcoords)
 	if err != nil {
 		return nil, nil, MakeJSONError("selection", "DecodeJSONMolecule", err)
 	}
@@ -186,7 +188,7 @@ func DecodeJSONMolecule(stream *bufio.Reader, atomnumber, frames int) (*Topology
 
 }
 
-func DecodeJSONCoords(stream *bufio.Reader, atomnumber int) (*VecMatrix, *JSONError) {
+func DecodeJSONCoords(stream *bufio.Reader, atomnumber int) (*v3.Matrix, *JSONError) {
 	rawcoords := make([]float64, 0, 3*atomnumber)
 	for i := 0; i < atomnumber; i++ {
 		line, err := stream.ReadBytes('\n') //Using this function allocates a lot without need. There is no function that takes a []bytes AND a limit. I might write one at some point.
@@ -199,14 +201,14 @@ func DecodeJSONCoords(stream *bufio.Reader, atomnumber int) (*VecMatrix, *JSONEr
 		}
 		rawcoords = append(rawcoords, ctemp.Coords...)
 	}
-	coords, err := NewVecs(rawcoords)
+	coords, err := v3.NewMatrix(rawcoords)
 	if err != nil {
 		return nil, MakeJSONError("selection", "DecodeJSONCoords", err)
 	}
 	return coords, nil
 }
 
-func TransmitMoleculeJSON(mol Atomer, coordset, bfactors []*VecMatrix, ss [][]string, out io.Writer) *JSONError {
+func TransmitMoleculeJSON(mol Atomer, coordset, bfactors []*v3.Matrix, ss [][]string, out io.Writer) *JSONError {
 	enc := json.NewEncoder(out)
 	if err := EncodeAtoms2JSON(mol, enc); err != nil {
 		return err
@@ -261,7 +263,7 @@ func EncodeAtoms2JSON(mol Atomer, enc *json.Encoder) *JSONError {
 	return nil
 }
 
-func EncodeCoords2JSON(coords *VecMatrix, enc *json.Encoder) *JSONError {
+func EncodeCoords2JSON(coords *v3.Matrix, enc *json.Encoder) *JSONError {
 	c := new(jSONCoords)
 	t := make([]float64, 3, 3)
 	for i := 0; i < coords.NVecs(); i++ {
