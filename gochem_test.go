@@ -207,8 +207,17 @@ func TestDelete(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
-	mol.Del(4)
-	XYZWrite("test/ethanolDel.xyz", mol.Coords[0], mol)
+	fmt.Println("Calling with 8")
+	mol.Del(8)
+	XYZWrite("test/ethanolDel8.xyz", mol.Coords[0], mol)
+	mol2, err := XYZRead("test/ethanol.xyz")
+	if err != nil {
+		Te.Error(err)
+	}
+	fmt.Println("Calling with 4")
+	mol2.Del(4)
+	XYZWrite("test/ethanolDel4.xyz", mol2.Coords[0], mol2)
+
 
 }
 

@@ -30,10 +30,12 @@ package qm
 
 import (
 	"fmt"
-	"github.com/rmera/gochem"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/rmera/gochem"
+	"github.com/rmera/gochem/v3"
 )
 
 //TestQM tests the QM functionality. It prepares input for ORCA and MOPAC
@@ -67,7 +69,7 @@ func TestQM(Te *testing.T) {
 	calc.SetDefaults()
 	orca := NewOrcaHandle()
 	orca.SetnCPU(16) /////////////////////
-	atoms := chem.ZeroVecs(mol.Len())
+	atoms := v3.Zeros(mol.Len())
 	mol.Next(atoms)
 	original_dir, _ := os.Getwd() //will check in a few lines
 	if err = os.Chdir("../test"); err != nil {
@@ -271,7 +273,7 @@ func TestNWChem(Te *testing.T) {
 	nw := NewNWChemHandle()
 	orca := NewOrcaHandle()
 	nw.SetName("gochem")
-	atoms := chem.ZeroVecs(mol.Len())
+	atoms := v3.Zeros(mol.Len())
 	mol.Next(atoms)
 	if err = os.Chdir("../test"); err != nil {
 		Te.Error(err)

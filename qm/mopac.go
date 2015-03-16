@@ -28,13 +28,18 @@
 
 package qm
 
-import "os"
-import "strings"
-import "strconv"
-import "bufio"
-import "fmt"
-import "os/exec"
-import "github.com/rmera/gochem"
+import(
+	"os"
+	"strings"
+	"strconv"
+	"bufio"
+	"fmt"
+	"os/exec"
+
+	"github.com/rmera/gochem"
+	"github.com/rmera/gochem/v3"
+)
+
 
 type MopacHandle struct {
 	defmethod string
@@ -75,7 +80,7 @@ func (O *MopacHandle) SetDefaults() {
 
 //BuildInput builds an input for ORCA based int the data in atoms, coords and C.
 //returns only error.
-func (O *MopacHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q *Calc) error {
+func (O *MopacHandle) BuildInput(coords *v3.Matrix, atoms chem.ReadRef, Q *Calc) error {
 	if strings.Contains(Q.Others, "RI") {
 		Q.Others = ""
 	}
@@ -219,7 +224,7 @@ func (O *MopacHandle) Energy() (float64, error) {
 /*Get Geometry reads the optimized geometry from a MOPAC2009/2012 output.
   Return error if fail. Returns Error ("Probable problem in calculation")
   if there is a geometry but the calculation didnt end properly*/
-func (O *MopacHandle) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error) {
+func (O *MopacHandle) OptimizedGeometry(atoms chem.Ref) (*v3.Matrix, error) {
 	var err error
 	natoms := atoms.Len()
 	coords := make([]float64, natoms*3, natoms*3) //will be used for return
@@ -280,7 +285,7 @@ func (O *MopacHandle) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error)
 	if err != nil {
 		return nil, Error{ErrNoGeometry, Mopac, O.inputname, err.Error(), true}
 	}
-	mcoords, err := chem.NewVecs(coords)
+	mcoords, err := v3.NewMatrix(coords)
 	if trust_radius_warning {
 		return mcoords, Error{ErrProbableProblem, Mopac, O.inputname, "", false}
 	}

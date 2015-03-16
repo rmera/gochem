@@ -30,11 +30,13 @@ package qm
 
 import (
 	"fmt"
-	"github.com/rmera/gochem"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
+
+	"github.com/rmera/gochem"
+	"github.com/rmera/gochem/v3"
 )
 
 //Note that the default methods and basis vary with each program, and even
@@ -91,7 +93,7 @@ func (O *FermionsHandle) SetDefaults() {
 
 //BuildInput builds an input for Fermions++ based int the data in atoms, coords and C.
 //returns only error.
-func (O *FermionsHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q *Calc) error {
+func (O *FermionsHandle) BuildInput(coords *v3.Matrix, atoms chem.ReadRef, Q *Calc) error {
 	//Only error so far
 
 	if atoms == nil || coords == nil {
@@ -230,7 +232,7 @@ var fermionsMethods = map[string]string{
 /*
 //Reads the latest geometry from an Fermions++ optimization. Returns the
 //geometry or error.
-func (O *FermionsHandle) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error) {
+func (O *FermionsHandle) OptimizedGeometry(atoms chem.Ref) (*v3.Matrix, error) {
 	var err2 error
 	if !O.fermionsNormalTermination() {
 		return nil, fmt.Errorf("Probable problem in calculation")
@@ -245,7 +247,7 @@ func (O *FermionsHandle) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, err
 	if err!=nil{
 		return nil, fmt.Errorf("Probable problem in calculation %", err)
 	}
-	ret := chem.ZeroVecs(trj.Len())
+	ret := chem.v3.Zeros(trj.Len())
 	for {
 		err := trj.Next(ret)
 		if err != nil && err.Error() != "No more frames" {

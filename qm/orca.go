@@ -28,13 +28,17 @@
 
 package qm
 
-import "os"
-import "strings"
-import "fmt"
-import "runtime"
-import "os/exec"
-import "strconv"
-import "github.com/rmera/gochem"
+import(
+	 "os"
+	"strings"
+	"fmt"
+	"runtime"
+	"os/exec"
+	"strconv"
+
+	"github.com/rmera/gochem"
+	"github.com/rmera/gochem/v3"
+)
 
 //Note that the default methods and basis vary with each program, and even
 //for a given program they are NOT considered part of the API, so they can always change.
@@ -93,7 +97,7 @@ func (O *OrcaHandle) SetDefaults() {
 
 //BuildInput builds an input for ORCA based int the data in atoms, coords and C.
 //returns only error.
-func (O *OrcaHandle) BuildInput(coords *chem.VecMatrix, atoms chem.ReadRef, Q *Calc) error {
+func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.ReadRef, Q *Calc) error {
 	//Only error so far
 	if atoms == nil || coords == nil {
 		return Error{ErrMissingCharges, Orca, O.inputname, "", true}
@@ -411,7 +415,7 @@ var orcaDisp = map[string]string{
   geometry or error. Returns the geometry AND error if the geometry read
   is not the product of a correctly ended ORCA calculation. In this case
   the error is "probable problem in calculation"*/
-func (O *OrcaHandle) OptimizedGeometry(atoms chem.Ref) (*chem.VecMatrix, error) {
+func (O *OrcaHandle) OptimizedGeometry(atoms chem.Ref) (*v3.Matrix, error) {
 	var err error
 	geofile := fmt.Sprintf("%s.xyz", O.inputname)
 	//Here any error of orcaNormal... or false means the same, so the error can be ignored.
