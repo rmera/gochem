@@ -40,7 +40,7 @@ package xtc
 import "C"
 import "fmt"
 import "runtime"
-import "github.com/rmera/gochem"
+import "github.com/rmera/gochem/v3"
 
 //Container for an GROMACS XTC binary trajectory file.
 type XTCObj struct {
@@ -101,7 +101,7 @@ func (X *XTCObj) initRead(name string) error {
 //With initread. If keep is true, returns a pointer to matrix.DenseMatrix
 //With the coordinates read, otherwiser, it discards the coordinates and
 //returns nil.
-func (X *XTCObj) Next(output *chem.VecMatrix) error {
+func (X *XTCObj) Next(output *v3.Matrix) error {
 	if !X.Readable() {
 		return Error{TrajUnIni, X.filename, true}
 	}
@@ -156,14 +156,14 @@ func (X *XTCObj) setConcBuffer(batchsize int) error {
 form the trajectory. The frames are discarted if the corresponding elemetn of the slice
 * is false. The function returns a slice of channels through each of each of which
 * a *matrix.DenseMatrix will be transmited*/
-func (X *XTCObj) NextConc(frames []*chem.VecMatrix) ([]chan *chem.VecMatrix, error) {
+func (X *XTCObj) NextConc(frames []*v3.Matrix) ([]chan *v3.Matrix, error) {
 	if X.buffSize < len(frames) {
 		X.setConcBuffer(len(frames))
 	}
 	if X.natoms == 0 {
 		return nil, Error{TrajUnIni, X.filename, true}
 	}
-	framechans := make([]chan *chem.VecMatrix, len(frames)) //the slice of chans that will be returned
+	framechans := make([]chan *v3.Matrix, len(frames)) //the slice of chans that will be returned
 	cnatoms := C.int(X.natoms)
 	used := false
 	for key, val := range frames {
@@ -188,9 +188,9 @@ func (X *XTCObj) NextConc(frames []*chem.VecMatrix) ([]chan *chem.VecMatrix, err
 			continue
 		}
 		used = true
-		framechans[key] = make(chan *chem.VecMatrix)
+		framechans[key] = make(chan *v3.Matrix)
 		//Now the parallel part
-		go func(natoms int, cCoords []C.float, goCoords *chem.VecMatrix, pipe chan *chem.VecMatrix) {
+		go func(natoms int, cCoords []C.float, goCoords *v3.Matrix, pipe chan *v3.Matrix) {
 			r, c := goCoords.Dims()
 			for j := 0; j < r; j++ {
 				for k := 0; k < c; k++ {

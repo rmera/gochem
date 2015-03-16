@@ -30,7 +30,6 @@ package chem
 
 import "github.com/rmera/gochem/v3"
 
-
 /*The plan is equate PDBs XTCs and in the future DCDs. One needs to separate the molecule methods between actual molecule methods, that requires atoms and coordinates, []atom methods, and  DenseMatrix
  * methods. Then one must implements objects for Xtc trajs that are more or less equivalent to molecules and set up an interface so many analyses can be carried out exactly the same from
  * multiPDB or XTC or (eventually) DCD*/

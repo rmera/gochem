@@ -30,10 +30,10 @@
 package chem
 
 import (
+	"github.com/rmera/gochem/v3"
 	"math"
 	"runtime"
-	"github.com/rmera/gochem/v3"
-	)
+)
 
 //import "fmt"
 

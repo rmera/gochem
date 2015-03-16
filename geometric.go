@@ -32,7 +32,6 @@ import (
 
 	"github.com/gonum/matrix/mat64"
 	"github.com/rmera/gochem/v3"
-
 )
 
 /*
@@ -360,10 +359,10 @@ func BestPlane(coords *v3.Matrix, mol ReadRef) (*v3.Matrix, error) {
 }
 
 //returns a flat64 slice of the size requested filed with ones
-func ones(size int) []float64{
-	slice:=make([]float64,size,size)
-	for k,_:=range(slice){
-		slice[k]=1.0
+func ones(size int) []float64 {
+	slice := make([]float64, size, size)
+	for k, _ := range slice {
+		slice[k] = 1.0
 	}
 	return slice
 }
@@ -376,11 +375,11 @@ func CenterOfMass(geometry *v3.Matrix, mass *mat64.Dense) (*v3.Matrix, error) {
 	}
 	gr, _ := geometry.Dims()
 	if mass == nil { //just obtain the geometric center
-		tmp:=ones(gr)
-		mass =mat64.NewDense(gr,1,tmp) //gnOnes(gr, 1)
+		tmp := ones(gr)
+		mass = mat64.NewDense(gr, 1, tmp) //gnOnes(gr, 1)
 	}
-	tmp2:=ones(gr)
-	gnOnesvector :=mat64.NewDense(1,gr,tmp2)  //gnOnes(1, gr)
+	tmp2 := ones(gr)
+	gnOnesvector := mat64.NewDense(1, gr, tmp2) //gnOnes(1, gr)
 
 	ref := v3.Zeros(gr)
 	ref.ScaleByCol(geometry, mass)
@@ -396,8 +395,8 @@ func MassCentrate(in, oref *v3.Matrix, mass *mat64.Dense) (*v3.Matrix, *v3.Matri
 	or, _ := oref.Dims()
 	ir, _ := in.Dims()
 	if mass == nil { //just obtain the geometric center
-		tmp:=ones(or)
-		mass = mat64.NewDense(or,1,tmp) //gnOnes(or, 1)
+		tmp := ones(or)
+		mass = mat64.NewDense(or, 1, tmp) //gnOnes(or, 1)
 	}
 	ref := v3.Zeros(or)
 	ref.Copy(oref)
@@ -443,7 +442,7 @@ func MomentTensor(A *v3.Matrix, massslice []float64) (*v3.Matrix, error) {
 		return nil, err
 	}
 	sqrmass := gnZeros(ar, 1)
-//	sqrmass.Pow(mass,0.5)
+	//	sqrmass.Pow(mass,0.5)
 	pow(mass, sqrmass, 0.5) //the result is stored in sqrmass
 	//	fmt.Println(center,sqrmass) ////////////////////////
 	center.ScaleByCol(center, sqrmass)

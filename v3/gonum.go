@@ -47,7 +47,7 @@ import (
 //gonum interface.
 //Matrix is a set of vectors in 3D space. The underlying implementation varies.
 //Within the package it is understood that a "vector" is a row vector, i.e. the
-//cartesian coordinates of a point in 3D space. The name of some funcitions in 
+//cartesian coordinates of a point in 3D space. The name of some funcitions in
 //the library reflect this.
 type Matrix struct {
 	*mat64.Dense
@@ -115,8 +115,6 @@ func (F *Matrix) SetMatrix(i, j int, A *Matrix) {
 	}
 }
 
-
-
 //Mul Wrapps mat64.Mul to take care of the case when one of the
 //arguments is also the received. Since the received is a Matrix,
 //the mat64 function could check A (mat64.Dense) vs F (Matrix) and
@@ -177,7 +175,6 @@ func (F *Matrix) Stack(A, B *Matrix) {
 //Some of the following function have an err return type in the signature, but they always return a nil error. This is
 //Because of a change in gonum/matrix. The NewDense function used to return error and now panics.
 //I do not think it is worth to fix these functions.
-
 
 //func Eye(span int) *chemDense {
 //	return gnEye(span)
@@ -318,7 +315,6 @@ func (F *Matrix) TCopy(A mat64.Matrix) {
 	}
 }
 
-
 // Type Error represents matrix package errors. These errors can be recovered by gnMaybe wrappers.
 
 type Error string
@@ -330,5 +326,4 @@ const (
 	notOrthogonal     = Error("goChem/v3: Vectors nor orthogonal")
 	notEnoughElements = Error("goChem/v3: not enough elements in Matrix")
 	gonumError        = Error("goChem/v3: Error in gonum function:")
-
 )

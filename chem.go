@@ -25,10 +25,10 @@
 
 package chem
 
-import( 
+import (
 	"fmt"
 	"github.com/rmera/gochem/v3"
-	)
+)
 
 //import "strings"
 

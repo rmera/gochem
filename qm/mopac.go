@@ -28,18 +28,17 @@
 
 package qm
 
-import(
-	"os"
-	"strings"
-	"strconv"
+import (
 	"bufio"
 	"fmt"
+	"os"
 	"os/exec"
+	"strconv"
+	"strings"
 
 	"github.com/rmera/gochem"
 	"github.com/rmera/gochem/v3"
 )
-
 
 type MopacHandle struct {
 	defmethod string

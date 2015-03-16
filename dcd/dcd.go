@@ -29,12 +29,15 @@
 
 package dcd
 
-import "fmt"
-import "encoding/binary"
-import "os"
-import "bytes"
-import "runtime"
-import "github.com/rmera/gochem"
+import (
+	"bytes"
+	"encoding/binary"
+	"fmt"
+	"os"
+	"runtime"
+
+	"github.com/rmera/gochem/v3"
+)
 
 const mAXTITLE int32 = 80
 const rSCAL32BITS int32 = 1
@@ -208,7 +211,7 @@ func (D *DCDObj) initRead(name string) error {
 //With initread. If keep is true, returns a pointer to matrix.DenseMatrix
 //With the coordinates read, otherwiser, it discards the coordinates and
 //returns nil.
-func (D *DCDObj) Next(keep *chem.VecMatrix) error {
+func (D *DCDObj) Next(keep *v3.Matrix) error {
 	if !D.readable {
 		return Error{TrajUnIni, D.filename, true}
 	}
@@ -406,11 +409,11 @@ func (D *DCDObj) setConcBuffer(batchsize int) error {
 form the trajectory. The frames are discarted if the corresponding elemetn of the slice
 * is false. The function returns a slice of channels through each of each of which
 * a *matrix.DenseMatrix will be transmited*/
-func (D *DCDObj) NextConc(frames []*chem.VecMatrix) ([]chan *chem.VecMatrix, error) {
+func (D *DCDObj) NextConc(frames []*v3.Matrix) ([]chan *v3.Matrix, error) {
 	if !D.Readable() {
 		return nil, Error{TrajUnIni, D.filename, true}
 	}
-	framechans := make([]chan *chem.VecMatrix, len(frames)) //the slice of chans that will be returned
+	framechans := make([]chan *v3.Matrix, len(frames)) //the slice of chans that will be returned
 	if D.buffSize < len(frames) {
 		D.setConcBuffer(len(frames))
 	}
@@ -425,9 +428,9 @@ func (D *DCDObj) NextConc(frames []*chem.VecMatrix) ([]chan *chem.VecMatrix, err
 			framechans[key] = nil //ignored frame
 			continue
 		}
-		framechans[key] = make(chan *chem.VecMatrix)
+		framechans[key] = make(chan *v3.Matrix)
 		//Now the parallel part
-		go func(natoms int, DFields [][]float32, keep *chem.VecMatrix, pipe chan *chem.VecMatrix) {
+		go func(natoms int, DFields [][]float32, keep *v3.Matrix, pipe chan *v3.Matrix) {
 			for i := 0; i < int(D.natoms); i++ {
 				k := i - i*(i/int(D.natoms))
 				keep.Set(k, 0, float64(DFields[0][k]))

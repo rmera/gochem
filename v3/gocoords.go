@@ -29,7 +29,6 @@
 
 package v3
 
-
 import (
 	"fmt"
 	"math"
@@ -45,7 +44,7 @@ const appzero float64 = 0.000000000001 //used to correct floating point
 func Zeros(vecs int) *Matrix {
 	const cols int = 3
 	f := make([]float64, cols*vecs, cols*vecs)
-	return &Matrix{mat64.NewDense(vecs, cols,f)}
+	return &Matrix{mat64.NewDense(vecs, cols, f)}
 }
 
 //METHODS
@@ -94,16 +93,16 @@ func (F *Matrix) DelVec(A *Matrix, i int) {
 	tempF1.Copy(tempA1)
 	//now the other part
 	//	if i != ar-1 {
-	fmt.Println("options",ar,i,ar-i-1)
-	if i<ar-1{
+	fmt.Println("options", ar, i, ar-i-1)
+	if i < ar-1 {
 		tempA2 := A.View(i+1, 0, ar-i-1, ac) //The magic happens here
 		tempF2 := F.View(i, 0, ar-i-1, fc)
 		tempF2.Copy(tempA2)
-		}
+	}
 }
 
 //return the number of vecs in F.
-func (F *Matrix) NVecs() int {   //NOTE Probably just "Vecs" is a better name
+func (F *Matrix) NVecs() int { //NOTE Probably just "Vecs" is a better name
 	r, c := F.Dims()
 	if c != 3 {
 		panic(not3xXMatrix)
@@ -152,7 +151,7 @@ func (F *Matrix) SomeVecs(A *Matrix, clist []int) {
 //Returns a matrix contaning all the ith vectors of matrix A,
 //where i are the numbers in clist. The vectors are in the same order
 //than the clist. Returns an error instead of panicking.
-func (F *Matrix) SomeVecsSafe(A *Matrix, clist []int) (error) {
+func (F *Matrix) SomeVecsSafe(A *Matrix, clist []int) error {
 	var err error
 	defer func() {
 		if r := recover(); r != nil {
@@ -160,7 +159,7 @@ func (F *Matrix) SomeVecsSafe(A *Matrix, clist []int) (error) {
 			case Error:
 				err = e
 			case mat64.Error:
-				err =  Error(fmt.Sprintf("%goChem/v3: Error in a gonum function: %s",e))
+				err = Error(fmt.Sprintf("%goChem/v3: Error in a gonum function: %s", e))
 			default:
 				panic(r)
 			}
@@ -265,7 +264,7 @@ func (F *Matrix) ScaleByCol(A, Col mat64.Matrix) {
 
 //ScaleByRow scales each column of matrix A by Col, putting the result
 //in the received.
-func (F *Matrix) ScaleByRow(A, Row *Matrix) {     //NOTE it should be called ScaleByVec
+func (F *Matrix) ScaleByRow(A, Row *Matrix) { //NOTE it should be called ScaleByVec
 	ar, ac := A.Dims()
 	rr, rc := Row.Dims()
 	fr, fc := F.Dims()
@@ -300,8 +299,6 @@ func (F *Matrix) Unit(A *Matrix) {
 	norm := 1.0 / F.Norm(0)
 	F.Scale(norm, F)
 }
-
-
 
 //KronekerDelta is a naive implementation of the kroneker delta function.
 func KronekerDelta(a, b, epsilon float64) float64 {

@@ -28,15 +28,15 @@
 
 package qm
 
-import(
-	"os"
-	"io"
-	"strings"
-	"log"
-	"strconv"
+import (
 	"bufio"
 	"fmt"
+	"io"
+	"log"
+	"os"
 	"os/exec"
+	"strconv"
+	"strings"
 
 	"github.com/rmera/gochem"
 	"github.com/rmera/gochem/v3"

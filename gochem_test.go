@@ -23,15 +23,14 @@
 
 package chem
 
-import( 
+import (
 	"fmt"
 	"os"
- 	"testing"
- 	"runtime"
+	"runtime"
+	"testing"
 
 	"github.com/rmera/gochem/v3"
-	)
-
+)
 
 //import "runtime"
 
@@ -217,7 +216,6 @@ func TestDelete(Te *testing.T) {
 	fmt.Println("Calling with 4")
 	mol2.Del(4)
 	XYZWrite("test/ethanolDel4.xyz", mol2.Coords[0], mol2)
-
 
 }
 

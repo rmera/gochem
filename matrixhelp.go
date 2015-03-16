@@ -2,7 +2,7 @@ package chem
 
 //A munch of unexported mathematical functions, most of them just for convenience.
 
-import(
+import (
 	"fmt"
 	"math"
 
@@ -10,10 +10,8 @@ import(
 	"github.com/rmera/gochem/v3"
 )
 
-
 const appzero float64 = 0.000000000001 //used to correct floating point
 //errors. Everything equal or less than this is considered zero. This probably sucks.
-
 
 func gnInverse(F *v3.Matrix) (*v3.Matrix, error) {
 	a, err := mat64.Inverse(F.Dense)
@@ -41,8 +39,6 @@ func invSqrt(val float64) float64 {
 	return 1.0 / math.Sqrt(val)
 }
 
-
-
 //Returns and empty, but not nil, Dense. It barely allocates memory
 func emptyDense() (*mat64.Dense, error) {
 	a := make([]float64, 0, 0)
@@ -66,7 +62,6 @@ func gnEye(span int) *mat64.Dense {
 	}
 	return A
 }
-
 
 //returns a rows,cols matrix filled with gnOnes.
 func gnOnes(rows, cols int) *mat64.Dense {
@@ -154,5 +149,3 @@ func pow(A mat64.Matrix, F *mat64.Dense, exp float64) {
 
 	}
 }
-
-

@@ -26,14 +26,16 @@
 package chemplot
 
 import (
-	"code.google.com/p/plotinum/plot"
-	"code.google.com/p/plotinum/plotter"
-	"code.google.com/p/plotinum/vg"
 	"fmt"
-	"github.com/rmera/gochem"
 	"image/color"
 	"math"
 	"strings"
+
+	"code.google.com/p/plotinum/plot"
+	"code.google.com/p/plotinum/plotter"
+	"code.google.com/p/plotinum/vg"
+	"github.com/rmera/gochem"
+	"github.com/rmera/gochem/v3"
 )
 
 const (
@@ -296,7 +298,7 @@ func getShape(tagged int) (plot.GlyphDrawer, error) {
 // RamaCalc Obtains the values for the phi and psi dihedrals indicated in []Ramaset, for the
 // structure M.  It returns a slice of 2-element slices, one for the phi the next for the psi
 // dihedral, a and an error or nil.
-func RamaCalc(M *chem.VecMatrix, dihedrals []RamaSet) ([][]float64, error) {
+func RamaCalc(M *v3.Matrix, dihedrals []RamaSet) ([][]float64, error) {
 	if M == nil || dihedrals == nil {
 		return nil, Error{ErrNilData, "", "RamaCalc", "", true}
 	}

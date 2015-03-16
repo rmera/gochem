@@ -28,13 +28,13 @@
 
 package qm
 
-import(
-	 "os"
-	"strings"
+import (
 	"fmt"
-	"runtime"
+	"os"
 	"os/exec"
+	"runtime"
 	"strconv"
+	"strings"
 
 	"github.com/rmera/gochem"
 	"github.com/rmera/gochem/v3"

@@ -31,6 +31,7 @@ package dcd
 import "fmt"
 import "testing"
 import "github.com/rmera/gochem"
+import "github.com/rmera/gochem/v3"
 
 /*TestXtc reads the frames of the test xtc file using the
  * "interactive" or "low level" functions, i.e. one frame at a time
@@ -43,7 +44,7 @@ func TestDCD(Te *testing.T) {
 		Te.Error(err)
 	}
 	i := 0
-	mat := chem.ZeroVecs(traj.Len())
+	mat := v3.Zeros(traj.Len())
 	for ; ; i++ {
 		err := traj.Next(mat)
 		if err != nil {
@@ -63,13 +64,13 @@ func TestFrameDCDConc(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
-	frames := make([]*chem.VecMatrix, 3, 3)
+	frames := make([]*v3.Matrix, 3, 3)
 	for i, _ := range frames {
-		frames[i] = chem.ZeroVecs(traj.Len())
+		frames[i] = v3.Zeros(traj.Len())
 	}
-	results := make([][]chan *chem.VecMatrix, 0, 0)
+	results := make([][]chan *v3.Matrix, 0, 0)
 	for i := 0; ; i++ {
-		results = append(results, make([]chan *chem.VecMatrix, 0, len(frames)))
+		results = append(results, make([]chan *v3.Matrix, 0, len(frames)))
 		coordchans, err := traj.NextConc(frames)
 		if err != nil {
 			if _, ok := err.(chem.LastFrameError); ok && coordchans == nil {
@@ -79,7 +80,7 @@ func TestFrameDCDConc(Te *testing.T) {
 			break
 		}
 		for key, channel := range coordchans {
-			results[len(results)-1] = append(results[len(results)-1], make(chan *chem.VecMatrix))
+			results[len(results)-1] = append(results[len(results)-1], make(chan *v3.Matrix))
 			go SecondRow(channel, results[len(results)-1][key], len(results)-1, key)
 		}
 		res := len(results) - 1
@@ -107,10 +108,10 @@ func TestFrameDCDConc(Te *testing.T) {
 	}
 }
 */
-func SecondRow(channelin, channelout chan *chem.VecMatrix, current, other int) {
+func SecondRow(channelin, channelout chan *v3.Matrix, current, other int) {
 	if channelin != nil {
 		temp := <-channelin
-		viej := chem.ZeroVecs(1)
+		viej := v3.Zeros(1)
 		vector := temp.VecView(2)
 		viej.Copy(vector)
 		fmt.Println("sending througt", channelin, channelout, viej, current, other)
