@@ -124,15 +124,26 @@ type Ref interface { /*NOTE: WriteRef may be removed, which means that Ref would
 	WriteRef
 }
 
-type TrajError interface {
+
+//Errors
+
+type Error interface {
 	Error() string
-	FileName() int
+	Critical() bool
+	Decorate(string) []string //This is the new thing for errors. It allows you to add information when you pass it up. Each call also returns the "decoration" slice of strins resulting from the current call. If passed an empty string, it should just return the current value, not add the empty string to the slice.
+	//The decorate slice should contain a list of functions in the calling stack, plus, for each function any relevant information, or nothing. If information is to be added to an element of the slice, it should be in this format: "FunctionName: Extra info"
+}
+
+
+type TrajError interface {
+	Error
+	FileName() string
 	Format() string
 }
 
 //Errors
 type LastFrameError interface {
-	Error() string
+	TrajError
 	NormalLastFrameTermination() //does nothing, just to separate this interface from other TrajError's
 
 }

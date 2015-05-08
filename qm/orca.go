@@ -103,7 +103,7 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.ReadRef, Q *Calc) 
 		return Error{ErrMissingCharges, Orca, O.inputname, "", true}
 	}
 	if Q.Basis == "" {
-		fmt.Fprintf(os.Stderr, "no basis set assigned for ORCA calculation, will used the default %s, \n", O.defbasis)
+		fmt.Fprintf(os.Stderr, "no basis set assigned for ORCA calculation, will used the default %s, \n", O.defbasis) //NOTE: This could be changed for a non-critical error
 		Q.Basis = O.defbasis
 	}
 	if Q.Method == "" {
@@ -206,7 +206,7 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.ReadRef, Q *Calc) 
 	if bsse, err = O.buildgCP(Q); err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 	}
-	if Q.Method == "HF-3c" { //This method includes its own basis sets and corrections, so previous choices are overwritten.
+	if Q.Method == "HF-3c" { //This method includes its own basis sets and corrections, so previous choices are overwritten. NOTE: there are some defaults that should be changed to get HF-3c to work better.
 		Q.Basis = ""
 		Q.auxBasis = ""
 		Q.auxColBasis = ""
