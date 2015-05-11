@@ -35,6 +35,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"log"
 
 	"github.com/rmera/gochem"
 	"github.com/rmera/gochem/v3"
@@ -85,11 +86,11 @@ func (O *MopacHandle) BuildInput(coords *v3.Matrix, atoms chem.ReadRef, Q *Calc)
 	}
 	//Only error so far
 	if atoms == nil || coords == nil {
-		return Error{ErrMissingCharges, Mopac, O.inputname, "", true}
+		return Error{ErrMissingCharges, Mopac, O.inputname, "",[]string{"BuildInput"} ,true}
 	}
 	ValidMethods := []string{"PM3", "PM6", "PM7", "AM1"}
 	if Q.Method == "" || !isInString(ValidMethods, Q.Method[0:3]) { //not found
-		fmt.Fprintf(os.Stderr, "no method assigned for MOPAC calculation, will used the default %s, \n", O.defmethod)
+		log.Printf("no method assigned for MOPAC calculation, will used the default %s, \n", O.defmethod)
 		Q.Method = O.defmethod
 	}
 	opt := "" //Empty string means optimize
@@ -120,11 +121,13 @@ func (O *MopacHandle) BuildInput(coords *v3.Matrix, atoms chem.ReadRef, Q *Calc)
 	}
 	file, err := os.Create(fmt.Sprintf("%s.mop", O.inputname))
 	if err != nil {
-		return err
+		return Error{ErrCantInput, Mopac, O.inputname, "",[]string{"os.Create","BuildInput"} ,true}
+
 	}
 	defer file.Close()
 	if _, err = fmt.Fprint(file, "* ===============================\n* Input file for Mopac\n* ===============================\n"); err != nil {
-		return err //After this check I just assume the file is ok and dont check again.
+		return Error{ErrCantInput, Mopac, O.inputname, "",[]string{"BuildInput"} ,true}
+ //After this check I just assume the file is ok and dont check again.
 	}
 	fmt.Fprint(file, mainline)
 	fmt.Fprint(file, "\n")
@@ -147,7 +150,7 @@ var mopacMultiplicity = map[int]string{
 	2: "Doublet",
 	3: "Triplet",
 	4: "Quartet",
-	5: "Quintet",
+	5: "Quintet",//I don't think we reaaally need these ones :-)
 	6: "Sextet",
 	7: "Heptet",
 	8: "Octet",
@@ -166,7 +169,7 @@ func (O *MopacHandle) Run(wait bool) (err error) {
 		err = command.Start()
 	}
 	if err != nil {
-		err = Error{ErrNotRunning, Mopac, O.inputname, err.Error(), true}
+		err = Error{ErrNotRunning, Mopac, O.inputname, err.Error(),[]string{"exec.Start/Run","Run"},true}
 	}
 	return
 }
@@ -180,11 +183,11 @@ func (O *MopacHandle) Energy() (float64, error) {
 	var energy float64
 	file, err := os.Open(fmt.Sprintf("%s.out", O.inputname))
 	if err != nil {
-		return 0, Error{ErrNoEnergy, Mopac, O.inputname, err.Error(), true}
+		return 0, Error{ErrNoEnergy, Mopac, O.inputname, err.Error(), []string{"os.Open","Energy"},true}
 	}
 	defer file.Close()
 	out := bufio.NewReader(file)
-	err = Error{ErrNoEnergy, Mopac, O.inputname, "", true}
+	err = Error{ErrNoEnergy, Mopac, O.inputname, "",[]string{"Energy"}, true}
 	trust_radius_warning := false
 	for {
 		var line string
@@ -215,7 +218,7 @@ func (O *MopacHandle) Energy() (float64, error) {
 		return 0, err
 	}
 	if trust_radius_warning {
-		err = Error{ErrProbableProblem, Mopac, O.inputname, "", false}
+		err = Error{ErrProbableProblem, Mopac, O.inputname, "", []string{"Energy"},false}
 	}
 	return energy, err
 }
@@ -229,11 +232,11 @@ func (O *MopacHandle) OptimizedGeometry(atoms chem.Ref) (*v3.Matrix, error) {
 	coords := make([]float64, natoms*3, natoms*3) //will be used for return
 	file, err := os.Open(fmt.Sprintf("%s.out", O.inputname))
 	if err != nil {
-		return nil, err
+		return nil, Error{ErrNoGeometry, Mopac, O.inputname, "",[]string{"os.Open","OptimizedGeometry"} ,true}
 	}
 	defer file.Close()
 	out := bufio.NewReader(file)
-	err = Error{ErrNoGeometry, Mopac, O.inputname, "", true}
+	err = Error{ErrNoGeometry, Mopac, O.inputname, "",[]string{"OptimizedGeometry"} ,true}
 	//some variables that will be changed/increased during the next for loop
 	final_point := false //to see if we got to the right part of the file
 	reading := false     //start reading
@@ -282,11 +285,11 @@ func (O *MopacHandle) OptimizedGeometry(atoms chem.Ref) (*v3.Matrix, error) {
 		}
 	}
 	if err != nil {
-		return nil, Error{ErrNoGeometry, Mopac, O.inputname, err.Error(), true}
+		return nil, Error{ErrNoGeometry, Mopac, O.inputname, err.Error(),[]string{"OptimizedGeometry"} ,true}
 	}
 	mcoords, err := v3.NewMatrix(coords)
 	if trust_radius_warning {
-		return mcoords, Error{ErrProbableProblem, Mopac, O.inputname, "", false}
+		return mcoords, Error{ErrProbableProblem, Mopac, O.inputname, "",[]string{"OptimizedGeometry"}, false}
 	}
 	return mcoords, err
 }

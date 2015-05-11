@@ -99,23 +99,56 @@ const (
 	Fermions  = "Fermions++"
 )
 
+
+
+//errors
+
 type Error struct {
 	message    string
 	code       string //the name of the QM program giving the problem, or empty string if none
 	inputname  string //the input file that has problems, or empty string if none.
 	additional string
+	deco       []string
 	critical   bool
 }
 
+
+//Error returns a string with an error message.
 func (err Error) Error() string {
 	return fmt.Sprintf("%s (%s/%s) Message: %s", err.message, err.inputname, err.code, err.additional)
 }
 
+//Decorate will add the dec string to the decoration slice of strings of the error,
+//and return the resulting slice.
+func (err Error) Decorate(dec string ) []string {
+	err.deco=append(err.deco,dec)
+	return err.deco
+}
+
+//Code returns the name of the program that ran/was meant to run the
+//calculation that caused the error.
 func (err Error) Code() string { return err.code } //May not be needed
 
+//InputName returns the name of the input file which processing caused the error
 func (err Error) InputName() string { return err.inputname }
 
+//Critical return whether the error is critical or it can be ifnored
 func (err Error) Critical() bool { return err.critical }
+
+
+//errDecorate is a helper function that asserts that the error is
+//implements chem.Error and decorates the error with the caller's name before returning it.
+//if used with a non-chem.Error error, it will cause a panic.
+func errDecorate(err error, caller string) error {
+	err2 := err.(chem.Error) //I know that is the type returned byt initRead
+	err2.Decorate(caller)
+	return err2
+}
+
+//end errors
+
+
+
 
 type IntConstraint struct {
 	Kind  byte

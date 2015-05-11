@@ -33,10 +33,10 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"os"
-	"runtime"
 	"github.com/rmera/gochem"
 	"github.com/rmera/gochem/v3"
+	"os"
+	"runtime"
 )
 
 const mAXTITLE int32 = 80
@@ -63,7 +63,7 @@ type DCDObj struct {
 func New(filename string) (*DCDObj, error) {
 	traj := new(DCDObj)
 	if err := traj.initRead(filename); err != nil {
-		return nil, errDecorate(err,"New")
+		return nil, errDecorate(err, "New")
 	}
 	traj.dcdFields = make([][]float32, 3, 3)
 	traj.dcdFields[0] = make([]float32, int(traj.natoms), int(traj.natoms))
@@ -83,15 +83,14 @@ func (D *DCDObj) Readable() bool {
 	return D.readable
 }
 
-
-
 //InitRead initializes a XtcObj for reading.
 //It requires only the filename, which must be valid.
 //It support big and little endianness, charmm or (namd>=2.1) and no
 //fixed atoms.
 func (D *DCDObj) initRead(name string) error {
-	wrapbinerr:= func (err error) error {return Error{err.Error(),D.filename,[]string{"binary.Read","initRead"},true}}
-
+	wrapbinerr := func(err error) error {
+		return Error{err.Error(), D.filename, []string{"binary.Read", "initRead"}, true}
+	}
 
 	rec_scale := rSCAL32BITS //At least for now we will not support anything else.
 	D.endian = binary.LittleEndian
@@ -100,7 +99,7 @@ func (D *DCDObj) initRead(name string) error {
 	var err error
 	D.dcd, err = os.Open(name)
 	if err != nil {
-		return Error{err.Error(),D.filename,[]string{"os.Open","initRead"},true}
+		return Error{err.Error(), D.filename, []string{"os.Open", "initRead"}, true}
 	}
 	var check int32
 	if err := binary.Read(D.dcd, D.endian, &check); err != nil {
@@ -114,10 +113,10 @@ func (D *DCDObj) initRead(name string) error {
 	//Then the magic number "CORD", also for some unknown reason.
 	magic := make([]byte, 4, 4)
 	if err := binary.Read(D.dcd, D.endian, magic); err != nil {
-		return  wrapbinerr(err)
+		return wrapbinerr(err)
 	}
 	if string(magic) != "CORD" {
-		return Error{WrongFormat + ": Wrong magic number", D.filename,[]string{"initRead"} ,true}
+		return Error{WrongFormat + ": Wrong magic number", D.filename, []string{"initRead"}, true}
 	}
 
 	//We first read a big chuck for random access.
@@ -149,10 +148,10 @@ func (D *DCDObj) initRead(name string) error {
 		}
 
 	} else {
-		return Error{WrongFormat + ": X-plor DCD not supported", D.filename,[]string{"initRead"}, true}
+		return Error{WrongFormat + ": X-plor DCD not supported", D.filename, []string{"initRead"}, true}
 	}
 	if err := binary.Read(NB(buf[32:]), D.endian, &D.fixed); err != nil {
-		return Error{err.Error(),D.filename,[]string{"initRead"},true}
+		return Error{err.Error(), D.filename, []string{"initRead"}, true}
 
 	}
 	//	fmt.Println("fixed", D.fixed)
@@ -163,10 +162,10 @@ func (D *DCDObj) initRead(name string) error {
 	//	fmt.Println("delta:", delta)///////////////////////////////////////
 
 	if err := binary.Read(D.dcd, D.endian, &check); err != nil {
-		return Error{err.Error(),D.filename,[]string{"initRead"},true}
+		return Error{err.Error(), D.filename, []string{"initRead"}, true}
 	}
 	if check != 84 {
-		return Error{WrongFormat, D.filename, []string{"initRead"},true}
+		return Error{WrongFormat, D.filename, []string{"initRead"}, true}
 	}
 	var input_int int32
 	if err := binary.Read(D.dcd, D.endian, &input_int); err != nil {
@@ -191,7 +190,7 @@ func (D *DCDObj) initRead(name string) error {
 
 	}
 	if check != 4 { //one must read a 4 before the natoms
-		return Error{WrongFormat, D.filename,[]string{"initRead"}, true}
+		return Error{WrongFormat, D.filename, []string{"initRead"}, true}
 	}
 	if err := binary.Read(D.dcd, D.endian, &D.natoms); err != nil {
 		return wrapbinerr(err)
@@ -201,7 +200,7 @@ func (D *DCDObj) initRead(name string) error {
 		return wrapbinerr(err)
 	}
 	if check != 4 { //and one more 4
-		return Error{WrongFormat, D.filename,[]string{"initRead"}, true}
+		return Error{WrongFormat, D.filename, []string{"initRead"}, true}
 	}
 	if D.fixed == 0 {
 		runtime.SetFinalizer(D, func(D *DCDObj) {
@@ -211,7 +210,7 @@ func (D *DCDObj) initRead(name string) error {
 		return nil //nothing else to do
 	}
 	D.new = true //nothing read yet
-	return Error{"Fixed atoms not supported",D.filename,[]string{"initRead"},true}
+	return Error{"Fixed atoms not supported", D.filename, []string{"initRead"}, true}
 
 }
 
@@ -230,7 +229,7 @@ func (D *DCDObj) Next(keep *v3.Matrix) error {
 		D.dcdFields[2] = make([]float32, int(D.natoms), int(D.natoms))
 	}
 	if err := D.nextRaw(D.dcdFields); err != nil {
-		return errDecorate(err,"Next")
+		return errDecorate(err, "Next")
 	}
 	if keep == nil {
 		return nil
@@ -256,12 +255,12 @@ func (D *DCDObj) Next(keep *v3.Matrix) error {
 //returns nil.
 func (D *DCDObj) nextRaw(blocks [][]float32) error {
 	if len(blocks[0]) != int(D.natoms) || len(blocks[1]) != int(D.natoms) || len(blocks[2]) != int(D.natoms) {
-		return Error{NotEnoughSpace, D.filename,[]string{"nextRaw"}, true}
+		return Error{NotEnoughSpace, D.filename, []string{"nextRaw"}, true}
 	}
 	D.new = false
 	if D.readLast {
 		D.readable = false
-		return newlastFrameError(D.filename,"nextRaw")
+		return newlastFrameError(D.filename, "nextRaw")
 	}
 	//if there is an extra block we just skip it.
 	//Sadly, even when there is an extra block, it is not present in all
@@ -270,7 +269,7 @@ func (D *DCDObj) nextRaw(blocks [][]float32) error {
 	var blocksize int32
 	if D.extrablock {
 		if err := binary.Read(D.dcd, D.endian, &blocksize); err != nil {
-			return Error{err.Error(),D.filename,[]string{"binary.Read","nextRaw"},true}
+			return Error{err.Error(), D.filename, []string{"binary.Read", "nextRaw"}, true}
 		}
 		//If the blocksize is 4*natoms it means that the block is not an
 		//extra block, but the X coordinates, and thus we must skip the following
@@ -286,13 +285,13 @@ func (D *DCDObj) nextRaw(blocks [][]float32) error {
 	//we collect the X block size again only if it has not been collected before
 	if blocksize == 0 {
 		if err := binary.Read(D.dcd, D.endian, &blocksize); err != nil {
-			return Error{err.Error(),D.filename,[]string{"binary.Read","nextRaw"},true}
+			return Error{err.Error(), D.filename, []string{"binary.Read", "nextRaw"}, true}
 
 		}
 	}
 	err := D.readFloat32Block(blocksize, blocks[0])
 	if err != nil {
-		return errDecorate(err,"nextRaw")
+		return errDecorate(err, "nextRaw")
 	}
 	//	fmt.Println("X", len(xblock)) //, xblock)
 	//	fmt.Println("X", blocks[0])  ///////////////////////////////
@@ -303,16 +302,16 @@ func (D *DCDObj) nextRaw(blocks [][]float32) error {
 	}
 	err = D.readFloat32Block(blocksize, blocks[1])
 	if err != nil {
-		return errDecorate(err,"nextRaw")
+		return errDecorate(err, "nextRaw")
 	}
 	//	fmt.Println("Y", blocks[1])
 	//Z
 	if err := binary.Read(D.dcd, D.endian, &blocksize); err != nil {
-		return  Error{err.Error(),D.filename,[]string{"binary.Read","nextRaw"},true}
+		return Error{err.Error(), D.filename, []string{"binary.Read", "nextRaw"}, true}
 	}
 	err = D.readFloat32Block(blocksize, blocks[2])
 	if err != nil {
-		return errDecorate(err,"nextRaw")
+		return errDecorate(err, "nextRaw")
 	}
 	//	fmt.Println("Z", blocks[2])
 	//we skip the 4-D values if they exist. Apparently this is not present in the
@@ -323,12 +322,12 @@ func (D *DCDObj) nextRaw(blocks [][]float32) error {
 				D.readLast = true
 				//	fmt.Println("LAST!")
 			} else {
-				return Error{err.Error(),D.filename,[]string{"binary.Read","nextRaw"},true}
+				return Error{err.Error(), D.filename, []string{"binary.Read", "nextRaw"}, true}
 			}
 		}
 		if !D.readLast {
 			if _, err := D.readByteBlock(blocksize); err != nil {
-				return  errDecorate(err,"nextRaw")
+				return errDecorate(err, "nextRaw")
 			}
 		}
 	}
@@ -342,14 +341,14 @@ func (D *DCDObj) readFloat32Block(blocksize int32, block []float32) error {
 	var check int32
 	//	fmt.Println("blockf",blocksize)
 	if err := binary.Read(D.dcd, D.endian, block); err != nil {
-		return Error{err.Error(),D.filename,[]string{"binary.Read","readFloat32Block"},true}
+		return Error{err.Error(), D.filename, []string{"binary.Read", "readFloat32Block"}, true}
 
 	}
 	if err := binary.Read(D.dcd, D.endian, &check); err != nil {
-		return Error{err.Error(),D.filename,[]string{"binary.Read","readFloat32Block"},true}
+		return Error{err.Error(), D.filename, []string{"binary.Read", "readFloat32Block"}, true}
 	}
 	if check != blocksize {
-		return Error{WrongFormat, D.filename,[]string{"readFloat32Block"}, true}
+		return Error{WrongFormat, D.filename, []string{"readFloat32Block"}, true}
 	}
 	return nil
 }
@@ -362,15 +361,15 @@ func (D *DCDObj) readByteBlock(blocksize int32) ([]byte, error) {
 	//	fmt.Println("blockb",blocksize)
 	block := make([]byte, blocksize, blocksize)
 	if err := binary.Read(D.dcd, D.endian, block); err != nil {
-		return nil, Error{err.Error(),D.filename,[]string{"binary.Read","readByteBlock"},true}
+		return nil, Error{err.Error(), D.filename, []string{"binary.Read", "readByteBlock"}, true}
 
 	}
 	if err := binary.Read(D.dcd, D.endian, &check); err != nil {
-		return nil, Error{err.Error(),D.filename,[]string{"binary.Read","readByteBlock"},true}
+		return nil, Error{err.Error(), D.filename, []string{"binary.Read", "readByteBlock"}, true}
 
 	}
 	if check != blocksize {
-		return nil, Error{SecurityCheckFailed, D.filename,[]string{"readByteBlock"} ,true}
+		return nil, Error{SecurityCheckFailed, D.filename, []string{"readByteBlock"}, true}
 	}
 	return block, nil
 }
@@ -415,7 +414,7 @@ form the trajectory. The frames are discarted if the corresponding elemetn of th
 * a *matrix.DenseMatrix will be transmited*/
 func (D *DCDObj) NextConc(frames []*v3.Matrix) ([]chan *v3.Matrix, error) {
 	if !D.Readable() {
-		return nil, Error{TrajUnIni, D.filename,[]string{"NextConc"} ,true}
+		return nil, Error{TrajUnIni, D.filename, []string{"NextConc"}, true}
 	}
 	framechans := make([]chan *v3.Matrix, len(frames)) //the slice of chans that will be returned
 	if D.buffSize < len(frames) {
@@ -424,7 +423,7 @@ func (D *DCDObj) NextConc(frames []*v3.Matrix) ([]chan *v3.Matrix, error) {
 	for key, _ := range frames {
 		DFields := D.concBuffer[key]
 		if err := D.nextRaw(DFields); err != nil {
-			return nil, errDecorate(err,"NextConc")
+			return nil, errDecorate(err, "NextConc")
 		}
 		//We have to test for used twice to allow allocating for goCoords
 		//When the buffer is not going to be used.
@@ -448,24 +447,22 @@ func (D *DCDObj) NextConc(frames []*v3.Matrix) ([]chan *v3.Matrix, error) {
 	return framechans, nil
 }
 
-
 //Errors
 
 //errDecorate is a helper function that asserts that the error is
 //implements chem.Error and decorates the error with the caller's name before returning it.
 //if used with a non-chem.Error error, it will cause a panic.
-func errDecorate(err error, caller string) error{
-		err2:=err.(chem.Error) //I know that is the type returned byt initRead
-		err2.Decorate("caller")
-		return err2
+func errDecorate(err error, caller string) error {
+	err2 := err.(chem.Error) //I know that is the type returned byt initRead
+	err2.Decorate(caller)
+	return err2
 }
-
 
 //Error is the general structure for DCD trajectory errors. It fullfills  chem.Error and chem.TrajError
 type Error struct {
 	message  string
 	filename string //the input file that has problems, or empty string if none.
-	deco []string
+	deco     []string
 	critical bool
 }
 
@@ -473,12 +470,12 @@ func (err Error) Error() string {
 	return fmt.Sprintf("dcd file %s error: %s", err.filename, err.message)
 }
 
-func (E Error) Decorate(deco string) []string{
-//Even thought this method does not use a pointer as a receiver, and tries to alter the received,
-//it should work, since E.deco is a slice, and hence a pointer itself.
+func (E Error) Decorate(deco string) []string {
+	//Even thought this method does not use a pointer as a receiver, and tries to alter the received,
+	//it should work, since E.deco is a slice, and hence a pointer itself.
 
-	if deco!=""{
-		E.deco=append(E.deco,deco)
+	if deco != "" {
+		E.deco = append(E.deco, deco)
 	}
 	return E.deco
 }
@@ -501,38 +498,33 @@ const (
 
 //lastFrameError implements chem.LastFrameError
 type lastFrameError struct {
-	deco []string
+	deco     []string
 	fileName string
 }
 
 //lastFrameError does nothing
 func (E lastFrameError) NormalLastFrameTermination() {}
 
-func (E lastFrameError) FileName() string {return E.fileName}
+func (E lastFrameError) FileName() string { return E.fileName }
 
-func (E lastFrameError) Error() string {return "EOF"}
+func (E lastFrameError) Error() string { return "EOF" }
 
-func (E lastFrameError) Critical() bool {return false}
+func (E lastFrameError) Critical() bool { return false }
 
-func (E lastFrameError) Format() string {return "dcd"}
+func (E lastFrameError) Format() string { return "dcd" }
 
-func (E lastFrameError) Decorate(deco string) []string{
-//Even thought this method does not use a pointer as a receiver, and tries to alter the received,
-//it should work, since E.deco is a slice, and hence a pointer itself.
-	if deco!=""{
-		E.deco=append(E.deco,deco)
+func (E lastFrameError) Decorate(deco string) []string {
+	//Even thought this method does not use a pointer as a receiver, and tries to alter the received,
+	//it should work, since E.deco is a slice, and hence a pointer itself.
+	if deco != "" {
+		E.deco = append(E.deco, deco)
 	}
 	return E.deco
 }
 
-
-
-
-
 func newlastFrameError(filename string, caller string) *lastFrameError {
 	e := new(lastFrameError)
 	e.fileName = filename
-	e.deco=[]string{caller}
+	e.deco = []string{caller}
 	return e
 }
-

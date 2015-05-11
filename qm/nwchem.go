@@ -34,7 +34,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
-
+	"log"
 	"github.com/rmera/gochem"
 	"github.com/rmera/gochem/v3"
 )
@@ -105,14 +105,14 @@ func (O *NWChemHandle) SetDefaults() {
 func (O *NWChemHandle) BuildInput(coords *v3.Matrix, atoms chem.ReadRef, Q *Calc) error {
 	//Only error so far
 	if atoms == nil || coords == nil {
-		return Error{ErrMissingCharges, NWChem, O.inputname, "", true}
+		return Error{ErrMissingCharges, NWChem, O.inputname, "",[]string{"BuildInput"}, true}
 	}
 	if Q.Basis == "" {
-		fmt.Fprintf(os.Stderr, "no basis set assigned for NWChem calculation, will used the default %s, \n", O.defbasis)
+		log.Printf("no basis set assigned for NWChem calculation, will use the default %s, \n", O.defbasis)
 		Q.Basis = O.defbasis
 	}
 	if Q.Method == "" {
-		fmt.Fprintf(os.Stderr, "no method assigned for NWChem calculation, will used the default %s, \n", O.defmethod)
+		log.Printf("no method assigned for NWChem calculation, will use the default %s, \n", O.defmethod)
 		Q.Method = O.defmethod
 		Q.RI = true
 	}
@@ -247,7 +247,8 @@ func (O *NWChemHandle) BuildInput(coords *v3.Matrix, atoms chem.ReadRef, Q *Calc
 	//////////////////////////////////////////////////////////////
 	file, err := os.Create(fmt.Sprintf("%s.nw", O.inputname))
 	if err != nil {
-		return err
+		return  Error{err.Error(), NWChem, O.inputname, "",[]string{"os.Create","BuildInput"}, true}
+
 	}
 	defer file.Close()
 	start := "start"
@@ -257,7 +258,7 @@ func (O *NWChemHandle) BuildInput(coords *v3.Matrix, atoms chem.ReadRef, Q *Calc
 	_, err = fmt.Fprintf(file, "%s %s\n", start, O.inputname)
 	//after this check its assumed that the file is ok.
 	if err != nil {
-		return err
+		return Error{err.Error(), NWChem, O.inputname, "",[]string{"fmt.Fprintf","BuildInput"}, true}
 	}
 	fmt.Fprint(file, "echo\n") //echo input in the output.
 	fmt.Fprintf(file, "charge %d\n", atoms.Charge())
@@ -352,7 +353,7 @@ func (O *NWChemHandle) Run(wait bool) (err error) {
 	if wait == true {
 		out, err := os.Create(fmt.Sprintf("%s.out", O.inputname))
 		if err != nil {
-			return Error{ErrNotRunning, NWChem, O.inputname, err.Error(), true}
+			return Error{ErrNotRunning, NWChem, O.inputname, err.Error(),[]string{"os.Create","Run"}, true}
 
 		}
 		defer out.Close()
@@ -366,7 +367,7 @@ func (O *NWChemHandle) Run(wait bool) (err error) {
 		err = command.Start()
 	}
 	if err != nil {
-		err = Error{ErrNotRunning, Mopac, O.inputname, err.Error(), true}
+		err = Error{ErrNotRunning, Mopac, O.inputname, err.Error(),[]string{"exec.command.Start/Run","Run"}, true}
 	}
 	return err
 }
@@ -440,11 +441,11 @@ func (O *NWChemHandle) OptimizedGeometry(atoms chem.Ref) (*v3.Matrix, error) {
 	}
 	dir, err := os.Open("./")
 	if err != nil {
-		return nil, err
+		return nil, Error{ErrNoGeometry, NWChem, O.inputname, err.Error(), true}
 	}
 	files, err := dir.Readdirnames(-1)
 	if err != nil {
-		return nil, err
+		return nil, Error{ErrNoGeometry, NWChem, O.inputname, err.Error(), true}
 	}
 	//This is a crappy sort/filter, but really, it will never be the bottleneck.
 	//We go over the dir content and look for xyz files with the name of the input and without
@@ -470,7 +471,7 @@ func (O *NWChemHandle) OptimizedGeometry(atoms chem.Ref) (*v3.Matrix, error) {
 	}
 	mol, err := chem.XYZRead(lastname)
 	if err != nil {
-		return nil, err
+		return nil, ErrDecorate("qm.OptimizedGeometry "+" "+NWChem+" "+O.inputname+" "+ErrNoGeometry)
 	}
 	return mol.Coords[0], err2
 }
@@ -493,7 +494,7 @@ func (O *NWChemHandle) Energy() (float64, error) {
 	for i := 0; ; i++ {
 		line, err1 := getTailLine(f)
 		if err1 != nil {
-			return 0.0, err1
+			return 0.0, errDecorate(err1,"qm.Energy "+NWChem)
 		}
 		if strings.Contains(line, "CITATION") {
 			err = nil

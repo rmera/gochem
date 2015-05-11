@@ -57,7 +57,7 @@ type XTCObj struct {
 func New(filename string) (*XTCObj, error) {
 	traj := new(XTCObj)
 	if err := traj.initRead(filename); err != nil {
-		err:=err.(Error) //I know that is the type returned byt initRead
+		err := err.(Error) //I know that is the type returned byt initRead
 		err.Decorate("New")
 		return nil, err
 	}
@@ -84,7 +84,7 @@ func (X *XTCObj) initRead(name string) error {
 	totalcoords := X.natoms * 3
 	X.fp = C.openfile(Cfilename)
 	if X.fp == nil {
-		return Error{UnableToOpen, X.filename,[]string{"initRead"}, true}
+		return Error{UnableToOpen, X.filename, []string{"initRead"}, true}
 	}
 	//The idea is to reserve less memory, using the same buffer many times.
 	//X.goCoords = make([]float64, totalcoords, totalcoords)
@@ -105,7 +105,7 @@ func (X *XTCObj) initRead(name string) error {
 //returns nil.
 func (X *XTCObj) Next(output *v3.Matrix) error {
 	if !X.Readable() {
-		return Error{TrajUnIni, X.filename,[]string{"Next"}, true}
+		return Error{TrajUnIni, X.filename, []string{"Next"}, true}
 	}
 	cnatoms := C.int(X.natoms)
 	worked := C.get_coords(X.fp, &X.cCoords[0], cnatoms)
@@ -163,7 +163,7 @@ func (X *XTCObj) NextConc(frames []*v3.Matrix) ([]chan *v3.Matrix, error) {
 		X.setConcBuffer(len(frames))
 	}
 	if X.natoms == 0 {
-		return nil, Error{TrajUnIni, X.filename,[]string{"NextConc"} ,true}
+		return nil, Error{TrajUnIni, X.filename, []string{"NextConc"}, true}
 	}
 	framechans := make([]chan *v3.Matrix, len(frames)) //the slice of chans that will be returned
 	cnatoms := C.int(X.natoms)
@@ -175,7 +175,7 @@ func (X *XTCObj) NextConc(frames []*v3.Matrix) ([]chan *v3.Matrix, error) {
 		if worked == 11 {
 			if used == false {
 				X.readable = false
-				return nil, newlastFrameError(X.filename,"NextConc") //This is not really an error and
+				return nil, newlastFrameError(X.filename, "NextConc") //This is not really an error and
 			} else { //should be catched in the calling function
 				X.readable = false
 				return framechans, newlastFrameError(X.filename, "NextConc") //same
@@ -183,7 +183,7 @@ func (X *XTCObj) NextConc(frames []*v3.Matrix) ([]chan *v3.Matrix, error) {
 		}
 		if worked != 0 {
 			X.readable = false
-			return nil, Error{ReadError, X.filename,[]string{"NextConc"}, true}
+			return nil, Error{ReadError, X.filename, []string{"NextConc"}, true}
 		}
 		if val == nil {
 			framechans[key] = nil //ignored frame
@@ -214,15 +214,10 @@ func (X *XTCObj) Len() int {
 
 //Errors
 
-
-
-
-
-
 type Error struct {
 	message  string
 	filename string //the input file that has problems, or empty string if none.
-	deco []string
+	deco     []string
 	critical bool
 }
 
@@ -230,12 +225,12 @@ func (err Error) Error() string {
 	return fmt.Sprintf("xtc file %s error: %s", err.filename, err.message)
 }
 
-func (E Error) Decorate(deco string) []string{
-//Even thought this method does not use a pointer as a receiver, and tries to alter the received,
-//it should work, since E.deco is a slice, and hence a pointer itself.
+func (E Error) Decorate(deco string) []string {
+	//Even thought this method does not use a pointer as a receiver, and tries to alter the received,
+	//it should work, since E.deco is a slice, and hence a pointer itself.
 
-	if deco!=""{
-		E.deco=append(E.deco,deco)
+	if deco != "" {
+		E.deco = append(E.deco, deco)
 	}
 	return E.deco
 }
@@ -253,43 +248,34 @@ const (
 	EOF          = "EOF"
 )
 
-
 type lastFrameError struct {
-	deco []string
+	deco     []string
 	fileName string
 }
 
 //lastFrameError does nothing
 func (E lastFrameError) NormalLastFrameTermination() {}
 
-func (E lastFrameError) FileName() string {return E.fileName}
+func (E lastFrameError) FileName() string { return E.fileName }
 
-func (E lastFrameError) Error() string {return "EOF"}
+func (E lastFrameError) Error() string { return "EOF" }
 
-func (E lastFrameError) Critical() bool {return false}
+func (E lastFrameError) Critical() bool { return false }
 
-func (E lastFrameError) Format() string {return "xtc"}
+func (E lastFrameError) Format() string { return "xtc" }
 
-func (E lastFrameError) Decorate(deco string) []string{
-//Even thought this method does not use a pointer as a receiver, and tries to alter the received,
-//it should work, since E.deco is a slice, and hence a pointer itself.
-	if deco!=""{
-		E.deco=append(E.deco,deco)
+func (E lastFrameError) Decorate(deco string) []string {
+	//Even thought this method does not use a pointer as a receiver, and tries to alter the received,
+	//it should work, since E.deco is a slice, and hence a pointer itself.
+	if deco != "" {
+		E.deco = append(E.deco, deco)
 	}
 	return E.deco
 }
 
-
-
-
-
 func newlastFrameError(filename string, caller string) *lastFrameError {
 	e := new(lastFrameError)
 	e.fileName = filename
-	e.deco=[]string{caller}
+	e.deco = []string{caller}
 	return e
 }
-
-
-
-
