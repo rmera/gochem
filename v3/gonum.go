@@ -67,7 +67,7 @@ func NewMatrix(data []float64) (*Matrix, error) {
 	l := len(data)
 	rows := l / cols
 	if l%cols != 0 {
-		return nil, fmt.Errorf("Input slice lenght %d not divisible by %d: %d", rows, cols, rows%cols)
+		return nil, Error{fmt.Sprintf("Input slice lenght %d not divisible by %d: %d", rows, cols, rows%cols), []string{"NewMatrix"}, true}
 	}
 	r := mat64.NewDense(rows, cols, data)
 	return &Matrix{r}, nil
@@ -105,7 +105,7 @@ func (F *Matrix) SetMatrix(i, j int, A *Matrix) {
 	ar, ac := A.Dims()
 	fc := 3
 	if ar+i > F.NVecs() || ac+j > fc {
-		panic("SetMatrix: Dimmension mismatch")
+		panic(ErrShape)
 	}
 	r := make([]float64, ac, ac)
 	for k := 0; k < ar; k++ {
@@ -154,7 +154,7 @@ func (F *Matrix) Stack(A, B *Matrix) {
 	ar, _ := A.Dims()
 	br, _ := B.Dims()
 	if F.NVecs() < ar+br {
-		panic("Not enough space to stack")
+		panic(ErrShape)
 	}
 	for i := 0; i < ar; i++ {
 		A.Row(f.Data[i*3:i*3+3], i)
@@ -194,7 +194,7 @@ func (F *Matrix) Stack(A, B *Matrix) {
 func det(A mat64.Matrix) float64 {
 	r, c := A.Dims()
 	if r != 3 || c != 3 {
-		panic("Determinants are for now only available for 3x3 matrices")
+		panic(ErrDeterminant)
 	}
 	return (A.At(0, 0)*(A.At(1, 1)*A.At(2, 2)-A.At(2, 1)*A.At(1, 2)) - A.At(1, 0)*(A.At(0, 1)*A.At(2, 2)-A.At(2, 1)*A.At(0, 2)) + A.At(2, 0)*(A.At(0, 1)*A.At(1, 2)-A.At(1, 1)*A.At(0, 2)))
 }
@@ -226,7 +226,8 @@ func (E eigenpair) Len() int {
 //Is the compatibiliy with go.matrix. This function should dissapear when we
 //have a pure Go blas.
 func EigenWrap(in *Matrix, epsilon float64) (*Matrix, []float64, error) {
-	var err error
+	err := Error{string(ErrEigen), []string{"EigenWrap"}, true}
+
 	if epsilon < 0 {
 		epsilon = appzero
 	}
@@ -241,8 +242,8 @@ func EigenWrap(in *Matrix, epsilon float64) (*Matrix, []float64, error) {
 	//	fmt.Println("evecs fresh", evecs) ///////
 	//evals := [3]float64{vals.At(0, 0), vals.At(1, 1), vals.At(2, 2)} //go.matrix specific code here.
 	f := func() { evecs.TCopy(evecs) }
-	if err = mat64.Maybe(mat64.Panicker(f)); err != nil {
-		return nil, nil, err
+	if err2 := mat64.Maybe(mat64.Panicker(f)); err2 != nil {
+		return nil, nil, Error{err.Error(), []string{"EigenWrap"}, true}
 	}
 	//evecs.TCopy(evecs.Dense)
 	//	fmt.Println("evecs presort", evecs) /////////
@@ -259,7 +260,7 @@ func EigenWrap(in *Matrix, epsilon float64) (*Matrix, []float64, error) {
 		for j := i + 1; j < eigrows; j++ {
 			vectorj := eig.evecs.VecView(j)
 			if math.Abs(vectori.Dot(vectorj)) > epsilon && i != j {
-				reterr := Error(fmt.Sprintln("Eigenvectors ", i, "and", j, " not orthogonal. v", i, ":", vectori, "\nv", j, ":", vectorj, "\nDot:", math.Abs(vectori.Dot(vectorj)), "eigmatrix:", eig.evecs))
+				reterr := Error{fmt.Sprintln("Eigenvectors ", i, "and", j, " not orthogonal. v", i, ":", vectori, "\nv", j, ":", vectorj, "\nDot:", math.Abs(vectori.Dot(vectorj)), "eigmatrix:", eig.evecs), []string{"EigenWrap"}, true}
 				return eig.evecs, evals[:], reterr
 			}
 		}
@@ -315,15 +316,62 @@ func (F *Matrix) TCopy(A mat64.Matrix) {
 	}
 }
 
-// Type Error represents matrix package errors. These errors can be recovered by gnMaybe wrappers.
+//Errors
 
-type Error string
+//the same as chem.Error but avoid circular import.
+type errorInt interface {
+	Error() string
+	Critical() bool
+	Decorate(string) []string
+}
 
-func (err Error) Error() string { return string(err) }
+type Error struct {
+	message  string
+	deco     []string
+	critical bool
+}
+
+//Error returns a string with an error message.
+func (err Error) Error() string {
+	return fmt.Sprintf("%s", err.message)
+}
+
+//Decorate will add the dec string to the decoration slice of strings of the error,
+//and return the resulting slice.
+func (err Error) Decorate(dec string) []string {
+	err.deco = append(err.deco, dec)
+	return err.deco
+}
+
+//Critical return whether the error is critical or it can be ifnored
+func (err Error) Critical() bool { return err.critical }
+
+//errDecorate is a helper function that asserts that the error is
+//implements chem.Error and decorates the error with the caller's name before returning it.
+//if used with a non-chem.Error error, it will cause a panic.
+func errDecorate(err error, caller string) error {
+	err2 := err.(errorInt) //I know that is the type returned byt initRead
+	err2.Decorate(caller)
+	return err2
+}
+
+//V3Panic is a message used for panics, even though it does satisfy the error interface.
+//for errors use Error.
+type V3Panic string
+
+func (v V3Panic) Error() string { return string(v) }
+
+//Here I use a few of the gonum/mat64 messages for compatibility (Copyright (c) The gonum authors). I assumed here that this is small enough not to require
+//messing about with licenses, but of course I don't intend any copyright impringement and I will set somethign up if contacted.
 
 const (
-	not3xXMatrix      = Error("goChem/v3: A Matrix should have 3 columns") //This should be renamed notXx3Matrix
-	notOrthogonal     = Error("goChem/v3: Vectors nor orthogonal")
-	notEnoughElements = Error("goChem/v3: not enough elements in Matrix")
-	gonumError        = Error("goChem/v3: Error in gonum function:")
+	ErrNotXx3Matrix      = V3Panic("goChem/v3: A VecMatrix should have 3 columns")
+	ErrNoCrossProduct    = V3Panic("goChem/v3: Invalid matrix for cross product")
+	ErrNotOrthogonal     = V3Panic("goChem/v3: Vectors nor orthogonal")
+	ErrNotEnoughElements = V3Panic("goChem/v3: not enough elements in Matrix")
+	ErrGonum             = V3Panic("goChem/v3: Error in gonum function")
+	ErrEigen             = V3Panic("goChem/v3: Can't obtain eigenvectors/eigenvalues of given matrix")
+	ErrDeterminant       = V3Panic("goChem/v3: Determinants are only available for 3x3 matrices")
+	ErrShape             = V3Panic("goChem/v3: Dimension mismatch")
+	ErrIndexOutOfRange   = V3Panic("mat64: index out of range")
 )

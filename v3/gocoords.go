@@ -51,7 +51,7 @@ func Zeros(vecs int) *Matrix {
 
 func (F *Matrix) SwapVecs(i, j int) {
 	if i >= F.NVecs() || j >= F.NVecs() {
-		panic("Indexes out of range")
+		panic(ErrIndexOutOfRange)
 	}
 	rowi := F.Row(nil, i)
 	rowj := F.Row(nil, j)
@@ -69,7 +69,7 @@ func (F *Matrix) AddVec(A, vec *Matrix) {
 	rr, rc := vec.Dims()
 	fr, fc := F.Dims()
 	if ac != rc || rr != 1 || ac != fc || ar != fr {
-		panic(mat64.ErrShape)
+		panic(ErrShape)
 	}
 	for i := 0; i < ar; i++ {
 		j := A.VecView(i)
@@ -86,7 +86,7 @@ func (F *Matrix) DelVec(A *Matrix, i int) {
 	ar, ac := A.Dims()
 	fr, fc := F.Dims()
 	if i >= ar || fc != ac || fr != (ar-1) {
-		panic(mat64.ErrShape)
+		panic(ErrShape)
 	}
 	tempA1 := A.View(0, 0, i, ac)
 	tempF1 := F.View(0, 0, i, ac)
@@ -105,7 +105,7 @@ func (F *Matrix) DelVec(A *Matrix, i int) {
 func (F *Matrix) NVecs() int { //NOTE Probably just "Vecs" is a better name
 	r, c := F.Dims()
 	if c != 3 {
-		panic(not3xXMatrix)
+		panic(ErrNotXx3Matrix)
 	}
 	return r
 
@@ -123,7 +123,7 @@ func (F *Matrix) SetVecs(A *Matrix, clist []int) {
 	ar, ac := A.Dims()
 	fr, fc := F.Dims()
 	if ac != fc || fr < len(clist) || ar < len(clist) {
-		panic(mat64.ErrShape)
+		panic(ErrShape)
 	}
 	for key, val := range clist {
 		for j := 0; j < ac; j++ {
@@ -132,14 +132,14 @@ func (F *Matrix) SetVecs(A *Matrix, clist []int) {
 	}
 }
 
-//Returns a matrix contaning all the ith rows of matrix A,
+//SomeVecs Returns a matrix contaning all the ith rows of matrix A,
 //where i are the numbers in clist. The rows are in the same order
 //than the clist.
 func (F *Matrix) SomeVecs(A *Matrix, clist []int) {
 	ar, ac := A.Dims()
 	fr, fc := F.Dims()
 	if ac != fc || fr != len(clist) || ar < len(clist) {
-		panic(mat64.ErrShape)
+		panic(ErrShape)
 	}
 	for key, val := range clist {
 		for j := 0; j < ac; j++ {
@@ -148,18 +148,18 @@ func (F *Matrix) SomeVecs(A *Matrix, clist []int) {
 	}
 }
 
-//Returns a matrix contaning all the ith vectors of matrix A,
+//SomeVecsSafe returns a matrix contaning all the ith vectors of matrix A,
 //where i are the numbers in clist. The vectors are in the same order
-//than the clist. Returns an error instead of panicking.
+//than the clist. It will try to recover so it returns an error instead of panicking.
 func (F *Matrix) SomeVecsSafe(A *Matrix, clist []int) error {
 	var err error
 	defer func() {
 		if r := recover(); r != nil {
 			switch e := r.(type) {
-			case Error:
-				err = e
+			case V3Panic:
+				err = Error{fmt.Sprintf("%s: %s", ErrGonum, e), []string{"SomeVecsSafe"}, true}
 			case mat64.Error:
-				err = Error(fmt.Sprintf("%goChem/v3: Error in a gonum function: %s", e))
+				err = Error{fmt.Sprintf("%goChem/v3: mat64.Error: %s", e), []string{"SomeVecsSafe"}, true}
 			default:
 				panic(r)
 			}
@@ -169,13 +169,13 @@ func (F *Matrix) SomeVecsSafe(A *Matrix, clist []int) error {
 	return err
 }
 
-//puts in F a matrix consistent of A over B or A to the left of B.
+//StackVec puts in F a matrix consistent of A over B or A to the left of B.
 func (F *Matrix) StackVec(A, B *Matrix) {
 	//NOTE DELETION CANDIDATE DELCAN
 	F.Stack(A, B)
 }
 
-//Returns a neat string representation of a Matrix
+//String returns a neat string representation of a Matrix
 func (F *Matrix) String() string {
 	r, c := F.Dims()
 	v := make([]string, r+2, r+2)
@@ -210,7 +210,7 @@ func (F *Matrix) SubVec(A, vec *Matrix) {
 //Cross puts the cross product of the first vecs of a and b in the first vec of F. Panics if error.
 func (F *Matrix) Cross(a, b *Matrix) {
 	if a.NVecs() < 1 || b.NVecs() < 1 || F.NVecs() < 1 {
-		panic("Invalid  Matrix!")
+		panic(ErrNoCrossProduct)
 	}
 	//I ask for Matrix instead of Matrix, even though  I only need the At method.
 	//This is so I dont need to ensure that the rows are taken, and thus I dont need to break the
@@ -250,7 +250,7 @@ func (F *Matrix) ScaleByCol(A, Col mat64.Matrix) {
 	cr, cc := Col.Dims()
 	fr, fc := F.Dims()
 	if ar != cr || cc > 1 || ar != fr || ac != fc {
-		panic(mat64.ErrShape)
+		panic(ErrShape)
 	}
 	if F != A {
 		F.Copy(A)
@@ -269,7 +269,7 @@ func (F *Matrix) ScaleByRow(A, Row *Matrix) { //NOTE it should be called ScaleBy
 	rr, rc := Row.Dims()
 	fr, fc := F.Dims()
 	if ac != rc || rr != 1 || ar != fr || ac != fc {
-		panic(mat64.ErrShape)
+		panic(ErrShape)
 	}
 	if F != A {
 		F.Copy(A)
