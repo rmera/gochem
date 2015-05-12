@@ -30,6 +30,7 @@ package qm
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"strconv"
@@ -97,14 +98,14 @@ func (O *FermionsHandle) BuildInput(coords *v3.Matrix, atoms chem.ReadRef, Q *Ca
 	//Only error so far
 
 	if atoms == nil || coords == nil {
-		return Error{ErrMissingCharges, Fermions, O.inputname, "", true}
+		return Error{ErrMissingCharges, Fermions, O.inputname, "", []string{"BuildInput"}, true}
 	}
 	if Q.Basis == "" {
-		fmt.Fprintf(os.Stderr, "no basis set assigned for Fermions++ calculation, will used the default %s, \n", O.defbasis)
+		log.Printf("no basis set assigned for Fermions++ calculation, will used the default %s, \n", O.defbasis)
 		Q.Basis = O.defbasis
 	}
 	if Q.Method == "" {
-		fmt.Fprintf(os.Stderr, "no method assigned for Fermions++ calculation, will used the default %s, \n", O.defmethod)
+		log.Printf("no method assigned for Fermions++ calculation, will used the default %s, \n", O.defmethod)
 		Q.Method = O.defmethod
 	}
 
@@ -149,7 +150,7 @@ func (O *FermionsHandle) BuildInput(coords *v3.Matrix, atoms chem.ReadRef, Q *Ca
 	//////////////////////////////////////////////////////////////
 	file, err := os.Create(fmt.Sprintf("%s.in", O.inputname))
 	if err != nil {
-		return Error{ErrCantInput, Fermions, O.inputname, err.Error(), true}
+		return Error{ErrCantInput, Fermions, O.inputname, err.Error(), []string{"os.Create", "BuildInput"}, true}
 	}
 	defer file.Close()
 	//Start with the geometry part (coords, charge and multiplicity)
@@ -190,7 +191,7 @@ func (O *FermionsHandle) Run(wait bool) (err error) {
 		err = command.Start()
 	}
 	if err != nil {
-		err = Error{ErrNotRunning, Fermions, O.inputname, err.Error(), true}
+		err = Error{ErrNotRunning, Fermions, O.inputname, err.Error(), []string{"exec.Start/Run", "Run"}, true}
 
 	}
 	return err
@@ -270,10 +271,10 @@ func (O *FermionsHandle) OptimizedGeometry(atoms chem.Ref) (*v3.Matrix, error) {
 //in calculation")
 func (O *FermionsHandle) Energy() (float64, error) {
 	var err error
-	err = Error{ErrProbableProblem, Fermions, O.inputname, "", false}
+	err = Error{ErrProbableProblem, Fermions, O.inputname, "", []string{"Energy"}, false}
 	f, err1 := os.Open(fmt.Sprintf("%s.out", O.inputname))
 	if err1 != nil {
-		return 0, Error{ErrNoEnergy, Fermions, O.inputname, err1.Error(), true}
+		return 0, Error{ErrNoEnergy, Fermions, O.inputname, err1.Error(), []string{"os.Open", "Energy"}, true}
 	}
 	defer f.Close()
 	f.Seek(-1, 2) //We start at the end of the file
@@ -282,7 +283,7 @@ func (O *FermionsHandle) Energy() (float64, error) {
 	for i := 0; ; i++ {
 		line, err1 := getTailLine(f)
 		if err1 != nil {
-			return 0.0, Error{ErrNoEnergy, Fermions, O.inputname, err1.Error(), true}
+			return 0.0, Error{ErrNoEnergy, Fermions, O.inputname, err1.Error(), []string{"os.File.Seek", "Energy"}, true}
 		}
 		if strings.Contains(line, "Timing report") {
 			err = nil
@@ -291,14 +292,14 @@ func (O *FermionsHandle) Energy() (float64, error) {
 			splitted := strings.Fields(line)
 			energy, err1 = strconv.ParseFloat(splitted[len(splitted)-3], 64)
 			if err1 != nil {
-				return 0.0, Error{ErrNoEnergy, Fermions, O.inputname, err1.Error(), true}
+				return 0.0, Error{ErrNoEnergy, Fermions, O.inputname, err1.Error(), []string{"strconv.ParseFloat", "Energy"}, true}
 			}
 			found = true
 			break
 		}
 	}
 	if !found {
-		return 0.0, Error{ErrNoEnergy, Fermions, O.inputname, "", true}
+		return 0.0, Error{ErrNoEnergy, Fermions, O.inputname, "", []string{"Energy"}, true}
 	}
 	return energy * chem.H2Kcal, err
 }

@@ -61,6 +61,8 @@ func NewTMHandle() *TMHandle {
 	return run
 }
 
+const noCosmoPrep = "goChem/QM: Unable to run cosmoprep"
+
 //TMHandle methods
 
 //This set the name of the subdirectory, in the current directory
@@ -91,7 +93,7 @@ func (O *TMHandle) SetDefaults() {
 func (O *TMHandle) addToControl(toappend []string, Q *Calc) error {
 	f, err := os.Open("control")
 	if err != nil {
-		return err
+		return Error{ErrCantInput, Turbomole, O.inputname, "", []string{"os.Open", "addtoControl"}, true}
 	}
 	lines := make([]string, 0, 200) //200 is just a guess for the number of lines in the control file
 	c := bufio.NewReader(f)
@@ -103,7 +105,7 @@ func (O *TMHandle) addToControl(toappend []string, Q *Calc) error {
 	f.Close() //I cant defer it because I need it closed now.
 	out, err := os.Create("control")
 	if err != nil {
-		return err
+		return Error{ErrCantInput, Turbomole, O.inputname, "", []string{"os.Create", "addtoControl"}, true}
 	}
 	defer out.Close()
 	var k string
@@ -112,7 +114,7 @@ func (O *TMHandle) addToControl(toappend []string, Q *Calc) error {
 		if strings.Contains(i, "$symmetry") {
 			for _, j := range toappend {
 				if _, err := fmt.Fprintf(out, j+"\n"); err != nil {
-					return err
+					return Error{ErrCantInput, Turbomole, O.inputname, "", []string{"fmt.Fprintf", "addtoControl"}, true}
 				}
 			}
 		}
@@ -125,14 +127,14 @@ func (O *TMHandle) addToControl(toappend []string, Q *Calc) error {
 			}
 		}
 		if _, err := fmt.Fprintf(out, k); err != nil {
-			return err
+			return Error{ErrCantInput, Turbomole, O.inputname, "", []string{"fmt.Fprintf", "addtoControl"}, true}
+
 		}
 	}
 	return nil
 }
 
 func (O *TMHandle) addCosmo(epsilon float64) error {
-	const noCosmoPrep = "goChem/QM: Unable to run cosmoprep"
 	//The ammount of newlines is wrong, must fix
 	cosmostring := "" //a few newlines before the epsilon
 	if epsilon == 0 {
@@ -142,12 +144,12 @@ func (O *TMHandle) addCosmo(epsilon float64) error {
 	def := exec.Command("cosmoprep")
 	pipe, err := def.StdinPipe()
 	if err != nil {
-		return Error{noCosmoPrep, Turbomole, O.inputname, err.Error(), true}
+		return Error{noCosmoPrep, Turbomole, O.inputname, err.Error(), []string{"exec.StdinPipe", "addCosmo"}, true}
 	}
 	defer pipe.Close()
 	pipe.Write([]byte(cosmostring))
 	if err := def.Run(); err != nil {
-		return Error{noCosmoPrep, Turbomole, O.inputname, err.Error(), true}
+		return Error{noCosmoPrep, Turbomole, O.inputname, err.Error(), []string{"exec.Run", "addCosmo"}, true}
 
 	}
 	return nil
@@ -168,7 +170,8 @@ func (O *TMHandle) addBasis(basisOrEcp string, basiselems []string, basis, defst
 func (O *TMHandle) addFrozen(frozen []int) error {
 	f, err := os.Open("coord")
 	if err != nil {
-		return err
+		return Error{noCosmoPrep, Turbomole, O.inputname, err.Error(), []string{"os.Open", "addFrozen"}, true}
+
 	}
 	lines := make([]string, 0, 200) //200 is just a guess for the number of lines in the coord file
 	c := bufio.NewReader(f)
@@ -184,11 +187,13 @@ func (O *TMHandle) addFrozen(frozen []int) error {
 		if isInInt(frozen, key-1) {
 			j := strings.Replace(i, "\n", " f\n", -1)
 			if _, err := fmt.Fprintf(out, j); err != nil {
-				return err
+				return Error{noCosmoPrep, Turbomole, O.inputname, err.Error(), []string{"fmt.Fprintf", "addFrozen"}, true}
+
 			}
 		} else {
 			if _, err := fmt.Fprintf(out, i); err != nil {
-				return err
+				return Error{noCosmoPrep, Turbomole, O.inputname, err.Error(), []string{"fmt.Fprintf", "addFrozen"}, true}
+
 			}
 		}
 	}
@@ -213,7 +218,7 @@ func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.ReadRef, Q *Calc) er
 			O.inputname = fmt.Sprintf("%s%d", O.inputname, i)
 			err = os.Mkdir(O.inputname, os.FileMode(0755))
 		} else {
-			return Error{"goChem/QM: Unable to build input", Turbomole, O.inputname, err.Error(), true}
+			return Error{"goChem/QM: Unable to build input", Turbomole, O.inputname, err.Error(), []string{"os.Mkdir", "BuildInput"}, true}
 		}
 	}
 	_ = os.Chdir(O.inputname)
@@ -223,15 +228,15 @@ func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.ReadRef, Q *Calc) er
 	x2t := exec.Command("x2t", "file.xyz")
 	stdout, err := x2t.StdoutPipe()
 	if err != nil {
-		return Error{nox2t, Turbomole, O.inputname, err.Error(), true}
+		return Error{nox2t, Turbomole, O.inputname, err.Error(), []string{"exec.StdoutPipe", "BuildInput"}, true}
 	}
 	coord, err := os.Create("coord")
 	if err != nil {
-		return Error{nox2t, Turbomole, O.inputname, err.Error(), true}
+		return Error{nox2t, Turbomole, O.inputname, err.Error(), []string{"os.Create", "BuildInput"}, true}
 
 	}
 	if err := x2t.Start(); err != nil {
-		return Error{nox2t, Turbomole, O.inputname, err.Error(), true}
+		return Error{nox2t, Turbomole, O.inputname, err.Error(), []string{"exec.Start", "BuildInput"}, true}
 
 	}
 	//	var end chan bool
@@ -241,10 +246,10 @@ func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.ReadRef, Q *Calc) er
 	coord.Close() //not defearable
 	defstring := "\n\na coord\n*\nno\n"
 	if atoms == nil || coords == nil {
-		return Error{ErrMissingCharges, Turbomole, O.inputname, "", true}
+		return Error{ErrMissingCharges, Turbomole, O.inputname, "", []string{"BuildInput"}, true}
 	}
 	if Q.Basis == "" {
-		fmt.Fprintf(os.Stderr, "no basis set assigned for TM calculation, will used the default %s, \n", O.defbasis)
+		log.Printf("no basis set assigned for TM calculation, will used the default %s, \n", O.defbasis)
 		Q.Basis = O.defbasis
 	}
 	defstring = defstring + "b all " + Q.Basis + "\n"
@@ -297,12 +302,12 @@ func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.ReadRef, Q *Calc) er
 	def := exec.Command("define")
 	pipe, err := def.StdinPipe()
 	if err != nil {
-		return Error{noDefine, Turbomole, O.inputname, err.Error(), true}
+		return Error{noDefine, Turbomole, O.inputname, err.Error(), []string{"exec.StdinPipe", "BuildInput"}, true}
 	}
 	defer pipe.Close()
 	pipe.Write([]byte(defstring))
 	if err := def.Run(); err != nil {
-		return Error{noDefine, Turbomole, O.inputname, err.Error(), true}
+		return Error{noDefine, Turbomole, O.inputname, err.Error(), []string{"exec.Run", "BuildInput"}, true}
 	}
 	if Q.Optimize {
 		O.command = "jobex"
@@ -324,15 +329,17 @@ func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.ReadRef, Q *Calc) er
 		args = append(args, "$gimic")
 	}
 	if err := O.addToControl(args, Q); err != nil {
-		return err
+		return errDecorate(err, "BuildInput")
 	}
 	//set the frozen atoms (only cartesian constraints are supported)
 	if err := O.addFrozen(Q.CConstraints); err != nil {
-		return err
+		return errDecorate(err, "BuildInput")
+
 	}
 	//Finally the cosmo business.
 	err = O.addCosmo(Q.Dielectric)
-	return err
+	return errDecorate(err, "BuildInput")
+
 }
 
 var tMMethods = map[string]string{
@@ -374,7 +381,7 @@ func (O *TMHandle) Run(wait bool) (err error) {
 		err = command.Start()
 	}
 	if err != nil {
-		err = Error{ErrNotRunning, Turbomole, O.inputname, err.Error(), true}
+		err = Error{ErrNotRunning, Turbomole, O.inputname, err.Error(), []string{"exec.Run/Start", "Run"}, true}
 
 	}
 	return err
@@ -386,19 +393,18 @@ func (O *TMHandle) Energy() (float64, error) {
 	defer os.Chdir("..")
 	f, err := os.Open("energy")
 	if err != nil {
-		return 0, Error{ErrNoEnergy, Turbomole, O.inputname, err.Error(), true}
+		return 0, Error{ErrNoEnergy, Turbomole, O.inputname, err.Error(), []string{"os.Open", "Energy"}, true}
 	}
 	defer f.Close()
 	fio := bufio.NewReader(f)
 	line, err := getSecondToLastLine(fio)
 	if err != nil {
-		return 0, Error{ErrNoEnergy, Turbomole, O.inputname, err.Error(), true}
-
+		return 0, errDecorate(err, "Energy "+O.inputname)
 	}
 	en := strings.Fields(line)[1]
 	energy, err := strconv.ParseFloat(en, 64)
 	if err != nil {
-		err = Error{ErrNoEnergy, Turbomole, O.inputname, err.Error(), true}
+		err = Error{ErrNoEnergy, Turbomole, O.inputname, err.Error(), []string{"strconv.ParseFloat", "Energy"}, true}
 	}
 	return energy * chem.H2Kcal, err
 }
@@ -411,16 +417,16 @@ func (O *TMHandle) OptimizedGeometry(atoms chem.Ref) (*v3.Matrix, error) {
 	x2t := exec.Command("t2x")
 	stdout, err := x2t.StdoutPipe()
 	if err != nil {
-		return nil, Error{ErrNoGeometry, Turbomole, O.inputname, not2x + err.Error(), true}
+		return nil, Error{ErrNoGeometry, Turbomole, O.inputname, not2x + err.Error(), []string{"exec.StdoutPipe", "OptimizedGeometry"}, true}
 	}
 	if err := x2t.Start(); err != nil {
-		return nil, Error{ErrNoGeometry, Turbomole, O.inputname, not2x + err.Error(), true}
+		return nil, Error{ErrNoGeometry, Turbomole, O.inputname, not2x + err.Error(), []string{"exec.Start", "OptimizedGeometry"}, true}
 
 	}
 	xyz := bufio.NewReader(stdout)
 	mol, err := chem.XYZBufIORead(xyz)
 	if err != nil {
-		return nil, Error{ErrNoGeometry, Turbomole, O.inputname, err.Error(), true}
+		return nil, errDecorate(err, "qm.OptimizedGeometry "+Turbomole+" "+O.inputname)
 	}
 	return mol.Coords[len(mol.Coords)-1], nil
 
@@ -443,5 +449,5 @@ func getSecondToLastLine(f *bufio.Reader) (string, error) {
 			break
 		}
 	}
-	return prevline, err
+	return prevline, Error{err.Error(), Turbomole, "", "Unknown", []string{"getSecondToLastLine"}, true}
 }

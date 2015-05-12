@@ -99,8 +99,6 @@ const (
 	Fermions  = "Fermions++"
 )
 
-
-
 //errors
 
 type Error struct {
@@ -112,7 +110,6 @@ type Error struct {
 	critical   bool
 }
 
-
 //Error returns a string with an error message.
 func (err Error) Error() string {
 	return fmt.Sprintf("%s (%s/%s) Message: %s", err.message, err.inputname, err.code, err.additional)
@@ -120,8 +117,8 @@ func (err Error) Error() string {
 
 //Decorate will add the dec string to the decoration slice of strings of the error,
 //and return the resulting slice.
-func (err Error) Decorate(dec string ) []string {
-	err.deco=append(err.deco,dec)
+func (err Error) Decorate(dec string) []string {
+	err.deco = append(err.deco, dec)
 	return err.deco
 }
 
@@ -135,7 +132,6 @@ func (err Error) InputName() string { return err.inputname }
 //Critical return whether the error is critical or it can be ifnored
 func (err Error) Critical() bool { return err.critical }
 
-
 //errDecorate is a helper function that asserts that the error is
 //implements chem.Error and decorates the error with the caller's name before returning it.
 //if used with a non-chem.Error error, it will cause a panic.
@@ -146,9 +142,6 @@ func errDecorate(err error, caller string) error {
 }
 
 //end errors
-
-
-
 
 type IntConstraint struct {
 	Kind  byte

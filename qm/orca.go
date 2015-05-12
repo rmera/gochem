@@ -30,12 +30,13 @@ package qm
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"runtime"
 	"strconv"
 	"strings"
-	"log"
+
 	"github.com/rmera/gochem"
 	"github.com/rmera/gochem/v3"
 )
@@ -100,14 +101,14 @@ func (O *OrcaHandle) SetDefaults() {
 func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.ReadRef, Q *Calc) error {
 	//Only error so far
 	if atoms == nil || coords == nil {
-		return Error{ErrMissingCharges, Orca, O.inputname, "", true}
+		return Error{ErrMissingCharges, Orca, O.inputname, "", []string{"BuildInput"}, true}
 	}
 	if Q.Basis == "" {
 		log.Printf("no basis set assigned for ORCA calculation, will used the default %s, \n", O.defbasis) //NOTE: This could be changed for a non-critical error
 		Q.Basis = O.defbasis
 	}
 	if Q.Method == "" {
-		log.Printf(os.Stderr, "no method assigned for ORCA calculation, will used the default %s, \n", O.defmethod)
+		log.Printf("no method assigned for ORCA calculation, will used the default %s, \n", O.defmethod)
 		Q.Method = O.defmethod
 		Q.auxColBasis = "" //makes no sense for pure functional
 		Q.auxBasis = fmt.Sprintf("%s/J", Q.Basis)
@@ -116,7 +117,7 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.ReadRef, Q *Calc) 
 	//Set RI or RIJCOSX if needed
 	ri := ""
 	if Q.RI && Q.RIJ {
-		return Error{"goChem/QM: RI and RIJ cannot be activated at the same time", Orca, O.inputname, "",[]string{"BuildInput"}, true}
+		return Error{"goChem/QM: RI and RIJ cannot be activated at the same time", Orca, O.inputname, "", []string{"BuildInput"}, true}
 	}
 	if Q.RI {
 		Q.auxBasis = Q.Basis + "/J"
@@ -219,7 +220,7 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.ReadRef, Q *Calc) 
 	constraints := O.buildCConstraints(Q.CConstraints)
 	iconstraints, err := O.buildIConstraints(Q.IConstraints)
 	if err != nil {
-		return err
+		return errDecorate(err, "BuildInput")
 	}
 	cosmo := ""
 	if Q.Dielectric > 0 {
@@ -248,13 +249,15 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.ReadRef, Q *Calc) 
 	}
 	file, err := os.Create(fmt.Sprintf("%s.inp", O.inputname))
 	if err != nil {
-		return err
+		return Error{ErrCantInput, Orca, O.inputname, err.Error(), []string{"os,Open", "BuildInput"}, true}
+
 	}
 	defer file.Close()
 	_, err = fmt.Fprint(file, mainline)
 	//With this check its assumed that the file is ok.
 	if err != nil {
-		return err
+		return Error{ErrCantInput, Orca, O.inputname, err.Error(), []string{"fmt.Printf", "BuildInput"}, true}
+
 	}
 	fmt.Fprint(file, palbig)
 	fmt.Fprint(file, moinp)
@@ -291,7 +294,7 @@ func (O *OrcaHandle) Run(wait bool) (err error) {
 	if wait == true {
 		out, err := os.Create(fmt.Sprintf("%s.out", O.inputname))
 		if err != nil {
-			return Error{ErrNotRunning, Orca, O.inputname, "",[]string{"Run"} ,true}
+			return Error{ErrNotRunning, Orca, O.inputname, "", []string{"Run"}, true}
 		}
 		defer out.Close()
 		command := exec.Command(O.command, fmt.Sprintf("%s.inp", O.inputname))
@@ -303,7 +306,7 @@ func (O *OrcaHandle) Run(wait bool) (err error) {
 		err = command.Start()
 	}
 	if err != nil {
-		err = Error{ErrNotRunning, Orca, O.inputname, err.Error(),[]string{"exec.Start","Run"}, true}
+		err = Error{ErrNotRunning, Orca, O.inputname, err.Error(), []string{"exec.Start", "Run"}, true}
 	}
 	return err
 }
@@ -319,7 +322,7 @@ func (O *OrcaHandle) buildIConstraints(C []*IConstraint) (string, error) {
 	for key, val := range C {
 
 		if iConstraintOrder[val.Class] != len(val.CAtoms) {
-			return "", Error{"Internal constraint ill-formated",Orca,O.inputname,"",[]string{"buildConstraints"}}
+			return "", Error{"Internal constraint ill-formated", Orca, O.inputname, "", []string{"buildConstraints"}, true}
 		}
 
 		var temp string
@@ -377,7 +380,7 @@ func (O *OrcaHandle) buildgCP(Q *Calc) (string, error) {
 		case "def2-sv(p)":
 			ret = "GCP(DFT/SV(P))"
 		default:
-			err = Error{Orca, O.inputname, "Method/basis combination for gCP unavailable, will skip the correction", "",[]string{"buildCP"}, false}
+			err = Error{Orca, O.inputname, "Method/basis combination for gCP unavailable, will skip the correction", "", []string{"buildCP"}, false}
 		}
 	}
 	return ret, err
@@ -420,12 +423,12 @@ func (O *OrcaHandle) OptimizedGeometry(atoms chem.Ref) (*v3.Matrix, error) {
 	geofile := fmt.Sprintf("%s.xyz", O.inputname)
 	//Here any error of orcaNormal... or false means the same, so the error can be ignored.
 	if trust := O.orcaNormalTermination(); !trust {
-		err = Error{ErrProbableProblem, Orca, O.inputname, "",[]string{"OptimizedGeometry"}, false}
+		err = Error{ErrProbableProblem, Orca, O.inputname, "", []string{"OptimizedGeometry"}, false}
 	}
 	//This might not be super efficient but oh well.
 	mol, err1 := chem.XYZRead(geofile)
 	if err1 != nil {
-		return nil, errDecorate("qm.OptimizedGeometry "+Orca+" "+O.inputname+" "+ErrNoGeometry)    // Error{ErrNoEnergy, Orca, O.inputname, err1.Error(),[]string{"OptimizedGeometry"}, true}
+		return nil, errDecorate(err1, "qm.OptimizedGeometry "+Orca+" "+O.inputname+" "+ErrNoGeometry) // Error{ErrNoEnergy, Orca, O.inputname, err1.Error(),[]string{"OptimizedGeometry"}, true}
 	}
 	return mol.Coords[0], err //returns the coords, the error indicates whether the structure is trusty (normal calculation) or not
 }
@@ -436,10 +439,10 @@ func (O *OrcaHandle) OptimizedGeometry(atoms chem.Ref) (*v3.Matrix, error) {
 //in calculation")
 func (O *OrcaHandle) Energy() (float64, error) {
 	var err error
-	err = Error{ErrProbableProblem, Orca, O.inputname, "", false}
+	err = Error{ErrProbableProblem, Orca, O.inputname, "", []string{"Energy"}, false}
 	f, err1 := os.Open(fmt.Sprintf("%s.out", O.inputname))
 	if err1 != nil {
-		return 0, Error{ErrNoEnergy,Orca,O.inputname,err.Error(),[]string{"os.Open","qm.Energy"},true}
+		return 0, Error{ErrNoEnergy, Orca, O.inputname, err.Error(), []string{"os.Open", "qm.Energy"}, true}
 	}
 	defer f.Close()
 	f.Seek(-1, 2) //We start at the end of the file
@@ -448,7 +451,7 @@ func (O *OrcaHandle) Energy() (float64, error) {
 	for i := 0; ; i++ {
 		line, err1 := getTailLine(f)
 		if err1 != nil {
-			return 0.0, errDecorate("Energy")
+			return 0.0, errDecorate(err, "Energy "+O.inputname)
 		}
 		if strings.Contains(line, "**ORCA TERMINATED NORMALLY**") {
 			err = nil
@@ -457,7 +460,7 @@ func (O *OrcaHandle) Energy() (float64, error) {
 			splitted := strings.Fields(line)
 			energy, err1 = strconv.ParseFloat(splitted[4], 64)
 			if err1 != nil {
-				return 0.0, Error{ErrNoEnergy, Orca, O.inputname, err1.Error(), true}
+				return 0.0, Error{ErrNoEnergy, Orca, O.inputname, err1.Error(), []string{"strconv.Parsefloat", "Energy"}, true}
 
 			}
 			found = true
@@ -465,7 +468,7 @@ func (O *OrcaHandle) Energy() (float64, error) {
 		}
 	}
 	if !found {
-		return 0.0, Error{ErrNoEnergy, Orca, O.inputname, "",[]string{"Energy"}, false}
+		return 0.0, Error{ErrNoEnergy, Orca, O.inputname, "", []string{"Energy"}, false}
 	}
 	return energy * chem.H2Kcal, err
 }
@@ -478,10 +481,10 @@ func getTailLine(f *os.File) (line string, err error) {
 	for ; ; i++ {
 		//move the pointer back one byte per cycle
 		if _, err := f.Seek(-2, 1); err != nil {
-			return "", Error{err.Error(),Orca,O.inputname,"",[]string{"os.File.Seek","getTailLine"},true}
+			return "", Error{err.Error(), Orca, "Unknown", "", []string{"os.File.Seek", "getTailLine"}, true}
 		}
 		if _, err := f.Read(buf); err != nil {
-			return "", Error{err.Error(),Orca,O.inputname,"",[]string{"os.File.Read","getTailLine"},true}
+			return "", Error{err.Error(), Orca, "Unknown", "", []string{"os.File.Read", "getTailLine"}, true}
 		}
 		if buf[0] == byte('\n') && ini == -1 {
 			ini = i
@@ -492,7 +495,7 @@ func getTailLine(f *os.File) (line string, err error) {
 	f.Read(bufF)
 
 	if _, err := f.Seek(int64(-1*(len(bufF))), 1); err != nil { //making up for the read
-		return "", Error{err.Error(),Orca,O.inputname,"",[]string{"os.File.Seek","getTailLine"},true}
+		return "", Error{err.Error(), Orca, "Unknown", "", []string{"os.File.Seek", "getTailLine"}, true}
 
 	}
 	return string(bufF), nil
