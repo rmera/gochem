@@ -172,7 +172,7 @@ func TestPutInXYPlane(Te *testing.T) {
 	some := v3.Zeros(len(indexes))
 	some.SomeVecs(mol.Coords[0], indexes)
 	//for most rotation things it is good to have the molecule centered on its mean.
-	mol.Coords[0], _, _ = MassCentrate(mol.Coords[0], some, nil)
+	mol.Coords[0], _, _ = MassCenter(mol.Coords[0], some, nil)
 	//The test molecule is not completely planar so we use a subset of atoms that are contained in a plane
 	//These are the atoms given in the indexes slice.
 	some.SomeVecs(mol.Coords[0], indexes)
@@ -339,7 +339,7 @@ func TestRotateBz(Te *testing.T) {
 	bz := v3.Zeros(12)
 	carbons.SomeVecs(coordsI, carbonIn)
 	coords := v3.Zeros(mol.Len())
-	coords, _, _ = MassCentrate(coordsI, carbons, nil)
+	coords, _, _ = MassCenter(coordsI, carbons, nil)
 	bz.SomeVecs(coords, bzIn)
 	carbons.SomeVecs(coords, carbonIn)
 	planevec, err := BestPlane(carbons, nil)

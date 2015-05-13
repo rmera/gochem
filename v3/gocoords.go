@@ -156,7 +156,7 @@ func (F *Matrix) SomeVecsSafe(A *Matrix, clist []int) error {
 	defer func() {
 		if r := recover(); r != nil {
 			switch e := r.(type) {
-			case V3Panic:
+			case PanicMsg:
 				err = Error{fmt.Sprintf("%s: %s", ErrGonum, e), []string{"SomeVecsSafe"}, true}
 			case mat64.Error:
 				err = Error{fmt.Sprintf("%goChem/v3: mat64.Error: %s", e), []string{"SomeVecsSafe"}, true}

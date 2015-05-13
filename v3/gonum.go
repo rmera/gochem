@@ -355,23 +355,23 @@ func errDecorate(err error, caller string) error {
 	return err2
 }
 
-//V3Panic is a message used for panics, even though it does satisfy the error interface.
+//PanicMsg is a message used for panics, even though it does satisfy the error interface.
 //for errors use Error.
-type V3Panic string
+type PanicMsg string
 
-func (v V3Panic) Error() string { return string(v) }
+func (v PanicMsg) Error() string { return string(v) }
 
 //Here I use a few of the gonum/mat64 messages for compatibility (Copyright (c) The gonum authors). I assumed here that this is small enough not to require
 //messing about with licenses, but of course I don't intend any copyright impringement and I will set somethign up if contacted.
 
 const (
-	ErrNotXx3Matrix      = V3Panic("goChem/v3: A VecMatrix should have 3 columns")
-	ErrNoCrossProduct    = V3Panic("goChem/v3: Invalid matrix for cross product")
-	ErrNotOrthogonal     = V3Panic("goChem/v3: Vectors nor orthogonal")
-	ErrNotEnoughElements = V3Panic("goChem/v3: not enough elements in Matrix")
-	ErrGonum             = V3Panic("goChem/v3: Error in gonum function")
-	ErrEigen             = V3Panic("goChem/v3: Can't obtain eigenvectors/eigenvalues of given matrix")
-	ErrDeterminant       = V3Panic("goChem/v3: Determinants are only available for 3x3 matrices")
-	ErrShape             = V3Panic("goChem/v3: Dimension mismatch")
-	ErrIndexOutOfRange   = V3Panic("mat64: index out of range")
+	ErrNotXx3Matrix      = PanicMsg("goChem/v3: A VecMatrix should have 3 columns")
+	ErrNoCrossProduct    = PanicMsg("goChem/v3: Invalid matrix for cross product")
+	ErrNotOrthogonal     = PanicMsg("goChem/v3: Vectors nor orthogonal")
+	ErrNotEnoughElements = PanicMsg("goChem/v3: not enough elements in Matrix")
+	ErrGonum             = PanicMsg("goChem/v3: Error in gonum function")
+	ErrEigen             = PanicMsg("goChem/v3: Can't obtain eigenvectors/eigenvalues of given matrix")
+	ErrDeterminant       = PanicMsg("goChem/v3: Determinants are only available for 3x3 matrices")
+	ErrShape             = PanicMsg("goChem/v3: Dimension mismatch")
+	ErrIndexOutOfRange   = PanicMsg("mat64: index out of range")
 )

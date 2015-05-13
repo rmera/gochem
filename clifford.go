@@ -178,6 +178,7 @@ func RotateSer(Target, ToRot, axis *v3.Matrix, angle float64) *v3.Matrix {
 	return ToRot
 }
 
+
 //RotateSerP takes the matrix Target and uses Clifford algebra to rotate each of its rows
 //by angle radians around axis. Axis must be a 3D row vector. Target must be an N,3 matrix.
 //The Ser in the name is from "serial". ToRot will be overwritten and returned. RotateSerP only allocates some floats but not
@@ -188,7 +189,7 @@ func RotateSerP(Target, ToRot, axis, tmpv, Rv, Rvrev, Rotatedv, itmp1, itmp2, it
 	tarr, _ := Target.Dims()
 	torotr := ToRot.NVecs()
 	if tarr != torotr || Target.Dense == ToRot.Dense {
-		panic("RotateSerP: Target and Res must have the same dimensions. Target and Res cannot reference the same matrix")
+		panic(ErrCliffordRotation)
 	}
 	//Make the paravectors from the passed vectors:
 	tmp := paravectorFromVector(tmpv, itmp3)
@@ -219,7 +220,7 @@ func getChunk(cake *v3.Matrix, i, j, r, c int) *v3.Matrix {
 
 //Rotate takes the matrix Target and uses Clifford algebra to _concurrently_ rotate each
 //of its rows by angle radians around axis. Axis must be a 3D row vector.
-//Target must be an N,3 matrix. The result is returned.
+//Target must be an N,3 matrix. The result is put in Res, which is also returned.
 func Rotate(Target, Res, axis *v3.Matrix, angle float64) *v3.Matrix {
 	gorut := runtime.GOMAXPROCS(-1)
 	cake := v3.Zeros(5 + gorut*4)
@@ -245,7 +246,7 @@ func RotateP(Target, Res, axis, Rv, Rvrev, tmp1, tmp2, tmp3, tmp4, itmp1, itmp2,
 	rows := Target.NVecs()
 	rrows := Res.NVecs()
 	if rrows != rows || Target.Dense == Res.Dense {
-		panic("RotateP: Target and Res must have the same dimensions. Target and Res cannot reference the same matrix.")
+		panic(ErrCliffordRotation)
 	}
 	paxis := paravectorFromVector(axis, itmp1) //alloc
 	paxis.unit(paxis)
@@ -372,3 +373,8 @@ func fullCliProduct(A, B *paravector) *paravector {
 
 	return R
 }
+
+
+//The only panic the clifford part throws
+const ErrCliffordRotation =  PanicMsg("goChem-Clifford: Target and Result matrices must have the same dimensions. They cannot reference the same matrix")
+

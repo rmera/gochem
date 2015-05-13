@@ -61,7 +61,7 @@ type Atom struct {
 //puts the copy into the
 func (N *Atom) Copy(A *Atom) {
 	if A == nil || N == nil {
-		panic("Attempted to copy from or to a nil atom")
+		panic(ErrNilAtom)
 	}
 	N.Name = A.Name
 	N.ID = A.ID
@@ -167,7 +167,7 @@ func (T *Topology) CopyAtoms(A Atomer) {
 //out of range.
 func (T *Topology) Atom(i int) *Atom {
 	if i >= T.Len() {
-		panic("Topology: Requested Atom out of bounds")
+		panic(ErrAtomOutOfRange)
 	}
 	return T.Atoms[i]
 }
@@ -176,7 +176,7 @@ func (T *Topology) Atom(i int) *Atom {
 //Panics if out of range
 func (T *Topology) SetAtom(i int, at *Atom) {
 	if i >= T.Len() {
-		panic("Topology: Tried to set Atom out of bounds")
+		panic(ErrAtomOutOfRange)
 	}
 	T.Atoms[i] = at
 }
@@ -198,8 +198,8 @@ func (R *Topology) SomeAtoms(T Atomer, atomlist []int) {
 	lenatoms := T.Len()
 	for k, j := range atomlist {
 		if j > lenatoms-1 {
-			err := fmt.Sprintf("Topology: Atom requested (Number: %d, value: %d) out of range", k, j)
-			panic(v3.Error(err)) //NOTE I'm not sure why did I do this. Change?
+			err := fmt.Sprintf("goChem: Atom requested (Number: %d, value: %d) out of range", k, j)
+			panic(PanicMsg(err))
 		}
 		ret = append(ret, T.Atom(j))
 	}
@@ -217,7 +217,7 @@ func (R *Topology) SomeAtomsSafe(T Atomer, atomlist []int) error {
 //This means that the copy still uses as much memory as the original T.
 func (T *Topology) DelAtom(i int) {
 	if i >= T.Len() {
-		panic("Topology: Tried to delete Atom out of bounds")
+		panic(ErrAtomOutOfRange)
 	}
 	if i == T.Len()-1 {
 		T.Atoms = T.Atoms[:i]
@@ -237,7 +237,7 @@ func (T *Topology) Masses() ([]float64, error) {
 	for i := 0; i < T.Len(); i++ {
 		thisatom := T.Atom(i)
 		if thisatom.Mass == 0 {
-			return nil, fmt.Errorf("Not all the masses have been obtained: %d %v", i, thisatom)
+			return nil, CError{fmt.Sprintf("goChem: Not all the masses have been obtained: %d %v", i, thisatom), []string{"Topology.Masses"}}
 		}
 		mass[i] = thisatom.Mass
 	}
@@ -303,7 +303,7 @@ func (M *Molecule) DelCoord(i int) error {
 //Deletes atom i and its coordinates from the molecule.
 func (M *Molecule) Del(i int) error {
 	if i >= M.Len() {
-		panic("Tried to delete Atom out of bounds")
+		panic(ErrAtomOutOfRange)
 	}
 	M.DelAtom(i)
 	err := M.DelCoord(i)
@@ -329,7 +329,7 @@ func (M *Molecule) Copy(A *Molecule) {
 		mol.Bfactors = append(mol.Bfactors, tmp2)
 	}
 	if err := mol.Corrupted(); err != nil {
-		panic(fmt.Sprintf("Molecule creation error: %s", err.Error()))
+		panic(PanicMsg(fmt.Sprintf("goChem: Molecule creation error: %s", err.Error())))
 	}
 }
 
@@ -345,14 +345,14 @@ func copyB(b []float64) []float64 {
 // It checks that the number of coordinates matches the number of atoms.
 func (M *Molecule) AddFrame(newframe *v3.Matrix) {
 	if newframe == nil {
-		panic("Attempted to add nil frame")
+		panic(ErrNilFrame)
 	}
 	r, c := newframe.Dims()
 	if c != 3 {
-		panic("Malformed coord matrix!")
+		panic(ErrNotXx3Matrix)
 	}
 	if M.Len() != r {
-		panic(v3.Error(fmt.Sprintf("Wrong number of coordinates (%d)", newframe.NVecs())))
+		panic(PanicMsg(fmt.Sprintf("goChem: Wrong number of coordinates (%d)", newframe.NVecs())))
 	}
 	if M.Coords == nil {
 		M.Coords = make([]*v3.Matrix, 1, 1)
@@ -364,7 +364,7 @@ func (M *Molecule) AddFrame(newframe *v3.Matrix) {
 //the number of coordinates matches the number of atoms.
 func (M *Molecule) AddManyFrames(newframes []*v3.Matrix) {
 	if newframes == nil {
-		panic("Attempted to add nil frames")
+		panic(ErrNilFrame)
 	}
 	if M.Coords == nil {
 		M.Coords = make([]*v3.Matrix, 1, len(newframes))
@@ -373,7 +373,7 @@ func (M *Molecule) AddManyFrames(newframes []*v3.Matrix) {
 		f := func() { M.AddFrame(val) }
 		err := gnMaybe(gnPanicker(f))
 		if err != nil {
-			panic(fmt.Sprintf("%s in frame %d", err.Error(), key))
+			panic(PanicMsg(fmt.Sprintf("goChem: %s in frame %d", err.Error(), key)))
 		}
 	}
 }
@@ -382,11 +382,11 @@ func (M *Molecule) AddManyFrames(newframes []*v3.Matrix) {
 //panics if frame or coords are out of range.
 func (M *Molecule) Coord(atom, frame int) *v3.Matrix {
 	if frame >= len(M.Coords) {
-		panic(fmt.Sprintf("Frame requested (%d) out of range", frame))
+		panic(PanicMsg(fmt.Sprintf("goChem: Frame requested (%d) out of range", frame)))
 	}
 	r, _ := M.Coords[frame].Dims()
 	if atom >= r {
-		panic(fmt.Sprintf("Requested coordinate (%d) out of bounds (%d)", atom, M.Coords[frame].NVecs()))
+		panic(PanicMsg(fmt.Sprintf("goChem: Requested coordinate (%d) out of bounds (%d)", atom, M.Coords[frame].NVecs())))
 	}
 	ret := v3.Zeros(1)
 	empt := M.Coords[frame].VecView(atom)
@@ -406,7 +406,7 @@ func (M *Molecule) Current() int {
 //to i.
 func (M *Molecule) SetCurrent(i int) {
 	if i < 0 || i >= len(M.Coords) {
-		panic("Invalid new value for current")
+		panic(PanicMsg(fmt.Sprintf("Invalid new value for current frame: %d Current frames: %d", i, len(M.Coords))))
 	}
 	M.current = i
 }
@@ -454,7 +454,7 @@ func (M *Molecule) Corrupted() error {
 	for i := range M.Coords {
 		r, c := M.Coords[i].Dims()
 		if M.Len() != r || c != 3 {
-			err = fmt.Errorf("Inconsistent coordinates/atoms in frame %d: Atoms %d, coords: %d", i, M.Len(), M.Coords[i].NVecs())
+			err = CError{fmt.Sprintf("Inconsistent coordinates/atoms in frame %d: Atoms %d, coords: %d", i, M.Len(), M.Coords[i].NVecs()), []string{"Molecule.Corrupted"}}
 			break
 		}
 		//Since bfactors are not as important as coordinates, we will just fill with
@@ -584,7 +584,7 @@ type lastFrameError struct {
 }
 
 func (E *lastFrameError) Error() string {
-	return fmt.Sprintf("No more frames") //: Last frame in mol-based trajectory from file %10s reached at frame %10d", E.fileName, E.frame)
+	return fmt.Sprintf("EOF") //: Last frame in mol-based trajectory from file %10s reached at frame %10d", E.fileName, E.frame)
 }
 
 func (E *lastFrameError) Format() string {
@@ -610,3 +610,49 @@ func newlastFrameError(filename string, frame int) *lastFrameError {
 }
 
 //End Traj Error
+
+//The general concrete error type for the package
+
+//CError (Concrete Error) is the concrete error type
+//for the chem package, that implements chem.Error
+type CError struct {
+	msg  string
+	deco []string
+}
+
+func (err CError) Error() string { return err.msg }
+
+//Decorate will add the dec string to the decoration slice of strings of the error,
+//and return the resulting slice.
+func (err CError) Decorate(dec string) []string {
+	err.deco = append(err.deco, dec)
+	return err.deco
+}
+
+
+//errDecorate will decorate a chem.Error, or use the message of the error
+//and the name of the called to produce a new chem.Error (if the original error does not 
+//implement chem.Error
+func errDecorate(err error, caller string) Error {
+	if err==nil{
+		return nil
+	}
+	err2,ok := err.(Error) //I know that is the type returned byt initRead
+	if ok{
+		err2.Decorate(caller)
+		return err2
+	}
+	err3:=CError{err.Error(),[]string{caller}}
+	return err3
+}
+
+type PanicMsg string
+
+func (v PanicMsg) Error() string { return string(v) }
+
+const (
+	ErrNilAtom        = PanicMsg("goChem: Attempted to copy from or to a nil Atom")
+	ErrAtomOutOfRange = PanicMsg("goChem: Requested/Attempted setting Atom out of range")
+	ErrNilFrame       = PanicMsg("goChem: Attempted to acces nil frame")
+	ErrNotXx3Matrix   = PanicMsg("goChem: A v3.VecMatrix should have 3 columns")
+)
