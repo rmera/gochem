@@ -26,30 +26,30 @@
  */
 /***Dedicated to the long life of the Ven. Khenpo Phuntzok Tenzin Rinpoche***/
 
-package chem
+package chemjson
 
 import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"github.com/rmera/gochem"
+	"github.com/rmera/gochem/v3"
 	"io"
 	"strings"
-
-	"github.com/rmera/gochem/v3"
 )
 
-type JSONAtom struct {
-	A      *Atom
+type Atom struct {
+	A      *chem.Atom
 	Coords []float64
 	Bfac   float64
 }
 
-type JSONCoords struct {
+type Coords struct {
 	Coords []float64
 }
 
 //An easily JSON-serializable error type,
-type JSONError struct {
+type Error struct {
 	IsError       bool //If this is false (no error) all the other fields will be at their zero-values.
 	InOptions     bool //If error, was it in parsing the options?
 	InSelections  bool //Was it in parsing selections?
@@ -63,12 +63,12 @@ type JSONError struct {
 }
 
 //implements the error interface
-func (J *JSONError) Error() string {
+func (J *Error) Error() string {
 	return J.Message
 }
 
 //Serializes the error. Panics on failure.
-func (J *JSONError) Marshal() []byte {
+func (J *Error) Marshal() []byte {
 	ret, err2 := json.Marshal(J)
 	if err2 != nil {
 		panic(strings.Join([]string{J.Error(), err2.Error()}, " - ")) //well, shit.
@@ -77,7 +77,7 @@ func (J *JSONError) Marshal() []byte {
 }
 
 //Information to be passed back to the calling program.
-type JSONInfo struct {
+type Info struct {
 	Molecules         int
 	Bfactors          bool
 	SS                bool
@@ -90,16 +90,17 @@ type JSONInfo struct {
 	Energies          []float64
 }
 
-func (J *JSONInfo) Send(out io.Writer) *JSONError {
+//Send Marshals the info and writes to out, returns an error or nil
+func (J *Info) Send(out io.Writer) *Error {
 	enc := json.NewEncoder(out)
 	if err := enc.Encode(J); err != nil {
-		return MakeJSONError("postprocess", "JSONInfo.Marshal", err)
+		return NewError("postprocess", "JSONInfo.Marshal", err)
 	}
 	return nil
 }
 
 //Options passed from the calling external program
-type JSONOptions struct {
+type Options struct {
 	SelNames      []string
 	AtomsPerSel   []int //Knowing in advance makes memory allocation more efficient
 	StatesPerSel  []int //How many snapshots a traj has?
@@ -109,9 +110,9 @@ type JSONOptions struct {
 	FloatOptions  [][]float64
 }
 
-//Takes an error and some additional info to create a JSON error
-func MakeJSONError(where, function string, err error) *JSONError {
-	jerr := new(JSONError)
+//Takes an error and some additional info to create a json-marshal-ble error
+func NewError(where, function string, err error) *Error {
+	jerr := new(Error)
 	jerr.IsError = true
 	switch where {
 	case "options":
@@ -128,23 +129,25 @@ func MakeJSONError(where, function string, err error) *JSONError {
 	return jerr
 }
 
-func DecodeJSONOptions(stdin *bufio.Reader) (*JSONOptions, *JSONError) {
+//DecodeOptions Decodes or unmarshals json options into an Options structure
+func DecodeOptions(stdin *bufio.Reader) (*Options, *Error) {
 	line, err := stdin.ReadBytes('\n')
 	if err != nil {
-		return nil, MakeJSONError("options", "DecodeJSONOptions", err)
+		return nil, NewError("options", "DecodeOptions", err)
 	}
-	ret := new(JSONOptions)
+	ret := new(Options)
 	err = json.Unmarshal(line, ret)
 	if err != nil {
-		return nil, MakeJSONError("options", "DecodeJSONOptions", err)
+		return nil, NewError("options", "DecodeOptions", err)
 	}
 	return ret, nil
 }
 
-//Decodes a JSON molecule into a gochem molecule. Can handle several frames (all of which need to have the same amount of atoms). It does
+//DecodeMolecule Decodes a JSON molecule into a gochem molecule. Can handle several frames (all of which need to have the same amount of atoms). It does
 //not collect the b-factors.
-func DecodeJSONMolecule(stream *bufio.Reader, atomnumber, frames int) (*Topology, []*v3.Matrix, *JSONError) {
-	atoms := make([]*Atom, 0, atomnumber)
+func DecodeMolecule(stream *bufio.Reader, atomnumber, frames int) (*chem.Topology, []*v3.Matrix, *Error) {
+	const funcname = "DecodeMolecule" //for the error
+	atoms := make([]*chem.Atom, 0, atomnumber)
 	coordset := make([]*v3.Matrix, 0, frames)
 	rawcoords := make([]float64, 0, 3*atomnumber)
 	for i := 0; i < atomnumber; i++ {
@@ -152,35 +155,35 @@ func DecodeJSONMolecule(stream *bufio.Reader, atomnumber, frames int) (*Topology
 		if err != nil {
 			break
 		}
-		at := new(Atom)
+		at := new(chem.Atom)
 		err = json.Unmarshal(line, at)
 		if err != nil {
-			return nil, nil, MakeJSONError("selection", "DecodeJSONMolecule", err)
+			return nil, nil, NewError("selection", funcname, err)
 		}
 		atoms = append(atoms, at)
 		line, err = stream.ReadBytes('\n') //See previous comment.
 		if err != nil {
 			break
 		}
-		ctemp := new(JSONCoords)
+		ctemp := new(Coords)
 		if err = json.Unmarshal(line, ctemp); err != nil {
-			return nil, nil, MakeJSONError("selection", "DecodeJSONMolecule", err)
+			return nil, nil, NewError("selection", funcname, err)
 		}
 		rawcoords = append(rawcoords, ctemp.Coords...)
 	}
-	mol, _ := NewTopology(atoms, 0, 1) //no idea of the charge or multiplicity
+	mol, _ := chem.NewTopology(atoms, 0, 1) //no idea of the charge or multiplicity
 	coords, err := v3.NewMatrix(rawcoords)
 	if err != nil {
-		return nil, nil, MakeJSONError("selection", "DecodeJSONMolecule", err)
+		return nil, nil, NewError("selection", funcname, err)
 	}
 	coordset = append(coordset, coords)
 	if frames == 1 {
 		return mol, coordset, nil
 	}
 	for i := 0; i < (frames - 1); i++ {
-		coords, err := DecodeJSONCoords(stream, atomnumber)
+		coords, err := DecodeCoords(stream, atomnumber)
 		if err != nil {
-			return mol, coordset, MakeJSONError("selection", "DecodeJSONMolecule", fmt.Errorf("Error reading the %d th frame: %s", i+2, err.Error()))
+			return mol, coordset, NewError("selection", funcname, fmt.Errorf("Error reading the %d th frame: %s", i+2, err.Error()))
 		}
 		coordset = append(coordset, coords)
 	}
@@ -188,33 +191,37 @@ func DecodeJSONMolecule(stream *bufio.Reader, atomnumber, frames int) (*Topology
 
 }
 
-func DecodeJSONCoords(stream *bufio.Reader, atomnumber int) (*v3.Matrix, *JSONError) {
+//Decodecoords decodes streams from a bufio.Reader containing 3*atomnumber JSON floats into a v3.Matrix with atomnumber rows.
+func DecodeCoords(stream *bufio.Reader, atomnumber int) (*v3.Matrix, *Error) {
+	const funcname = "DecodeCoords"
 	rawcoords := make([]float64, 0, 3*atomnumber)
 	for i := 0; i < atomnumber; i++ {
 		line, err := stream.ReadBytes('\n') //Using this function allocates a lot without need. There is no function that takes a []bytes AND a limit. I might write one at some point.
 		if err != nil {
 			break
 		}
-		ctemp := new(JSONCoords)
+		ctemp := new(Coords)
 		if err = json.Unmarshal(line, ctemp); err != nil {
-			return nil, MakeJSONError("selection", "DecodeJSONCoords", err)
+			return nil, NewError("selection", funcname, err)
 		}
 		rawcoords = append(rawcoords, ctemp.Coords...)
 	}
 	coords, err := v3.NewMatrix(rawcoords)
 	if err != nil {
-		return nil, MakeJSONError("selection", "DecodeJSONCoords", err)
+		return nil, NewError("selection", funcname, err)
 	}
 	return coords, nil
 }
 
-func TransmitMoleculeJSON(mol Atomer, coordset, bfactors []*v3.Matrix, ss [][]string, out io.Writer) *JSONError {
+//Takes a chem.Atomer, coordinates, bfactos and secondary strucuctures, encodes them and writes them to the given io.writer
+func SendMolecule(mol chem.Atomer, coordset, bfactors []*v3.Matrix, ss [][]string, out io.Writer) *Error {
+	const funcname = "SendMolecule"
 	enc := json.NewEncoder(out)
-	if err := EncodeAtoms2JSON(mol, enc); err != nil {
+	if err := EncodeAtoms(mol, enc); err != nil {
 		return err
 	}
 	for _, coords := range coordset {
-		if err := EncodeCoords2JSON(coords, enc); err != nil {
+		if err := EncodeCoords(coords, enc); err != nil {
 			return err
 		}
 	}
@@ -223,7 +230,7 @@ func TransmitMoleculeJSON(mol Atomer, coordset, bfactors []*v3.Matrix, ss [][]st
 		for _, b := range bfactors {
 			jb.Bfactors = b.Col(nil, 0)
 			if err := enc.Encode(jb); err != nil {
-				return MakeJSONError("postprocess", "TransmitMoleculeJson(bfactors)", err)
+				return NewError("postprocess", funcname+"(bfactors)", err)
 			}
 		}
 	}
@@ -232,7 +239,7 @@ func TransmitMoleculeJSON(mol Atomer, coordset, bfactors []*v3.Matrix, ss [][]st
 		for _, s := range ss {
 			jss.SS = s
 			if err := enc.Encode(jss); err != nil {
-				return MakeJSONError("postprocess", "TransmitMoleculeJson(ss)", err)
+				return NewError("postprocess", funcname+"(ss)", err)
 			}
 		}
 	}
@@ -251,25 +258,26 @@ type jSONCoords struct {
 	Coords []float64
 }
 
-func EncodeAtoms2JSON(mol Atomer, enc *json.Encoder) *JSONError {
+func EncodeAtoms(mol chem.Atomer, enc *json.Encoder) *Error {
+	const funcname = "EncodeAtoms"
 	if mol == nil {
 		return nil //Its assumed to be intentional.
 	}
 	for i := 0; i < mol.Len(); i++ {
 		if err := enc.Encode(mol.Atom(i)); err != nil {
-			return MakeJSONError("postprocess", "EncodeAtoms2JSON", err)
+			return NewError("postprocess", funcname, err)
 		}
 	}
 	return nil
 }
 
-func EncodeCoords2JSON(coords *v3.Matrix, enc *json.Encoder) *JSONError {
-	c := new(jSONCoords)
+func EncodeCoords(coords *v3.Matrix, enc *json.Encoder) *Error {
+	c := new(Coords)
 	t := make([]float64, 3, 3)
 	for i := 0; i < coords.NVecs(); i++ {
 		c.Coords = coords.Row(t, i)
 		if err := enc.Encode(c); err != nil {
-			return MakeJSONError("postprocess", "EncodeCoords2JSON", err)
+			return NewError("postprocess", "chemjson.EncodeCoords", err)
 		}
 	}
 	return nil
