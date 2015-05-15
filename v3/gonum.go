@@ -226,8 +226,6 @@ func (E eigenpair) Len() int {
 //Is the compatibiliy with go.matrix. This function should dissapear when we
 //have a pure Go blas.
 func EigenWrap(in *Matrix, epsilon float64) (*Matrix, []float64, error) {
-	err := Error{string(ErrEigen), []string{"EigenWrap"}, true}
-
 	if epsilon < 0 {
 		epsilon = appzero
 	}
@@ -243,7 +241,7 @@ func EigenWrap(in *Matrix, epsilon float64) (*Matrix, []float64, error) {
 	//evals := [3]float64{vals.At(0, 0), vals.At(1, 1), vals.At(2, 2)} //go.matrix specific code here.
 	f := func() { evecs.TCopy(evecs) }
 	if err2 := mat64.Maybe(mat64.Panicker(f)); err2 != nil {
-		return nil, nil, Error{err.Error(), []string{"EigenWrap"}, true}
+		return nil, nil, Error{err2.Error(), []string{"mat64.TCopy","EigenWrap"}, true}
 	}
 	//evecs.TCopy(evecs.Dense)
 	//	fmt.Println("evecs presort", evecs) /////////
@@ -285,7 +283,7 @@ func EigenWrap(in *Matrix, epsilon float64) (*Matrix, []float64, error) {
 		//	fmt.Println("all good, I guess")
 	}
 	//	eig.evecs.TCopy(eig.evecs)
-	return eig.evecs, eig.evals, err //Returns a slice of evals
+	return eig.evecs, eig.evals, nil //Returns a slice of evals
 }
 
 /*

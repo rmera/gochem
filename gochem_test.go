@@ -180,6 +180,8 @@ func TestPutInXYPlane(Te *testing.T) {
 	//This will mean that the plane of the molecule will now match the XY-plane.
 	best, err := BestPlane(some, nil)
 	if err != nil {
+		err2:=err.(Error)
+		fmt.Println(err2.Decorate(""))
 		Te.Error(err)
 		panic(err.Error())
 	}

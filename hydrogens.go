@@ -64,14 +64,16 @@ func Reduce(mol Atomer, coords *v3.Matrix, build int, report *os.File) (*Molecul
 	//	}
 	out, err := reduce.StdoutPipe()
 	if err != nil {
-		return nil, err
+		return nil, CError{err.Error(),[]string{"exec.StdoutPipe","Reduce"}}
 	}
 	out2, err := reduce.StderrPipe()
 	if err != nil {
-		return nil, err
+		return nil,  CError{err.Error(),[]string{"exec.StderrPipe","Reduce"}}
+
 	}
 	if err := reduce.Start(); err != nil {
-		return nil, err
+		return nil,  CError{err.Error(),[]string{"exec.Start","Reduce"}}
+
 	}
 	/*	//Failed attempt to transmit the data directly to reduce using a pipe.
 		binp := bufio.NewWriter(inp)
@@ -93,7 +95,8 @@ func Reduce(mol Atomer, coords *v3.Matrix, build int, report *os.File) (*Molecul
 	if report == nil {
 		report, err := os.Create("Reduce.log")
 		if err != nil {
-			return nil, err
+			return nil,  CError{err.Error(),[]string{"os.Create","Reduce"}}
+
 		}
 		defer report.Close()
 	}
@@ -102,7 +105,7 @@ func Reduce(mol Atomer, coords *v3.Matrix, build int, report *os.File) (*Molecul
 	for {
 		s, err := bufiopdb.ReadString('\n')
 		if err != nil {
-			return nil, err
+			return nil, errDecorate(err,"Reduce")
 		}
 		if strings.Contains(s, "USER  MOD ---------------------------------------------------") {
 			dashes++
@@ -114,13 +117,16 @@ func Reduce(mol Atomer, coords *v3.Matrix, build int, report *os.File) (*Molecul
 	}
 	mol2, err := pdbBufIORead(bufiopdb, false)
 	if err != nil {
-		return nil, err
+		return nil, errDecorate(err,"Reduce")
+
 	}
 	if _, err = repio.ReadFrom(out2); err != nil {
-		return mol2, err
+		return mol2, CError{err.Error(),[]string{"bufio.ReadFrom","Reduce"}}
+
 	}
 	if err = reduce.Wait(); err != nil && !strings.Contains(err.Error(), "exit status 1") {
-		return mol2, err
+		return mol2, CError{err.Error(),[]string{"exec.Start","Reduce"}}
+
 	}
 	os.Remove(pdbname)
 	return mol2, nil
