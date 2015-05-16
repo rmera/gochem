@@ -48,7 +48,7 @@ func Molecules2Atoms(mol Atomer, residues []int, chains []string) []int {
 
 }
 
-//This functions takes a molID (residue number), atom name, chain index and a molecule Ref.
+//MolIDNameChain2Index takes a molID (residue number), atom name, chain index and a molecule Ref.
 //it returns the index associated with the atom in question in the Ref. The function returns also an error (if failure of warning)
 // or nil (if succses and no warnings). Note that this function is not efficient to call several times to retrieve many atoms.
 func MolIDNameChain2Index(mol Ref, molID int, name, chain string) (int, error) {
@@ -78,7 +78,7 @@ func MolIDNameChain2Index(mol Ref, molID int, name, chain string) (int, error) {
 	return ret, err
 }
 
-//Ones mass returns a column matrix with lenght rosw.
+//OnesMass returns a column matrix with lenght rosw.
 //This matrix can be used as a dummy mass matrix
 //for geometric calculations.
 func OnesMass(lenght int) *v3.Matrix {
@@ -126,7 +126,7 @@ func Super(test, templa *v3.Matrix, testlst, templalst []int) (*v3.Matrix, error
 	return test, nil
 }
 
-//Rotate about rotates the coordinates in coordsorig around by angle radians around the axis
+//RotateAbout about rotates the coordinates in coordsorig around by angle radians around the axis
 //given by the vector axis. It returns the rotated coordsorig, since the original is not affected.
 //Uses Clifford algebra.
 func RotateAbout(coordsorig, ax1, ax2 *v3.Matrix, angle float64) (*v3.Matrix, error) {
@@ -194,7 +194,7 @@ func Corrupted(X Traj, R Atomer) error {
 
 //Some internal convenience functions.
 
-//isIn is a helper for the RamaList function,
+//isInInt is a helper for the RamaList function,
 //returns true if test is in container, false otherwise.
 func isInInt(container []int, test int) bool {
 	if container == nil {
@@ -221,7 +221,7 @@ func isInString(container []string, test string) bool {
 	return false
 }
 
-//Creates a water molecule at distance Angstroms from a2, in a direction that is angle radians from the axis defined by a1 and a2.
+//MakeWater Creates a water molecule at distance Angstroms from a2, in a direction that is angle radians from the axis defined by a1 and a2.
 //Notice that the exact position of the water is not well defined when angle is not zero. One can always use the RotateAbout
 //function to move the molecule to the desired location. If oxygen is true, the oxygen will be pointing to a2. Otherwise,
 //one of the hydrogens will.
@@ -304,9 +304,9 @@ func MakeWater(a1, a2 *v3.Matrix, distance, angle float64, oxygen bool) *v3.Matr
 	return water
 }
 
-//This function will put the internal numbering+1 in the atoms and residue fields, so they match the current residues/atoms
+//FixNumbering will put the internal numbering+1 in the atoms and residue fields, so they match the current residues/atoms
 //in the molecule
-func FixNumbering(r Ref) { /*NOTICE: Ref is not needed here, only the Len and Atom methods are used. Will chance for Atomer*/
+func FixNumbering(r Atomer) {
 	resid := 0
 	prevres := -1
 	for i := 0; i < r.Len(); i++ {
@@ -320,7 +320,7 @@ func FixNumbering(r Ref) { /*NOTICE: Ref is not needed here, only the Len and At
 	}
 }
 
-//Takes a list of lists of residues and deletes from r
+//CutBackRef takes a list of lists of residues and deletes from r
 //all atoms not in the list or not belonging to the chain chain.
 //It caps the N and C terminal
 //of each list with -COH for the N terminal and NH2 for C terminal.
@@ -466,6 +466,9 @@ func CutBetaRef(r Atomer, chain []string, list []int) []int {
 	return newlist
 }
 
+//CutAlphaRef will return a list with the atoms in the residues indicated by list, in the chains given.
+//The carbonyl carbon and amide nitrogen for each residue will be transformer into hydrogens. The MolID of the
+//other backbone atoms will be set to -1 so they are no longer considered.
 func CutAlphaRef(r Atomer, chain []string, list []int) []int {
 	for i := 0; i < r.Len(); i++ {
 		curr := r.Atom(i)
@@ -486,7 +489,7 @@ func CutAlphaRef(r Atomer, chain []string, list []int) []int {
 	return newlist
 }
 
-//This will tag all atoms with a given name in a given list of atoms.
+//TagAtomsByName will tag all atoms with a given name in a given list of atoms.
 //return the number of tagged atoms
 func TagAtomsByName(r Atomer, name string, list []int) int {
 	tag := 0
@@ -500,7 +503,7 @@ func TagAtomsByName(r Atomer, name string, list []int) int {
 	return tag
 }
 
-//Scales all bonds between atoms in the same residue with names n1, n2 to a final lenght finallengt, by moving the atoms n2.
+//ScaleBonds scales all bonds between atoms in the same residue with names n1, n2 to a final lenght finallengt, by moving the atoms n2.
 //the operation is executed in place.
 func ScaleBonds(coords *v3.Matrix, mol Atomer, n1, n2 string, finallenght float64) {
 	for i := 0; i < mol.Len(); i++ {
@@ -519,8 +522,8 @@ func ScaleBonds(coords *v3.Matrix, mol Atomer, n1, n2 string, finallenght float6
 	}
 }
 
-//ScaleCHBond takes a bond and moves the H (in place) so the distance between them is bond.
-//CAUTION: I have only tested it for the case where the original distance>bond, although I think it will also work in the other case.
+//ScaleBond takes a C-H bond and moves the H (in place) so the distance between them is the one given (bond).
+//CAUTION: I have only tested it for the case where the original distance>bond, although I expect it to also work in the other case.
 func ScaleBond(C, H *v3.Matrix, bond float64) {
 	Odist := v3.Zeros(1)
 	Odist.Sub(H, C)
@@ -529,6 +532,7 @@ func ScaleBond(C, H *v3.Matrix, bond float64) {
 	H.Sub(H, Odist)
 }
 
+//Merges A and B in a single topology which is returned
 func MergeAtomers(A, B Atomer) (*Topology, error) {
 	al := A.Len()
 	l := al + B.Len()

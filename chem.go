@@ -213,7 +213,7 @@ func (R *Topology) SomeAtomsSafe(T Atomer, atomlist []int) error {
 	return gnMaybe(gnPanicker(f))
 }
 
-//Deletes atom i by reslicing.
+//DelAtom Deletes atom i by reslicing.
 //This means that the copy still uses as much memory as the original T.
 func (T *Topology) DelAtom(i int) {
 	if i >= T.Len() {
@@ -583,22 +583,28 @@ type lastFrameError struct {
 	frame    int
 }
 
+//Error returns an error message string.
 func (E *lastFrameError) Error() string {
-	return fmt.Sprintf("EOF") //: Last frame in mol-based trajectory from file %10s reached at frame %10d", E.fileName, E.frame)
+	return "EOF" //: Last frame in mol-based trajectory from file %10s reached at frame %10d", E.fileName, E.frame)
 }
 
+//Format returns the format used by the trajectory that returned the error.
 func (E *lastFrameError) Format() string {
 	return "mol"
 }
 
+//Frame returns the frame at which the error was detected.
 func (E *lastFrameError) Frame() int {
 	return E.frame
 }
 
+//FileName returns the name of the file from where the trajectory that gave the error is read.
 func (E *lastFrameError) FileName() string {
 	return E.fileName
 }
 
+//NormalLastFrameTermination does nothing, it is there so we can have an interface unifying all
+//"normal termination" errors so they can be filtered out by type switch.
 func (E *lastFrameError) NormalLastFrameTermination() {
 }
 
@@ -648,13 +654,19 @@ func errDecorate(err error, caller string) Error {
 	return err3
 }
 
+//PanicMsg is the type used for all the panics raised in the chem package
+//so they can be easily recovered if needed. goChem only raises panics
+//for programming errors: Attempts to to out of a matrice's bounds,
+//dimension mismatches in matrices, etc.
 type PanicMsg string
 
+//Error returns a string with an error message
 func (v PanicMsg) Error() string { return string(v) }
 
 const (
-	ErrNilAtom        = PanicMsg("goChem: Attempted to copy from or to a nil Atom")
-	ErrAtomOutOfRange = PanicMsg("goChem: Requested/Attempted setting Atom out of range")
-	ErrNilFrame       = PanicMsg("goChem: Attempted to acces nil frame")
-	ErrNotXx3Matrix   = PanicMsg("goChem: A v3.VecMatrix should have 3 columns")
+	ErrNilAtom          = PanicMsg("goChem: Attempted to copy from or to a nil Atom")
+	ErrAtomOutOfRange   = PanicMsg("goChem: Requested/Attempted setting Atom out of range")
+	ErrNilFrame         = PanicMsg("goChem: Attempted to acces nil frame")
+	ErrNotXx3Matrix     = PanicMsg("goChem: A v3.VecMatrix should have 3 columns")
+	ErrCliffordRotation = PanicMsg("goChem-Clifford: Target and Result matrices must have the same dimensions. They cannot reference the same matrix") //the only panic that the Clifford functions throw.
 )

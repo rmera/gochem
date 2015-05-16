@@ -47,6 +47,7 @@ type Traj interface {
 	Len() int
 }
 
+//ConcTraje is an interface for a trajectory that can be read concurrently.
 type ConcTraj interface {
 
 	//Is the trajectory ready to be read?
@@ -62,6 +63,7 @@ type ConcTraj interface {
 	Len() int
 }
 
+//Atomer is the basic interface for a topology.
 type Atomer interface {
 
 	//Atom returns the Atom corresponding to the index i
@@ -72,6 +74,7 @@ type Atomer interface {
 	Len() int
 }
 
+//ReadRef is a readable topology, it gives some global data of the molecule apart from the atoms and also the masses of each atom.
 type ReadRef interface { /*NOTE: This method can probably be removed, as it doesn't seem to be used by any function that asks for these methods.*/
 	Atomer
 
@@ -91,6 +94,7 @@ type ReadRef interface { /*NOTE: This method can probably be removed, as it does
 	SomeAtoms(Atomer, []int)
 }
 
+//A writable interface.
 type WriteRef interface { /*NOTE: This whole interface can probably be removed, It appears that it is not used*/
 
 	//Copy atoms in A into the received. This is a deep copy, so the received must have at least as many atoms as A
@@ -126,12 +130,15 @@ type Ref interface { /*NOTE: WriteRef may be removed, which means that Ref would
 
 //Errors
 
+//Error is the interface for errors that all packages in this library implement. The Decorate method allows to add and retrieve info from the
+//error, without changing it's type or wrapping it around something else.
 type Error interface {
 	Error() string
 	Decorate(string) []string //This is the new thing for errors. It allows you to add information when you pass it up. Each call also returns the "decoration" slice of strins resulting from the current call. If passed an empty string, it should just return the current value, not add the empty string to the slice.
 	//The decorate slice should contain a list of functions in the calling stack, plus, for each function any relevant information, or nothing. If information is to be added to an element of the slice, it should be in this format: "FunctionName: Extra info"
 }
 
+//TrajError is the nterface for errors in trajectories
 type TrajError interface {
 	Error
 	Critical() bool
@@ -139,7 +146,8 @@ type TrajError interface {
 	Format() string
 }
 
-//Errors
+//LastFrameError has a useless function to distinguish the harmless errors (i.e. last frame) so  they can be
+//filtered in a typeswith that looks for this interface.
 type LastFrameError interface {
 	TrajError
 	NormalLastFrameTermination() //does nothing, just to separate this interface from other TrajError's

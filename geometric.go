@@ -69,7 +69,7 @@ func Angle(v1, v2 *v3.Matrix) float64 {
 	return angle
 }
 
-//GetRotateToNewY takes a set of coordinates (mol) and a vector (y). It returns
+//RotatorToNewY takes a set of coordinates (mol) and a vector (y). It returns
 //a rotation matrix that, when applied to mol, will rotate it around the Z axis
 //in such a way that the projection of newy in the XY plane will be aligned with
 //the Y axis.
@@ -92,7 +92,7 @@ func RotatorAroundZToNewY(newy *v3.Matrix) (*v3.Matrix, error) {
 
 }
 
-//GetRotateAroundZ returns an operator that will rotate a set of
+//RotatorAroundZ returns an operator that will rotate a set of
 //coordinates by gamma radians around the z axis.
 func RotatorAroundZ(gamma float64) (*v3.Matrix, error) {
 	singamma := math.Sin(gamma)
@@ -248,7 +248,7 @@ func RMSD(test, template *v3.Matrix) (float64, error) {
 	return RMSD, nil
 }
 
-//Dihedral calculate the dihedral between the points a, b, c, d, where the first plane
+//Dihedral calculates the dihedral between the points a, b, c, d, where the first plane
 //is defined by abc and the second by bcd.
 func Dihedral(a, b, c, d *v3.Matrix) float64 {
 	all := []*v3.Matrix{a, b, c, d}
@@ -455,7 +455,7 @@ func MomentTensor(A *v3.Matrix, massslice []float64) (*v3.Matrix, error) {
 	return v3.Dense2Matrix(moment), nil
 }
 
-//The projection of test in ref.
+//Projection returns the projection of test in ref.
 func Projection(test, ref *v3.Matrix) *v3.Matrix {
 	rr, _ := ref.Dims()
 	Uref := v3.Zeros(rr)
@@ -465,7 +465,7 @@ func Projection(test, ref *v3.Matrix) *v3.Matrix {
 	return Uref
 }
 
-//Given a set of cartesian points in sellist, obtains a vector "plane" normal to the best plane passing through the points.
+//SelCone, Given a set of cartesian points in sellist, obtains a vector "plane" normal to the best plane passing through the points.
 //It selects atoms from the set A that are inside a cone in the direction of "plane" that starts from the geometric center of the cartesian points,
 //and has an angle of angle (radians), up to a distance distance. The cone is approximated by a set of radius-increasing cilinders with height thickness.
 //If one starts from one given point, 2 cgnOnes, one in each direction, are possible. If whatcone is 0, both cgnOnes are considered.

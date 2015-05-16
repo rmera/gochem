@@ -239,7 +239,6 @@ func Rotate(Target, Res, axis *v3.Matrix, angle float64) *v3.Matrix {
 //Rotate takes the matrix Target and uses Clifford algebra to _concurrently_ rotate each
 //of its rows by angle radians around axis. Axis must be a 3D row vector.
 //Target must be an N,3 matrix.
-
 func RotateP(Target, Res, axis, Rv, Rvrev, tmp1, tmp2, tmp3, tmp4, itmp1, itmp2, itmp3 *v3.Matrix, angle float64, gorut int) {
 	//	gorut := runtime.GOMAXPROCS(-1) //Do not change anything, only query
 	rows := Target.NVecs()
@@ -372,6 +371,3 @@ func fullCliProduct(A, B *paravector) *paravector {
 
 	return R
 }
-
-//The only panic the clifford part throws
-const ErrCliffordRotation = PanicMsg("goChem-Clifford: Target and Result matrices must have the same dimensions. They cannot reference the same matrix")
