@@ -15,8 +15,8 @@ const appzero float64 = 0.000000000001 //used to correct floating point
 
 func gnInverse(F *v3.Matrix) (*v3.Matrix, error) {
 	a, err := mat64.Inverse(F.Dense)
-	if err!=nil{
-		err=CError{err.Error(),[]string{"mat64.Inverse","gnInverse"}}
+	if err != nil {
+		err = CError{err.Error(), []string{"mat64.Inverse", "gnInverse"}}
 	}
 	return &v3.Matrix{a}, err
 }
@@ -127,7 +127,7 @@ func gnMaybe(fn gnPanicker) error {
 			case v3.Error:
 				err = e
 			case mat64.Error:
-				err = CError{fmt.Sprintf("goChem: Error in gonum function: %s", e),[]string{"gnMaybe"}}
+				err = CError{fmt.Sprintf("goChem: Error in gonum function: %s", e), []string{"gnMaybe"}}
 			default:
 				panic(r)
 			}

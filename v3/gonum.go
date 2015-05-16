@@ -241,7 +241,7 @@ func EigenWrap(in *Matrix, epsilon float64) (*Matrix, []float64, error) {
 	//evals := [3]float64{vals.At(0, 0), vals.At(1, 1), vals.At(2, 2)} //go.matrix specific code here.
 	f := func() { evecs.TCopy(evecs) }
 	if err2 := mat64.Maybe(mat64.Panicker(f)); err2 != nil {
-		return nil, nil, Error{err2.Error(), []string{"mat64.TCopy","EigenWrap"}, true}
+		return nil, nil, Error{err2.Error(), []string{"mat64.TCopy", "EigenWrap"}, true}
 	}
 	//evecs.TCopy(evecs.Dense)
 	//	fmt.Println("evecs presort", evecs) /////////

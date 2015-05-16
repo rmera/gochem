@@ -124,7 +124,6 @@ type Ref interface { /*NOTE: WriteRef may be removed, which means that Ref would
 	WriteRef
 }
 
-
 //Errors
 
 type Error interface {
@@ -132,7 +131,6 @@ type Error interface {
 	Decorate(string) []string //This is the new thing for errors. It allows you to add information when you pass it up. Each call also returns the "decoration" slice of strins resulting from the current call. If passed an empty string, it should just return the current value, not add the empty string to the slice.
 	//The decorate slice should contain a list of functions in the calling stack, plus, for each function any relevant information, or nothing. If information is to be added to an element of the slice, it should be in this format: "FunctionName: Extra info"
 }
-
 
 type TrajError interface {
 	Error

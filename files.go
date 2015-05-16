@@ -128,7 +128,7 @@ func symbolFromName(name string) (string, error) {
 		symbol = "Zn"
 	}
 	if symbol == "" {
-		return symbol, CError{"Couldn't guess symbol from PDB name",[]string{"symbolFromName"}}
+		return symbol, CError{"Couldn't guess symbol from PDB name", []string{"symbolFromName"}}
 	}
 	return symbol, nil
 }
@@ -179,7 +179,7 @@ func read_full_pdb_line(line string, read_additional bool, contlines int) (*Atom
 	for i := range err {
 		if err[i] != nil {
 			//Here I should add the line number to the returned error.
-			return nil, nil, 0, CError{err[i].Error(),[]string{"strconv.Atoi/ParseFloat", "read_full_pdb_line"}}
+			return nil, nil, 0, CError{err[i].Error(), []string{"strconv.Atoi/ParseFloat", "read_full_pdb_line"}}
 		}
 	}
 	if atom.Symbol != "" {
@@ -202,38 +202,28 @@ func read_onlycoords_pdb_line(line string, contlines int) ([]float64, float64, e
 	for i := range err {
 		if err[i] != nil {
 			//Here I should add the line number to the returned error.
-			return nil, 0, CError{err[i].Error(),[]string{"strconv.ParseFloat", "read_onlycoords_pdb_line"}}
+			return nil, 0, CError{err[i].Error(), []string{"strconv.ParseFloat", "read_onlycoords_pdb_line"}}
 
 		}
 	}
 	return coords, bfactor, nil
 }
 
-//PDBReadString reads the atomic entries for a PDB bufio.IO, returns a bunch of without coordinates,
+//PDBRRead reads a pdb file from an io.Reader. Returns a bunch of without coordinates,
 // and the coordinates in a separate array of arrays. If there is one frame in the PDB
 // the coordinates array will be of lenght 1. It also returns an error which is not
 // really well set up right now.
-//WARNING: It has not been tested with an actual string.
-func PDBStringRead(pdb string, read_additional bool) (*Molecule, error) {
-	pdbstringreader := strings.NewReader(pdb)
-	bufiopdb := bufio.NewReader(pdbstringreader)
-	mol, err := pdbBufIORead(bufiopdb, read_additional)
-	return mol, errDecorate(err,"PDBStringRead")
-
-}
-
-//PDBReaderRead reads a pdb file from an io.Reader
-func PDBReaderRead(pdb io.Reader, read_additional bool) (*Molecule, error) {
+func PDBRead(pdb io.Reader, read_additional bool) (*Molecule, error) {
 	bufiopdb := bufio.NewReader(pdb)
 	mol, err := pdbBufIORead(bufiopdb, read_additional)
-	return mol, errDecorate(err,"PDBReaderREad")
+	return mol, errDecorate(err, "PDBReaderREad")
 }
 
-//PDBRead reads the atomic entries for a PDB file, returns a bunch of without coordinates,
+//PDBFileRead reads the atomic entries for a PDB file, returns a bunch of without coordinates,
 // and the coordinates in a separate array of arrays. If there is one frame in the PDB
 // the coordinates array will be of lenght 1. It also returns an error which is not
 // really well set up right now.
-func PDBRead(pdbname string, read_additional bool) (*Molecule, error) {
+func PDBFileRead(pdbname string, read_additional bool) (*Molecule, error) {
 	pdbfile, err := os.Open(pdbname)
 	if err != nil {
 		//fmt.Println("Unable to open file!!")
@@ -278,14 +268,14 @@ func pdbBufIORead(pdb *bufio.Reader, read_additional bool) (*Molecule, error) {
 		if strings.HasPrefix(line, "ATOM") || strings.HasPrefix(line, "HETATM") {
 			if !first_model {
 				c, bfactemp, err = read_onlycoords_pdb_line(line, contlines)
-				if err!=nil{
-					return nil, errDecorate(err,"pdbBufIORead")
+				if err != nil {
+					return nil, errDecorate(err, "pdbBufIORead")
 				}
 			} else {
 				atomtmp = new(Atom)
 				atomtmp, c, bfactemp, err = read_full_pdb_line(line, read_additional, contlines)
 				if err != nil {
-					return nil, errDecorate(err,"pdbBufIORead")
+					return nil, errDecorate(err, "pdbBufIORead")
 				}
 				//atom data other than coords is the same in all models so just read for the first.
 				molecule = append(molecule, atomtmp)
@@ -307,22 +297,22 @@ func pdbBufIORead(pdb *bufio.Reader, read_additional bool) (*Molecule, error) {
 	//Instead of having another loop just for them.
 	top, err := NewTopology(molecule, 0, 1)
 	if err != nil {
-		return nil, errDecorate(err,"pdbBufIORead")
+		return nil, errDecorate(err, "pdbBufIORead")
 	}
 	frames := len(coords)
 	mcoords := make([]*v3.Matrix, frames, frames) //Final thing to return
 	for i := 0; i < frames; i++ {
 		mcoords[i], err = v3.NewMatrix(coords[i])
 		if err != nil {
-			return nil, errDecorate(err,"pdbBufIORead")
+			return nil, errDecorate(err, "pdbBufIORead")
 		}
 	}
 	//if something happened during the process
 	if err != nil {
-		return nil, errDecorate(err,"pdbBufIORead")
+		return nil, errDecorate(err, "pdbBufIORead")
 	}
 	returned, err := NewMolecule(mcoords, top, bfactors)
-	return returned, errDecorate(err,"pdbBufIORead")
+	return returned, errDecorate(err, "pdbBufIORead")
 }
 
 //End PDB_read family
@@ -361,34 +351,77 @@ func writePDBLine(atom *Atom, coord *v3.Matrix, bfact float64, chainprev string)
 	if len(atom.Name) == 4 {
 		formatstring = strings.Replace(formatstring, "%-3s ", "%-4s", 1)
 	} else if len(atom.Name) > 4 {
-		return "", chainprev, CError{"Cant print PDB line",[]string{"writePDBLine"}}
+		return "", chainprev, CError{"Cant print PDB line", []string{"writePDBLine"}}
 	}
 	//"%-6s%5d  %-3s %3s %1c%4d    %8.3f%8.3f%8.3f%6.2f%6.2f          %2s  \n"
 	out = fmt.Sprintf(formatstring, first, atom.ID, atom.Name, atom.Molname, atom.Chain,
 		atom.MolID, coord.At(0, 0), coord.At(0, 1), coord.At(0, 2), atom.Occupancy, bfact, atom.Symbol)
-
 	out = strings.Join([]string{ter, out}, "")
 	return out, chainprev, nil
 }
 
-//PDBWrite writes a PDB for the molecule mol and the coordinates Coords. It is just a wrapper for
-//PDBStringWrite. Returns error or nil.
-func PDBWrite(pdbname string, coords *v3.Matrix, mol Atomer, Bfactors []float64) error {
+//PDBFileWrite writes a PDB for the molecule mol and the coordinates Coords.
+func PDBFileWrite(pdbname string, coords *v3.Matrix, mol Atomer, Bfactors []float64) error {
 	out, err := os.Create(pdbname)
 	if err != nil {
-		return  CError{err.Error(),[]string{"os.Create","PDBWrite"}}
+		return CError{err.Error(), []string{"os.Create", "PDBFileWrite"}}
 	}
 	defer out.Close()
-	fmt.Fprint(out, "REMARK     WRITTEN WITH GOCHEM :-)\n")
-	outstring, err := PDBStringWrite(coords, mol, Bfactors)
+	fmt.Fprintf(out, "REMARK WRITTEN WITH GOCHEM :-)")
+	err = PDBWrite(out, coords, mol, Bfactors)
 	if err != nil {
-		return  errDecorate(err,"PDBWrite")
+		return errDecorate(err, "PDBFileWrite")
 	}
-	_, err = fmt.Fprintf(out, outstring) //this might require checking for the error
-	if err != nil {
-		return CError{err.Error(),[]string{"PDBWrite"}}
-	}
+	return nil
+}
 
+//PDBWrite writes a PDB formatted sequence of bytes to an io.Writer for a given reference, coordinate set and bfactor set, which must match each other
+//returns error or nil.
+func PDBWrite(out io.Writer, coords *v3.Matrix, mol Atomer, bfact []float64) error {
+	err := pdbWrite(out, coords, mol, bfact)
+	if err != nil {
+		errDecorate(err, "PDBWrite")
+	}
+	_, err = out.Write([]byte{'\n'}) //This function is just a wrapper to add the newline to what pdbWrite does.
+	if err != nil {
+		return CError{"Failed to write in io.Writer", []string{"io.Write.Write", "PDBWrite"}}
+
+	}
+	return nil
+}
+
+func pdbWrite(out io.Writer, coords *v3.Matrix, mol Atomer, bfact []float64) error {
+	if bfact == nil {
+		bfact = make([]float64, mol.Len())
+	}
+	cr, _ := coords.Dims()
+	br := len(bfact)
+	if cr != mol.Len() || cr != br {
+		return CError{"Ref and Coords and/or Bfactors dont have the same number of atoms", []string{"pdbWrite"}}
+	}
+	chainprev := mol.Atom(0).Chain //this is to know when the chain changes.
+	var outline string
+	var err error
+	iowriteError := func(err error) error {
+		return CError{"Failed to write in io.Writer" + err.Error(), []string{"io.Write.Write", "pdbWrite"}}
+	}
+	for i := 0; i < mol.Len(); i++ {
+		//	r,c:=coords.Dims()
+		//	fmt.Println("IIIIIIIIIIIi", i,coords,r,c, "lllllll")
+		writecoord := coords.VecView(i)
+		outline, chainprev, err = writePDBLine(mol.Atom(i), writecoord, bfact[i], chainprev)
+		if err != nil {
+			return errDecorate(err, "pdbWrite "+fmt.Sprintf("Could not print PDB line: %d", i))
+		}
+		_, err := out.Write([]byte(outline))
+		if err != nil {
+			return iowriteError(err)
+		}
+	}
+	_, err = out.Write([]byte("END")) //no newline, this is in case the write is part of a PDB and one needs to write "ENDMODEL".
+	if err != nil {
+		return iowriteError(err)
+	}
 	return nil
 }
 
@@ -401,7 +434,7 @@ func PDBStringWrite(coords *v3.Matrix, mol Atomer, bfact []float64) (string, err
 	cr, _ := coords.Dims()
 	br := len(bfact)
 	if cr != mol.Len() || cr != br {
-		return "", CError{"Ref and Coords and/or Bfactors dont have the same number of atoms",[]string{"PDBStringWrite"}}
+		return "", CError{"Ref and Coords and/or Bfactors dont have the same number of atoms", []string{"PDBStringWrite"}}
 	}
 	chainprev := mol.Atom(0).Chain //this is to know when the chain changes.
 	var outline string
@@ -421,66 +454,69 @@ func PDBStringWrite(coords *v3.Matrix, mol Atomer, bfact []float64) (string, err
 	return outstring, nil
 }
 
-//MultiPDBWrite writes a multiPDB file for the molecule mol and the various coordinate sets in CandB.
+//MultiPDBWrite writes a multiPDB  for the molecule mol and the various coordinate sets in CandB, to the io.Writer given.
 //CandB is a list of lists of *matrix.DenseMatrix. If it has 2 elements or more, the second will be used as
 //Bfactors. If it has one element, all b-factors will be zero.
 //Returns an error if fails, or nil if succeeds.
-func MultiPDBWrite(pdbname string, Coords []*v3.Matrix, mol Atomer, Bfactors [][]float64) error {
+func MultiPDBWrite(out io.Writer, Coords []*v3.Matrix, mol Atomer, Bfactors [][]float64) error {
 	if !correctBfactors(Coords, Bfactors) {
 		Bfactors = make([][]float64, len(Coords), len(Coords))
 	}
+	iowriterError := func(err error) error {
+		return CError{"Failed to write in io.Writer" + err.Error(), []string{"io.Writer.Write", "MultiPDBWrite"}}
+	}
 
-	out, err := os.Create(pdbname)
+	_, err := out.Write([]byte("REMARK WRITTEN WITH GOCHEM :-)")) //The model number starts with one
 	if err != nil {
-		return err
+		return iowriterError(err)
 	}
-	defer out.Close()
-
-	fmt.Fprint(out, "REMARK     WRITTEN WITH GOCHEM :-)\n")
+	//OK now the real business.
 	for j := range Coords {
-		fmt.Fprintf(out, "MODEL %d\n", j+1) //The model number starts with one
-		outstring, err := PDBStringWrite(Coords[j], mol, Bfactors[j])
+		_, err := out.Write([]byte(fmt.Sprintf("MODEL %d\n", j+1))) //The model number starts with one
 		if err != nil {
-			return errDecorate(err,"MultiPDBWrite")
+			return iowriterError(err)
 		}
-		outstring = strings.Replace(outstring, "END\n", "ENDMDL\n", 1)
-		fmt.Fprintf(out, outstring) //here it could be needed to check for the error
+		err = PDBWrite(out, Coords[j], mol, Bfactors[j])
+		if err != nil {
+			return errDecorate(err, "MultiPDBWrite")
+		}
+		_, err = out.Write([]byte("MDL\n"))
+		if err != nil {
+			return iowriterError(err)
+		}
+
 	}
 
-	fmt.Fprint(out, "END\n")
+	_, err = out.Write([]byte("END\n"))
+	if err != nil {
+		return iowriterError(err)
+	}
+
 	return nil
 }
 
 /***End of PDB part***/
 
-//Reads a string formated as an xyz or multixyz (as produced by Turbomole). Returns a Molecule and error or nil.
-func XYZStringRead(xyz string) (*Molecule, error) {
-	xyzstringreader := strings.NewReader(xyz)
-	bufioxyz := bufio.NewReader(xyzstringreader)
-	mol, err := XYZBufIORead(bufioxyz)
-	return mol, errDecorate(err,"XYZStringRead")
-}
-
-//Reads an xyz or multixyz file (as produced by Turbomole). Returns a Molecule and error or nil.
-func XYZRead(xyzname string) (*Molecule, error) {
+//XYZFileRead Reads an xyz or multixyz file (as produced by Turbomole). Returns a Molecule and error or nil.
+func XYZFileRead(xyzname string) (*Molecule, error) {
 	xyzfile, err := os.Open(xyzname)
 	if err != nil {
 		//fmt.Println("Unable to open file!!")
-		return nil, CError{err.Error(),[]string{"os.Open","XYZRead"}}
+		return nil, CError{err.Error(), []string{"os.Open", "XYZFileRead"}}
 	}
 	defer xyzfile.Close()
-	xyz := bufio.NewReader(xyzfile)
-	mol, err := XYZBufIORead(xyz)
+	mol, err := XYZRead(xyzfile)
 	if err != nil {
-			err = errDecorate(err, "XYZRead "+fmt.Sprintf(strings.Join([]string{"error in file ", xyzname}, "")))
+		err = errDecorate(err, "XYZFileRead "+fmt.Sprintf(strings.Join([]string{"error in file ", xyzname}, "")))
 	}
 	return mol, err
 
 }
 
 //Reads an xyz or multixyz formatted bufio.Reader (as produced by Turbomole). Returns a Molecule and error or nil.
-func XYZBufIORead(xyz *bufio.Reader) (*Molecule, error) {
+func XYZRead(xyzp io.Reader) (*Molecule, error) {
 	snaps := 1
+	xyz := bufio.NewReader(xyzp)
 	var err error
 	var top *Topology
 	var molecule []*Atom
@@ -492,11 +528,11 @@ func XYZBufIORead(xyz *bufio.Reader) (*Molecule, error) {
 		if snaps == 1 {
 			Coords[0], molecule, err = xyzReadSnap(xyz, true)
 			if err != nil {
-				return nil, errDecorate(err,"XYZBufIORead")
+				return nil, errDecorate(err, "XYZRead")
 			}
 			top, err = NewTopology(molecule, 0, 1)
 			if err != nil {
-				return nil, err
+				return nil, errDecorate(err, "XYZRead")
 			}
 			snaps++
 			continue
@@ -509,7 +545,7 @@ func XYZBufIORead(xyz *bufio.Reader) (*Molecule, error) {
 				err = nil
 				break
 			}
-			return nil, errDecorate(err,"XYZBufIORead")
+			return nil, errDecorate(err, "XYZRead")
 		}
 		Coords = append(Coords, tmpcoords)
 	}
@@ -518,7 +554,7 @@ func XYZBufIORead(xyz *bufio.Reader) (*Molecule, error) {
 		bfactors[key] = make([]float64, top.Len())
 	}
 	returned, err := NewMolecule(Coords, top, bfactors)
-	return returned, errDecorate(err,"XYZBufIORead")
+	return returned, errDecorate(err, "XYZRead")
 }
 
 //xyzReadSnap reads an xyz file snapshot from a bufio.Reader, returns a slice of Atom objects, which will be nil if ReadTopol is false,
@@ -526,11 +562,11 @@ func XYZBufIORead(xyz *bufio.Reader) (*Molecule, error) {
 func xyzReadSnap(xyz *bufio.Reader, ReadTopol bool) (*v3.Matrix, []*Atom, error) {
 	line, err := xyz.ReadString('\n')
 	if err != nil {
-		return nil, nil, CError{fmt.Sprintf("Empty XYZ File: %s", err.Error()),[]string{"bufio.Reader.ReadString","xyzReadSnap"}}
+		return nil, nil, CError{fmt.Sprintf("Empty XYZ File: %s", err.Error()), []string{"bufio.Reader.ReadString", "xyzReadSnap"}}
 	}
 	natoms, err := strconv.Atoi(strings.TrimSpace(line))
 	if err != nil {
-		return nil, nil, CError{fmt.Sprintf("Wrong header for an XYZ file %s", err.Error()),[]string{"strconv.Atoi","xyzReadSnap"}}
+		return nil, nil, CError{fmt.Sprintf("Wrong header for an XYZ file %s", err.Error()), []string{"strconv.Atoi", "xyzReadSnap"}}
 	}
 	var molecule []*Atom
 	if ReadTopol {
@@ -539,7 +575,7 @@ func xyzReadSnap(xyz *bufio.Reader, ReadTopol bool) (*v3.Matrix, []*Atom, error)
 	coords := make([]float64, natoms*3, natoms*3)
 	_, err = xyz.ReadString('\n') //We dont care about this line
 	if err != nil {
-		return nil, nil, CError{fmt.Sprintf("Ill formatted XYZ file: %s", err.Error()),[]string{"bufio.Reader.ReadString","xyzReadSnap"}}
+		return nil, nil, CError{fmt.Sprintf("Ill formatted XYZ file: %s", err.Error()), []string{"bufio.Reader.ReadString", "xyzReadSnap"}}
 
 	}
 	errs := make([]error, 3, 3)
@@ -573,26 +609,25 @@ func xyzReadSnap(xyz *bufio.Reader, ReadTopol bool) (*v3.Matrix, []*Atom, error)
 	for k, i := range errs {
 		if i != nil {
 			fmt.Println("line", line, k)
-			return nil, nil, CError{i.Error(),[]string{"strconv.ParseFloat","xyzReadSnap"}}
+			return nil, nil, CError{i.Error(), []string{"strconv.ParseFloat", "xyzReadSnap"}}
 		}
 	}
 	mcoords, err := v3.NewMatrix(coords)
-	return mcoords, molecule, errDecorate(err,"xyzReadSnap")
+	return mcoords, molecule, errDecorate(err, "xyzReadSnap")
 }
 
 //XYZWrite writes the mol Ref and the Coord coordinates in an XYZ file with name xyzname which will
 //be created fot that. If the file exist it will be overwritten.
-func XYZWrite(xyzname string, Coords *v3.Matrix, mol Atomer) error {
+func XYZFileWrite(xyzname string, Coords *v3.Matrix, mol Atomer) error {
 	out, err := os.Create(xyzname)
 	if err != nil {
-		return CError{err.Error(),[]string{"os.Create","XYZWrite"}}
+		return CError{err.Error(), []string{"os.Create", "XYZFileWrite"}}
 	}
 	defer out.Close()
-	xyz, err := XYZStringWrite(Coords, mol)
+	err = XYZWrite(out, Coords, mol)
 	if err != nil {
-		return errDecorate(err,"XYZWrite")
+		return errDecorate(err, "XYZFileWrite")
 	}
-	fmt.Fprintf(out, xyz)
 	return nil
 }
 
@@ -600,7 +635,7 @@ func XYZWrite(xyzname string, Coords *v3.Matrix, mol Atomer) error {
 func XYZStringWrite(Coords *v3.Matrix, mol Atomer) (string, error) {
 	var out string
 	if mol.Len() != Coords.NVecs() {
-		return "", CError{"Ref and Coords dont have the same number of atoms",[]string{"XYZStringWrite"}}
+		return "", CError{"Ref and Coords dont have the same number of atoms", []string{"XYZStringWrite"}}
 	}
 	c := make([]float64, 3, 3)
 	out = fmt.Sprintf("%-4d\n\n", mol.Len())
@@ -612,4 +647,30 @@ func XYZStringWrite(Coords *v3.Matrix, mol Atomer) (string, error) {
 		out = strings.Join([]string{out, temp}, "")
 	}
 	return out, nil
+}
+
+//XYZStringWrite writes the mol Ref and the Coord coordinates in an XYZ-formatted string.
+func XYZWrite(out io.Writer, Coords *v3.Matrix, mol Atomer) error {
+	iowriterError := func(err error) error {
+		return CError{"Failed to write in io.Writer" + err.Error(), []string{"io.Writer.Write", "XYZWrite"}}
+	}
+	if mol.Len() != Coords.NVecs() {
+		return CError{"Ref and Coords dont have the same number of atoms", []string{"XYZWrite"}}
+	}
+	c := make([]float64, 3, 3)
+	_, err := out.Write([]byte(fmt.Sprintf("%-4d\n\n", mol.Len())))
+	if err != nil {
+		return iowriterError(err)
+	}
+	//towrite := Coords.Arrays() //An array of array with the data in the matrix
+	for i := 0; i < mol.Len(); i++ {
+		//c := towrite[i] //coordinates for the corresponding atoms
+		c = Coords.Row(c, i)
+		temp := fmt.Sprintf("%-2s  %12.6f%12.6f%12.6f \n", mol.Atom(i).Symbol, c[0], c[1], c[2])
+		_, err := out.Write([]byte(temp))
+		if err != nil {
+			return iowriterError(err)
+		}
+	}
+	return nil
 }

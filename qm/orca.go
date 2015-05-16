@@ -426,7 +426,7 @@ func (O *OrcaHandle) OptimizedGeometry(atoms chem.Ref) (*v3.Matrix, error) {
 		err = Error{ErrProbableProblem, Orca, O.inputname, "", []string{"OptimizedGeometry"}, false}
 	}
 	//This might not be super efficient but oh well.
-	mol, err1 := chem.XYZRead(geofile)
+	mol, err1 := chem.XYZFileRead(geofile)
 	if err1 != nil {
 		return nil, errDecorate(err1, "qm.OptimizedGeometry "+Orca+" "+O.inputname+" "+ErrNoGeometry) // Error{ErrNoEnergy, Orca, O.inputname, err1.Error(),[]string{"OptimizedGeometry"}, true}
 	}

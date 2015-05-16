@@ -34,7 +34,7 @@ import (
 //TestRama tests the Ramachandran plot functionality.
 //it generates a Ramachandran plot for the chain A of the PDB 2c9v.
 func TestRama(Te *testing.T) {
-	mol, err := chem.PDBRead("../test/2c9v.pdb", true)
+	mol, err := chem.PDBFileRead("../test/2c9v.pdb", true)
 	if err != nil {
 		Te.Error(err)
 	}

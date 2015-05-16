@@ -50,7 +50,7 @@ type Coords struct {
 
 //An easily JSON-serializable error type,
 type Error struct {
-	deco []string
+	deco          []string
 	IsError       bool //If this is false (no error) all the other fields will be at their zero-values.
 	InOptions     bool //If error, was it in parsing the options?
 	InSelections  bool //Was it in parsing selections?
@@ -71,14 +71,12 @@ func (J *Error) Error() string {
 //Decorate will add the dec string to the decoration slice of strings of the error,
 //and return the resulting slice.
 func (err Error) Decorate(dec string) []string {
-	if dec==""{
+	if dec == "" {
 		return err.deco
 	}
 	err.deco = append(err.deco, dec)
 	return err.deco
 }
-
-
 
 //Serializes the error. Panics on failure.
 func (J *Error) Marshal() []byte {

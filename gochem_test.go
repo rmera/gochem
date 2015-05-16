@@ -36,21 +36,21 @@ import (
 
 //TestMultiXYZ tests that multi-XYZ files are opened and read correctly.
 func TestXYZIO(Te *testing.T) {
-	mol, err := XYZRead("test/sample.xyz")
+	mol, err := XYZFileRead("test/sample.xyz")
 	if err != nil {
 		fmt.Println("There was an error!", err.Error())
 		Te.Error(err)
 	}
 	fmt.Println("XYZ read!")
-	XYZWrite("test/sampleFirst.xyz", mol.Coords[0], mol)
+	XYZFileWrite("test/sampleFirst.xyz", mol.Coords[0], mol)
 }
 
 func TestPDBIO(Te *testing.T) {
-	mol, err := PDBRead("test/2c9v.pdb", true)
+	mol, err := PDBFileRead("test/2c9v.pdb", true)
 	if err != nil {
 		Te.Error(err)
 	}
-	err = PDBWrite("test/2c9vIO.pdb", mol.Coords[0], mol, mol.Bfactors[0])
+	err = PDBFileWrite("test/2c9vIO.pdb", mol.Coords[0], mol, mol.Bfactors[0])
 	if err != nil {
 		Te.Error(err)
 	}
@@ -64,11 +64,11 @@ func TestPDBIO(Te *testing.T) {
 //as 2c9v_aligned.pdb to the test folder.
 func TestChangeAxis(Te *testing.T) {
 	//runtime.GOMAXPROCS(2) ///////////////////////////
-	mol, err := PDBRead("test/2c9v.pdb", true)
+	mol, err := PDBFileRead("test/2c9v.pdb", true)
 	if err != nil {
 		Te.Error(err)
 	}
-	PDBWrite("test/2c9v-Readtest.pdb", mol.Coords[0], mol, nil)
+	PDBFileWrite("test/2c9v-Readtest.pdb", mol.Coords[0], mol, nil)
 	//The selection thing
 	orient_atoms := [2]int{0, 0}
 	for index := 0; index < mol.Len(); index++ {
@@ -86,7 +86,7 @@ func TestChangeAxis(Te *testing.T) {
 	ov2 := mol.Coord(orient_atoms[1], 0)
 	//now we center the thing in the beta carbon of D124
 	mol.Coords[0].SubVec(mol.Coords[0], ov2)
-	PDBWrite("test/2c9v-translated.pdb", mol.Coords[0], mol, nil)
+	PDBFileWrite("test/2c9v-translated.pdb", mol.Coords[0], mol, nil)
 	//Now the rotation
 	ov1 := mol.Coord(orient_atoms[0], 0) //make sure we have the correct versions
 	ov2 = mol.Coord(orient_atoms[1], 0)  //same
@@ -102,13 +102,13 @@ func TestChangeAxis(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
-	PDBWrite("test/2c9v-aligned.pdb", mol.Coords[0], mol, nil)
+	PDBFileWrite("test/2c9v-aligned.pdb", mol.Coords[0], mol, nil)
 	fmt.Println("bench1")
 }
 
 func TestMolidNameChain2Index(Te *testing.T) {
 	//runtime.GOMAXPROCS(2) ///////////////////////////
-	mol, err := PDBRead("test/2c9v.pdb", true)
+	mol, err := PDBFileRead("test/2c9v.pdb", true)
 	if err != nil {
 		Te.Error(err)
 	}
@@ -126,7 +126,8 @@ func TestMolidNameChain2Index(Te *testing.T) {
 //aligned with the Z axis. The new molecule is written
 //as 2c9v_aligned.pdb to the test folder.
 func TestOldChangeAxis(Te *testing.T) {
-	mol, err := PDBRead("test/2c9v.pdb", true)
+	viej, _ := os.Open("test/2c9v.pdb")
+	mol, err := PDBRead(viej, true)
 	if err != nil {
 		Te.Error(err)
 	}
@@ -158,13 +159,15 @@ func TestOldChangeAxis(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
-	PDBWrite("test/2c9v-old-aligned.pdb", mol.Coords[0], mol, nil)
+	PDBFileWrite("test/2c9v-old-aligned.pdb", mol.Coords[0], mol, nil)
 	fmt.Println("bench2")
 }
 
 //Aligns the main plane of a molecule with the XY-plane.
+//Here XYZRead and XYZWrite are tested
 func TestPutInXYPlane(Te *testing.T) {
-	mol, err := XYZRead("test/sample_plane.xyz")
+	myxyz, _ := os.Open("test/sample_plane.xyz")
+	mol, err := XYZRead(myxyz)
 	if err != nil {
 		Te.Error(err)
 	}
@@ -180,7 +183,7 @@ func TestPutInXYPlane(Te *testing.T) {
 	//This will mean that the plane of the molecule will now match the XY-plane.
 	best, err := BestPlane(some, nil)
 	if err != nil {
-		err2:=err.(Error)
+		err2 := err.(Error)
 		fmt.Println(err2.Decorate(""))
 		Te.Error(err)
 		panic(err.Error())
@@ -200,30 +203,31 @@ func TestPutInXYPlane(Te *testing.T) {
 	}
 	//	fmt.Println("after!", mol.Coords[0], err)
 	//Now we write the rotated result.
-	XYZWrite("test/Rotated.xyz", mol.Coords[0], mol)
+	outxyz, _ := os.Create("test/Rotated.xyz") //This is the XYZWrite written file
+	XYZWrite(outxyz, mol.Coords[0], mol)
 }
 
 func TestDelete(Te *testing.T) {
-	mol, err := XYZRead("test/ethanol.xyz")
+	mol, err := XYZFileRead("test/ethanol.xyz")
 	if err != nil {
 		Te.Error(err)
 	}
 	fmt.Println("Calling with 8")
 	mol.Del(8)
-	XYZWrite("test/ethanolDel8.xyz", mol.Coords[0], mol)
-	mol2, err := XYZRead("test/ethanol.xyz")
+	XYZFileWrite("test/ethanolDel8.xyz", mol.Coords[0], mol)
+	mol2, err := XYZFileRead("test/ethanol.xyz")
 	if err != nil {
 		Te.Error(err)
 	}
 	fmt.Println("Calling with 4")
 	mol2.Del(4)
-	XYZWrite("test/ethanolDel4.xyz", mol2.Coords[0], mol2)
+	XYZFileWrite("test/ethanolDel4.xyz", mol2.Coords[0], mol2)
 
 }
 
 func TestWater(Te *testing.T) {
 	//	runtime.GOMAXPROCS(2) ///////////////////////////
-	mol, err := XYZRead("test/sample.xyz")
+	mol, err := XYZFileRead("test/sample.xyz")
 	if err != nil {
 		Te.Error(err)
 	}
@@ -254,21 +258,21 @@ func TestWater(Te *testing.T) {
 	tmp.Stack(w1, w2)
 	fmt.Println("tmp water", w1, w2, tmp, c, h1)
 	coords.SetMatrix(mol.Len()-6, 0, tmp)
-	XYZWrite("test/WithWater.xyz", coords, mol)
+	XYZFileWrite("test/WithWater.xyz", coords, mol)
 }
 
 func TesstFixPDB(Te *testing.T) {
-	mol, err := PDBRead("test/2c9vbroken.pdb", true)
+	mol, err := PDBFileRead("test/2c9vbroken.pdb", true)
 	if err != nil {
 		Te.Error(err)
 	}
 	FixNumbering(mol)
-	PDBWrite("test/2c9vfixed.pdb", mol.Coords[0], mol, nil)
+	PDBFileWrite("test/2c9vfixed.pdb", mol.Coords[0], mol, nil)
 }
 
 //will fail if reduce is not installed!
 func TestReduce(Te *testing.T) {
-	mol, err := PDBRead("test/2c9v.pdb", true)
+	mol, err := PDBFileRead("test/2c9v.pdb", true)
 	if err != nil {
 		Te.Error(err)
 	}
@@ -280,13 +284,15 @@ func TestReduce(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
-	PDBWrite("test/2c9vHReduce.pdb", mol2.Coords[0], mol2, nil)
+	PDBFileWrite("test/2c9vHReduce.pdb", mol2.Coords[0], mol2, nil)
 }
 
+//Here PDBRead and PDBWrite are tested
 func TestSuper(Te *testing.T) {
-	backbone := []string{"C", "CA", "N"}        //The PDB name of the atoms in the backbone.
-	mol1, err := PDBRead("test/2c9v.pdb", true) //true means that we try to read the symbol from the PDB file.
-	mol2, err2 := PDBRead("test/1uxm.pdb", true)
+	backbone := []string{"C", "CA", "N"} //The PDB name of the atoms in the backbone.
+	myhandle, _ := os.Open("test/2c9v.pdb")
+	mol1, err := PDBRead(myhandle, true) //true means that we try to read the symbol from the PDB file.
+	mol2, err2 := PDBFileRead("test/1uxm.pdb", true)
 	if err != nil || err2 != nil {
 		panic("Unable to open input files!")
 	}
@@ -305,23 +311,24 @@ func TestSuper(Te *testing.T) {
 	if err != nil {
 		panic(err.Error())
 	}
-	newname := "test/2c9v_super.pdb"
-	PDBWrite(newname, mol1.Coords[0], mol1, nil)
+	newname := "test/2c9v_super.pdb" //This is the PDBWrite written file
+	pdbout, _ := os.Create(newname)
+	PDBWrite(pdbout, mol1.Coords[0], mol1, nil)
 	//Now for a full molecule
-	ptest, _ := XYZRead("test/Rotated.xyz")
-	ptempla, _ := XYZRead("test/sample_plane.xyz")
+	ptest, _ := XYZFileRead("test/Rotated.xyz")
+	ptempla, _ := XYZFileRead("test/sample_plane.xyz")
 	newp, err := Super(ptest.Coords[0], ptempla.Coords[0], nil, nil)
 	if err != nil {
 		panic(err.Error())
 	}
-	XYZWrite("test/SuperPlane.xyz", newp, ptest)
+	XYZFileWrite("test/SuperPlane.xyz", newp, ptest)
 
 }
 
 func TestRotateBz(Te *testing.T) {
 	runtime.GOMAXPROCS(2)
 	fmt.Println("Here we go!")
-	mol, err := XYZRead("test/BZ.xyz")
+	mol, err := XYZFileRead("test/BZ.xyz")
 	if err != nil {
 		panic(err.Error())
 	}
@@ -382,7 +389,7 @@ func TestRotateBz(Te *testing.T) {
 		//	tempcoords.Stack(planevec,origin)
 		//	testxyz.Stack(newcoords,tempcoords)
 		//end
-		XYZWrite(fmt.Sprintf("test/%s-%3.1f.xyz", basename, angle), newcoords, mol)
+		XYZFileWrite(fmt.Sprintf("test/%s-%3.1f.xyz", basename, angle), newcoords, mol)
 
 	}
 	//	fmt.Println(mol, planevec)

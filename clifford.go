@@ -178,7 +178,6 @@ func RotateSer(Target, ToRot, axis *v3.Matrix, angle float64) *v3.Matrix {
 	return ToRot
 }
 
-
 //RotateSerP takes the matrix Target and uses Clifford algebra to rotate each of its rows
 //by angle radians around axis. Axis must be a 3D row vector. Target must be an N,3 matrix.
 //The Ser in the name is from "serial". ToRot will be overwritten and returned. RotateSerP only allocates some floats but not
@@ -374,7 +373,5 @@ func fullCliProduct(A, B *paravector) *paravector {
 	return R
 }
 
-
 //The only panic the clifford part throws
-const ErrCliffordRotation =  PanicMsg("goChem-Clifford: Target and Result matrices must have the same dimensions. They cannot reference the same matrix")
-
+const ErrCliffordRotation = PanicMsg("goChem-Clifford: Target and Result matrices must have the same dimensions. They cannot reference the same matrix")

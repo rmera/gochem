@@ -76,10 +76,10 @@ func Angle(v1, v2 *v3.Matrix) float64 {
 func RotatorAroundZToNewY(newy *v3.Matrix) (*v3.Matrix, error) {
 	nr, nc := newy.Dims()
 	if nc != 3 || nr != 1 {
-		return nil, CError{"Wrong newy vector",[]string{"RotatorAroundZtoNewY"}}
+		return nil, CError{"Wrong newy vector", []string{"RotatorAroundZtoNewY"}}
 	}
 	if nc != 3 {
-		return nil, CError{"Wrong mol vector",[]string{"RotatorAroundZtoNewY"}} //this one doesn't seem reachable
+		return nil, CError{"Wrong mol vector", []string{"RotatorAroundZtoNewY"}} //this one doesn't seem reachable
 
 	}
 	gamma := math.Atan2(newy.At(0, 0), newy.At(0, 1))
@@ -141,18 +141,18 @@ func RotatorTranslatorToSuper(test, templa *v3.Matrix) (*v3.Matrix, *v3.Matrix, 
 	tmr, tmc := templa.Dims()
 	tsr, tsc := test.Dims()
 	if tmr != tsr || tmc != 3 || tsc != 3 {
-		return nil, nil, nil, nil, CError{"goChem: Ill-formed matrices",[]string{"RotatorTranslatorToSuper"}}
+		return nil, nil, nil, nil, CError{"goChem: Ill-formed matrices", []string{"RotatorTranslatorToSuper"}}
 	}
 	var Scal float64
 	Scal = float64(1.0) / float64(tmr)
 	j := gnOnes(tmr, 1) //Mass is not important for this matter so we'll just use this.
 	ctest, distest, err := MassCenter(test, test, j)
 	if err != nil {
-		return nil, nil, nil, nil, errDecorate(err,"RotatorTranslatorToSuper")
+		return nil, nil, nil, nil, errDecorate(err, "RotatorTranslatorToSuper")
 	}
 	ctempla, distempla, err := MassCenter(templa, templa, j)
 	if err != nil {
-		return nil, nil, nil, nil, errDecorate(err,"RotatorTranslatorToSuper")
+		return nil, nil, nil, nil, errDecorate(err, "RotatorTranslatorToSuper")
 
 	}
 	Mid := gnEye(tmr)
@@ -167,9 +167,9 @@ func RotatorTranslatorToSuper(test, templa *v3.Matrix) (*v3.Matrix, *v3.Matrix, 
 	factors := mat64.SVD(v3.Matrix2Dense(Maux), appzero, math.SmallestNonzeroFloat64, true, true)
 	U := factors.U
 	V := factors.V
-//	if err != nil {
-//		return nil, nil, nil, nil, err  //I'm not sure what err is this one
-//	}
+	//	if err != nil {
+	//		return nil, nil, nil, nil, err  //I'm not sure what err is this one
+	//	}
 	U.Scale(-1, U)
 	V.Scale(-1, V)
 	//SVD gives different results here than in numpy. U and V are multiplide by -1 in one of them
@@ -236,7 +236,7 @@ func RMSD(test, template *v3.Matrix) (float64, error) {
 	//the maybe thing might not be needed since we check the dimensions before.
 	f := func() { ctempla.Sub(ctempla, test) }
 	if err := gnMaybe(gnPanicker(f)); err != nil {
-		return 0, CError{err.Error(),[]string{"v3.Matrix.Sub","RMSD"}}
+		return 0, CError{err.Error(), []string{"v3.Matrix.Sub", "RMSD"}}
 	}
 	var RMSD float64
 	for i := 0; i < template.NVecs(); i++ {
@@ -291,14 +291,14 @@ func RhoShapeIndexes(evals []float64) (float64, float64, error) {
 	rhos, err := Rhos(evals)
 	linear_distortion := (1 - (rhos[1] / rhos[0])) * 100   //Prolate
 	circular_distortion := (1 - (rhos[2] / rhos[0])) * 100 //Oblate
-	return linear_distortion, circular_distortion, errDecorate(err,"RhoShapeIndexes")
+	return linear_distortion, circular_distortion, errDecorate(err, "RhoShapeIndexes")
 }
 
 //Rhos returns the semiaxis of the elipoid of inertia given the eigenvectors of the moment tensor.
 func Rhos(evals []float64) ([]float64, error) {
 	rhos := sort.Float64Slice{invSqrt(evals[0]), invSqrt(evals[1]), invSqrt(evals[2])}
 	if evals[2] <= appzero {
-		return rhos[:], CError{"goChem: Molecule colapsed to a single point. Check for blackholes",[]string{"Rhos"}}
+		return rhos[:], CError{"goChem: Molecule colapsed to a single point. Check for blackholes", []string{"Rhos"}}
 	}
 	sort.Sort(rhos[:])
 	//This loop reversing loop is almost verbatin from Effective Go
@@ -318,7 +318,7 @@ func Rhos(evals []float64) ([]float64, error) {
 func BestPlaneP(evecs *v3.Matrix) (*v3.Matrix, error) {
 	evr, evc := evecs.Dims()
 	if evr != 3 || evc != 3 {
-		return evecs, CError{"goChem: Eigenvectors matrix must be 3x3",[]string{"BestPlaneP"}}  //maybe this should be a panic
+		return evecs, CError{"goChem: Eigenvectors matrix must be 3x3", []string{"BestPlaneP"}} //maybe this should be a panic
 	}
 	v1 := evecs.VecView(2)
 	v2 := evecs.VecView(1)
@@ -335,26 +335,26 @@ func BestPlane(coords *v3.Matrix, mol ReadRef) (*v3.Matrix, error) {
 	cr, _ := coords.Dims()
 	if mol != nil {
 		if mol.Len() != cr {
-			return nil, CError{fmt.Sprintf("Inconsistent coordinates(%d)/atoms(%d)", mol.Len(), cr),[]string{"BestPlane"}}
+			return nil, CError{fmt.Sprintf("Inconsistent coordinates(%d)/atoms(%d)", mol.Len(), cr), []string{"BestPlane"}}
 		}
 		Mmass, err = mol.Masses()
 		if err != nil {
-			return nil, errDecorate(err,"BestPlane")
+			return nil, errDecorate(err, "BestPlane")
 		}
 	} else {
 		//Mmass=matrix.gnOnes(coords.Rows(),1)
 	}
 	moment, err := MomentTensor(coords, Mmass)
 	if err != nil {
-		return nil, errDecorate(err,"BestPlane")
+		return nil, errDecorate(err, "BestPlane")
 	}
 	evecs, _, err := v3.EigenWrap(moment, appzero)
 	if err != nil {
-		return nil, errDecorate(err,"BestPlane")
+		return nil, errDecorate(err, "BestPlane")
 	}
 	normal, err := BestPlaneP(evecs)
 	if err != nil {
-		return nil, errDecorate(err,"BestPlane")
+		return nil, errDecorate(err, "BestPlane")
 	}
 	//MomentTensor(, mass)
 	return normal, err
@@ -373,7 +373,7 @@ func ones(size int) []float64 {
 //and the masses in mass, and an error. If mass is nil, it calculates the geometric center
 func CenterOfMass(geometry *v3.Matrix, mass *mat64.Dense) (*v3.Matrix, error) {
 	if geometry == nil {
-		return nil, CError{"goChem: nil matrix to get the center of mass",[]string{"CenterOfMass"}}
+		return nil, CError{"goChem: nil matrix to get the center of mass", []string{"CenterOfMass"}}
 	}
 	gr, _ := geometry.Dims()
 	if mass == nil { //just obtain the geometric center
@@ -405,12 +405,12 @@ func MassCenter(in, oref *v3.Matrix, mass *mat64.Dense) (*v3.Matrix, *v3.Matrix,
 	gnOnesvector := gnOnes(1, or)
 	f := func() { ref.ScaleByCol(ref, mass) }
 	if err := gnMaybe(gnPanicker(f)); err != nil {
-		return nil, nil, CError{err.Error(),[]string{"v3.Matrix.ScaleByCol","MassCenter"}}
+		return nil, nil, CError{err.Error(), []string{"v3.Matrix.ScaleByCol", "MassCenter"}}
 	}
 	ref2 := v3.Zeros(1)
 	g := func() { ref2.Mul(gnOnesvector, ref) }
 	if err := gnMaybe(gnPanicker(g)); err != nil {
-		return nil, nil, CError{err.Error(),[]string{"v3.gOnesVector","MassCenter"}}
+		return nil, nil, CError{err.Error(), []string{"v3.gOnesVector", "MassCenter"}}
 	}
 	ref2.Scale(1.0/mass.Sum(), ref2)
 	returned := v3.Zeros(ir)
@@ -441,7 +441,7 @@ func MomentTensor(A *v3.Matrix, massslice []float64) (*v3.Matrix, error) {
 	}
 	center, _, err := MassCenter(A, v3.Dense2Matrix(gnCopy(A)), mass)
 	if err != nil {
-		return nil, errDecorate(err,"MomentTensor")
+		return nil, errDecorate(err, "MomentTensor")
 	}
 	sqrmass := gnZeros(ar, 1)
 	//	sqrmass.Pow(mass,0.5)
@@ -476,14 +476,14 @@ func SelCone(B, selection *v3.Matrix, angle, distance, thickness, initial float6
 	A.Copy(B) //We will be altering the input so its better to work with a copy.
 	ar, _ := A.Dims()
 	selected := make([]int, 0, 3)
-	neverselected := make([]int, 0, 30000)       //waters that are too far to ever be selected
-	nevercutoff := distance / math.Cos(angle)    //cutoff to be added to neverselected
+	neverselected := make([]int, 0, 30000)     //waters that are too far to ever be selected
+	nevercutoff := distance / math.Cos(angle)  //cutoff to be added to neverselected
 	A, _, err := MassCenter(A, selection, nil) //Centrate A in the geometric center of the selection, Its easier for the following calculations
 	if err != nil {
 		panic(PanicMsg(err.Error()))
 	}
 	selection, _, _ = MassCenter(selection, selection, nil) //Centrate the selection as well
-	plane, err := BestPlane(selection, nil)                   //I have NO idea which direction will this vector point. We might need its negative.
+	plane, err := BestPlane(selection, nil)                 //I have NO idea which direction will this vector point. We might need its negative.
 	if err != nil {
 		panic(PanicMsg(err.Error()))
 	}

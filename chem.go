@@ -625,27 +625,26 @@ func (err CError) Error() string { return err.msg }
 //Decorate will add the dec string to the decoration slice of strings of the error,
 //and return the resulting slice.
 func (err CError) Decorate(dec string) []string {
-	if dec==""{
+	if dec == "" {
 		return err.deco
 	}
 	err.deco = append(err.deco, dec)
 	return err.deco
 }
 
-
 //errDecorate will decorate a chem.Error, or use the message of the error
-//and the name of the called to produce a new chem.Error (if the original error does not 
+//and the name of the called to produce a new chem.Error (if the original error does not
 //implement chem.Error
 func errDecorate(err error, caller string) Error {
-	if err==nil{
+	if err == nil {
 		return nil
 	}
-	err2,ok := err.(Error) //I know that is the type returned byt initRead
-	if ok{
+	err2, ok := err.(Error) //I know that is the type returned byt initRead
+	if ok {
 		err2.Decorate(caller)
 		return err2
 	}
-	err3:=CError{err.Error(),[]string{caller}}
+	err3 := CError{err.Error(), []string{caller}}
 	return err3
 }
 

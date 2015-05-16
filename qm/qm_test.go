@@ -41,7 +41,7 @@ import (
 //TestQM tests the QM functionality. It prepares input for ORCA and MOPAC
 //In the case of MOPAC it reads a previously prepared output and gets the energy.
 func TestQM(Te *testing.T) {
-	mol, err := chem.XYZRead("../test/sample.xyz")
+	mol, err := chem.XYZFileRead("../test/sample.xyz")
 
 	fmt.Println(mol.Coords[0], len(mol.Coords), "LOS JUIMOS CTM", err)
 	if err != nil {
@@ -123,7 +123,7 @@ func TestQM(Te *testing.T) {
 		}
 		mol.Coords[0] = geometry
 		fmt.Println(energy)
-		if err := XYZWrite("mopac.xyz", mol, mol.Coords[0]); err != nil {
+		if err := XYZFileWrite("mopac.xyz", mol, mol.Coords[0]); err != nil {
 			Te.Error(err)
 		}
 	*/
@@ -142,7 +142,7 @@ func TestQM(Te *testing.T) {
 //Notice that 2 TM inputs cannot be in the same directory. Notice that TMHandle
 //supports ECPs
 func TesstTurbo(Te *testing.T) {
-	mol, err := chem.XYZRead("../test/ethanol.xyz")
+	mol, err := chem.XYZFileRead("../test/ethanol.xyz")
 	os.Chdir("test")
 	defer os.Chdir("..")
 	if err != nil {
@@ -191,12 +191,12 @@ func TesstTurbo(Te *testing.T) {
 		Te.Error(err)
 	}
 	fmt.Println("GEO", geo)
-	chem.XYZWrite("optiethanol.xyz", geo, mol)
+	chem.XYZFileWrite("optiethanol.xyz", geo, mol)
 	fmt.Println("end TurboTest!")
 }
 
 func TestFermions(Te *testing.T) {
-	mol, err := chem.XYZRead("../test/ethanol.xyz")
+	mol, err := chem.XYZFileRead("../test/ethanol.xyz")
 	if err != nil {
 		Te.Error(err)
 	}
@@ -231,7 +231,7 @@ func TestFermions(Te *testing.T) {
 	//	if err!=nil{
 	//		fmt.Println("Error with the geometry?: ", err.Error())
 	//	}
-	//	chem.XYZWrite("LastGeoFermions.xyz",ngeo,mol)
+	//	chem.XYZFileWrite("LastGeoFermions.xyz",ngeo,mol)
 	fmt.Println("Passed FermiONs++ test!")
 }
 
@@ -246,7 +246,7 @@ func qderror_handler(err error, Te *testing.T) {
 }
 
 func TestNWChem(Te *testing.T) {
-	mol, err := chem.XYZRead("../test/ethanol.xyz")
+	mol, err := chem.XYZFileRead("../test/ethanol.xyz")
 	fmt.Println(mol.Coords[0], len(mol.Coords), "Quiere quedar leyenda, compadre?", err)
 	if err != nil {
 		Te.Error(err)
@@ -295,6 +295,6 @@ func TestNWChem(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
-	chem.XYZWrite("optiNW.xyz", newg, mol)
+	chem.XYZFileWrite("optiNW.xyz", newg, mol)
 
 }

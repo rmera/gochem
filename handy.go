@@ -55,12 +55,12 @@ func MolIDNameChain2Index(mol Ref, molID int, name, chain string) (int, error) {
 	var ret int = -1
 	var err error
 	if mol == nil {
-		return -1, CError{"goChem: Given a nil chem.Ref",[]string{"MolIDNameChain2Index"}}
+		return -1, CError{"goChem: Given a nil chem.Ref", []string{"MolIDNameChain2Index"}}
 	}
 	for i := 0; i != mol.Len(); i++ {
 		a := mol.Atom(i)
 		if a.Name == "" && err == nil {
-			err = CError{"Warning: The Ref does not seem to contain PDB-type information",[]string{"MolIDNameChain2Index"}} //We set this error but will still keep running the function in case the data is present later in the molecule.
+			err = CError{"Warning: The Ref does not seem to contain PDB-type information", []string{"MolIDNameChain2Index"}} //We set this error but will still keep running the function in case the data is present later in the molecule.
 		}
 		if a.MolID == molID && a.Name == name && a.Chain == chain {
 			ret = i
@@ -73,7 +73,7 @@ func MolIDNameChain2Index(mol Ref, molID int, name, chain string) (int, error) {
 		if err != nil {
 			p = err.Error()
 		}
-		err = CError{fmt.Sprintf("%s.  No atomic index found in the Ref given for the given MolID, atom name and chain.", p),[]string{"MolIDNameChain2Index"}}
+		err = CError{fmt.Sprintf("%s.  No atomic index found in the Ref given for the given MolID, atom name and chain.", p), []string{"MolIDNameChain2Index"}}
 	}
 	return ret, err
 }
@@ -107,7 +107,7 @@ func Super(test, templa *v3.Matrix, testlst, templalst []int) (*v3.Matrix, error
 	}
 	//fmt.Println(lists[0])
 	if len(lists[0]) != len(lists[1]) {
-		return nil, CError{fmt.Sprintf("Mismatched template and test atom numbers: %d, %d", len(lists[1]), len(lists[0])),[]string{"Super"}}
+		return nil, CError{fmt.Sprintf("Mismatched template and test atom numbers: %d, %d", len(lists[1]), len(lists[0])), []string{"Super"}}
 	}
 	ctest := v3.Zeros(len(lists[0]))
 	ctest.SomeVecs(test, lists[0])
@@ -115,7 +115,7 @@ func Super(test, templa *v3.Matrix, testlst, templalst []int) (*v3.Matrix, error
 	ctempla.SomeVecs(templa, lists[1])
 	_, rotation, trans1, trans2, err1 := RotatorTranslatorToSuper(ctest, ctempla)
 	if err1 != nil {
-		return nil, errDecorate(err1,"Super")
+		return nil, errDecorate(err1, "Super")
 	}
 	test.AddVec(test, trans1)
 	//	fmt.Println("test1",test, rotation) /////////////77
@@ -138,13 +138,13 @@ func RotateAbout(coordsorig, ax1, ax2 *v3.Matrix, angle float64) (*v3.Matrix, er
 	axis.Sub(ax2, ax1) // the rotation axis
 	f := func() { coords.SubVec(coordsorig, translation) }
 	if err := gnMaybe(gnPanicker(f)); err != nil {
-		return nil, CError{err.Error(),[]string{"v3.Matrix.SubVec","RotateAbout"}}
+		return nil, CError{err.Error(), []string{"v3.Matrix.SubVec", "RotateAbout"}}
 	}
 	Rot := v3.Zeros(coordsLen)
 	Rot = Rotate(coords, Rot, axis, angle)
 	g := func() { Rot.AddVec(Rot, translation) }
 	if err := gnMaybe(gnPanicker(g)); err != nil {
-		return nil, CError{err.Error(),[]string{"v3.Matrix.AddVec","RotateAbout"}}
+		return nil, CError{err.Error(), []string{"v3.Matrix.AddVec", "RotateAbout"}}
 
 	}
 	return Rot, nil
@@ -163,20 +163,20 @@ func EulerRotateAbout(coordsorig, ax1, ax2 *v3.Matrix, angle float64) (*v3.Matri
 	axis.Sub(ax2, ax1) //now it became the rotation axis
 	f := func() { coords.SubVec(coordsorig, translation) }
 	if err := gnMaybe(gnPanicker(f)); err != nil {
-		return nil, CError{err.Error(),[]string{"v3.Matrix.Subvec","EulerRotateAbout"}}
+		return nil, CError{err.Error(), []string{"v3.Matrix.Subvec", "EulerRotateAbout"}}
 
 	}
 	Zswitch := RotatorToNewZ(axis)
 	coords.Mul(coords, Zswitch) //rotated
 	Zrot, err := RotatorAroundZ(angle)
 	if err != nil {
-		return nil, errDecorate(err,"EulerRotateAbout")
+		return nil, errDecorate(err, "EulerRotateAbout")
 	}
 	//	Zsr, _ := Zswitch.Dims()
 	//	RevZ := v3.Zeros(Zsr)
 	RevZ, err := gnInverse(Zswitch)
 	if err != nil {
-		return nil, errDecorate(err,"EulerRotateAbout")
+		return nil, errDecorate(err, "EulerRotateAbout")
 	}
 	coords.Mul(coords, Zrot) //rotated
 	coords.Mul(coords, RevZ)
@@ -187,7 +187,7 @@ func EulerRotateAbout(coordsorig, ax1, ax2 *v3.Matrix, angle float64) (*v3.Matri
 //Corrupted is a convenience function to check that a reference and a trajectory have the same number of atoms
 func Corrupted(X Traj, R Atomer) error {
 	if X.Len() != R.Len() {
-		return CError{"Mismatched number of atoms/coordinates",[]string{"Corrupted"}}
+		return CError{"Mismatched number of atoms/coordinates", []string{"Corrupted"}}
 	}
 	return nil
 }
@@ -330,7 +330,7 @@ func FixNumbering(r Ref) { /*NOTICE: Ref is not needed here, only the Len and At
 func CutBackRef(r Atomer, chains []string, list [][]int) ([]int, error) {
 	//i:=r.Len()
 	if len(chains) != len(list) {
-		return nil, CError{fmt.Sprintf("Mismatched chains (%d) and list (%d) slices", len(chains), len(list)),[]string{"CutBackRef"}}
+		return nil, CError{fmt.Sprintf("Mismatched chains (%d) and list (%d) slices", len(chains), len(list)), []string{"CutBackRef"}}
 	}
 	var ret []int //This will be filled with the atoms that are kept, and will be returned.
 	for k, v := range list {
@@ -347,7 +347,7 @@ func CutBackRef(r Atomer, chains []string, list [][]int) ([]int, error) {
 		if nresname == "" {
 			//we will protest if the Nter is not found. If Cter is not found we will just
 			//cut at the real Cter
-			return nil, CError{fmt.Sprintf("list %d contains residue numbers out of boundaries", k),[]string{"CutBackRef"}}
+			return nil, CError{fmt.Sprintf("list %d contains residue numbers out of boundaries", k), []string{"CutBackRef"}}
 
 		}
 		for j := 0; j < r.Len(); j++ {
@@ -550,5 +550,5 @@ func MergeAtomers(A, B Atomer) (*Topology, error) {
 		multi = 1
 	}
 	r, err := NewTopology(full, charge, multi)
-	return r, errDecorate(err,"MergeAtomers")
+	return r, errDecorate(err, "MergeAtomers")
 }

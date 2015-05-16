@@ -469,7 +469,7 @@ func (O *NWChemHandle) OptimizedGeometry(atoms chem.Ref) (*v3.Matrix, error) {
 	if lastname == "" {
 		return nil, Error{ErrNoGeometry, NWChem, O.inputname, "", []string{"OptimizedGeometry"}, true}
 	}
-	mol, err := chem.XYZRead(lastname)
+	mol, err := chem.XYZFileRead(lastname)
 	if err != nil {
 		return nil, errDecorate(err, "qm.OptimizedGeometry "+" "+NWChem+" "+O.inputname+" "+ErrNoGeometry)
 	}

@@ -224,7 +224,7 @@ func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.ReadRef, Q *Calc) er
 	_ = os.Chdir(O.inputname)
 	defer os.Chdir("..")
 	//Set the coordinates in a slightly stupid way.
-	chem.XYZWrite("file.xyz", coords, atoms)
+	chem.XYZFileWrite("file.xyz", coords, atoms)
 	x2t := exec.Command("x2t", "file.xyz")
 	stdout, err := x2t.StdoutPipe()
 	if err != nil {
@@ -423,8 +423,7 @@ func (O *TMHandle) OptimizedGeometry(atoms chem.Ref) (*v3.Matrix, error) {
 		return nil, Error{ErrNoGeometry, Turbomole, O.inputname, not2x + err.Error(), []string{"exec.Start", "OptimizedGeometry"}, true}
 
 	}
-	xyz := bufio.NewReader(stdout)
-	mol, err := chem.XYZBufIORead(xyz)
+	mol, err := chem.XYZRead(stdout)
 	if err != nil {
 		return nil, errDecorate(err, "qm.OptimizedGeometry "+Turbomole+" "+O.inputname)
 	}
