@@ -625,6 +625,9 @@ func (err CError) Error() string { return err.msg }
 //Decorate will add the dec string to the decoration slice of strings of the error,
 //and return the resulting slice.
 func (err CError) Decorate(dec string) []string {
+	if dec==""{
+		return err.deco
+	}
 	err.deco = append(err.deco, dec)
 	return err.deco
 }

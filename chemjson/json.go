@@ -50,6 +50,7 @@ type Coords struct {
 
 //An easily JSON-serializable error type,
 type Error struct {
+	deco []string
 	IsError       bool //If this is false (no error) all the other fields will be at their zero-values.
 	InOptions     bool //If error, was it in parsing the options?
 	InSelections  bool //Was it in parsing selections?
@@ -67,11 +68,23 @@ func (J *Error) Error() string {
 	return J.Message
 }
 
+//Decorate will add the dec string to the decoration slice of strings of the error,
+//and return the resulting slice.
+func (err Error) Decorate(dec string) []string {
+	if dec==""{
+		return err.deco
+	}
+	err.deco = append(err.deco, dec)
+	return err.deco
+}
+
+
+
 //Serializes the error. Panics on failure.
 func (J *Error) Marshal() []byte {
 	ret, err2 := json.Marshal(J)
 	if err2 != nil {
-		panic(strings.Join([]string{J.Error(), err2.Error()}, " - ")) //well, shit.
+		panic(strings.Join([]string{J.Error(), err2.Error()}, " - ")) // Yo, dawg, I heard you like errors, so I got an error while serializing your error so you can... you know the drill.
 	}
 	return ret
 }
