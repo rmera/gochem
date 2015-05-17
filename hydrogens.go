@@ -33,7 +33,6 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-
 	"github.com/rmera/gochem/v3"
 )
 
@@ -53,6 +52,7 @@ func Reduce(mol Atomer, coords *v3.Matrix, build int, report *os.File, executabl
 		executable = "reduce"
 	}
 	reduce := exec.Command(executable, flip, "-") // , pdbname)
+//	println("COMMAND", reduce.Path, reduce.Args[1], reduce.Args[2]) //////////////////
 	inp, err := reduce.StdinPipe()
 	if err != nil {
 		return nil, err
@@ -74,7 +74,7 @@ func Reduce(mol Atomer, coords *v3.Matrix, build int, report *os.File, executabl
 	inp.Close()
 	bufiopdb := bufio.NewReader(out)
 	if report == nil {
-		report, err := os.Create("Reduce.log")
+		report, err = os.Create("Reduce.log")
 		if err != nil {
 			return nil, CError{err.Error(), []string{"os.Create", "Reduce"}}
 
