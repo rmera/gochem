@@ -280,7 +280,7 @@ func TestReduce(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
-	mol2, err := Reduce(mol, mol.Coords[0], 2, logger)
+	mol2, err := Reduce(mol, mol.Coords[0], 2, logger, "")
 	if err != nil {
 		Te.Error(err)
 	}
