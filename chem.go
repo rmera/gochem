@@ -32,7 +32,7 @@ import (
 
 //import "strings"
 
-/**Note: Many funcitons here panic instead of returning errors. This is because they are "fundamental"
+/**Many funcitons here panic instead of returning errors. This is because they are "fundamental"
  * functions. I considered that if something goes wrong here, the program is way-most likely wrong and should
  * crash. Most panics are related to using the funciton on a nil object or trying to access out-of bounds
  * fields**/
@@ -182,7 +182,7 @@ func (T *Topology) SetAtom(i int, at *Atom) {
 }
 
 //AppendAtom appends an atom at the end of the reference
-func (T *Topology) AppendAtom(at *Atom) { //Ref {
+func (T *Topology) AppendAtom(at *Atom) {
 	/*newmol, ok := T.CopyAtoms().(*Topology)
 	if !ok {
 		panic("cant happen")
@@ -256,27 +256,34 @@ type Molecule struct {
 }
 
 //NewMolecule makes a molecule with ats atoms, coords coordinates, bfactors b-factors
-//charge charge and unpaired unpaired electrons, and returns it. It returns error if
-//one of the slices is nil. It doesnt check for consitensy across slices or correct charge
-//or unpaired electrons.
-func NewMolecule(coords []*v3.Matrix, ats Ref, bfactors [][]float64) (*Molecule, error) {
-	//	if ats == nil {
-	//		return nil, fmt.Errorf("Supplied a nil Reference")
-	//	}
-	//	if coords == nil {
-	//		return nil, fmt.Errorf("Supplied a nil Coords slice")
-	//	}
+//charge charge and unpaired unpaired electrons, and returns it. It doesnt check for
+// consitency across slices or correct charge or unpaired electrons.
+func NewMolecule(coords []*v3.Matrix, ats Atomer, bfactors [][]float64) (*Molecule, error) {
+	if ats == nil {
+		return nil, CError{"Supplied a nil Reference", []string{"NewMolCule"}}
+	}
+	if coords == nil {
+		return nil, CError{"Supplied a nil Coord slice", []string{"NewMolCule"}}
+	}
 	//	if bfactors == nil {
 	//		return nil, fmt.Errorf("Supplied a nil Bfactors slice")
 	//	}
 	mol := new(Molecule)
-	if ats == nil {
-	} else if top, ok := ats.(*Topology); ok == true { //for speed
-		mol.Topology = top
-	} else {
-		mol.Topology = new(Topology)
-		mol.CopyAtoms(ats) // = make([]*Atom, ats.Len())
-
+	atcopy := func() {
+		mol.Topology, _ = NewTopology(make([]*Atom, 0, ats.Len()), 9999, -1) //I use 9999 for charge and -1 or multi to indicate that they are not truly set. So far NewTopology never actually returns any error so it's safe to ignore them. NOTE: Need to fix newtopology so it doesnt return error
+		for i := 0; i < ats.Len(); i++ {
+			mol.Atoms = append(mol.Atoms, ats.Atom(i))
+		}
+	}
+	switch ats := ats.(type) { //for speed
+	case *Topology:
+		mol.Topology = ats
+	case AtomMultiCharger:
+		atcopy()
+		mol.SetMulti(ats.Multi())
+		mol.SetCharge(ats.Charge())
+	default:
+		atcopy()
 	}
 	mol.Coords = coords
 	mol.Bfactors = bfactors
@@ -406,7 +413,7 @@ func (M *Molecule) Current() int {
 //to i.
 func (M *Molecule) SetCurrent(i int) {
 	if i < 0 || i >= len(M.Coords) {
-		panic(PanicMsg(fmt.Sprintf("Invalid new value for current frame: %d Current frames: %d", i, len(M.Coords))))
+		panic(PanicMsg(fmt.Sprintf("goChem: Invalid new value for current frame: %d Current frames: %d", i, len(M.Coords))))
 	}
 	M.current = i
 }

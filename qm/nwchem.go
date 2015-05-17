@@ -102,7 +102,7 @@ func (O *NWChemHandle) SetDefaults() {
 
 //BuildInput builds an input for NWChem based int the data in atoms, coords and C.
 //returns only error.
-func (O *NWChemHandle) BuildInput(coords *v3.Matrix, atoms chem.ReadRef, Q *Calc) error {
+func (O *NWChemHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q *Calc) error {
 	//Only error so far
 	if atoms == nil || coords == nil {
 		return Error{ErrMissingCharges, NWChem, O.inputname, "", []string{"BuildInput"}, true}
@@ -432,7 +432,7 @@ var nwchemMethods = map[string]string{
 //geometry or error. Returns the geometry AND error if the geometry read
 //is not the product of a correctly ended NWChem calculation. In this case
 //the error is "probable problem in calculation".
-func (O *NWChemHandle) OptimizedGeometry(atoms chem.Ref) (*v3.Matrix, error) {
+func (O *NWChemHandle) OptimizedGeometry(atoms chem.Atomer) (*v3.Matrix, error) {
 	var err2 error
 	lastnumber := 0
 	lastname := ""

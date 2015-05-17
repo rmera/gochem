@@ -209,7 +209,7 @@ func copy2pipe(pipe io.ReadCloser, file *os.File, end chan bool) {
 //returns only error.
 //Note that at this point the interface does not support multiplicities different from 1 and 2.
 //The number in atoms is simply ignored.
-func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.ReadRef, Q *Calc) error {
+func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q *Calc) error {
 	const noDefine = "goChem/QM: Unable to run define"
 	const nox2t = "goChem/QM: Unable to run x2t"
 	err := os.Mkdir(O.inputname, os.FileMode(0755))
@@ -410,7 +410,7 @@ func (O *TMHandle) Energy() (float64, error) {
 }
 
 //OptimizedGeometry returns the coordinates for the optimized structure.
-func (O *TMHandle) OptimizedGeometry(atoms chem.Ref) (*v3.Matrix, error) {
+func (O *TMHandle) OptimizedGeometry(atoms chem.Atomer) (*v3.Matrix, error) {
 	const not2x = "unable to run t2x "
 	os.Chdir(O.inputname)
 	defer os.Chdir("..")

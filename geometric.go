@@ -328,21 +328,19 @@ func BestPlaneP(evecs *v3.Matrix) (*v3.Matrix, error) {
 }
 
 //BestPlane returns a row vector that is normal to the plane that best contains the molecule
-//if passed a nil Ref, it will simply set all masses to 1.
-func BestPlane(coords *v3.Matrix, mol ReadRef) (*v3.Matrix, error) {
+//if passed a nil Masser, it will simply set all masses to 1.
+func BestPlane(coords *v3.Matrix, mol Masser) (*v3.Matrix, error) {
 	var err error
 	var Mmass []float64
 	cr, _ := coords.Dims()
 	if mol != nil {
-		if mol.Len() != cr {
-			return nil, CError{fmt.Sprintf("Inconsistent coordinates(%d)/atoms(%d)", mol.Len(), cr), []string{"BestPlane"}}
-		}
 		Mmass, err = mol.Masses()
 		if err != nil {
 			return nil, errDecorate(err, "BestPlane")
 		}
-	} else {
-		//Mmass=matrix.gnOnes(coords.Rows(),1)
+		if len(Mmass) != cr {
+			return nil, CError{fmt.Sprintf("Inconsistent coordinates(%d)/atoms(%d)", len(Mmass), cr), []string{"BestPlane"}}
+		}
 	}
 	moment, err := MomentTensor(coords, Mmass)
 	if err != nil {

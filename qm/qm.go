@@ -43,7 +43,7 @@ type InputBuilder interface {
 
 	//BuildInput builds an input for the QM program based int the data in
 	//atoms, coords and C. returns only error.
-	BuildInput(coords *v3.Matrix, atoms chem.ReadRef, Q *Calc) error
+	BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q *Calc) error
 }
 
 //Runs a QM calculation
@@ -72,8 +72,7 @@ type EnergyGeo interface {
 	//output. Returns error if fail. Returns Error ("Probable problem
 	//in calculation") if there is a geometry but the calculation didnt
 	//end properly*
-	OptimizedGeometry(atoms chem.Ref) (*v3.Matrix, error) /*NOTE: The "Probable problem..." error should have a type, and should report the program used. Also, chem.Ref is probably not needed here. Atomer is probably enough*/
-
+	OptimizedGeometry(atoms chem.Atomer) (*v3.Matrix, error)
 }
 
 //This allows to set QM calculations using different programs.

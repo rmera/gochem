@@ -98,7 +98,7 @@ func (O *OrcaHandle) SetDefaults() {
 
 //BuildInput builds an input for ORCA based int the data in atoms, coords and C.
 //returns only error.
-func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.ReadRef, Q *Calc) error {
+func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q *Calc) error {
 	//Only error so far
 	if atoms == nil || coords == nil {
 		return Error{ErrMissingCharges, Orca, O.inputname, "", []string{"BuildInput"}, true}
@@ -418,7 +418,7 @@ var orcaDisp = map[string]string{
   geometry or error. Returns the geometry AND error if the geometry read
   is not the product of a correctly ended ORCA calculation. In this case
   the error is "probable problem in calculation"*/
-func (O *OrcaHandle) OptimizedGeometry(atoms chem.Ref) (*v3.Matrix, error) {
+func (O *OrcaHandle) OptimizedGeometry(atoms chem.Atomer) (*v3.Matrix, error) {
 	var err error
 	geofile := fmt.Sprintf("%s.xyz", O.inputname)
 	//Here any error of orcaNormal... or false means the same, so the error can be ignored.

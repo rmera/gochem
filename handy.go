@@ -48,19 +48,19 @@ func Molecules2Atoms(mol Atomer, residues []int, chains []string) []int {
 
 }
 
-//MolIDNameChain2Index takes a molID (residue number), atom name, chain index and a molecule Ref.
+//MolIDNameChain2Index takes a molID (residue number), atom name, chain index and a molecule Atomer.
 //it returns the index associated with the atom in question in the Ref. The function returns also an error (if failure of warning)
 // or nil (if succses and no warnings). Note that this function is not efficient to call several times to retrieve many atoms.
-func MolIDNameChain2Index(mol Ref, molID int, name, chain string) (int, error) {
+func MolIDNameChain2Index(mol Atomer, molID int, name, chain string) (int, error) {
 	var ret int = -1
 	var err error
 	if mol == nil {
-		return -1, CError{"goChem: Given a nil chem.Ref", []string{"MolIDNameChain2Index"}}
+		return -1, CError{"goChem: Given a nil chem.Atomer", []string{"MolIDNameChain2Index"}}
 	}
 	for i := 0; i != mol.Len(); i++ {
 		a := mol.Atom(i)
 		if a.Name == "" && err == nil {
-			err = CError{"Warning: The Ref does not seem to contain PDB-type information", []string{"MolIDNameChain2Index"}} //We set this error but will still keep running the function in case the data is present later in the molecule.
+			err = CError{"Warning: The Atoms does not seem to contain PDB-type information", []string{"MolIDNameChain2Index"}} //We set this error but will still keep running the function in case the data is present later in the molecule.
 		}
 		if a.MolID == molID && a.Name == name && a.Chain == chain {
 			ret = i
@@ -73,7 +73,7 @@ func MolIDNameChain2Index(mol Ref, molID int, name, chain string) (int, error) {
 		if err != nil {
 			p = err.Error()
 		}
-		err = CError{fmt.Sprintf("%s.  No atomic index found in the Ref given for the given MolID, atom name and chain.", p), []string{"MolIDNameChain2Index"}}
+		err = CError{fmt.Sprintf("%s.  No atomic index found in the Atomer given for the given MolID, atom name and chain.", p), []string{"MolIDNameChain2Index"}}
 	}
 	return ret, err
 }
@@ -544,8 +544,8 @@ func MergeAtomers(A, B Atomer) (*Topology, error) {
 			full[k] = B.Atom(k - al)
 		}
 	}
-	a, aok := A.(ReadRef) /*NOTICE: Here we use only the Charge and Multi methods of ReadRef. Maybe the other method can be removed from the interface or a new interface can be created.*/
-	b, bok := B.(ReadRef)
+	a, aok := A.(AtomMultiCharger)
+	b, bok := B.(AtomMultiCharger)
 	var charge, multi int
 	if aok && bok {
 		charge = a.Charge() + b.Charge()

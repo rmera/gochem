@@ -94,7 +94,7 @@ func (O *FermionsHandle) SetDefaults() {
 
 //BuildInput builds an input for Fermions++ based int the data in atoms, coords and C.
 //returns only error.
-func (O *FermionsHandle) BuildInput(coords *v3.Matrix, atoms chem.ReadRef, Q *Calc) error {
+func (O *FermionsHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q *Calc) error {
 	//Only error so far
 
 	if atoms == nil || coords == nil {
