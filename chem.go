@@ -91,15 +91,16 @@ type Topology struct {
 //charge charge and multi multiplicity.
 // It doesnt check for consitency across slices or correct charge
 //or unpaired electrons.
-func NewTopology(ats []*Atom, charge, multi int) (*Topology, error) {
-	//	if ats == nil {
-	//		return nil, fmt.Errorf("Supplied a nil Topology")
-	//	}
+func NewTopology(ats []*Atom, charge, multi int) *Topology {
 	top := new(Topology)
-	top.Atoms = ats
+	if ats == nil {
+		top.Atoms = make([]*Atom, 0, 0) //return nil, fmt.Errorf("Supplied a nil Topology")
+	} else {
+		top.Atoms = ats
+	}
 	top.charge = charge
 	top.multi = multi
-	return top, nil
+	return top
 }
 
 /*Topology methods*/
@@ -228,7 +229,11 @@ func (T *Topology) DelAtom(i int) {
 
 //Len returns the length of the molecule.
 func (T *Topology) Len() int {
-	return len(T.Atoms) //This shouldnt be needed
+	//if T.Atoms is nil, return len(T.Atoms) will panic, so I will let that happen for now.
+//	if T.Atoms == nil {
+//		panic(ErrNilAtoms)
+//	}
+	return len(T.Atoms)
 }
 
 //MassCol returns a slice of float64 with the masses of atoms, or nil and an error if they have not been calculated
@@ -270,7 +275,7 @@ func NewMolecule(coords []*v3.Matrix, ats Atomer, bfactors [][]float64) (*Molecu
 	//	}
 	mol := new(Molecule)
 	atcopy := func() {
-		mol.Topology, _ = NewTopology(make([]*Atom, 0, ats.Len()), 9999, -1) //I use 9999 for charge and -1 or multi to indicate that they are not truly set. So far NewTopology never actually returns any error so it's safe to ignore them. NOTE: Need to fix newtopology so it doesnt return error
+		mol.Topology = NewTopology(make([]*Atom, 0, ats.Len()), 9999, -1) //I use 9999 for charge and -1 or multi to indicate that they are not truly set. So far NewTopology never actually returns any error so it's safe to ignore them. NOTE: Need to fix newtopology so it doesnt return error
 		for i := 0; i < ats.Len(); i++ {
 			mol.Atoms = append(mol.Atoms, ats.Atom(i))
 		}
@@ -541,7 +546,7 @@ func (M *Molecule) Next(V *v3.Matrix) error {
 //Initializes molecule to be read as a traj (not tested!)
 func (M *Molecule) InitRead() error {
 	if M == nil || len(M.Coords) == 0 {
-		return fmt.Errorf("Bad molecule")
+		return CError{"Bad molecule",[]string{"InitRead"}}
 	}
 	M.current = 0
 	return nil
@@ -671,9 +676,11 @@ type PanicMsg string
 func (v PanicMsg) Error() string { return string(v) }
 
 const (
+	ErrNilMatrix        = PanicMsg("goChem: Attempted to access nil v3.Matrix or gonum/mat64.Dense")
+	ErrNilAtoms         = PanicMsg("goChem: Topology has a nil []*Atom slice")
 	ErrNilAtom          = PanicMsg("goChem: Attempted to copy from or to a nil Atom")
 	ErrAtomOutOfRange   = PanicMsg("goChem: Requested/Attempted setting Atom out of range")
 	ErrNilFrame         = PanicMsg("goChem: Attempted to acces nil frame")
-	ErrNotXx3Matrix     = PanicMsg("goChem: A v3.VecMatrix should have 3 columns")
+	ErrNotXx3Matrix     = PanicMsg("goChem: A v3.Matrix should have 3 columns")
 	ErrCliffordRotation = PanicMsg("goChem-Clifford: Target and Result matrices must have the same dimensions. They cannot reference the same matrix") //the only panic that the Clifford functions throw.
 )

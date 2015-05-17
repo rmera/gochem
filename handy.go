@@ -533,7 +533,7 @@ func ScaleBond(C, H *v3.Matrix, bond float64) {
 }
 
 //Merges A and B in a single topology which is returned
-func MergeAtomers(A, B Atomer) (*Topology, error) {
+func MergeAtomers(A, B Atomer) *Topology {
 	al := A.Len()
 	l := al + B.Len()
 	full := make([]*Atom, l, l)
@@ -553,6 +553,5 @@ func MergeAtomers(A, B Atomer) (*Topology, error) {
 	} else {
 		multi = 1
 	}
-	r, err := NewTopology(full, charge, multi)
-	return r, errDecorate(err, "MergeAtomers")
+	return NewTopology(full, charge, multi)
 }

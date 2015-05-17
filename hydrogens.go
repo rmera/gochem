@@ -30,10 +30,10 @@ package chem
 
 import (
 	"bufio"
+	"github.com/rmera/gochem/v3"
 	"os"
 	"os/exec"
 	"strings"
-	"github.com/rmera/gochem/v3"
 )
 
 //Reduce uses the Reduce program (Word, et. al. (1999) J. Mol. Biol. 285,
@@ -52,7 +52,7 @@ func Reduce(mol Atomer, coords *v3.Matrix, build int, report *os.File, executabl
 		executable = "reduce"
 	}
 	reduce := exec.Command(executable, flip, "-") // , pdbname)
-//	println("COMMAND", reduce.Path, reduce.Args[1], reduce.Args[2]) //////////////////
+	//	println("COMMAND", reduce.Path, reduce.Args[1], reduce.Args[2]) //////////////////
 	inp, err := reduce.StdinPipe()
 	if err != nil {
 		return nil, err
