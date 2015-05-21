@@ -230,9 +230,9 @@ func (T *Topology) DelAtom(i int) {
 //Len returns the length of the molecule.
 func (T *Topology) Len() int {
 	//if T.Atoms is nil, return len(T.Atoms) will panic, so I will let that happen for now.
-//	if T.Atoms == nil {
-//		panic(ErrNilAtoms)
-//	}
+	//	if T.Atoms == nil {
+	//		panic(ErrNilAtoms)
+	//	}
 	return len(T.Atoms)
 }
 
@@ -546,7 +546,7 @@ func (M *Molecule) Next(V *v3.Matrix) error {
 //Initializes molecule to be read as a traj (not tested!)
 func (M *Molecule) InitRead() error {
 	if M == nil || len(M.Coords) == 0 {
-		return CError{"Bad molecule",[]string{"InitRead"}}
+		return CError{"Bad molecule", []string{"InitRead"}}
 	}
 	M.current = 0
 	return nil

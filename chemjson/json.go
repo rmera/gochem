@@ -182,7 +182,7 @@ func DecodeMolecule(stream *bufio.Reader, atomnumber, frames int) (*chem.Topolog
 		}
 		rawcoords = append(rawcoords, ctemp.Coords...)
 	}
-	mol, _ := chem.NewTopology(atoms, 0, 1) //no idea of the charge or multiplicity
+	mol := chem.NewTopology(atoms, -1, 99999) //no idea of the charge or multiplicity
 	coords, err := v3.NewMatrix(rawcoords)
 	if err != nil {
 		return nil, nil, NewError("selection", funcname, err)
