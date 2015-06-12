@@ -34,20 +34,11 @@ import (
 	"github.com/rmera/gochem/v3"
 )
 
-/*
-   """projects any vector V in a plane with contains the 0 and which normal vector is  N. V and N must be numeric arrays"""
-   def __init__(self,N): #set the operator
-           self.file1=[1-(pow(N[0],2)/pow(norm(N),2)),(N[0]*N[1])/pow(norm(N),2),(N[0]*N[2])/pow(norm(N),2)]
-           self.file2=[(N[1]*N[0])/pow(norm(N),2),1-(pow(N[1],2)/pow(norm(N),2)),(N[1]*N[2])/pow(norm(N),2)]
-           self.file3=[(N[2]*N[0])/pow(norm(N),2),(N[2]*N[1])/pow(norm(N),2),1-(pow(N[2],2)/pow(norm(N),2))]
-           self.op=array([self.file1,self.file2,self.file3])
-   def project(self,V):
-           self.projection=dot(self.op,V)
-           return self.projection
 
 
-*/
-//func GetShadow()
+//NOTE: For many of these functions we could ask for a buffer vector in the arguments in order to reduce
+//memory allocation.
+
 
 //Angle takes 2 vectors and calculate the angle in radians between them
 //It does not check for correctness or return errors!
@@ -460,6 +451,20 @@ func Projection(test, ref *v3.Matrix) *v3.Matrix {
 	Uref.Unit(ref)
 	scalar := test.Dot(Uref) //math.Abs(la)*math.Cos(angle)
 	Uref.Scale(scalar, Uref)
+	return Uref
+}
+
+//AntiProjection returns a vector in the direction of ref with the magnitude of
+//a vector A would have if |test| was the magnitude of its projection
+//in the direction of test.
+func AntiProjection(test, ref *v3.Matrix) *v3.Matrix{
+	rr,_:=ref.Dims()
+	testnorm:=test.Norm(0)
+	Uref:=v3.Zeros(rr)
+	Uref.Unit(ref)
+	scalar:=test.Dot(Uref)
+	scalar=(testnorm*testnorm)/scalar
+	Uref.Scale(scalar,Uref)
 	return Uref
 }
 

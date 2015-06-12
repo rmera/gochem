@@ -394,3 +394,16 @@ func TestRotateBz(Te *testing.T) {
 	}
 	//	fmt.Println(mol, planevec)
 }
+
+func TestProjectionAndAntiProjection(Te *testing.T) {
+	A:=v3.Zeros(1)
+	A.Set(0,0,2.0)
+	B,_:=v3.NewMatrix([]float64{1,1,0})
+	C:=AntiProjection(A,B)
+	D:=Projection(B,A)
+	fmt.Println("Projection of B on A (D)", D)
+	fmt.Println("Anti-projection of A on B (C):", C)
+	fmt.Println("Norm of C: ", C.Norm(0),  " Norm of A,B: ", A.Norm(0),B.Norm(0), "Norm of D:", D.Norm(0))
+}
+
+
