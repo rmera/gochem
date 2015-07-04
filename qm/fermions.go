@@ -128,7 +128,8 @@ func (O *FermionsHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharg
 	}
 	task := "SinglePoint"
 	dloptions := ""
-	if Q.Optimize == true {
+	jc:=jobChoose{}
+	jc.opti= func() {
 		task = "DLF_OPTIMIZE"
 		dloptions = fmt.Sprintf("*start::dlfind\n JOB std\n method l-bfgs\n trust_radius energy\n dcd %s.dcd\n maxcycle 300\n maxene 200\n coord_type cartesian\n*end\n", O.inputname)
 		//Only cartesian constraints supported by now.
@@ -140,6 +141,7 @@ func (O *FermionsHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharg
 			dloptions = fmt.Sprintf("%s*end\n", dloptions)
 		}
 	}
+	Q.Job.Do(jc)
 	cosmo := ""
 	if Q.Dielectric > 0 {
 		cosmo = fmt.Sprintf("*start::solvate\n pcm_model cpcm\n epsilon %f\n cavity_model bondi\n*end\n", Q.Dielectric)
@@ -167,7 +169,7 @@ func (O *FermionsHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharg
 	fmt.Fprintf(file, " %s\n", grid)
 	fmt.Fprintf(file, " %s\n", disp)
 	fmt.Fprintf(file, " %s\n", O.gpu)
-	if !Q.Optimize {
+	if !Q.Job.Opti {
 		fmt.Fprintf(file, " INFO 2\n")
 	}
 	fmt.Fprintf(file, "*end\n\n")

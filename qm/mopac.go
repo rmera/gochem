@@ -47,7 +47,7 @@ type MopacHandle struct {
 	inputname string
 }
 
-//Creates and initialized a new instance of MopacRuner, with values set
+//Creates and initialized a new instance of MopacRunner, with values set
 //to its defaults.
 func NewMopacHandle() *MopacHandle {
 	run := new(MopacHandle)
@@ -94,9 +94,12 @@ func (O *MopacHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger,
 		Q.Method = O.defmethod
 	}
 	opt := "" //Empty string means optimize
-	if Q.Optimize == false {
+	jc:=jobChoose{}
+	jc.sp=func(){
 		opt = "1SCF"
 	}
+	jc.opti=func(){}
+	Q.Job.Do(jc)
 	//If this flag is set we'll look for a suitable MO file.
 	//If not found, we'll just use the default ORCA guess
 	hfuhf := "RHF"

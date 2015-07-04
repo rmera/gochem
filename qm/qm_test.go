@@ -56,7 +56,8 @@ func TestQM(Te *testing.T) {
 	mol.SetMulti(1)
 	calc := new(Calc)
 	calc.SCFTightness = 2 //very demanding
-	calc.Optimize = true
+	calc.Job = Job{}
+	calc.Job.Opti=true
 	calc.Method = "TPSS"
 	calc.Dielectric = 4
 	calc.Basis = "def2-SVP"
@@ -138,6 +139,7 @@ func TestQM(Te *testing.T) {
 	fmt.Println("end mopac and orca test!")
 }
 
+/*
 //TestTurbo tests the QM functionality. It prepares input for Turbomole
 //Notice that 2 TM inputs cannot be in the same directory. Notice that TMHandle
 //supports ECPs
@@ -159,7 +161,7 @@ func TesstTurbo(Te *testing.T) {
 	calc.ECP = "ecp-10-mdf"
 	calc.ECPElements = []string{"O"}
 	calc.Grid = 4
-	calc.Optimize = true
+	calc.Job=Job{Opti:true}
 	calc.Method = "BP86"
 	calc.Dielectric = 4
 	calc.Basis = "def2-SVP"
@@ -194,7 +196,9 @@ func TesstTurbo(Te *testing.T) {
 	chem.XYZFileWrite("optiethanol.xyz", geo, mol)
 	fmt.Println("end TurboTest!")
 }
+*/
 
+/*
 func TestFermions(Te *testing.T) {
 	mol, err := chem.XYZFileRead("../test/ethanol.xyz")
 	if err != nil {
@@ -206,7 +210,7 @@ func TestFermions(Te *testing.T) {
 	mol.SetCharge(0)
 	mol.SetMulti(1)
 	calc := new(Calc)
-	calc.Optimize = true
+	calc.Job=Job{Opti:true}
 	calc.Method = "BLYP"
 	calc.Dielectric = 4
 	calc.Basis = "def2-SVP"
@@ -234,6 +238,8 @@ func TestFermions(Te *testing.T) {
 	//	chem.XYZFileWrite("LastGeoFermions.xyz",ngeo,mol)
 	fmt.Println("Passed FermiONs++ test!")
 }
+*/
+
 
 func qderror_handler(err error, Te *testing.T) {
 	if err != nil {
@@ -259,7 +265,7 @@ func TestNWChem(Te *testing.T) {
 	calc := new(Calc)
 	calc.SCFTightness = 1 //quite tight
 	calc.SCFConvHelp = 1
-	calc.Optimize = true
+	calc.Job=Job{Opti:true}
 	calc.Method = "TPSS"
 	calc.Dielectric = 4
 	calc.Basis = "def2-SVP"

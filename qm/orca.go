@@ -137,10 +137,12 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 	}
 	opt := ""
 	trustradius := ""
-	if Q.Optimize == true {
+	jc:=jobChoose{}
+	jc.opti= func() {
 		opt = "Opt"
 		trustradius = "%geom trust 0.3\nend\n\n" //Orca uses a fixed trust radius by default. This goChem makes an input that activates variable trust radius.
 	}
+	Q.Job.Do(jc)
 	//If this flag is set we'll look for a suitable MO file.
 	//If not found, we'll just use the default ORCA guess
 	hfuhf := "RHF"

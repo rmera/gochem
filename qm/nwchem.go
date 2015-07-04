@@ -196,7 +196,7 @@ func (O *NWChemHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger
 	cosmo := ""
 	if Q.Dielectric > 0 {
 		//SmartCosmo in a single-point means that do_gasphase False is used, nothing fancy.
-		if Q.Optimize || O.smartCosmo {
+		if Q.Job.Opti || O.smartCosmo {
 			cosmo = fmt.Sprintf("cosmo\n dielec %4.1f\n do_gasphase False\nend", Q.Dielectric)
 		} else {
 			cosmo = fmt.Sprintf("cosmo\n dielec %4.1f\n do_gasphase True\nend", Q.Dielectric)
@@ -216,7 +216,9 @@ func (O *NWChemHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger
 	task := "dft energy"
 	driver := ""
 	preopt := ""
-	if Q.Optimize == true {
+	jc := jobChoose{}
+
+	jc.opti= func() {
 		eprec := "" //The available presition is set to default except if tighter SCF convergene criteria are being used.
 		if Q.SCFTightness > 0 {
 			eprec = " eprec 1E-7\n"
@@ -241,7 +243,7 @@ func (O *NWChemHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger
 		driver = fmt.Sprintf("%s\ndriver\n maxiter 200\n%s trust 0.05\n xyz %s\nend\n", driver, eprec, O.inputname)
 		//Old criteria (ORCA): gmax 0.003\n grms 0.0001\n xmax 0.004 \n xrms 0.002\n
 	}
-
+	Q.Job.Do(jc) 
 	//////////////////////////////////////////////////////////////
 	//Now lets write the thing. Ill process/write the basis later
 	//////////////////////////////////////////////////////////////
@@ -333,7 +335,7 @@ func (O *NWChemHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger
 	if disp != "" {
 		fmt.Fprintf(file, " disp %s\n", disp)
 	}
-	if Q.Optimize {
+	if Q.Job.Opti {
 		fmt.Fprintf(file, " print convergence\n")
 	}
 	//task part
