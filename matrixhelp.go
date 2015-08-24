@@ -95,7 +95,7 @@ func gnCopy(A mat64.Matrix) *mat64.Dense {
 func gnT(A mat64.Matrix) *mat64.Dense {
 	r, c := A.Dims()
 	B := gnZeros(c, r)
-	B.TCopy(A)
+	B.Copy(A.T())
 	return B
 }
 

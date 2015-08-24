@@ -41,6 +41,7 @@ import (
 	"github.com/gonum/matrix/mat64"
 	"math"
 	"sort"
+	"log"
 )
 
 //The main container, must be able to implement any
@@ -239,10 +240,21 @@ func EigenWrap(in *Matrix, epsilon float64) (*Matrix, []float64, error) {
 	}
 	//	fmt.Println("evecs fresh", evecs) ///////
 	//evals := [3]float64{vals.At(0, 0), vals.At(1, 1), vals.At(2, 2)} //go.matrix specific code here.
-	f := func() { evecs.TCopy(evecs) }
-	if err2 := mat64.Maybe(mat64.Panicker(f)); err2 != nil {
-		return nil, nil, Error{err2.Error(), []string{"mat64.TCopy", "EigenWrap"}, true}
-	}
+//	f := func() { evecs.TCopy(evecs) }
+	errstr:=""
+	//I am not SO sure this works
+	func() (err error) {
+		defer func(){
+			if r:=recover(); r!=nil{
+				errstr=fmt.Sprintln(r)
+				log.Println("There was an error in the Eigenwrap function") //Just an additional precaution for a while.
+				err= Error{errstr, []string{"mat64.Copy/math64.T", "EigenWrap"}, true}
+				return
+			}
+		}()
+		evecs.TCopy(evecs)
+		return
+	}()
 	//evecs.TCopy(evecs.Dense)
 	//	fmt.Println("evecs presort", evecs) /////////
 	eig := eigenpair{evecs, evals[:]}
@@ -301,16 +313,18 @@ func gnSVD(A *mat64.Dense) ( *mat64.Dense,*mat64.Dense,*mat64.Dense) {
 }
 */
 
+
 //Just a wrapper for the mat64.Dense.TCopy method
 func (F *Matrix) TCopy(A mat64.Matrix) {
+//NOTE: This function has been removed from gonum, hence I should remove it from here too. *******************
 	//Somehow the mat64.TCopy method seems to misbehave if I give it a mat64.Matrix.
 	//Although I can't see a bug in the mat64.Dense.TCopy function, it seems that if I
 	//call it with an A which is not a mat64.Dense, it doesn't work. That is why this wrapper
 	//has not been deleted. This seems to be a bug in gochem somehow, not in gonum.
 	if A, ok := A.(*Matrix); ok {
-		F.Dense.TCopy(A.Dense)
+		F.Dense.Copy(A.Dense.T())
 	} else {
-		F.Dense.TCopy(A)
+		F.Dense.Copy(A.T())
 	}
 }
 

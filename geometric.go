@@ -439,7 +439,7 @@ func MomentTensor(A *v3.Matrix, massslice []float64) (*v3.Matrix, error) {
 	center.ScaleByCol(center, sqrmass)
 	//	fmt.Println(center,"scaled center")
 	centerT := gnZeros(ac, ar)
-	centerT.TCopy(center)
+	centerT.Copy(center.T())
 	moment := gnMul(centerT, center)
 	return v3.Dense2Matrix(moment), nil
 }

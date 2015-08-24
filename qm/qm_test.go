@@ -56,8 +56,8 @@ func TestQM(Te *testing.T) {
 	mol.SetMulti(1)
 	calc := new(Calc)
 	calc.SCFTightness = 2 //very demanding
-	calc.Job = Job{}
-	calc.Job.Opti=true
+	calc.Job = Job{Opti:true}
+	//calc.Job.Opti=true
 	calc.Method = "TPSS"
 	calc.Dielectric = 4
 	calc.Basis = "def2-SVP"
