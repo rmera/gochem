@@ -185,8 +185,8 @@ func TestPutInXYPlane(Te *testing.T) {
 	if err != nil {
 		err2 := err.(Error)
 		fmt.Println(err2.Decorate(""))
-		Te.Error(err)
-		panic(err.Error())
+		Te.Fatal(err)
+//		panic(err.Error())
 	}
 	z, _ := v3.NewMatrix([]float64{0, 0, 1})
 	zero, _ := v3.NewMatrix([]float64{0, 0, 0})
@@ -353,7 +353,10 @@ func TestRotateBz(Te *testing.T) {
 	carbons.SomeVecs(coords, carbonIn)
 	planevec, err := BestPlane(carbons, nil)
 	if err != nil {
-		panic(err.Error())
+		if  e,ok:=err.(Error);ok{
+		fmt.Println("DEcoration:", e.Decorate(""))
+		}
+		Te.Fatal(err)
 	}
 	basename := "BZ"
 	newcoords := v3.Zeros(mol.Len())

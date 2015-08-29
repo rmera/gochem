@@ -41,7 +41,6 @@ import (
 	"github.com/gonum/matrix/mat64"
 	"math"
 	"sort"
-	"log"
 )
 
 //The main container, must be able to implement any
@@ -231,30 +230,21 @@ func EigenWrap(in *Matrix, epsilon float64) (*Matrix, []float64, error) {
 		epsilon = appzero
 	}
 	efacs := mat64.Eigen(mat64.DenseCopyOf(in.Dense), epsilon)
-	evecs := &Matrix{efacs.V}
+	evecsprev := &Matrix{efacs.V}
 	evalsmat := efacs.D()
 	d, _ := evalsmat.Dims()
 	evals := make([]float64, d, d)
 	for k, _ := range evals {
 		evals[k] = evalsmat.At(k, k)
 	}
-	//	fmt.Println("evecs fresh", evecs) ///////
-	//evals := [3]float64{vals.At(0, 0), vals.At(1, 1), vals.At(2, 2)} //go.matrix specific code here.
-//	f := func() { evecs.TCopy(evecs) }
-	errstr:=""
-	//I am not SO sure this works
-	func() (err error) {
-		defer func(){
-			if r:=recover(); r!=nil{
-				errstr=fmt.Sprintln(r)
-				log.Println("There was an error in the Eigenwrap function") //Just an additional precaution for a while.
-				err= Error{errstr, []string{"mat64.Copy/math64.T", "EigenWrap"}, true}
-				return
-			}
-		}()
-		evecs.TCopy(evecs)
-		return
-	}()
+		fmt.Println("evecs fresh", evecsprev) ///////
+	evecs:=Zeros(3)
+	fn:=func(){evecs.Copy(evecsprev.T())}
+	err:=mat64.Maybe(fn)
+	if err!=nil{
+		return nil, nil, Error{err.Error(), []string{"mat64.Copy/math64.T", "EigenWrap"}, true}
+
+	}
 	//evecs.TCopy(evecs.Dense)
 	//	fmt.Println("evecs presort", evecs) /////////
 	eig := eigenpair{evecs, evals[:]}
@@ -264,7 +254,7 @@ func EigenWrap(in *Matrix, epsilon float64) (*Matrix, []float64, error) {
 	//I think orthonormality is guaranteed by  DenseMatrix.Eig() If it is, Ill delete all this
 	//If not I'll add ortonormalization routines.
 	eigrows, _ := eig.evecs.Dims()
-	//	fmt.Println("evecs", eig.evecs) /////////
+		fmt.Println("evecs", eig.evecs) /////////
 	for i := 0; i < eigrows; i++ {
 		vectori := eig.evecs.VecView(i)
 		for j := i + 1; j < eigrows; j++ {
