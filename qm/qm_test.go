@@ -55,6 +55,7 @@ func TestQM(Te *testing.T) {
 	mol.SetCharge(1)
 	mol.SetMulti(1)
 	calc := new(Calc)
+	calc.SetDefaults()
 	calc.SCFTightness = 2 //very demanding
 	calc.Job = Job{Opti:true}
 	//calc.Job.Opti=true
@@ -67,7 +68,7 @@ func TestQM(Te *testing.T) {
 	calc.HBAtoms = []int{3, 10, 12}
 	calc.HBElements = []string{"Cu", "Zn"}
 	calc.CConstraints = []int{0, 10, 20}
-	calc.SetDefaults()
+	calc.OldMO=true
 	orca := NewOrcaHandle()
 	orca.SetnCPU(16) /////////////////////
 	atoms := v3.Zeros(mol.Len())
@@ -279,6 +280,7 @@ func TestNWChem(Te *testing.T) {
 	nw := NewNWChemHandle()
 	orca := NewOrcaHandle()
 	nw.SetName("gochem")
+	orca.SetName("gochemII")
 	atoms := v3.Zeros(mol.Len())
 	mol.Next(atoms)
 	if err = os.Chdir("../test"); err != nil {

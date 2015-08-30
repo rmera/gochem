@@ -161,17 +161,17 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 				continue
 			}
 			name := val.Name()
-			if strings.Contains(".gbw", name) {
+			if strings.Contains(name,".gbw") {
 				O.previousMO = name
 				break
 			}
 		}
 		if O.previousMO != "" {
-			Q.Guess = "MORead"
-			moinp = fmt.Sprintf("%%moinp \"%s\"\n", O.previousMO)
+		//	Q.Guess = "MORead"
+			moinp = fmt.Sprintf("%%scf\n   Guess MORead\n   MOInp \"%s\"\nend\n\n", O.previousMO)
 		} else {
 			moinp = ""
-			Q.Guess = "" //The default guess
+		//	Q.Guess = "" //The default guess
 		}
 	}
 	tight := "TightSCF"
@@ -188,13 +188,8 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 		conv = orcaSCFConv[Q.SCFConvHelp]
 	}
 	pal := ""
-	palbig := ""
 	if O.nCPU > 1 {
-		if O.nCPU > 8 {
-			palbig = fmt.Sprintf("%%pal nprocs %d\n   end\n", O.nCPU) //fmt.Fprintf(os.Stderr, "CPU number of %d for ORCA calculations currently not supported, maximun 8", O.nCPU)
-		} else {
-			pal = fmt.Sprintf("PAL%d", O.nCPU)
-		}
+		pal = fmt.Sprintf("%%pal nprocs %d\n   end\n\n", O.nCPU) //fmt.Fprintf(os.Stderr, "CPU number of %d for ORCA calculations currently not supported, maximun 8", O.nCPU)
 	}
 	grid := ""
 	if Q.Grid > 0 && Q.Grid <= 9 {
@@ -209,6 +204,7 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 	if bsse, err = O.buildgCP(Q); err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 	}
+	HF3cAdditional:="" // additional settings for HF-3c.
 	if Q.Method == "HF-3c" { //This method includes its own basis sets and corrections, so previous choices are overwritten. NOTE: there are some defaults that should be changed to get HF-3c to work better.
 		Q.Basis = ""
 		Q.auxBasis = ""
@@ -216,8 +212,10 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 		Q.Guess = ""
 		bsse = ""
 		disp = ""
-	}
-	MainOptions := []string{"!", hfuhf, Q.Method, Q.Basis, Q.auxBasis, Q.auxColBasis, tight, disp, conv, Q.Guess, opt, Q.Others, grid, ri, bsse, pal, "\n"}
+		HF3cAdditional="%scf\n   SCFMode Direct\n   MaxIter 200\n   MaxIntMem 2000\nend\n\n"
+
+			}
+	MainOptions := []string{"!", hfuhf, Q.Method, Q.Basis, Q.auxBasis, Q.auxColBasis, tight, disp, conv, Q.Guess, opt, Q.Others, grid, ri, bsse, "\n\n"}
 	mainline := strings.Join(MainOptions, " ")
 	constraints := O.buildCConstraints(Q.CConstraints)
 	iconstraints, err := O.buildIConstraints(Q.IConstraints)
@@ -226,23 +224,23 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 	}
 	cosmo := ""
 	if Q.Dielectric > 0 {
-		cosmo = fmt.Sprintf("%%cosmo epsilon %1.0f\n        refrac 1.30\n        end\n", Q.Dielectric)
+		cosmo = fmt.Sprintf("%%cosmo epsilon %1.0f\n        refrac 1.30\n        end\n\n", Q.Dielectric)
 	}
 	mem := ""
 	if Q.Memory != 0 {
-		mem = fmt.Sprintf("%%MaxCore %d\n", Q.Memory)
+		mem = fmt.Sprintf("%%MaxCore %d\n\n", Q.Memory)
 	}
 	ElementBasis := ""
 	if Q.HBElements != nil || Q.LBElements != nil {
 		elementbasis := make([]string, 0, len(Q.HBElements)+len(Q.LBElements)+2)
-		elementbasis = append(elementbasis, " %basis \n")
+		elementbasis = append(elementbasis, "%basis \n")
 		for _, val := range Q.HBElements {
 			elementbasis = append(elementbasis, fmt.Sprintf("  newgto %s \"%s\" end\n", val, Q.HighBasis))
 		}
 		for _, val := range Q.LBElements {
 			elementbasis = append(elementbasis, fmt.Sprintf("  newgto %s \"%s\" end\n", val, Q.LowBasis))
 		}
-		elementbasis = append(elementbasis, "         end\n")
+		elementbasis = append(elementbasis, "         end\n\n")
 		ElementBasis = strings.Join(elementbasis, "")
 	}
 	//Now lets write the thing
@@ -256,12 +254,14 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 	}
 	defer file.Close()
 	_, err = fmt.Fprint(file, mainline)
-	//With this check its assumed that the file is ok.
+	//With this check its assumed that the file is ok.https://www.reddit.com/
 	if err != nil {
 		return Error{ErrCantInput, Orca, O.inputname, err.Error(), []string{"fmt.Printf", "BuildInput"}, true}
 
 	}
-	fmt.Fprint(file, palbig)
+	fmt.Println("Ta wena la wea... chupa la callampa, uh uh uuuh", moinp) ///////////////
+	fmt.Fprint(file,HF3cAdditional)
+	fmt.Fprint(file, pal)
 	fmt.Fprint(file, moinp)
 	fmt.Fprint(file, mem)
 	fmt.Fprint(file, constraints)

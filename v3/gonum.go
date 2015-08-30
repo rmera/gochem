@@ -237,7 +237,6 @@ func EigenWrap(in *Matrix, epsilon float64) (*Matrix, []float64, error) {
 	for k, _ := range evals {
 		evals[k] = evalsmat.At(k, k)
 	}
-		fmt.Println("evecs fresh", evecsprev) ///////
 	evecs:=Zeros(3)
 	fn:=func(){evecs.Copy(evecsprev.T())}
 	err:=mat64.Maybe(fn)
@@ -246,15 +245,12 @@ func EigenWrap(in *Matrix, epsilon float64) (*Matrix, []float64, error) {
 
 	}
 	//evecs.TCopy(evecs.Dense)
-	//	fmt.Println("evecs presort", evecs) /////////
 	eig := eigenpair{evecs, evals[:]}
-	//fmt.Println("EVEECS", evecs) /////////////////////////
 	sort.Sort(eig)
 	//Here I should orthonormalize vectors if needed instead of just complaining.
 	//I think orthonormality is guaranteed by  DenseMatrix.Eig() If it is, Ill delete all this
 	//If not I'll add ortonormalization routines.
 	eigrows, _ := eig.evecs.Dims()
-		fmt.Println("evecs", eig.evecs) /////////
 	for i := 0; i < eigrows; i++ {
 		vectori := eig.evecs.VecView(i)
 		for j := i + 1; j < eigrows; j++ {
@@ -282,7 +278,6 @@ func EigenWrap(in *Matrix, epsilon float64) (*Matrix, []float64, error) {
 			eig.evecs.ScaleRow(2,-1)
 			eig.evecs.TransposeInPlace()
 		*/
-		//	fmt.Println("all good, I guess")
 	}
 	//	eig.evecs.TCopy(eig.evecs)
 	return eig.evecs, eig.evals, nil //Returns a slice of evals
