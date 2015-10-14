@@ -140,11 +140,12 @@ func TestQM(Te *testing.T) {
 	fmt.Println("end mopac and orca test!")
 }
 
-/*
+
 //TestTurbo tests the QM functionality. It prepares input for Turbomole
 //Notice that 2 TM inputs cannot be in the same directory. Notice that TMHandle
 //supports ECPs
-func TesstTurbo(Te *testing.T) {
+func TestTurbo(Te *testing.T) {
+	fmt.Println("Turbomole TEST y wea!")
 	mol, err := chem.XYZFileRead("../test/ethanol.xyz")
 	os.Chdir("test")
 	defer os.Chdir("..")
@@ -180,6 +181,7 @@ func TesstTurbo(Te *testing.T) {
 	if err := tm.BuildInput(atoms, mol, calc); err != nil {
 		Te.Error(err)
 	}
+/*
 	//os.Chdir(original_dir)
 	if err := tm.Run(true); err != nil {
 		Te.Error(err)
@@ -196,8 +198,8 @@ func TesstTurbo(Te *testing.T) {
 	fmt.Println("GEO", geo)
 	chem.XYZFileWrite("optiethanol.xyz", geo, mol)
 	fmt.Println("end TurboTest!")
-}
 */
+}
 
 /*
 func TestFermions(Te *testing.T) {
