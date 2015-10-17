@@ -154,7 +154,9 @@ func RotatorTranslatorToSuper(test, templa *v3.Matrix) (*v3.Matrix, *v3.Matrix, 
 	r, _ := aux2.Dims()
 	Maux := v3.Zeros(r)
 	Maux.Mul(aux2, ctest)
-	Maux.TCopy(Maux) //Dont understand why this is needed
+	TransposeTMP:=v3.Zeros(3)
+	TransposeTMP.ExplicitT(Maux) //Dont understand why this is needed
+	Maux=TransposeTMP //I only do this for documentation    //Maux.Copy(TransposerTMP)
 	factors := mat64.SVD(v3.Matrix2Dense(Maux), appzero, math.SmallestNonzeroFloat64, true, true)
 	U := factors.U
 	V := factors.V
@@ -169,15 +171,18 @@ func RotatorTranslatorToSuper(test, templa *v3.Matrix) (*v3.Matrix, *v3.Matrix, 
 	vtr, _ := V.Dims()
 	Rotation := v3.Zeros(vtr)
 	Rotation.Mul(V, gnT(U))
-	Rotation.TCopy(Rotation) //Don't know why does this work :(
+	TransposeTMP.ExplicitT(Rotation) //Don't know why does this work :(
+	RotT:=TransposeTMP //Again, done for readability
+
 	RightHand := gnEye(3)
-	if det(Rotation) < 0 {
+	if det(RotT) < 0 {
 		RightHand.Set(2, 2, -1)
-		Rotation.Mul(V, RightHand)
-		Rotation.Mul(Rotation, gnT(U)) //If I get this to work Ill arrange so gnT(U) is calculated once, not twice as now.
-		Rotation.TCopy(Rotation)       //Same, no ide why I need this
+		RotT.Mul(V, RightHand)
+		RotT.Mul(Rotation, gnT(U)) //If I get this to work Ill arrange so gnT(U) is calculated once, not twice as now.
+		Rotation.ExplicitT(RotT) //TransposeTMP contains the transpose of the original Rotation      //Same, no ide why I need this
 		//return nil, nil, nil, nil, fmt.Errorf("Got a reflection instead of a translations. The objects may be specular images of each others")
 	}
+	Rotation=RotT //Now Rotation is the correct matrix.
 	jT.Scale(Scal, jT)
 	subtempla := v3.Zeros(tmr)
 	subtempla.Copy(ctempla)
@@ -188,7 +193,7 @@ func RotatorTranslatorToSuper(test, templa *v3.Matrix) (*v3.Matrix, *v3.Matrix, 
 	Translation := v3.Zeros(jtr)
 	Translation.Mul(jT, subtempla)
 	Translation.Add(Translation, distempla)
-	//This allings the transformed with the original template, not the mean centrate one
+	//This alings the transformed with the original template, not the mean centrate one
 	transformed := v3.Zeros(ctest.NVecs())
 	transformed.Mul(ctest, Rotation)
 	transformed.AddVec(transformed, Translation)

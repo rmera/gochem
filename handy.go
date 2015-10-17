@@ -99,10 +99,12 @@ func Super(test, templa *v3.Matrix, testlst, templalst []int) (*v3.Matrix, error
 	//In case one or both lists are nil or have lenght zero.
 	for k, v := range lists {
 		if v == nil || len(v) == 0 {
+			fmt.Println("Invalid List!!!! Will fill it with numbers!") ////////////////
 			lists[k] = make([]int, structs[k].NVecs(), structs[k].NVecs())
 			for k2, _ := range lists[k] {
 				lists[k][k2] = k2
 			}
+			fmt.Println("produced lists:", lists[k], structs[k].NVecs()) /////////////
 		}
 	}
 	//fmt.Println(lists[0])

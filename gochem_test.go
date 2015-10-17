@@ -317,7 +317,7 @@ func TestSuper(Te *testing.T) {
 	//Now for a full molecule
 	ptest, _ := XYZFileRead("test/Rotated.xyz")
 	ptempla, _ := XYZFileRead("test/sample_plane.xyz")
-	newp, err := Super(ptest.Coords[0], ptempla.Coords[0], nil, nil)
+	newp, err := Super(ptest.Coords[0], ptempla.Coords[0], nil,nil)
 	if err != nil {
 		panic(err.Error())
 	}
