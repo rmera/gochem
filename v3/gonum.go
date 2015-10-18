@@ -39,6 +39,7 @@ package v3
 import (
 	"fmt"
 	"github.com/gonum/matrix/mat64"
+	"github.com/gonum/blas/blas64"
 	"math"
 	"sort"
 )
@@ -311,36 +312,32 @@ func (F *Matrix) Tr () *Matrix{
 }
 */
 
+//I know, premature optimization and so on. It's an internal thing, sue me.
+var transposetmp float64
 
-//ExplicitT puts the explicit transpose of A in the receiver.
-//If F has more than 3 rows, only the first 3 rows will be used. A having either more rows than 3 will 
-//cause a runtime panic, as will if either F or A or both have less rows than 3.
-func (F *Matrix)ExplicitT(A *Matrix) { 
-	//This whole thing is very inefficient, but the only ways I can think to make it better involve making everything else slower:
-	// Wrapping mat64.Matrix instead of mat64.Dense in v3.Matrix, which adds one more indirection to everything (and, more seriously, an assertion for
-	//every non-mat64.Matrix methods of mat64.Dense are used in v3. If the matrix is a transpose lots of these methods won't work).
-	//I could implement something in v3.Matrix itself to return c,r when r,c are requested, if some transpose flag is on (also for setting values)
-	//but this is problematic for views, and would add an "if" to each At() and Set() call. The costs for this are hard to assess but they don't
-	//seem too great. 
-	//The current procedure is, as I said, inefficient, but at least we never deal with more than 3x3 matrices. Still there could be issues if using
-	//it lots and lots of times (like if superimposing a whole trajectory to something, as Super uses this method a few times).
-
-	//NOTE2: The current implementation is pretty naive, I wanted to have it working to fix the bug, but I should change it to use a RawMatrix instead of calling "At" and "Set" 
-	//So many times.
-	if F==A{
-		panic("goChem/v3/ExplicitT: Argument and receiver cannot be the same matrix") 
-	}
-	if F.NVecs() <3  || A.NVecs() !=3 {
+//Tr() performs an explicit, in-place tranpose of the receiver.
+//it relies in the fact that v3 matrix are all 3D. If the receiver has more than
+//3 rows, the square submatrix of the first 3 rows will be transposed (i.e. no panic or returned error).
+//it panics if the receiver has less than 3 rows.
+func (F *Matrix)Tr() {
+	//This function exists because I can't use the implicit tranpose provided by mat64.Dense.T()
+	//which returns a matrix that is not possible to cast into a mat64.Dense
+	if F.NVecs() <3 {
 		panic("goChem/v3/ExplicitT: Only 3x3 matrices are allowed for both the argument of ExplicitT(), while the receiver must have 3 rows or more")
 	}
-	for Arow:=0;Arow<3;Arow++{
-		for Acol:=0;Acol<3;Acol++{
-			F.Set(Acol,Arow,A.At(Arow,Acol))
-		}
-	}
+	R:=F.RawMatrix()
+	dataSwitch(R,0,1)
+	dataSwitch(R,0,2)
+	dataSwitch(R,1,2)
 }
 
 
+//I can only hope this gets inlined
+func dataSwitch(R blas64.General, r, c int){
+	transposetmp=R.Data[3*r+c]
+	R.Data[3*r+c]=R.Data[3*c+r]
+	R.Data[3*c+r]=transposetmp
+}
 
 
 
