@@ -207,6 +207,7 @@ type Calc struct {
 	Basis        string
 	RI           bool
 	RIJ          bool
+	CartesianOpt bool //Do the optimization in cartesian coordinates.
 	BSSE         string //Correction for BSSE
 	auxBasis     string //for RI calculations
 	auxColBasis  string //for RICOSX or similar calculations
