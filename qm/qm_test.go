@@ -140,14 +140,16 @@ func TestQM(Te *testing.T) {
 	fmt.Println("end mopac and orca test!")
 }
 
-/*
+
 //TestTurbo tests the QM functionality. It prepares input for Turbomole
 //Notice that 2 TM inputs cannot be in the same directory. Notice that TMHandle
 //supports ECPs
-func TesstTurbo(Te *testing.T) {
+func TestTurbo(Te *testing.T) {
+	fmt.Println("Turbomole TEST y wea!")
 	mol, err := chem.XYZFileRead("../test/ethanol.xyz")
-	os.Chdir("test")
-	defer os.Chdir("..")
+	original_dir, _ := os.Getwd() //will check in a few lines
+	os.Chdir("../test")
+	defer os.Chdir(original_dir)
 	if err != nil {
 		Te.Error(err)
 	}
@@ -159,28 +161,30 @@ func TesstTurbo(Te *testing.T) {
 	calc := new(Calc)
 	calc.SCFConvHelp = 1 //very demanding
 	calc.Memory = 1000
-	calc.ECP = "ecp-10-mdf"
-	calc.ECPElements = []string{"O"}
+//Not advised
+//	calc.ECP = "ecp-10-mdf"
+//	calc.ECPElements = []string{"O"}
 	calc.Grid = 4
 	calc.Job=Job{Opti:true}
 	calc.Method = "BP86"
 	calc.Dielectric = 4
 	calc.Basis = "def2-SVP"
 	calc.HighBasis = "def2-TZVP"
-	calc.HBElements = []string{"O"}
+	calc.HBElements = []string{"C"}
 	calc.RI = true
 	calc.Dispersion = "D3"
 	calc.CConstraints = []int{0, 3}
 	tm := NewTMHandle()
 	atoms := mol.Coords[0]
-	//original_dir, _ := os.Getwd() //will check in a few lines
 	//if err = os.Chdir("./test"); err != nil {
 	//	Te.Error(err)
 	//}
+	tm.SetDryRun(true) //I don't have TM installed.
 	if err := tm.BuildInput(atoms, mol, calc); err != nil {
 		Te.Error(err)
 	}
-	//os.Chdir(original_dir)
+/*
+
 	if err := tm.Run(true); err != nil {
 		Te.Error(err)
 	}
@@ -196,8 +200,9 @@ func TesstTurbo(Te *testing.T) {
 	fmt.Println("GEO", geo)
 	chem.XYZFileWrite("optiethanol.xyz", geo, mol)
 	fmt.Println("end TurboTest!")
-}
 */
+//	os.Chdir(original_dir)
+}
 
 /*
 func TestFermions(Te *testing.T) {
@@ -254,13 +259,13 @@ func qderror_handler(err error, Te *testing.T) {
 
 func TestNWChem(Te *testing.T) {
 	mol, err := chem.XYZFileRead("../test/ethanol.xyz")
-	fmt.Println(mol.Coords[0], len(mol.Coords), "Quiere quedar leyenda, compadre?", err)
 	if err != nil {
 		Te.Error(err)
 	}
 	if err := mol.Corrupted(); err != nil {
 		Te.Error(err)
 	}
+	fmt.Println(mol.Coords[0], len(mol.Coords), "Quiere quedar leyenda, compadre?", err)
 	mol.SetCharge(0)
 	mol.SetMulti(1)
 	calc := new(Calc)
