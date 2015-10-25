@@ -26,6 +26,12 @@
  */
 /***Dedicated to the long life of the Ven. Khenpo Phuntzok Tenzin Rinpoche***/
 
+
+//The TM handler implementation differs from the rest in that it uses several TM programs
+// (define, x2t, t2x, cosmoprep) in order to prepare the input and retrieve results.
+//Because of this, the programs using this handler will not work if TM is not installed.
+//The handler has been made to work with TM7.
+
 package qm
 
 import (
