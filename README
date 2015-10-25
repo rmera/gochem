@@ -6,12 +6,6 @@ written in the Go programming language.
 
 Check out www.gochem.org for more information.
 
-goChem's API has very recently been upgraded. The documentation
-will be upgraded within a few days to reflect these changes, and this
-sign will be removed. Until then, the documentation is unfortunately 
-not to be trusted.
-
-
 goChem uses gonum (https://github.com/gonum/matrix) for matrix
 operations. The user can choose to have gonum backed by a pure-go 
 (and some assembly) implementation of BLAS (which allows not having 
