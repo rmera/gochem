@@ -43,20 +43,23 @@
 
 <p><strong>Development workflow for goChem</strong></p>
 
-<p> goChem is developed in <a href="http://www.github.com/">Github</a> using <a href="http://git-scm.com/">Git</a>. The workflow is similar the one presented by <a href="http://nvie.com/posts/a-successful-git-branching-model/">Vincent Driessen</a>. In particular, the "Hotfix" branch idea comes from there.
+<p> goChem is developed in <a href="http://www.github.com/">Github</a> using <a href="http://git-scm.com/">Git</a>. The workflow is a simpler version of the GitFlow model by <a href="http://nvie.com/posts/a-successful-git-branching-model/">Vincent Driessen</a>. In particular, the "Hotfix" branch idea comes from there.
 
 <p>The following kinds branches are using for goChem development.
 <ul>
 	<li> <strong>Feature branches.</strong> Where the actual development should happen, hopefully one branch per feature. Code commited to these branches could not work, or even break the whole library.</li>
 	<li> <strong>Devel branch.</strong> When a feature branch has tests implemented for the feature, and passess them, along with the other tests in the library, that branch can be merged into devel.
-	Devel is the branch that developers and beta-testers are supposed to use. In principle, it should not break, but it could happen. API changes for feature here and not yet in master are possible.</li>
-	<li> <strong>Master branch.</strong> When devel has shown to work correctly, and it has been without new merges for a while, it can be merged into master. Master is the branch used by the final users. It is expected to work normally and be bug-free. The API should not change for anything that is in this branch. Every now and then, a release can be tagged in Master.
-	<li> <strong> Hotfix branch.</strong> Fixes to bugs that affect master are made in this branch, which is then merged to master and any other branch affected. This branch only merges from master.
+	Devel is the branch that developers and beta-testers are supposed to use. In principle, it should not break, but it could happen. API for features in this branch and not yet in master are allowed.</li>
+	<li> <strong>Master branch.</strong> When devel has shown to work correctly, and it has been without new merges for a while, it can be merged into master. Master is the branch used by the final users. It is expected to work normally and be bug-free. API changes for things in this branch should be kept to an absolute minimun. Every now and then, a release can be tagged in Master.
+
 </ul>
 
-<p> In summary: Feature branches start and merges from devel, devel merges from feature branches, master merges from devel and hotfix, hotfix merges from master. 
+<p> In summary: Feature branches start and merges from devel, devel merges from feature branches, master merges from devel. 
 
-<p> Pull requests: Feature branches, devel and hotfix are the only branches that accept pull requests. Pull requests are never accepted from clone devel branches, only from feature branches. Some feature branches may not accept pull request.
+<p> Pull requests: Master does not, ever, accept pull requests. Feature branches, and devel are the only branches that do. Pull requests with new features are never accepted from clone devel branches, only from feature branches. Only bugfixes are accepted from clone devel branches. Some feature branches may not accept pull requests.
+
+<p> If the problem you encounter with goChem is trivial (for instance, a typo in the README file) do not submit a pull request. Simply <a href="mailto:devel@gochem.org">email</a> the developer. 
+
 
 
 <p>For more info, <a href="mailto:devel@gochem.org">e-mail the developer</a>.</p>
