@@ -109,6 +109,10 @@ func symbolFromName(name string) (string, error) {
 		} else {
 			symbol = "C"
 		}
+	} else if name[0] == 'B' {
+		if name == "BE" {
+			symbol = "Be"
+		}
 	} else if name[0] == 'N' {
 		if name == "NA" {
 			symbol = "Na"
