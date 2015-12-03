@@ -137,8 +137,8 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 	}
 	opt := ""
 	trustradius := ""
-	jc:=jobChoose{}
-	jc.opti= func() {
+	jc := jobChoose{}
+	jc.opti = func() {
 		opt = "Opt"
 		trustradius = "%geom trust 0.3\nend\n\n" //Orca uses a fixed trust radius by default. This goChem makes an input that activates variable trust radius.
 	}
@@ -161,17 +161,17 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 				continue
 			}
 			name := val.Name()
-			if strings.Contains(name,".gbw") {
+			if strings.Contains(name, ".gbw") {
 				O.previousMO = name
 				break
 			}
 		}
 		if O.previousMO != "" {
-		//	Q.Guess = "MORead"
+			//	Q.Guess = "MORead"
 			moinp = fmt.Sprintf("%%scf\n   Guess MORead\n   MOInp \"%s\"\nend\n\n", O.previousMO)
 		} else {
 			moinp = ""
-		//	Q.Guess = "" //The default guess
+			//	Q.Guess = "" //The default guess
 		}
 	}
 	tight := "TightSCF"
@@ -204,7 +204,7 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 	if bsse, err = O.buildgCP(Q); err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 	}
-	HF3cAdditional:="" // additional settings for HF-3c.
+	HF3cAdditional := ""     // additional settings for HF-3c.
 	if Q.Method == "HF-3c" { //This method includes its own basis sets and corrections, so previous choices are overwritten. NOTE: there are some defaults that should be changed to get HF-3c to work better.
 		Q.Basis = ""
 		Q.auxBasis = ""
@@ -212,9 +212,9 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 		Q.Guess = ""
 		bsse = ""
 		disp = ""
-		HF3cAdditional="%scf\n   SCFMode Direct\n   MaxIter 200\n   MaxIntMem 2000\nend\n\n"
+		HF3cAdditional = "%scf\n   SCFMode Direct\n   MaxIter 200\n   MaxIntMem 2000\nend\n\n"
 
-			}
+	}
 	MainOptions := []string{"!", hfuhf, Q.Method, Q.Basis, Q.auxBasis, Q.auxColBasis, tight, disp, conv, Q.Guess, opt, Q.Others, grid, ri, bsse, "\n\n"}
 	mainline := strings.Join(MainOptions, " ")
 	constraints := O.buildCConstraints(Q.CConstraints)
@@ -260,7 +260,7 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 
 	}
 	fmt.Println("Ta wena la wea... chupa la callampa, uh uh uuuh", moinp) ///////////////
-	fmt.Fprint(file,HF3cAdditional)
+	fmt.Fprint(file, HF3cAdditional)
 	fmt.Fprint(file, pal)
 	fmt.Fprint(file, moinp)
 	fmt.Fprint(file, mem)

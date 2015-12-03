@@ -26,7 +26,6 @@
  */
 /***Dedicated to the long life of the Ven. Khenpo Phuntzok Tenzin Rinpoche***/
 
-
 //The TM handler implementation differs from the rest in that it uses several TM programs
 // (define, x2t, t2x, cosmoprep) in order to prepare the input and retrieve results.
 //Because of this, the programs using this handler will not work if TM is not installed.
@@ -80,15 +79,15 @@ func (O *TMHandle) SetName(name string) {
 
 }
 
-//SetMARIJ sets the multipole acceleration 
-func (O *TMHandle) SetMARIJ(state bool){
-	O.marij=state
+//SetMARIJ sets the multipole acceleration
+func (O *TMHandle) SetMARIJ(state bool) {
+	O.marij = state
 }
 
 //SetDryRun sets the flag to see this is a dry run or
 //if define will actually be run.
-func (O *TMHandle) SetDryRun(dry bool){
-	O.dryrun=dry
+func (O *TMHandle) SetDryRun(dry bool) {
+	O.dryrun = dry
 }
 
 //In TM the command is set according to the method. I just assume a normal installation.
@@ -104,40 +103,38 @@ func (O *TMHandle) SetDefaults() {
 	O.defbasis = "def2-SVP"
 	O.defauxbasis = "def2-SVP"
 	O.command = "ridft"
-	O.marij = false //Apparently marij can cause convergence problems
+	O.marij = false  //Apparently marij can cause convergence problems
 	O.dryrun = false //define IS run by default.
 	O.inputname = "gochemturbo"
 }
-
 
 //addMARIJ adds the multipole acceleration if certain conditions are fullfilled:
 //O.marij must be true
 //The RI approximation must be in use
 //The system must have more than 20 atoms
 //The basis set cannot be very large (i.e. it can NOT be quadruple-zeta, tzvpp, or basis with diffuse functions)
-func (O *TMHandle) addMARIJ(defstring string, atoms chem.AtomMultiCharger, Q *Calc) string{
-	if !O.marij{
+func (O *TMHandle) addMARIJ(defstring string, atoms chem.AtomMultiCharger, Q *Calc) string {
+	if !O.marij {
 		return defstring
 	}
-	if strings.Contains(strings.ToLower(Q.Basis), "def2") && strings.HasSuffix(Q.Basis, "d"){ //Rappoport basis
+	if strings.Contains(strings.ToLower(Q.Basis), "def2") && strings.HasSuffix(Q.Basis, "d") { //Rappoport basis
 		return defstring
 	}
-	if strings.Contains(Q.Basis, "cc") && strings.Contains(Q.Basis, "aug"){ //correlation consistent with diffuse funcs.
+	if strings.Contains(Q.Basis, "cc") && strings.Contains(Q.Basis, "aug") { //correlation consistent with diffuse funcs.
 		return defstring
 	}
-	if strings.Contains(strings.ToLower(Q.Basis), "qz"){ //both cc-pVQZ and def2-QZVP and QZVPP
+	if strings.Contains(strings.ToLower(Q.Basis), "qz") { //both cc-pVQZ and def2-QZVP and QZVPP
 		return defstring
 	}
 
-	if strings.Contains(strings.ToLower(Q.Basis), "def2-tzvpp"){ //This is less clear but just in case I won't add MARIJ for tzvpp
+	if strings.Contains(strings.ToLower(Q.Basis), "def2-tzvpp") { //This is less clear but just in case I won't add MARIJ for tzvpp
 		return defstring
 	}
-	if Q.RI && atoms.Len()>=20{
-		defstring=fmt.Sprintf("%s%s\n\n")
+	if Q.RI && atoms.Len() >= 20 {
+		defstring = fmt.Sprintf("%s%s\n\n")
 	}
 	return defstring
 }
-
 
 //Adds all the strings in toapend to the control file, just before the $symmetry keyword
 func (O *TMHandle) addToControl(toappend []string, Q *Calc) error {
@@ -293,12 +290,12 @@ func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q 
 	//	go copy2pipe(stdout, coord, end)
 	//	<-end
 	io.Copy(coord, stdout)
-	coord.Close() //not defearable
+	coord.Close()                           //not defearable
 	defstring := "\n\n\na coord\nired\n*\n" //reduntant internals
-	if Q.CartesianOpt{
+	if Q.CartesianOpt {
 		defstring = "\n\n\na coord\n*\nno\n"
 	}
-		if atoms == nil || coords == nil {
+	if atoms == nil || coords == nil {
 		return Error{ErrMissingCharges, Turbomole, O.inputname, "", []string{"BuildInput"}, true}
 	}
 	if Q.Basis == "" {
@@ -306,20 +303,20 @@ func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q 
 		Q.Basis = O.defbasis
 	}
 	defstring = defstring + "b all " + Q.Basis + "\n"
-	if Q.LowBasis!="" && len(Q.LBElements)>0{
+	if Q.LowBasis != "" && len(Q.LBElements) > 0 {
 		defstring = O.addBasis("b", Q.LBElements, Q.LowBasis, defstring)
 	}
-	if Q.HighBasis!="" && len(Q.HBElements)>0{
-		defstring = O.addBasis("b", Q.HBElements, Q.HighBasis, defstring) 
+	if Q.HighBasis != "" && len(Q.HBElements) > 0 {
+		defstring = O.addBasis("b", Q.HBElements, Q.HighBasis, defstring)
 	}
 	//Manually adding ECPs seem to be problematic, so I don't advise to do so.
-	if Q.ECP!="" && len(Q.ECPElements)>0{
-	defstring = O.addBasis("ecp", Q.ECPElements, Q.ECP, defstring)
+	if Q.ECP != "" && len(Q.ECPElements) > 0 {
+		defstring = O.addBasis("ecp", Q.ECPElements, Q.ECP, defstring)
 	}
 	defstring = defstring + "\n*\n"
 	//The following needs to be added because some atoms (I haven't tried so many, but
 	//so far only copper) causes define to ask an additional question. If one doesn't add "y\n"
-	//for each of those questions, the whole input for define will be wrong. 
+	//for each of those questions, the whole input for define will be wrong.
 	stupid := ""
 	stupidatoms := "Cu" //if you want to add more stupid atoms just add then to the string: "Cu Zn"
 	for i := 0; i < atoms.Len(); i++ {
@@ -331,7 +328,7 @@ func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q 
 			stupid = stupid + "y\n"
 		}
 	}
-	//Here we only produce singlet and doublet states (sorry). I will most certainly *not* deal with the "joys" 
+	//Here we only produce singlet and doublet states (sorry). I will most certainly *not* deal with the "joys"
 	//of setting other multiplicities in define.
 	defstring = fmt.Sprintf("%seht\n%sy\ny\n%d\n\n", defstring, stupid, atoms.Charge()) //I add one additional "y\n"
 	method, ok := tMMethods[Q.Method]
@@ -359,29 +356,29 @@ func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q 
 			O.command = "ridft"
 		}
 	}
-	defstring = O.addMARIJ(defstring,atoms,Q)
+	defstring = O.addMARIJ(defstring, atoms, Q)
 	defstring = defstring + "*\n"
 	log.Println(defstring)
-	
+
 	if O.dryrun {
 		//set the frozen atoms (only cartesian constraints are supported)
 		if err := O.addFrozen(Q.CConstraints); err != nil {
-		return errDecorate(err, "BuildInput")
+			return errDecorate(err, "BuildInput")
 		}
 		return nil
 	}
 	def := exec.Command("define")
 	pipe, err := def.StdinPipe()
 	if err != nil {
-	return Error{noDefine, Turbomole, O.inputname, err.Error(), []string{"exec.StdinPipe", "BuildInput"}, true}
+		return Error{noDefine, Turbomole, O.inputname, err.Error(), []string{"exec.StdinPipe", "BuildInput"}, true}
 	}
 	defer pipe.Close()
 	pipe.Write([]byte(defstring))
 	if err := def.Run(); err != nil {
 		return Error{noDefine, Turbomole, O.inputname, err.Error(), []string{"exec.Run", "BuildInput"}, true}
 	}
-	jc:=jobChoose{}
-	jc.opti=func(){
+	jc := jobChoose{}
+	jc.opti = func() {
 		O.command = "jobex"
 		if Q.RI {
 			O.command = O.command + " -c 200 -ri"
@@ -407,7 +404,7 @@ func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q 
 	//Finally the cosmo business.
 	err = O.addCosmo(Q.Dielectric)
 	return errDecorate(err, "BuildInput")
-//	return nil
+	//	return nil
 }
 
 var tMMethods = map[string]string{

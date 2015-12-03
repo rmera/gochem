@@ -94,11 +94,11 @@ func (O *MopacHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger,
 		Q.Method = O.defmethod
 	}
 	opt := "" //Empty string means optimize
-	jc:=jobChoose{}
-	jc.sp=func(){
+	jc := jobChoose{}
+	jc.sp = func() {
 		opt = "1SCF"
 	}
-	jc.opti=func(){}
+	jc.opti = func() {}
 	Q.Job.Do(jc)
 	//If this flag is set we'll look for a suitable MO file.
 	//If not found, we'll just use the default ORCA guess

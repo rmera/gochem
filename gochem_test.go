@@ -186,7 +186,7 @@ func TestPutInXYPlane(Te *testing.T) {
 		err2 := err.(Error)
 		fmt.Println(err2.Decorate(""))
 		Te.Fatal(err)
-//		panic(err.Error())
+		//		panic(err.Error())
 	}
 	z, _ := v3.NewMatrix([]float64{0, 0, 1})
 	zero, _ := v3.NewMatrix([]float64{0, 0, 0})
@@ -317,7 +317,7 @@ func TestSuper(Te *testing.T) {
 	//Now for a full molecule
 	ptest, _ := XYZFileRead("test/Rotated.xyz")
 	ptempla, _ := XYZFileRead("test/sample_plane.xyz")
-	newp, err := Super(ptest.Coords[0], ptempla.Coords[0], nil,nil)
+	newp, err := Super(ptest.Coords[0], ptempla.Coords[0], nil, nil)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -353,8 +353,8 @@ func TestRotateBz(Te *testing.T) {
 	carbons.SomeVecs(coords, carbonIn)
 	planevec, err := BestPlane(carbons, nil)
 	if err != nil {
-		if  e,ok:=err.(Error);ok{
-		fmt.Println("DEcoration:", e.Decorate(""))
+		if e, ok := err.(Error); ok {
+			fmt.Println("DEcoration:", e.Decorate(""))
 		}
 		Te.Fatal(err)
 	}
@@ -399,14 +399,12 @@ func TestRotateBz(Te *testing.T) {
 }
 
 func TestProjectionAndAntiProjection(Te *testing.T) {
-	A:=v3.Zeros(1)
-	A.Set(0,0,2.0)
-	B,_:=v3.NewMatrix([]float64{1,1,0})
-	C:=AntiProjection(A,B)
-	D:=Projection(B,A)
+	A := v3.Zeros(1)
+	A.Set(0, 0, 2.0)
+	B, _ := v3.NewMatrix([]float64{1, 1, 0})
+	C := AntiProjection(A, B)
+	D := Projection(B, A)
 	fmt.Println("Projection of B on A (D)", D)
 	fmt.Println("Anti-projection of A on B (C):", C)
-	fmt.Println("Norm of C: ", C.Norm(0),  " Norm of A,B: ", A.Norm(0),B.Norm(0), "Norm of D:", D.Norm(0))
+	fmt.Println("Norm of C: ", C.Norm(0), " Norm of A,B: ", A.Norm(0), B.Norm(0), "Norm of D:", D.Norm(0))
 }
-
-

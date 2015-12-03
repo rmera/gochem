@@ -218,7 +218,7 @@ func (O *NWChemHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger
 	preopt := ""
 	jc := jobChoose{}
 
-	jc.opti= func() {
+	jc.opti = func() {
 		eprec := "" //The available presition is set to default except if tighter SCF convergene criteria are being used.
 		if Q.SCFTightness > 0 {
 			eprec = " eprec 1E-7\n"
@@ -243,7 +243,7 @@ func (O *NWChemHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger
 		driver = fmt.Sprintf("%s\ndriver\n maxiter 200\n%s trust 0.05\n xyz %s\nend\n", driver, eprec, O.inputname)
 		//Old criteria (ORCA): gmax 0.003\n grms 0.0001\n xmax 0.004 \n xrms 0.002\n
 	}
-	Q.Job.Do(jc) 
+	Q.Job.Do(jc)
 	//////////////////////////////////////////////////////////////
 	//Now lets write the thing. Ill process/write the basis later
 	//////////////////////////////////////////////////////////////

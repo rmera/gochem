@@ -142,29 +142,27 @@ func errDecorate(err error, caller string) error {
 
 //end errors
 
-
 //jobChoose is a structure where each QM handler has to provide a closure that makes the proper arrangements for each supported case.
-type jobChoose struct{
-	opti func()
+type jobChoose struct {
+	opti   func()
 	forces func()
-	sp func()
-	
+	sp     func()
 }
 
 //This is what the user actually deasl with. The user should set one of these to true,
 //and goChem will see that the proper actions are taken. If the user sets more than one of the
 //fields to true, the priority will be Opti>Forces>SP (i.e. if you set Forces and SP to true,
 //only the function handling forces will be called).
-type Job struct{
-	Opti bool
+type Job struct {
+	Opti   bool
 	Forces bool
-	SP  bool
+	SP     bool
 }
 
 //Do sets the job set to true in J, according to the corresponding function in plan. A "nil" plan
 //means that the corresponding job is not supported by the QM handle and we will default to single point.
-func (J *Job) Do(plan jobChoose){
-	if J==nil{
+func (J *Job) Do(plan jobChoose) {
+	if J == nil {
 		return
 	}
 	//now the actual options
@@ -172,19 +170,15 @@ func (J *Job) Do(plan jobChoose){
 		plan.opti()
 		return
 	}
-	if J.Forces && plan.forces!=nil{
+	if J.Forces && plan.forces != nil {
 		plan.forces()
 		return
 	}
-	if plan.sp!=nil{  //the default option is a single-point
+	if plan.sp != nil { //the default option is a single-point
 		plan.sp()
 		return
 	}
 }
-
-
-
-
 
 type IntConstraint struct {
 	Kind  byte
@@ -207,7 +201,7 @@ type Calc struct {
 	Basis        string
 	RI           bool
 	RIJ          bool
-	CartesianOpt bool //Do the optimization in cartesian coordinates.
+	CartesianOpt bool   //Do the optimization in cartesian coordinates.
 	BSSE         string //Correction for BSSE
 	auxBasis     string //for RI calculations
 	auxColBasis  string //for RICOSX or similar calculations

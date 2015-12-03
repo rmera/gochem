@@ -38,8 +38,8 @@ package v3
 
 import (
 	"fmt"
-	"github.com/gonum/matrix/mat64"
 	"github.com/gonum/blas/blas64"
+	"github.com/gonum/matrix/mat64"
 	"math"
 	"sort"
 )
@@ -238,10 +238,10 @@ func EigenWrap(in *Matrix, epsilon float64) (*Matrix, []float64, error) {
 	for k, _ := range evals {
 		evals[k] = evalsmat.At(k, k)
 	}
-	evecs:=Zeros(3)
-	fn:=func(){evecs.Copy(evecsprev.T())}
-	err:=mat64.Maybe(fn)
-	if err!=nil{
+	evecs := Zeros(3)
+	fn := func() { evecs.Copy(evecsprev.T()) }
+	err := mat64.Maybe(fn)
+	if err != nil {
 		return nil, nil, Error{err.Error(), []string{"mat64.Copy/math64.T", "EigenWrap"}, true}
 
 	}
@@ -299,7 +299,6 @@ func gnSVD(A *mat64.Dense) ( *mat64.Dense,*mat64.Dense,*mat64.Dense) {
 }
 */
 
-
 /*
 //A wrapper for mat64.Dense.T which returns a Matrix.
 func (F *Matrix) Tr () *Matrix{
@@ -319,27 +318,24 @@ var transposetmp float64
 //it relies in the fact that v3 matrix are all 3D. If the receiver has more than
 //3 rows, the square submatrix of the first 3 rows will be transposed (i.e. no panic or returned error).
 //it panics if the receiver has less than 3 rows.
-func (F *Matrix)Tr() {
+func (F *Matrix) Tr() {
 	//This function exists because I can't use the implicit tranpose provided by mat64.Dense.T()
 	//which returns a matrix that is not possible to cast into a mat64.Dense
-	if F.NVecs() <3 {
+	if F.NVecs() < 3 {
 		panic("goChem/v3/ExplicitT: Only 3x3 matrices are allowed for both the argument of ExplicitT(), while the receiver must have 3 rows or more")
 	}
-	R:=F.RawMatrix()
-	dataSwitch(R,0,1)
-	dataSwitch(R,0,2)
-	dataSwitch(R,1,2)
+	R := F.RawMatrix()
+	dataSwitch(R, 0, 1)
+	dataSwitch(R, 0, 2)
+	dataSwitch(R, 1, 2)
 }
-
 
 //I can only hope this gets inlined
-func dataSwitch(R blas64.General, r, c int){
-	transposetmp=R.Data[3*r+c]
-	R.Data[3*r+c]=R.Data[3*c+r]
-	R.Data[3*c+r]=transposetmp
+func dataSwitch(R blas64.General, r, c int) {
+	transposetmp = R.Data[3*r+c]
+	R.Data[3*r+c] = R.Data[3*c+r]
+	R.Data[3*c+r] = transposetmp
 }
-
-
 
 //Errors
 

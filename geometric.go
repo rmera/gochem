@@ -34,11 +34,8 @@ import (
 	"github.com/rmera/gochem/v3"
 )
 
-
-
 //NOTE: For many of these functions we could ask for a buffer vector in the arguments in order to reduce
 //memory allocation.
-
 
 //Angle takes 2 vectors and calculate the angle in radians between them
 //It does not check for correctness or return errors!
@@ -175,7 +172,7 @@ func RotatorTranslatorToSuper(test, templa *v3.Matrix) (*v3.Matrix, *v3.Matrix, 
 		RightHand.Set(2, 2, -1)
 		Rotation.Mul(V, RightHand)
 		Rotation.Mul(Rotation, gnT(U)) //If I get this to work Ill arrange so gnT(U) is calculated once, not twice as now.
-		Rotation.Tr() //TransposeTMP contains the transpose of the original Rotation      //Same, no ide why I need this
+		Rotation.Tr()                  //TransposeTMP contains the transpose of the original Rotation      //Same, no ide why I need this
 		//return nil, nil, nil, nil, fmt.Errorf("Got a reflection instead of a translations. The objects may be specular images of each others")
 	}
 	jT.Scale(Scal, jT)
@@ -457,14 +454,14 @@ func Projection(test, ref *v3.Matrix) *v3.Matrix {
 //AntiProjection returns a vector in the direction of ref with the magnitude of
 //a vector A would have if |test| was the magnitude of its projection
 //in the direction of test.
-func AntiProjection(test, ref *v3.Matrix) *v3.Matrix{
-	rr,_:=ref.Dims()
-	testnorm:=test.Norm(0)
-	Uref:=v3.Zeros(rr)
+func AntiProjection(test, ref *v3.Matrix) *v3.Matrix {
+	rr, _ := ref.Dims()
+	testnorm := test.Norm(0)
+	Uref := v3.Zeros(rr)
 	Uref.Unit(ref)
-	scalar:=test.Dot(Uref)
-	scalar=(testnorm*testnorm)/scalar
-	Uref.Scale(scalar,Uref)
+	scalar := test.Dot(Uref)
+	scalar = (testnorm * testnorm) / scalar
+	Uref.Scale(scalar, Uref)
 	return Uref
 }
 
