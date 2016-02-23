@@ -1,4 +1,4 @@
-Tested with commits: 
+Tested with Go 1.4 and commits: 
 
 gonum/matrix: 11095c0b54e8e47d4ee4284a2c5067a681058f64
 gonum/blas: ab84cae00fead7a36ed49d2d1f7694c7260ce1ef
