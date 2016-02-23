@@ -176,7 +176,7 @@ func EulerRotateAbout(coordsorig, ax1, ax2 *v3.Matrix, angle float64) (*v3.Matri
 	}
 	//	Zsr, _ := Zswitch.Dims()
 	//	RevZ := v3.Zeros(Zsr)
-	RevZ, err := gnInverse(Zswitch)
+	RevZ, err := gnInverse(Zswitch, nil)
 	if err != nil {
 		return nil, errDecorate(err, "EulerRotateAbout")
 	}

@@ -39,8 +39,10 @@ package v3
 import (
 	"fmt"
 	"github.com/gonum/blas/blas64"
+	"github.com/gonum/matrix"
 	"github.com/gonum/matrix/mat64"
 	"math"
+	"math/cmplx"
 	"sort"
 )
 
@@ -59,6 +61,10 @@ func Matrix2Dense(A *Matrix) *mat64.Dense {
 }
 
 func Dense2Matrix(A *mat64.Dense) *Matrix {
+	r, c := A.Dims()
+	if c != 3 {
+		panic(fmt.Sprintf("malformed *mat64.Dense matrix to make *v3.Matrix, must be Nx3, is %i x %j", r, c))
+	}
 	return &Matrix{A}
 }
 
@@ -72,6 +78,20 @@ func NewMatrix(data []float64) (*Matrix, error) {
 	}
 	r := mat64.NewDense(rows, cols, data)
 	return &Matrix{r}, nil
+}
+
+//Row fills the  dst slice of float64 with the ith row of matrix F and returns it.
+//The slice must have the correct size or be nil, in which case a new slice will be created.
+//This method is merely a frontend for the mat64.Row function of gonum.
+func (F *Matrix) Row(dst []float64, i int) []float64 {
+	return mat64.Row(dst, i, F.Dense)
+}
+
+//Col fills the  dst slice of float64 with the ith col of matrix F and returns it.
+//The slice must have the correct size or be nil, in which case a new slice will be created.
+//This method is merely a frontend for the mat64.Col function of gonum.
+func (F *Matrix) Col(dst []float64, i int) []float64 {
+	return mat64.Col(dst, i, F.Dense)
 }
 
 //Puts a view of the given col of the matrix on the receiver
@@ -97,6 +117,14 @@ func (F *Matrix) VecView(i int) *Matrix {
 func (F *Matrix) View(i, j, r, c int) *Matrix {
 	ret := F.Dense.View(i, j, r, c).(*mat64.Dense)
 	return &Matrix{ret}
+}
+
+func (F *Matrix) Sub(A, B *Matrix) {
+	F.Dense.Sub(A.Dense, B.Dense)
+}
+
+func (F *Matrix) Add(A, B *Matrix) {
+	F.Dense.Add(A.Dense, B.Dense)
 }
 
 //Puts the matrix A in the received starting from the ith row and jth col
@@ -148,6 +176,37 @@ func (F *Matrix) Mul(A, B mat64.Matrix) {
 		}
 	*/
 }
+
+//Dot acts as a frontend for the mat64 function, returns the dot product of the receiver and the argument.
+//Unlike the mat64 function it's specific for the v3.Matrix type, so if you want to use other types go for the function.
+func (F *Matrix) Dot(A *Matrix) float64 {
+	//The reason for making Dot ask for a v3.Matrix is that then we can call mat64.Dot with A.Dense, which should make things faster.
+	return mat64.Dot(F.Dense, A.Dense)
+}
+
+func (F *Matrix) Scale(v float64, A *Matrix) {
+	F.Dense.Scale(v, A.Dense)
+}
+
+//Norm acts as a front-end for the mat64 function. Used for compatibility.
+func (F *Matrix) Norm(i float64) float64 {
+	//NOTE: This function should be removed from the API at some point, as it's probably not
+	//inlined because of the "if". At least the if should be taken away, but the A.Norm(0) is used
+	//in several places in the package so I have to deal with that first.
+	if i == 0 {
+		i = 2
+	}
+	return mat64.Norm(F.Dense, i)
+}
+
+/*
+For now I'm not sure we need this wrapper and I do try to keep the to the minimum.
+
+//Sum acts as a wrapper for the mat64 function, for compatibility. It returns the sum of the elements of F.
+func (F *Matrix) Sum() float64{
+	return mat64.Sum(F.Dense)
+}
+*/
 
 //puts A stacked over B in F
 func (F *Matrix) Stack(A, B *Matrix) {
@@ -230,17 +289,18 @@ func EigenWrap(in *Matrix, epsilon float64) (*Matrix, []float64, error) {
 	if epsilon < 0 {
 		epsilon = appzero
 	}
-	efacs := mat64.Eigen(mat64.DenseCopyOf(in.Dense), epsilon)
-	evecsprev := &Matrix{efacs.V}
-	evalsmat := efacs.D()
-	d, _ := evalsmat.Dims()
-	evals := make([]float64, d, d)
+	eigen := new(mat64.Eigen)
+	eigen.Factorize(mat64.DenseCopyOf(in.Dense), true)
+	evals_cmp := make([]complex128, 3) //We only deal with 3-column matrixes in this package
+	evals_cmp = eigen.Values(evals_cmp)
+	evecsprev := &Matrix{eigen.Vectors()}
+	evals := make([]float64, 3, 3)
 	for k, _ := range evals {
-		evals[k] = evalsmat.At(k, k)
+		evals[k] = cmplx.Abs(evals_cmp[k]) //no check of the thing being real for now.
 	}
 	evecs := Zeros(3)
 	fn := func() { evecs.Copy(evecsprev.T()) }
-	err := mat64.Maybe(fn)
+	err := matrix.Maybe(fn)
 	if err != nil {
 		return nil, nil, Error{err.Error(), []string{"mat64.Copy/math64.T", "EigenWrap"}, true}
 
@@ -256,8 +316,8 @@ func EigenWrap(in *Matrix, epsilon float64) (*Matrix, []float64, error) {
 		vectori := eig.evecs.VecView(i)
 		for j := i + 1; j < eigrows; j++ {
 			vectorj := eig.evecs.VecView(j)
-			if math.Abs(vectori.Dot(vectorj)) > epsilon && i != j {
-				reterr := Error{fmt.Sprintln("Eigenvectors ", i, "and", j, " not orthogonal. v", i, ":", vectori, "\nv", j, ":", vectorj, "\nDot:", math.Abs(vectori.Dot(vectorj)), "eigmatrix:", eig.evecs), []string{"EigenWrap"}, true}
+			if math.Abs(mat64.Dot(vectori, vectorj)) > epsilon && i != j {
+				reterr := Error{fmt.Sprintln("Eigenvectors ", i, "and", j, " not orthogonal. v", i, ":", vectori, "\nv", j, ":", vectorj, "\nDot:", math.Abs(mat64.Dot(vectori, vectorj)), "eigmatrix:", eig.evecs), []string{"EigenWrap"}, true}
 				return eig.evecs, evals[:], reterr
 			}
 		}

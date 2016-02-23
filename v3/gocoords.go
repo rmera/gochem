@@ -31,10 +31,10 @@ package v3
 
 import (
 	"fmt"
+	"github.com/gonum/matrix"
+	"github.com/gonum/matrix/mat64"
 	"math"
 	"strings"
-
-	"github.com/gonum/matrix/mat64"
 )
 
 const appzero float64 = 0.000000000001 //used to correct floating point
@@ -71,10 +71,17 @@ func (F *Matrix) AddVec(A, vec *Matrix) {
 	if ac != rc || rr != 1 || ac != fc || ar != fr {
 		panic(ErrShape)
 	}
+	var B *Matrix
+	if A.Dense == F.Dense { //Using identical matrices for this should be A-OK, but something changed in gonum. I am not sure of why is it forbidden now.
+		B = Zeros(A.NVecs())
+		B.Copy(A)
+	} else {
+		B = A
+	}
 	for i := 0; i < ar; i++ {
-		j := A.VecView(i)
+		j := B.VecView(i)
 		f := F.VecView(i)
-		f.Add(j, vec)
+		f.Dense.Add(j.Dense, vec.Dense)
 	}
 }
 
@@ -114,7 +121,7 @@ func (F *Matrix) NVecs() int { //NOTE Probably just "Vecs" is a better name
 //Scale each coordinates in A by the coordinate in coord.
 //The result is put in F.
 func (F *Matrix) ScaleByVec(A, coord *Matrix) {
-	F.ScaleByVec(A, coord)
+	F.ScaleByRow(A, coord) //NOTE: here I try to fix what I coment in the previous line by caling ScaleByRow instead of ScaleByVec as it was before
 }
 
 //Set the vectors whith index n = each value on clist, in the received to the
@@ -158,8 +165,8 @@ func (F *Matrix) SomeVecsSafe(A *Matrix, clist []int) error {
 			switch e := r.(type) {
 			case PanicMsg:
 				err = Error{fmt.Sprintf("%s: %s", ErrGonum, e), []string{"SomeVecsSafe"}, true}
-			case mat64.Error:
-				err = Error{fmt.Sprintf("%goChem/v3: mat64.Error: %s", e), []string{"SomeVecsSafe"}, true}
+			case matrix.Error:
+				err = Error{fmt.Sprintf("%goChem/v3: gonum/matrix.Error: %s", e), []string{"SomeVecsSafe"}, true}
 			default:
 				panic(r)
 			}
@@ -252,17 +259,18 @@ func (F *Matrix) ScaleByCol(A, Col mat64.Matrix) {
 	if ar != cr || cc > 1 || ar != fr || ac != fc {
 		panic(ErrShape)
 	}
-	if F != A {
-		F.Copy(A)
-	}
+	//	if F != A {
+	//		F.Copy(A)
+	//	}
 	for i := 0; i < ac; i++ {
 		temp := F.ColView(i)
-		temp.MulElem(temp, Col)
+
+		temp.Dense.MulElem(temp.Dense, Col)
 	}
 
 }
 
-//ScaleByRow scales each column of matrix A by Col, putting the result
+//ScaleByRow scales each column of matrix A by row, putting the result
 //in the received.
 func (F *Matrix) ScaleByRow(A, Row *Matrix) { //NOTE it should be called ScaleByVec
 	ar, ac := A.Dims()
@@ -271,12 +279,12 @@ func (F *Matrix) ScaleByRow(A, Row *Matrix) { //NOTE it should be called ScaleBy
 	if ac != rc || rr != 1 || ar != fr || ac != fc {
 		panic(ErrShape)
 	}
-	if F != A {
-		F.Copy(A)
-	}
+	//	if F != A {
+	//		F.Copy(A)
+	//	}
 	for i := 0; i < ac; i++ {
 		temp := F.RowView(i)
-		temp.MulElem(temp, Row)
+		temp.Dense.MulElem(temp.Dense, Row.Dense)
 	}
 }
 

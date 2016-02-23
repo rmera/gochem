@@ -25,11 +25,11 @@ package chem
 
 import (
 	"fmt"
+	"github.com/gonum/matrix/mat64"
+	"github.com/rmera/gochem/v3"
 	"os"
 	"runtime"
 	"testing"
-
-	"github.com/rmera/gochem/v3"
 )
 
 //import "runtime"
@@ -259,6 +259,7 @@ func TestWater(Te *testing.T) {
 	fmt.Println("tmp water", w1, w2, tmp, c, h1)
 	coords.SetMatrix(mol.Len()-6, 0, tmp)
 	XYZFileWrite("test/WithWater.xyz", coords, mol)
+	fmt.Println("Done TestWater")
 }
 
 func TesstFixPDB(Te *testing.T) {
@@ -268,10 +269,12 @@ func TesstFixPDB(Te *testing.T) {
 	}
 	FixNumbering(mol)
 	PDBFileWrite("test/2c9vfixed.pdb", mol.Coords[0], mol, nil)
+	fmt.Println("DoneTestFixPDB")
 }
 
 //will fail if reduce is not installed!
 func TestReduce(Te *testing.T) {
+	fmt.Println("Start TestReduce")
 	mol, err := PDBFileRead("test/2c9v.pdb", true)
 	if err != nil {
 		Te.Error(err)
@@ -280,11 +283,13 @@ func TestReduce(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
+	defer logger.Close()
 	mol2, err := Reduce(mol, mol.Coords[0], 2, logger, "")
 	if err != nil {
 		Te.Error(err)
 	}
 	PDBFileWrite("test/2c9vHReduce.pdb", mol2.Coords[0], mol2, nil)
+	fmt.Println("END TestReduce")
 }
 
 //Here PDBRead and PDBWrite are tested
@@ -371,9 +376,9 @@ func TestRotateBz(Te *testing.T) {
 		rot = Rotate(bzcopy, rot, planevec, Deg2Rad*angle)
 		rot3 = RotateSer(bzcopy, rot, planevec, Deg2Rad*angle)
 		rot2, _ := EulerRotateAbout(bzcopy2, origin, planevec, Deg2Rad*angle) //should be the same as the previous
-		if !rot.EqualsApprox(rot2, 0.01) {
+		if !mat64.EqualApprox(rot, rot2, 0.01) {
 			Te.Fatal("Rotors Rotate and EulerRotate not equal for angle %3.2f", angle)
-		} else if !rot3.EqualsApprox(rot2, 0.01) {
+		} else if !mat64.EqualApprox(rot2, rot3, 0.01) {
 			Te.Fatal("Rotors RotateSer and EulerRotate not equal for angle %3.2f", angle)
 
 		} else {

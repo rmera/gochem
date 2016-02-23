@@ -27,11 +27,11 @@ package chem
 
 import (
 	"fmt"
-	"math"
-	"sort"
-
+	"github.com/gonum/matrix"
 	"github.com/gonum/matrix/mat64"
 	"github.com/rmera/gochem/v3"
+	"math"
+	"sort"
 )
 
 //NOTE: For many of these functions we could ask for a buffer vector in the arguments in order to reduce
@@ -152,9 +152,23 @@ func RotatorTranslatorToSuper(test, templa *v3.Matrix) (*v3.Matrix, *v3.Matrix, 
 	Maux := v3.Zeros(r)
 	Maux.Mul(aux2, ctest)
 	Maux.Tr() //Dont understand why this is needed
+	svd := new(mat64.SVD)
+	if ok := svd.Factorize(v3.Matrix2Dense(Maux), matrix.SVDFull); !ok {
+		return nil, nil, nil, nil, errDecorate(fmt.Errorf("mat64.SVD failed"), "RotatorTranslatorToSuper")
+	}
+
+	//matrix Maux dimensions must be 3x3
+	Ud := mat64.NewDense(3, 3, make([]float64, 9))
+	Vd := mat64.NewDense(3, 3, make([]float64, 9))
+	Ud.UFromSVD(svd)
+	Vd.VFromSVD(svd)
+	U := v3.Dense2Matrix(Ud) //These will panic if the matrices were not 3x3
+	V := v3.Dense2Matrix(Vd)
+	/***** OLD
 	factors := mat64.SVD(v3.Matrix2Dense(Maux), appzero, math.SmallestNonzeroFloat64, true, true)
 	U := factors.U
 	V := factors.V
+	****/
 	//	if err != nil {
 	//		return nil, nil, nil, nil, err  //I'm not sure what err is this one
 	//	}
@@ -373,7 +387,7 @@ func CenterOfMass(geometry *v3.Matrix, mass *mat64.Dense) (*v3.Matrix, error) {
 	ref.ScaleByCol(geometry, mass)
 	ref2 := v3.Zeros(1)
 	ref2.Mul(gnOnesvector, ref)
-	ref2.Scale(1.0/mass.Sum(), ref2)
+	ref2.Scale(1.0/mat64.Sum(mass), ref2)
 	return ref2, nil
 }
 
@@ -398,7 +412,7 @@ func MassCenter(in, oref *v3.Matrix, mass *mat64.Dense) (*v3.Matrix, *v3.Matrix,
 	if err := gnMaybe(gnPanicker(g)); err != nil {
 		return nil, nil, CError{err.Error(), []string{"v3.gOnesVector", "MassCenter"}}
 	}
-	ref2.Scale(1.0/mass.Sum(), ref2)
+	ref2.Scale(1.0/mat64.Sum(mass), ref2)
 	returned := v3.Zeros(ir)
 	returned.Copy(in)
 	returned.SubVec(returned, ref2)

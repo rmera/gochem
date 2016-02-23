@@ -370,7 +370,7 @@ func PDBFileWrite(pdbname string, coords *v3.Matrix, mol Atomer, Bfactors []floa
 		return CError{err.Error(), []string{"os.Create", "PDBFileWrite"}}
 	}
 	defer out.Close()
-	fmt.Fprintf(out, "REMARK WRITTEN WITH GOCHEM :-)")
+	fmt.Fprintf(out, "REMARK WRITTEN WITH GOCHEM :-) \n")
 	err = PDBWrite(out, coords, mol, Bfactors)
 	if err != nil {
 		return errDecorate(err, "PDBFileWrite")
@@ -421,7 +421,8 @@ func pdbWrite(out io.Writer, coords *v3.Matrix, mol Atomer, bfact []float64) err
 			return iowriteError(err)
 		}
 	}
-	_, err = out.Write([]byte("END")) //no newline, this is in case the write is part of a PDB and one needs to write "ENDMODEL".
+	_, err = out.Write([]byte("TER\n")) // New Addition, should help to recognize the end of the chain.
+	_, err = out.Write([]byte("END"))   //no newline, this is in case the write is part of a PDB and one needs to write "ENDMODEL".
 	if err != nil {
 		return iowriteError(err)
 	}

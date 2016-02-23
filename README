@@ -89,7 +89,7 @@ Current capabilities.
 	programs with the PyMOL visualization program (www.pymol.org)
 
 
-NOTE ON THE API:
+NOTES ON THE API:
 
 On XX/XX/2015 the API has suffered a few changes. The main ones are: 
 

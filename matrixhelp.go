@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/gonum/matrix"
 	"github.com/gonum/matrix/mat64"
 	"github.com/rmera/gochem/v3"
 )
@@ -13,12 +14,18 @@ import (
 const appzero float64 = 0.000000000001 //used to correct floating point
 //errors. Everything equal or less than this is considered zero. This probably sucks.
 
-func gnInverse(F *v3.Matrix) (*v3.Matrix, error) {
-	a, err := mat64.Inverse(F.Dense)
+//Computes the inverse matrix of F and puts it in target. If target is nil, it alloactes
+//a new one. Returns target.
+func gnInverse(F, target *v3.Matrix) (*v3.Matrix, error) {
+	if target == nil {
+		r := F.NVecs()
+		target = v3.Zeros(r)
+	}
+	err := target.Dense.Inverse(F.Dense)
 	if err != nil {
 		err = CError{err.Error(), []string{"mat64.Inverse", "gnInverse"}}
 	}
-	return &v3.Matrix{a}, err
+	return target, err
 }
 
 //cross Takes 2 3-len column or row vectors and returns a column or a row
@@ -116,7 +123,7 @@ func det(A mat64.Matrix) float64 {
 // A gnPanicker is a function that may panic.
 type gnPanicker func()
 
-// Maybe will recover a panic with a type mat64.Error or a VecError from fn, and return this error.
+// Maybe will recover a panic with a type matrix.Error or a VecError from fn, and return this error.
 // Any other error is re-panicked. It is a small modification
 //Maybe this funciton should be exported.
 func gnMaybe(fn gnPanicker) error {
@@ -126,7 +133,7 @@ func gnMaybe(fn gnPanicker) error {
 			switch e := r.(type) {
 			case v3.Error:
 				err = e
-			case mat64.Error:
+			case matrix.Error:
 				err = CError{fmt.Sprintf("goChem: Error in gonum function: %s", e), []string{"gnMaybe"}}
 			default:
 				panic(r)
@@ -142,7 +149,7 @@ func pow(A mat64.Matrix, F *mat64.Dense, exp float64) {
 	ar, ac := A.Dims()
 	fr, fc := F.Dims()
 	if ar != fr || ac != fc {
-		panic(mat64.ErrShape)
+		panic(matrix.ErrShape)
 	}
 	for i := 0; i < ar; i++ {
 		for j := 0; j < ac; j++ {
