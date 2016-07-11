@@ -194,6 +194,7 @@ type IConstraint struct {
 	CAtoms []int
 	Val    float64
 	Class  byte // B: distance, A: angle, D: Dihedral
+	UseVal bool //if false, don't add any value to the constraint (which should leave it at the value in the starting structure. This migth not work on every program, but it works in ORCA.
 }
 
 type Calc struct {
@@ -223,7 +224,7 @@ type Calc struct {
 	Guess        string //initial guess
 	Grid         int
 	OldMO        bool //Try to look for a file with MO. The
-	Job          Job
+	Job          Job  //NOTE: This should probably be a pointer: FIX!
 	SCFTightness int
 	SCFConvHelp  int
 	ECP          string //The ECP to be used. It is the programmers responsibility to use a supported ECP (for instance, trying to use 10-electron core ECP for Carbon will fail)

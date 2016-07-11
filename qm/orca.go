@@ -328,12 +328,19 @@ func (O *OrcaHandle) buildIConstraints(C []*IConstraint) (string, error) {
 		}
 
 		var temp string
+		var value string
+		//if UseVal is false, we don't add any value to the contraint. Orca will constraint the coordinate to its value in the starting structure.
+		if val.UseVal{
+			value=fmt.Sprintf("%2.3f",val.Val)
+		}else{
+			value=""
+		}
 		if val.Class == 'B' {
-			temp = fmt.Sprintf("         {B %d %d %2.3f C}\n", val.CAtoms[0], val.CAtoms[1], val.Val)
+			temp = fmt.Sprintf("         {B %d %d %s C}\n", val.CAtoms[0], val.CAtoms[1], value)
 		} else if val.Class == 'A' {
-			temp = fmt.Sprintf("         {A %d %d %d %2.3f C}\n", val.CAtoms[0], val.CAtoms[1], val.CAtoms[2], val.Val)
+			temp = fmt.Sprintf("         {A %d %d %d %s C}\n", val.CAtoms[0], val.CAtoms[1], val.CAtoms[2], value)
 		} else if val.Class == 'D' {
-			temp = fmt.Sprintf("         {D %d %d %d %d %2.3f C}\n", val.CAtoms[0], val.CAtoms[1], val.CAtoms[2], val.CAtoms[3], val.Val)
+			temp = fmt.Sprintf("         {D %d %d %d %d %s C}\n", val.CAtoms[0], val.CAtoms[1], val.CAtoms[2], val.CAtoms[3], value)
 		}
 		constraints[key+1] = temp
 	}
