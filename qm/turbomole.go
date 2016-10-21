@@ -187,7 +187,7 @@ func (O *TMHandle) addCosmo(epsilon float64) error {
 	if epsilon == 0 {
 		return nil
 	}
-	cosmostring = fmt.Sprintf("%s%3.1f\n\n\n\n\n\n\n\nr all b\n*\n\n", cosmostring, epsilon)
+	cosmostring = fmt.Sprintf("%s%3.1f\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nr all b\n*\n\n\n\n\n\n", cosmostring, epsilon)
 	def := exec.Command("cosmoprep")
 	pipe, err := def.StdinPipe()
 	if err != nil {
@@ -421,6 +421,9 @@ var tMMethods = map[string]string{
 	"tpssh":  "tpssh",
 	"BP86":   "b-p",
 	"b-p":    "b-p",
+	"blyp":   "b-lyp",
+	"BLYP":   "b-lyp",
+	"b-lyp":  "b-lyp",
 }
 
 var tMDisp = map[string]string{

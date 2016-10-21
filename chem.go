@@ -324,23 +324,30 @@ func (M *Molecule) Del(i int) error {
 
 //Copy puts in the receiver a copy of the molecule  A including coordinates
 func (M *Molecule) Copy(A *Molecule) {
+//	println("COMO LAS WEEEEEiiiiiiiiiiiiiiiiEEEEEAS") ////////////////////////////////////////
 	if err := A.Corrupted(); err != nil {
 		panic(err.Error())
 	}
 	r, _ := A.Coords[0].Dims()
-	mol := new(Molecule)
-	mol.Topology = new(Topology)
-	mol.CopyAtoms(A)
-	mol.Coords = make([]*v3.Matrix, 0, len(M.Coords))
-	mol.Bfactors = make([][]float64, 0, len(M.Bfactors))
-	for key, val := range M.Coords {
+	//mol := new(Molecule)
+	M.Topology = new(Topology)
+	for i:=0;i<A.Len();i++{
+		at:=new(Atom)
+		at.Copy(A.Atom(i))
+		M.Topology.Atoms=append(M.Topology.Atoms,at)
+
+	}
+//	M.CopyAtoms(A)
+	M.Coords = make([]*v3.Matrix, 0, len(A.Coords))
+	M.Bfactors = make([][]float64, 0, len(A.Bfactors))
+	for key, val := range A.Coords {
 		tmp := v3.Zeros(r)
 		tmp.Copy(val)
-		mol.Coords = append(mol.Coords, tmp)
-		tmp2 := copyB(M.Bfactors[key])
-		mol.Bfactors = append(mol.Bfactors, tmp2)
+		M.Coords = append(M.Coords, tmp)
+		tmp2 := copyB(A.Bfactors[key])
+		M.Bfactors = append(M.Bfactors, tmp2)
 	}
-	if err := mol.Corrupted(); err != nil {
+	if err := M.Corrupted(); err != nil {
 		panic(PanicMsg(fmt.Sprintf("goChem: Molecule creation error: %s", err.Error())))
 	}
 }
