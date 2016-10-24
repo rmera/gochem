@@ -148,6 +148,7 @@ func read_full_pdb_line(line string, read_additional bool, contlines int) (*Atom
 	atom.Het = strings.HasPrefix(line, "HETATM") //this is called twice in the worst case. should fix
 	atom.ID, err[0] = strconv.Atoi(strings.TrimSpace(line[6:12]))
 	atom.Name = strings.TrimSpace(line[12:16])
+	atom.Char16=line[16]
 	//PDB says that pos. 17 is for other thing but I see that is
 	//used for residue name in many cases*/
 	atom.Molname = line[17:20]

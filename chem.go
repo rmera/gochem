@@ -32,19 +32,21 @@ import (
 
 //import "strings"
 
-/**Many funcitons here panic instead of returning errors. This is because they are "fundamental"
+/* Many funcitons here panic instead of returning errors. This is because they are "fundamental"
  * functions. I considered that if something goes wrong here, the program is way-most likely wrong and should
  * crash. Most panics are related to using the funciton on a nil object or trying to access out-of bounds
- * fields**/
+ * fields 
+ */
 
 //Atom contains the atoms read except for the coordinates, which will be in a matrix
-//and the b-factors, which are in a separate slice of float64.
+//and the b-factors, which are in a separate slice of float64. 
 type Atom struct {
 	Name      string  //PDB name of the atom
 	ID        int     //The PDB index of the atom
 	Tag       int     //Just added this for something that someone might want to keep that is not a float.
 	Molname   string  //PDB name of the residue or molecule (3-letter code for residues)
 	Molname1  byte    //the one letter name for residues and nucleotids
+	Char16    byte    //Whatever is in the column 16 (counting from 0) in a PDB file, anything.
 	MolID     int     //PDB index of the corresponding residue or molecule
 	Chain     string  //One-character PDB name for a chain.
 	Mass      float64 //hopefully all these float64 are not too much memory
