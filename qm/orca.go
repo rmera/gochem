@@ -86,7 +86,7 @@ unix.*/
 func (O *OrcaHandle) SetDefaults() {
 	O.defmethod = "revPBE"
 	O.defbasis = "def2-SVP"
-	O.defauxbasis = "def2-SVP/J"
+	O.defauxbasis = "def2-/J"
 	O.command = os.ExpandEnv("${ORCA_PATH}/orca")
 	if O.command == "/orca" { //if ORCA_PATH was not defined
 		O.command = "./orca"
@@ -125,8 +125,9 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 		ri = "RI"
 	}
 	if Q.RIJ {
-		Q.auxBasis = Q.Basis + "/J"
-		Q.auxColBasis = Q.Basis + "/C"
+		//Of course, this will only work with Karlsruhe basis.
+		Q.auxBasis = "def2/J"//Q.Basis + "/J"
+		Q.auxColBasis = "def2/C" //Q.Basis + "/C"
 		//	if !strings.Contains(Q.Others,"RIJCOSX"){
 		ri = "RIJCOSX"
 	}
@@ -224,7 +225,7 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 	}
 	cosmo := ""
 	if Q.Dielectric > 0 {
-		cosmo = fmt.Sprintf("%%cosmo epsilon %1.0f\n        refrac 1.30\n        end\n\n", Q.Dielectric)
+		cosmo = fmt.Sprintf("%%cpcm epsilon %1.0f\n        refrac 1.30\n        end\n\n", Q.Dielectric)
 	}
 	mem := ""
 	if Q.Memory != 0 {

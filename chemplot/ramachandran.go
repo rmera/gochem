@@ -296,7 +296,7 @@ func getShape(tagged int) (plot.GlyphDrawer, error) {
 }
 
 // RamaCalc Obtains the values for the phi and psi dihedrals indicated in []Ramaset, for the
-// structure M.  It returns a slice of 2-element slices, one for the phi the next for the psi
+// structure M. The angles are in *degrees*.  It returns a slice of 2-element slices, one for the phi the next for the psi
 // dihedral, a and an error or nil.
 func RamaCalc(M *v3.Matrix, dihedrals []RamaSet) ([][]float64, error) {
 	if M == nil || dihedrals == nil {
@@ -367,8 +367,9 @@ func RamaList(M chem.Atomer, chains string, resran []int) ([]RamaSet, error) {
 	chainprev := "NOTAVALIDCHAIN" //any non-valid chain name
 	for num := 0; num < M.Len(); num++ {
 		at := M.Atom(num)
-		//First get the indexes we need
-		if strings.Contains(chains, string(at.Chain)) || at.Chain == " " {
+		//First get the indexes we need. Change: If you give RamaList an empty string for "chains", it will 
+		//include all chains in the chem.Atomer.
+		if strings.Contains(chains, string(at.Chain)) || at.Chain == " " || chains=="" {
 			if at.Chain != chainprev {
 				chainprev = at.Chain
 				C = -1
