@@ -52,6 +52,7 @@ type OrcaHandle struct {
 	command     string
 	inputname   string
 	nCPU        int
+	orca3       bool
 }
 
 func NewOrcaHandle() *OrcaHandle {
@@ -79,14 +80,22 @@ func (O *OrcaHandle) SetMOName(name string) {
 	O.previousMO = name
 }
 
+//As per the "zero value" of structures in Go, the default for goChem will be to use Orca 4
+func (O *OrcaHandle) SetOrca3(b bool){
+	O.orca3 = b
+}
+
 /*Sets defaults for ORCA calculation. Default is a single-point at
 revPBE/def2-SVP with RI, and all the available CPU with a max of
 8. The ORCA command is set to $ORCA_PATH/orca, at least in
 unix.*/
 func (O *OrcaHandle) SetDefaults() {
-	O.defmethod = "revPBE"
+	O.defmethod = "BLYP"
 	O.defbasis = "def2-SVP"
-	O.defauxbasis = "def2-/J"
+	O.defauxbasis = "def2/J"
+	if O.orca3{
+		O.defauxbasis="def2-SVP/J"
+	}
 	O.command = os.ExpandEnv("${ORCA_PATH}/orca")
 	if O.command == "/orca" { //if ORCA_PATH was not defined
 		O.command = "./orca"
@@ -103,7 +112,7 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 	if atoms == nil || coords == nil {
 		return Error{ErrMissingCharges, Orca, O.inputname, "", []string{"BuildInput"}, true}
 	}
-	if Q.Basis == "" {
+	if (Q.Basis == "" && !strings.Contains(Q.Method,"3c")){
 		log.Printf("no basis set assigned for ORCA calculation, will used the default %s, \n", O.defbasis) //NOTE: This could be changed for a non-critical error
 		Q.Basis = O.defbasis
 	}
@@ -119,16 +128,15 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 	if Q.RI && Q.RIJ {
 		return Error{"goChem/QM: RI and RIJ cannot be activated at the same time", Orca, O.inputname, "", []string{"BuildInput"}, true}
 	}
-	if Q.RI {
-		Q.auxBasis = Q.Basis + "/J"
+	if Q.RI || Q.RIJ{
+		Q.auxBasis="def2/J" //Of course, this will only work with Karlsruhe basis.
+		if O.orca3{
+			Q.auxBasis = Q.Basis + "/J"
+		}
 		//	if !strings.Contains(Q.Others," RI "){
 		ri = "RI"
 	}
 	if Q.RIJ {
-		//Of course, this will only work with Karlsruhe basis.
-		Q.auxBasis = "def2/J"//Q.Basis + "/J"
-		Q.auxColBasis = "def2/C" //Q.Basis + "/C"
-		//	if !strings.Contains(Q.Others,"RIJCOSX"){
 		ri = "RIJCOSX"
 	}
 
@@ -225,7 +233,11 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 	}
 	cosmo := ""
 	if Q.Dielectric > 0 {
-		cosmo = fmt.Sprintf("%%cpcm epsilon %1.0f\n        refrac 1.30\n        end\n\n", Q.Dielectric)
+		method:="cpcm"
+		if O.orca3{
+			method="cosmo"
+		}
+		cosmo = fmt.Sprintf("%%%s epsilon %1.0f\n        refrac 1.30\n        end\n\n",method, Q.Dielectric)
 	}
 	mem := ""
 	if Q.Memory != 0 {
@@ -260,7 +272,7 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 		return Error{ErrCantInput, Orca, O.inputname, err.Error(), []string{"fmt.Printf", "BuildInput"}, true}
 
 	}
-	fmt.Println("Ta wena la wea... chupa la callampa, uh uh uuuh", moinp) ///////////////
+//	fmt.Println("Ta wena la wea... chupa la callampa, uh uh uuuh", moinp) ///////////////
 	fmt.Fprint(file, HF3cAdditional)
 	fmt.Fprint(file, pal)
 	fmt.Fprint(file, moinp)
