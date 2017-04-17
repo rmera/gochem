@@ -69,13 +69,13 @@ func (O *MopacHandle) SetCommand(name string) {
 }
 
 /*Sets some defaults for MopacHandle. default is an optimization at
-  PM6-DH2X It tries to locate MOPAC2012 according to the
+  PM6-D3H4. It tries to locate MOPAC2016 according to the
   $MOPAC_LICENSE environment variable, which might only work in UNIX.
   If other system or using MOPAC2009 the command Must be set with the
   SetCommand function. */
 func (O *MopacHandle) SetDefaults() {
 	O.defmethod = "PM6-D3H4 NOMM"
-	O.command = os.ExpandEnv("${MOPAC_LICENSE}/MOPAC2012.exe")
+	O.command = os.ExpandEnv("${MOPAC_LICENSE}/MOPAC2016.exe")
 }
 
 //BuildInput builds an input for ORCA based int the data in atoms, coords and C.
@@ -180,8 +180,9 @@ func (O *MopacHandle) Run(wait bool) (err error) {
 /*Energy gets the last energy for a MOPAC2009/2012 calculation by
   parsing the mopac output file. Return error if fail. Also returns
   Error ("Probable problem in calculation")
-  if there is a energy but the calculation didnt end properly*/
+  if there is a energy but the calculation didnt end properly.*/
 func (O *MopacHandle) Energy() (float64, error) {
+	//NOT TESTED FOR MOPAC2016!!! FIX BEFORE MERGING TO DEVEL
 	var err error
 	var energy float64
 	file, err := os.Open(fmt.Sprintf("%s.out", O.inputname))
@@ -258,8 +259,8 @@ func (O *MopacHandle) OptimizedGeometry(atoms chem.Atomer) (*v3.Matrix, error) {
 			continue
 		}
 
-		//MOPAC output is a pleasure to parse. IF YOU ARE A F*** PERKELEN CTM MASOCHIST!!!!!!!!!!!!!!!!!!!
-		if !reading && (strings.Contains(line, "FINAL  POINT  AND  DERIVATIVES") || strings.Contains(line, "GEOMETRY OPTIMISED")) || strings.Contains(line, "GRADIENTS WERE INITIALLY ACCEPTABLY SMALL") {
+		//MOPAC output is a pleasure to parse. If you are a masochist.
+		if !reading && (strings.Contains(line, "FINAL  POINT  AND  DERIVATIVES") || strings.Contains(line, "GEOMETRY OPTIMISED")) || strings.Contains(line, "GRADIENTS WERE INITIALLY ACCEPTABLY SMALL") || strings.Contains(line,"HERBERTS TEST WAS SATISFIED IN BFGS") {
 			final_point = true
 			continue
 		}
