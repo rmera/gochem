@@ -177,6 +177,59 @@ func (O *MopacHandle) Run(wait bool) (err error) {
 	return
 }
 
+
+/*HeatOfFormation gets the last energy for a MOPAC2009/2012 calculation by
+  parsing the mopac output file. Return error if fail. Also returns
+  Error ("Probable problem in calculation")
+  if there is a energy but the calculation didnt end properly.*/
+func (O *MopacHandle) HeatOfFormation() (float64, error) {
+	//NOT TESTED FOR MOPAC2016!!! FIX BEFORE MERGING TO DEVEL
+	var err error
+	var energy float64
+	file, err := os.Open(fmt.Sprintf("%s.out", O.inputname))
+	if err != nil {
+		return 0, Error{ErrNoEnergy, Mopac, O.inputname, err.Error(), []string{"os.Open", "Energy"}, true}
+	}
+	defer file.Close()
+	out := bufio.NewReader(file)
+	err = Error{ErrNoEnergy, Mopac, O.inputname, "", []string{"Energy"}, true}
+	trust_radius_warning := false
+	for {
+		var line string
+		line, err = out.ReadString('\n')
+		if err != nil {
+			break
+		}
+		if strings.Contains(line, "TRUST RADIUS NOW LESS THAN 0.00010 OPTIMIZATION TERMINATING") {
+			trust_radius_warning = true
+			continue
+		}
+		if strings.Contains(line, "FINAL HEAT OF FORMATION") {
+			splitted := strings.Fields(line)
+			if len(splitted) < 5 {
+				err = Error{ErrNoEnergy, Mopac, O.inputname, "", []string{"HeatOfFormation"}, true}
+				break
+			}
+			energy, err = strconv.ParseFloat(splitted[5], 64)
+			if err != nil {
+				break
+			}
+			energy = energy //This value is already in kcal/mol
+			err = nil
+			break
+		}
+	}
+	if err != nil {
+		return 0, err
+	}
+	if trust_radius_warning {
+		err = Error{ErrProbableProblem, Mopac, O.inputname, "", []string{"Energy"}, false}
+	}
+	return energy, err
+}
+
+
+
 /*Energy gets the last energy for a MOPAC2009/2012 calculation by
   parsing the mopac output file. Return error if fail. Also returns
   Error ("Probable problem in calculation")
