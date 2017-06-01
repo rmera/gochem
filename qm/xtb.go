@@ -50,7 +50,7 @@ type XTBHandle struct {
 	command     string
 	inputname   string
 	nCPU        int
-	options		string
+	options		[]string
 }
 
 func NewXTBHandle() *XTBHandle {
@@ -88,6 +88,7 @@ func (O *XTBHandle) SetDefaults() {
 //BuildInput builds an input for XTB. Right now it's very limited, only singlets are allowed and 
 //only unconstrained optimizations and single-points.
 func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q *Calc) error {
+	
 	//Only error so far
 	if atoms == nil || coords == nil {
 		return Error{ErrMissingCharges, "XTB", O.inputname, "", []string{"BuildInput"}, true}
@@ -104,6 +105,9 @@ func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q
 	if O.inputname == "" {
 		O.inputname = "gochem"
 	}
+	O.options=make([]string,1,3)
+	O.options[0]=O.inputname+".xyz"
+	O.options=append(O.options,"-gfn")
 	f, err := os.OpenFile(O.inputname+".xyz", os.O_APPEND|os.O_WRONLY, 0600)
 	if err != nil {
     	return Error{ErrCantInput, "XTB", O.inputname, "", []string{"BuildInput"}, true}
@@ -116,15 +120,15 @@ func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q
 	f.Close() //Won't use defer, as we need this file written and saved before this function exits.
 	jc := jobChoose{}
 	jc.opti = func() {
-		O.options="-opt"
+		O.options=append(O.options,"-opt")
 	}
 	jc.sp = func() {
-		O.options="-sp"
+		O.options=append(O.options,"-sp")
 	}
 
 	Q.Job.Do(jc)
 	if Q.Dielectric > 0 {
-		O.options=O.options+" -gbsa h2o" //Only water supported for now
+		O.options=append(O.options,"-gbsa h2o") //Only water supported for now
 	}
 
 	return nil
@@ -140,13 +144,21 @@ func (O *XTBHandle) Run(wait bool) (err error) {
 		if err != nil {
 			return Error{ErrNotRunning, XTB, O.inputname, "", []string{"Run"}, true}
 		}
+		ferr, err := os.Create(fmt.Sprintf("%s.err", O.inputname))
+
+		if err != nil {
+			return Error{ErrNotRunning, XTB, O.inputname, "", []string{"Run"}, true}
+		}
+
 		defer out.Close()
-		command := exec.Command(O.command, fmt.Sprintf("%s.xyz %s",O.inputname,O.options))
+		defer ferr.Close()
+		command := exec.Command(O.command, O.options...)
 		command.Stdout = out
+		command.Stderr = ferr
 		err = command.Run()
 
 	} else {
-		command := exec.Command("sh", "-c", "nohup "+O.command+fmt.Sprintf(" %s.xyz %s > %s.out &", O.inputname, O.options, O.inputname))
+		command := exec.Command("sh", "-c", "nohup "+O.command+fmt.Sprintf(" %s.xyz %s > %s.out &", O.inputname, O.options[1:], O.inputname))
 		err = command.Start()
 	}
 	if err != nil {
@@ -158,9 +170,62 @@ func (O *XTBHandle) Run(wait bool) (err error) {
 //Reads the latest geometry from an XTB optimization. It doesn't actually need the chem.Atomer
 //but requires it so XTBHandle fits with the QM interface.
 func (O *XTBHandle) OptimizedGeometry(atoms chem.Atomer) (*v3.Matrix, error) {
+	if !O.normalTermination(){
+		return nil, Error{ErrNoGeometry, XTB, O.inputname, "Calculation didn't end normally", []string{"OptimizedGeometry"}, true}
+	}
 	mol,err:=chem.XYZFileRead("xtbopt.coord") //Trying to run several calculations in parallel in the same directory will fail as the output has always the same name.
-	return mol.Coords[0], err
+	if err!=nil{
+		return  nil, Error{ErrNoGeometry, XTB, O.inputname, "", []string{"OptimizedGeometry"}, true}
+	}
+	return mol.Coords[0], nil
 }
+
+
+
+
+//This checks that an xtb calculation has terminated normally
+//I know this duplicates code, I wrote this one first and then the other one.
+func (O *XTBHandle) normalTermination() bool {
+	var ini int64 = 0
+	var end int64 = 0
+	var first bool
+	buf := make([]byte, 1)
+	f, err := os.Open(fmt.Sprintf("%s.out", O.inputname))
+	if err != nil {
+		return false
+	}
+	defer f.Close()
+	var i int64 = 1
+	for ; ; i++ {
+		if _, err := f.Seek(-1*i, 2); err != nil {
+			return false
+		}
+		if _, err := f.Read(buf); err != nil {
+			return false
+		}
+		if buf[0] == byte('\n') && first == false {
+			first = true
+		} else if buf[0] == byte('\n') && end == 0 {
+			end = i
+		} else if buf[0] == byte('\n') && ini == 0 {
+			ini = i
+			break
+		}
+
+	}
+	f.Seek(-1*ini, 2)
+	bufF := make([]byte, ini-end)
+	f.Read(bufF)
+	if strings.Contains(string(bufF), "cpu  time for all") {
+		return true
+	}
+	return false
+}
+
+
+
+
+
 
 //Gets the energy of a previous XTB calculations.
 //Returns error if problem, and also if the energy returned that is product of an
