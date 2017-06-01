@@ -96,6 +96,7 @@ const (
 	Turbomole = "Turbomole"
 	NWChem    = "NWChem"
 	Fermions  = "Fermions++"
+	XTB       = "XTB" //this may go away if Orca starts supporting XTB.
 )
 
 //errors
