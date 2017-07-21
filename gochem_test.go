@@ -25,7 +25,7 @@ package chem
 
 import (
 	"fmt"
-	"github.com/gonum/matrix/mat64"
+	"gonum.org/v1/gonum/mat"
 	"github.com/rmera/gochem/v3"
 	"os"
 	"runtime"
@@ -376,9 +376,9 @@ func TestRotateBz(Te *testing.T) {
 		rot = Rotate(bzcopy, rot, planevec, Deg2Rad*angle)
 		rot3 = RotateSer(bzcopy, rot, planevec, Deg2Rad*angle)
 		rot2, _ := EulerRotateAbout(bzcopy2, origin, planevec, Deg2Rad*angle) //should be the same as the previous
-		if !mat64.EqualApprox(rot, rot2, 0.01) {
+		if !mat.EqualApprox(rot, rot2, 0.01) {
 			Te.Fatal("Rotors Rotate and EulerRotate not equal for angle %3.2f", angle)
-		} else if !mat64.EqualApprox(rot2, rot3, 0.01) {
+		} else if !mat.EqualApprox(rot2, rot3, 0.01) {
 			Te.Fatal("Rotors RotateSer and EulerRotate not equal for angle %3.2f", angle)
 
 		} else {

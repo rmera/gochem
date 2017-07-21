@@ -38,9 +38,8 @@ package v3
 
 import (
 	"fmt"
-	"github.com/gonum/blas/blas64"
-	"github.com/gonum/matrix"
-	"github.com/gonum/matrix/mat64"
+	"gonum.org/v1/gonum/blas/blas64"
+	"gonum.org/v1/gonum/mat"
 	"math"
 	"math/cmplx"
 	"sort"
@@ -53,17 +52,17 @@ import (
 //cartesian coordinates of a point in 3D space. The name of some funcitions in
 //the library reflect this.
 type Matrix struct {
-	*mat64.Dense
+	*mat.Dense
 }
 
-func Matrix2Dense(A *Matrix) *mat64.Dense {
+func Matrix2Dense(A *Matrix) *mat.Dense {
 	return A.Dense
 }
 
-func Dense2Matrix(A *mat64.Dense) *Matrix {
+func Dense2Matrix(A *mat.Dense) *Matrix {
 	r, c := A.Dims()
 	if c != 3 {
-		panic(fmt.Sprintf("malformed *mat64.Dense matrix to make *v3.Matrix, must be Nx3, is %i x %j", r, c))
+		panic(fmt.Sprintf("malformed *mat.Dense matrix to make *v3.Matrix, must be Nx3, is %i x %j", r, c))
 	}
 	return &Matrix{A}
 }
@@ -76,7 +75,7 @@ func NewMatrix(data []float64) (*Matrix, error) {
 	if l%cols != 0 {
 		return nil, Error{fmt.Sprintf("Input slice lenght %d not divisible by %d: %d", rows, cols, rows%cols), []string{"NewMatrix"}, true}
 	}
-	r := mat64.NewDense(rows, cols, data)
+	r := mat.NewDense(rows, cols, data)
 	return &Matrix{r}, nil
 }
 
@@ -84,28 +83,50 @@ func NewMatrix(data []float64) (*Matrix, error) {
 //The slice must have the correct size or be nil, in which case a new slice will be created.
 //This method is merely a frontend for the mat64.Row function of gonum.
 func (F *Matrix) Row(dst []float64, i int) []float64 {
-	return mat64.Row(dst, i, F.Dense)
+	return mat.Row(dst, i, F.Dense)
 }
 
 //Col fills the  dst slice of float64 with the ith col of matrix F and returns it.
 //The slice must have the correct size or be nil, in which case a new slice will be created.
 //This method is merely a frontend for the mat64.Col function of gonum.
 func (F *Matrix) Col(dst []float64, i int) []float64 {
-	return mat64.Col(dst, i, F.Dense)
+	return mat.Col(dst, i, F.Dense)
 }
 
 //Puts a view of the given col of the matrix on the receiver
+func (F *Matrix) ColSlice(i int) *Matrix {
+	//	r := new(mat64.Dense)
+	Fr, _ := F.Dims()
+	r := F.Dense.Slice(0, i, Fr, 1).(*mat.Dense)
+	return &Matrix{r}
+}
+
+
+//Puts a view of the given col of the matrix on the receiver.
+//This function is for compatibility with the gonum v1 API
+//The older one might be deleted in the future, but, if at all,
+//it will take time.
 func (F *Matrix) ColView(i int) *Matrix {
 	//	r := new(mat64.Dense)
 	Fr, _ := F.Dims()
-	r := F.Dense.View(0, i, Fr, 1).(*mat64.Dense)
+	r := F.Dense.Slice(0, i, Fr, 1).(*mat.Dense)
 	return &Matrix{r}
 }
+
 
 //Returns view of the given vector of the matrix in the receiver
 func (F *Matrix) VecView(i int) *Matrix {
 	//r := new(mat64.Dense)
-	r := F.Dense.View(i, 0, 1, 3).(*mat64.Dense)
+	r := F.Dense.Slice(i, 0, 1, 3).(*mat.Dense)
+	return &Matrix{r}
+}
+
+
+//VecSlice slice of the given vector of the matrix in the receiver
+//This function is to keep compatibility with the new gonum v1 API
+func (F *Matrix) VecSlice(i int) *Matrix {
+	//r := new(mat64.Dense)
+	r := F.Dense.Slice(i, 0, 1, 3).(*mat.Dense)
 	return &Matrix{r}
 }
 
@@ -115,9 +136,20 @@ func (F *Matrix) VecView(i int) *Matrix {
 //But the right signatur was not possible to implement. Notice that very little
 //memory allocation happens, only a couple of ints and pointers.
 func (F *Matrix) View(i, j, r, c int) *Matrix {
-	ret := F.Dense.View(i, j, r, c).(*mat64.Dense)
+	ret := F.Dense.Slice(i, j, r, c).(*mat.Dense)
 	return &Matrix{ret}
 }
+
+
+//Slice returns a view of F starting from i,j and spanning r rows and
+//c columns. Changes in the view are reflected in F and vice-versa
+//This function is to keep compatibility with the gonum v1 API.
+func (F *Matrix) Slice(i, j, r, c int) *Matrix {
+	ret := F.Dense.Slice(i, j, r, c).(*mat.Dense)
+	return &Matrix{ret}
+}
+
+
 
 func (F *Matrix) Sub(A, B *Matrix) {
 	F.Dense.Sub(A.Dense, B.Dense)
@@ -144,11 +176,11 @@ func (F *Matrix) SetMatrix(i, j int, A *Matrix) {
 	}
 }
 
-//Mul Wrapps mat64.Mul to take care of the case when one of the
+//Mul Wrapps mat.Mul to take care of the case when one of the
 //arguments is also the received. Since the received is a Matrix,
 //the mat64 function could check A (mat64.Dense) vs F (Matrix) and
 //it would not know that internally F.Dense==A, hence the need for this function.
-func (F *Matrix) Mul(A, B mat64.Matrix) {
+func (F *Matrix) Mul(A, B mat.Matrix) {
 	if F == A {
 		A := A.(*Matrix)
 		F.Dense.Mul(A.Dense, B)
@@ -177,11 +209,11 @@ func (F *Matrix) Mul(A, B mat64.Matrix) {
 	*/
 }
 
-//Dot acts as a frontend for the mat64 function, returns the dot product of the receiver and the argument.
+//Dot acts as a frontend for the mat function, returns the dot product of the receiver and the argument.
 //Unlike the mat64 function it's specific for the v3.Matrix type, so if you want to use other types go for the function.
 func (F *Matrix) Dot(A *Matrix) float64 {
 	//The reason for making Dot ask for a v3.Matrix is that then we can call mat64.Dot with A.Dense, which should make things faster.
-	return mat64.Dot(F.Dense, A.Dense)
+	return mat.Dot(F.Dense.RowView(0), A.Dense.RowView(0))
 }
 
 func (F *Matrix) Scale(v float64, A *Matrix) {
@@ -196,7 +228,7 @@ func (F *Matrix) Norm(i float64) float64 {
 	if i == 0 {
 		i = 2
 	}
-	return mat64.Norm(F.Dense, i)
+	return mat.Norm(F.Dense, i)
 }
 
 /*
@@ -251,7 +283,7 @@ func (F *Matrix) Stack(A, B *Matrix) {
 
 //This is a temporal function. It returns the determinant of a 3x3 matrix. Panics if the matrix is not 3x3.
 //It is also defined in the chem package which is not-so-clean.
-func det(A mat64.Matrix) float64 {
+func det(A mat.Matrix) float64 {
 	r, c := A.Dims()
 	if r != 3 || c != 3 {
 		panic(ErrDeterminant)
@@ -289,8 +321,8 @@ func EigenWrap(in *Matrix, epsilon float64) (*Matrix, []float64, error) {
 	if epsilon < 0 {
 		epsilon = appzero
 	}
-	eigen := new(mat64.Eigen)
-	eigen.Factorize(mat64.DenseCopyOf(in.Dense), true)
+	eigen := new(mat.Eigen)
+	eigen.Factorize(mat.DenseCopyOf(in.Dense),false,true)
 	evals_cmp := make([]complex128, 3) //We only deal with 3-column matrixes in this package
 	evals_cmp = eigen.Values(evals_cmp)
 	evecsprev := &Matrix{eigen.Vectors()}
@@ -300,7 +332,7 @@ func EigenWrap(in *Matrix, epsilon float64) (*Matrix, []float64, error) {
 	}
 	evecs := Zeros(3)
 	fn := func() { evecs.Copy(evecsprev.T()) }
-	err := matrix.Maybe(fn)
+	err := mat.Maybe(fn)
 	if err != nil {
 		return nil, nil, Error{err.Error(), []string{"mat64.Copy/math64.T", "EigenWrap"}, true}
 
@@ -313,15 +345,15 @@ func EigenWrap(in *Matrix, epsilon float64) (*Matrix, []float64, error) {
 	//If not I'll add ortonormalization routines.
 	eigrows, _ := eig.evecs.Dims()
 	for i := 0; i < eigrows; i++ {
-		vectori := eig.evecs.VecView(i)
+		//vectori := eig.evecs.VecView(i)
 		for j := i + 1; j < eigrows; j++ {
-			vectorj := eig.evecs.VecView(j)
-			if math.Abs(mat64.Dot(vectori, vectorj)) > epsilon && i != j {
-				reterr := Error{fmt.Sprintln("Eigenvectors ", i, "and", j, " not orthogonal. v", i, ":", vectori, "\nv", j, ":", vectorj, "\nDot:", math.Abs(mat64.Dot(vectori, vectorj)), "eigmatrix:", eig.evecs), []string{"EigenWrap"}, true}
+		//	vectorj := eig.evecs.VecView(j)
+			if math.Abs(mat.Dot(eig.evecs.Dense.RowView(i), eig.evecs.Dense.RowView(j))) > epsilon && i != j {
+				reterr := Error{fmt.Sprintln("Eigenvectors ", i, "and", j, " not orthogonal. v", i, ":", eig.evecs.Dense.RowView(i), "\nv", j, ":", eig.evecs.Dense.RowView(j), "\nDot:", math.Abs(mat.Dot(eig.evecs.Dense.RowView(i),eig.evecs.Dense.RowView(i))), "eigmatrix:", eig.evecs), []string{"EigenWrap"}, true}
 				return eig.evecs, evals[:], reterr
 			}
 		}
-		if math.Abs(vectori.Norm(0)-1) > epsilon {
+		if math.Abs(eig.evecs.VecView(1).Norm(0)-1) > epsilon {
 			//Of course I could just normalize the vectors instead of complaining.
 			//err= fmt.Errorf("Vectors not normalized %s",err.Error())
 

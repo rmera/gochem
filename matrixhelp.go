@@ -6,8 +6,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/gonum/matrix"
-	"github.com/gonum/matrix/mat64"
+	"gonum.org/v1/gonum/mat"
 	"github.com/rmera/gochem/v3"
 )
 
@@ -23,7 +22,7 @@ func gnInverse(F, target *v3.Matrix) (*v3.Matrix, error) {
 	}
 	err := target.Dense.Inverse(F.Dense)
 	if err != nil {
-		err = CError{err.Error(), []string{"mat64.Inverse", "gnInverse"}}
+		err = CError{err.Error(), []string{"mat.Inverse", "gnInverse"}}
 	}
 	return target, err
 }
@@ -49,22 +48,22 @@ func invSqrt(val float64) float64 {
 }
 
 //Returns and empty, but not nil, Dense. It barely allocates memory
-func emptyDense() (*mat64.Dense, error) {
+func emptyDense() (*mat.Dense, error) {
 	a := make([]float64, 0, 0)
-	return mat64.NewDense(0, 0, a), nil
+	return mat.NewDense(0, 0, a), nil
 
 }
 
 //Returns an zero-filled Dense with the given dimensions
 //It is to be substituted by the Gonum function.
-func gnZeros(r, c int) *mat64.Dense {
+func gnZeros(r, c int) *mat.Dense {
 	f := make([]float64, r*c, r*c)
-	return mat64.NewDense(r, c, f)
+	return mat.NewDense(r, c, f)
 
 }
 
 //Returns an identity matrix spanning span cols and rows
-func gnEye(span int) *mat64.Dense {
+func gnEye(span int) *mat.Dense {
 	A := gnZeros(span, span)
 	for i := 0; i < span; i++ {
 		A.Set(i, i, 1.0)
@@ -73,7 +72,7 @@ func gnEye(span int) *mat64.Dense {
 }
 
 //returns a rows,cols matrix filled with gnOnes.
-func gnOnes(rows, cols int) *mat64.Dense {
+func gnOnes(rows, cols int) *mat.Dense {
 	gnOnes := gnZeros(rows, cols)
 	for i := 0; i < rows; i++ {
 		for j := 0; j < cols; j++ {
@@ -84,7 +83,7 @@ func gnOnes(rows, cols int) *mat64.Dense {
 }
 
 //The 2 following functions may not even be used.
-func gnMul(A, B mat64.Matrix) *mat64.Dense {
+func gnMul(A, B mat.Matrix) *mat.Dense {
 	ar, _ := A.Dims()
 	_, bc := B.Dims()
 	C := gnZeros(ar, bc)
@@ -92,14 +91,14 @@ func gnMul(A, B mat64.Matrix) *mat64.Dense {
 	return C
 }
 
-func gnCopy(A mat64.Matrix) *mat64.Dense {
+func gnCopy(A mat.Matrix) *mat.Dense {
 	r, c := A.Dims()
 	B := gnZeros(r, c)
 	B.Copy(A)
 	return B
 }
 
-func gnT(A mat64.Matrix) *mat64.Dense {
+func gnT(A mat.Matrix) *mat.Dense {
 	r, c := A.Dims()
 	B := gnZeros(c, r)
 	B.Copy(A.T())
@@ -107,7 +106,7 @@ func gnT(A mat64.Matrix) *mat64.Dense {
 }
 
 //This is a temporal function. It returns the determinant of a 3x3 matrix. Panics if the matrix is not 3x3
-func det(A mat64.Matrix) float64 {
+func det(A mat.Matrix) float64 {
 	r, c := A.Dims()
 	if r != 3 || c != 3 {
 		panic("Determinants are for now only available for 3x3 matrices")
@@ -133,7 +132,7 @@ func gnMaybe(fn gnPanicker) error {
 			switch e := r.(type) {
 			case v3.Error:
 				err = e
-			case matrix.Error:
+			case mat.Error:
 				err = CError{fmt.Sprintf("goChem: Error in gonum function: %s", e), []string{"gnMaybe"}}
 			default:
 				panic(r)
@@ -145,11 +144,11 @@ func gnMaybe(fn gnPanicker) error {
 }
 
 //Puts A**exp on the receiver, in a pretty naive way.
-func pow(A mat64.Matrix, F *mat64.Dense, exp float64) {
+func pow(A mat.Matrix, F *mat.Dense, exp float64) {
 	ar, ac := A.Dims()
 	fr, fc := F.Dims()
 	if ar != fr || ac != fc {
-		panic(matrix.ErrShape)
+		panic(mat.ErrShape)
 	}
 	for i := 0; i < ar; i++ {
 		for j := 0; j < ac; j++ {

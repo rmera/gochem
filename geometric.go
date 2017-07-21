@@ -27,8 +27,7 @@ package chem
 
 import (
 	"fmt"
-	"github.com/gonum/matrix"
-	"github.com/gonum/matrix/mat64"
+	"gonum.org/v1/gonum/mat"
 	"github.com/rmera/gochem/v3"
 	"math"
 	"sort"
@@ -152,20 +151,20 @@ func RotatorTranslatorToSuper(test, templa *v3.Matrix) (*v3.Matrix, *v3.Matrix, 
 	Maux := v3.Zeros(r)
 	Maux.Mul(aux2, ctest)
 	Maux.Tr() //Dont understand why this is needed
-	svd := new(mat64.SVD)
-	if ok := svd.Factorize(v3.Matrix2Dense(Maux), matrix.SVDFull); !ok {
-		return nil, nil, nil, nil, errDecorate(fmt.Errorf("mat64.SVD failed"), "RotatorTranslatorToSuper")
+	svd := new(mat.SVD)
+	if ok := svd.Factorize(v3.Matrix2Dense(Maux), mat.SVDFull); !ok {
+		return nil, nil, nil, nil, errDecorate(fmt.Errorf("mat.SVD failed"), "RotatorTranslatorToSuper")
 	}
 
 	//matrix Maux dimensions must be 3x3
-	Ud := mat64.NewDense(3, 3, make([]float64, 9))
-	Vd := mat64.NewDense(3, 3, make([]float64, 9))
-	Ud.UFromSVD(svd)
-	Vd.VFromSVD(svd)
+	Ud := mat.NewDense(3, 3, make([]float64, 9))
+	Vd := mat.NewDense(3, 3, make([]float64, 9))
+	svd.UTo(Ud)
+	svd.VTo(Vd)
 	U := v3.Dense2Matrix(Ud) //These will panic if the matrices were not 3x3
 	V := v3.Dense2Matrix(Vd)
 	/***** OLD
-	factors := mat64.SVD(v3.Matrix2Dense(Maux), appzero, math.SmallestNonzeroFloat64, true, true)
+	factors := mat.SVD(v3.Matrix2Dense(Maux), appzero, math.SmallestNonzeroFloat64, true, true)
 	U := factors.U
 	V := factors.V
 	****/
@@ -371,34 +370,34 @@ func ones(size int) []float64 {
 
 //CenterOfMass returns the center of mass the atoms represented by the coordinates in geometry
 //and the masses in mass, and an error. If mass is nil, it calculates the geometric center
-func CenterOfMass(geometry *v3.Matrix, mass *mat64.Dense) (*v3.Matrix, error) {
+func CenterOfMass(geometry *v3.Matrix, mass *mat.Dense) (*v3.Matrix, error) {
 	if geometry == nil {
 		return nil, CError{"goChem: nil matrix to get the center of mass", []string{"CenterOfMass"}}
 	}
 	gr, _ := geometry.Dims()
 	if mass == nil { //just obtain the geometric center
 		tmp := ones(gr)
-		mass = mat64.NewDense(gr, 1, tmp) //gnOnes(gr, 1)
+		mass = mat.NewDense(gr, 1, tmp) //gnOnes(gr, 1)
 	}
 	tmp2 := ones(gr)
-	gnOnesvector := mat64.NewDense(1, gr, tmp2) //gnOnes(1, gr)
+	gnOnesvector := mat.NewDense(1, gr, tmp2) //gnOnes(1, gr)
 
 	ref := v3.Zeros(gr)
 	ref.ScaleByCol(geometry, mass)
 	ref2 := v3.Zeros(1)
 	ref2.Mul(gnOnesvector, ref)
-	ref2.Scale(1.0/mat64.Sum(mass), ref2)
+	ref2.Scale(1.0/mat.Sum(mass), ref2)
 	return ref2, nil
 }
 
 //MassCenter centers in in the center of mass of oref. Mass must be
 //A column vector. Returns the centered matrix and the displacement matrix.
-func MassCenter(in, oref *v3.Matrix, mass *mat64.Dense) (*v3.Matrix, *v3.Matrix, error) {
+func MassCenter(in, oref *v3.Matrix, mass *mat.Dense) (*v3.Matrix, *v3.Matrix, error) {
 	or, _ := oref.Dims()
 	ir, _ := in.Dims()
 	if mass == nil { //just obtain the geometric center
 		tmp := ones(or)
-		mass = mat64.NewDense(or, 1, tmp) //gnOnes(or, 1)
+		mass = mat.NewDense(or, 1, tmp) //gnOnes(or, 1)
 	}
 	ref := v3.Zeros(or)
 	ref.Copy(oref)
@@ -412,7 +411,7 @@ func MassCenter(in, oref *v3.Matrix, mass *mat64.Dense) (*v3.Matrix, *v3.Matrix,
 	if err := gnMaybe(gnPanicker(g)); err != nil {
 		return nil, nil, CError{err.Error(), []string{"v3.gOnesVector", "MassCenter"}}
 	}
-	ref2.Scale(1.0/mat64.Sum(mass), ref2)
+	ref2.Scale(1.0/mat.Sum(mass), ref2)
 	returned := v3.Zeros(ir)
 	returned.Copy(in)
 	returned.SubVec(returned, ref2)
@@ -430,11 +429,11 @@ func MassCenter(in, oref *v3.Matrix, mass *mat64.Dense) (*v3.Matrix, *v3.Matrix,
 func MomentTensor(A *v3.Matrix, massslice []float64) (*v3.Matrix, error) {
 	ar, ac := A.Dims()
 	var err error
-	var mass *mat64.Dense
+	var mass *mat.Dense
 	if massslice == nil {
 		mass = gnOnes(ar, 1)
 	} else {
-		mass = mat64.NewDense(ar, 1, massslice)
+		mass = mat.NewDense(ar, 1, massslice)
 		//		if err != nil {
 		//			return nil, err
 		//		}

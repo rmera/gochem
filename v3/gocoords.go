@@ -31,8 +31,7 @@ package v3
 
 import (
 	"fmt"
-	"github.com/gonum/matrix"
-	"github.com/gonum/matrix/mat64"
+	"gonum.org/v1/gonum/mat"
 	"math"
 	"strings"
 )
@@ -44,7 +43,7 @@ const appzero float64 = 0.000000000001 //used to correct floating point
 func Zeros(vecs int) *Matrix {
 	const cols int = 3
 	f := make([]float64, cols*vecs, cols*vecs)
-	return &Matrix{mat64.NewDense(vecs, cols, f)}
+	return &Matrix{mat.NewDense(vecs, cols, f)}
 }
 
 //METHODS
@@ -165,7 +164,7 @@ func (F *Matrix) SomeVecsSafe(A *Matrix, clist []int) error {
 			switch e := r.(type) {
 			case PanicMsg:
 				err = Error{fmt.Sprintf("%s: %s", ErrGonum, e), []string{"SomeVecsSafe"}, true}
-			case matrix.Error:
+			case mat.Error:
 				err = Error{fmt.Sprintf("%goChem/v3: gonum/matrix.Error: %s", e), []string{"SomeVecsSafe"}, true}
 			default:
 				panic(r)
@@ -252,7 +251,7 @@ func (F *Matrix) AddRow(A, row *Matrix) {
 
 //ScaleByCol scales each column of matrix A by Col, putting the result
 //in the received.
-func (F *Matrix) ScaleByCol(A, Col mat64.Matrix) {
+func (F *Matrix) ScaleByCol(A, Col mat.Matrix) {
 	ar, ac := A.Dims()
 	cr, cc := Col.Dims()
 	fr, fc := F.Dims()
