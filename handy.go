@@ -223,6 +223,8 @@ func isInString(container []string, test string) bool {
 	return false
 }
 
+
+
 //MakeWater Creates a water molecule at distance Angstroms from a2, in a direction that is angle radians from the axis defined by a1 and a2.
 //Notice that the exact position of the water is not well defined when angle is not zero. One can always use the RotateAbout
 //function to move the molecule to the desired location. If oxygen is true, the oxygen will be pointing to a2. Otherwise,
