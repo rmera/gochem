@@ -81,7 +81,7 @@ func (O *OrcaHandle) SetMOName(name string) {
 }
 
 //As per the "zero value" of structures in Go, the default for goChem will be to use Orca 4
-func (O *OrcaHandle) SetOrca3(b bool){
+func (O *OrcaHandle) SetOrca3(b bool) {
 	O.orca3 = b
 }
 
@@ -93,8 +93,8 @@ func (O *OrcaHandle) SetDefaults() {
 	O.defmethod = "BLYP"
 	O.defbasis = "def2-SVP"
 	O.defauxbasis = "def2/J"
-	if O.orca3{
-		O.defauxbasis="def2-SVP/J"
+	if O.orca3 {
+		O.defauxbasis = "def2-SVP/J"
 	}
 	O.command = os.ExpandEnv("${ORCA_PATH}/orca")
 	if O.command == "/orca" { //if ORCA_PATH was not defined
@@ -112,7 +112,7 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 	if atoms == nil || coords == nil {
 		return Error{ErrMissingCharges, Orca, O.inputname, "", []string{"BuildInput"}, true}
 	}
-	if (Q.Basis == "" && !strings.Contains(Q.Method,"3c")){
+	if Q.Basis == "" && !strings.Contains(Q.Method, "3c") {
 		log.Printf("no basis set assigned for ORCA calculation, will used the default %s, \n", O.defbasis) //NOTE: This could be changed for a non-critical error
 		Q.Basis = O.defbasis
 	}
@@ -128,9 +128,9 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 	if Q.RI && Q.RIJ {
 		return Error{"goChem/QM: RI and RIJ cannot be activated at the same time", Orca, O.inputname, "", []string{"BuildInput"}, true}
 	}
-	if Q.RI || Q.RIJ{
-		Q.auxBasis="def2/J" //Of course, this will only work with Karlsruhe basis.
-		if O.orca3{
+	if Q.RI || Q.RIJ {
+		Q.auxBasis = "def2/J" //Of course, this will only work with Karlsruhe basis.
+		if O.orca3 {
 			Q.auxBasis = Q.Basis + "/J"
 		}
 		//	if !strings.Contains(Q.Others," RI "){
@@ -233,11 +233,11 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 	}
 	cosmo := ""
 	if Q.Dielectric > 0 {
-		method:="cpcm"
-		if O.orca3{
-			method="cosmo"
+		method := "cpcm"
+		if O.orca3 {
+			method = "cosmo"
 		}
-		cosmo = fmt.Sprintf("%%%s epsilon %1.0f\n        refrac 1.30\n        end\n\n",method, Q.Dielectric)
+		cosmo = fmt.Sprintf("%%%s epsilon %1.0f\n        refrac 1.30\n        end\n\n", method, Q.Dielectric)
 	}
 	mem := ""
 	if Q.Memory != 0 {
@@ -272,7 +272,7 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 		return Error{ErrCantInput, Orca, O.inputname, err.Error(), []string{"fmt.Printf", "BuildInput"}, true}
 
 	}
-//	fmt.Println("Ta wena la wea... chupa la callampa, uh uh uuuh", moinp) ///////////////
+	//	fmt.Println("Ta wena la wea... chupa la callampa, uh uh uuuh", moinp) ///////////////
 	fmt.Fprint(file, HF3cAdditional)
 	fmt.Fprint(file, pal)
 	fmt.Fprint(file, moinp)
@@ -343,10 +343,10 @@ func (O *OrcaHandle) buildIConstraints(C []*IConstraint) (string, error) {
 		var temp string
 		var value string
 		//if UseVal is false, we don't add any value to the contraint. Orca will constraint the coordinate to its value in the starting structure.
-		if val.UseVal{
-			value=fmt.Sprintf("%2.3f",val.Val)
-		}else{
-			value=""
+		if val.UseVal {
+			value = fmt.Sprintf("%2.3f", val.Val)
+		} else {
+			value = ""
 		}
 		if val.Class == 'B' {
 			temp = fmt.Sprintf("         {B %d %d %s C}\n", val.CAtoms[0], val.CAtoms[1], value)

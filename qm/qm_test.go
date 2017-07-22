@@ -158,7 +158,7 @@ func TestTurbo(Te *testing.T) {
 	mol.SetCharge(0)
 	mol.SetMulti(1)
 	calc := new(Calc)
-	calc.CartesianOpt=true
+	calc.CartesianOpt = true
 	calc.SCFConvHelp = 1 //very demanding
 	calc.Memory = 1000
 	//Not advised
@@ -179,7 +179,7 @@ func TestTurbo(Te *testing.T) {
 	//if err = os.Chdir("./test"); err != nil {
 	//	Te.Error(err)
 	//}
-//	tm.SetDryRun(true) //I don't have TM installed.
+	//	tm.SetDryRun(true) //I don't have TM installed.
 	if err := tm.BuildInput(atoms, mol, calc); err != nil {
 		Te.Error(err)
 	}
@@ -311,8 +311,7 @@ func TestNWChem(Te *testing.T) {
 
 }
 
-
-func TestXtb (Te *testing.T) {
+func TestXtb(Te *testing.T) {
 	mol, err := chem.XYZFileRead("../test/ethanol.xyz")
 	if err != nil {
 		Te.Error(err)

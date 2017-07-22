@@ -35,11 +35,11 @@ import (
 /* Many funcitons here panic instead of returning errors. This is because they are "fundamental"
  * functions. I considered that if something goes wrong here, the program is way-most likely wrong and should
  * crash. Most panics are related to using the funciton on a nil object or trying to access out-of bounds
- * fields 
+ * fields
  */
 
 //Atom contains the atoms read except for the coordinates, which will be in a matrix
-//and the b-factors, which are in a separate slice of float64. 
+//and the b-factors, which are in a separate slice of float64.
 type Atom struct {
 	Name      string  //PDB name of the atom
 	ID        int     //The PDB index of the atom
@@ -326,20 +326,20 @@ func (M *Molecule) Del(i int) error {
 
 //Copy puts in the receiver a copy of the molecule  A including coordinates
 func (M *Molecule) Copy(A *Molecule) {
-//	println("COMO LAS WEEEEEiiiiiiiiiiiiiiiiEEEEEAS") ////////////////////////////////////////
+	//	println("COMO LAS WEEEEEiiiiiiiiiiiiiiiiEEEEEAS") ////////////////////////////////////////
 	if err := A.Corrupted(); err != nil {
 		panic(err.Error())
 	}
 	r, _ := A.Coords[0].Dims()
 	//mol := new(Molecule)
 	M.Topology = new(Topology)
-	for i:=0;i<A.Len();i++{
-		at:=new(Atom)
+	for i := 0; i < A.Len(); i++ {
+		at := new(Atom)
 		at.Copy(A.Atom(i))
-		M.Topology.Atoms=append(M.Topology.Atoms,at)
+		M.Topology.Atoms = append(M.Topology.Atoms, at)
 
 	}
-//	M.CopyAtoms(A)
+	//	M.CopyAtoms(A)
 	M.Coords = make([]*v3.Matrix, 0, len(A.Coords))
 	M.Bfactors = make([][]float64, 0, len(A.Bfactors))
 	for key, val := range A.Coords {

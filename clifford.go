@@ -263,8 +263,8 @@ func RotateP(Target, Res, axis, Rv, Rvrev, tmp1, tmp2, tmp3, tmp4, itmp1, itmp2,
 	if gorut > rows {
 		gorut = rows
 	}
-	fragmentlen := int(math.Ceil(float64(rows) / float64(gorut)))     //len of the fragment of target that each gorutine will handle
-//	println("fragmentlen", fragmentlen, rows, gorut, Target.String()) //////////
+	fragmentlen := int(math.Ceil(float64(rows) / float64(gorut))) //len of the fragment of target that each gorutine will handle
+	//	println("fragmentlen", fragmentlen, rows, gorut, Target.String()) //////////
 	for i := 0; i < gorut; i++ {
 		//These are the limits of the fragment of Target in which the gorutine will operate
 		ini := i * fragmentlen

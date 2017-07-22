@@ -27,30 +27,29 @@
 //In order to use this part of the library you need the xtb program, which must be obtained from Prof. Stefan Grimme's group.
 //Please cite the the xtb references if you used the program.
 
-
 /***Dedicated to the long life of the Ven. Khenpo Phuntzok Tenzin Rinpoche***/
 
 package qm
 
 import (
+	"bufio"
 	"fmt"
+	"github.com/rmera/gochem"
+	"github.com/rmera/gochem/v3"
 	"os"
 	"os/exec"
 	"runtime"
 	"strconv"
 	"strings"
-	"bufio"
-	"github.com/rmera/gochem"
-	"github.com/rmera/gochem/v3"
 )
 
 //Note that the default methods and basis vary with each program, and even
 //for a given program they are NOT considered part of the API, so they can always change.
 type XTBHandle struct {
-	command     string
-	inputname   string
-	nCPU        int
-	options		[]string
+	command   string
+	inputname string
+	nCPU      int
+	options   []string
 }
 
 func NewXTBHandle() *XTBHandle {
@@ -74,7 +73,6 @@ func (O *XTBHandle) SetCommand(name string) {
 	O.command = name
 }
 
-
 func (O *XTBHandle) SetDefaults() {
 	O.command = os.ExpandEnv("${XTBHOME}/xtb")
 	if O.command == "/xtb" { //if ORCA_PATH was not defined
@@ -85,50 +83,50 @@ func (O *XTBHandle) SetDefaults() {
 
 }
 
-//BuildInput builds an input for XTB. Right now it's very limited, only singlets are allowed and 
+//BuildInput builds an input for XTB. Right now it's very limited, only singlets are allowed and
 //only unconstrained optimizations and single-points.
 func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q *Calc) error {
-	
+
 	//Only error so far
 	if atoms == nil || coords == nil {
 		return Error{ErrMissingCharges, "XTB", O.inputname, "", []string{"BuildInput"}, true}
-		}
-		err:=chem.XYZFileWrite(O.inputname+".xyz",coords,atoms)
+	}
+	err := chem.XYZFileWrite(O.inputname+".xyz", coords, atoms)
 	if err != nil {
-    	return Error{ErrCantInput, "XTB", O.inputname, "", []string{"BuildInput"}, true}
+		return Error{ErrCantInput, "XTB", O.inputname, "", []string{"BuildInput"}, true}
 	}
 	//	mem := ""
 	if Q.Memory != 0 {
-	//Here we can adjust memory if needed
+		//Here we can adjust memory if needed
 	}
 	//Now lets write the thing
 	if O.inputname == "" {
 		O.inputname = "gochem"
 	}
-	O.options=make([]string,1,3)
-	O.options[0]=O.inputname+".xyz"
-	O.options=append(O.options,"-gfn")
+	O.options = make([]string, 1, 3)
+	O.options[0] = O.inputname + ".xyz"
+	O.options = append(O.options, "-gfn")
 	f, err := os.OpenFile(O.inputname+".xyz", os.O_APPEND|os.O_WRONLY, 0600)
 	if err != nil {
-    	return Error{ErrCantInput, "XTB", O.inputname, "", []string{"BuildInput"}, true}
+		return Error{ErrCantInput, "XTB", O.inputname, "", []string{"BuildInput"}, true}
 	}
 
-	if _, err = f.WriteString(fmt.Sprintf("$set\ncub_cal 1\nchrg %2d\n$end",atoms.Charge())); err != nil {
-    	return Error{ErrCantInput, "XTB", O.inputname, "", []string{"BuildInput"}, true} //it would be nice to differenciate this error from the previous.
+	if _, err = f.WriteString(fmt.Sprintf("$set\ncub_cal 1\nchrg %2d\n$end", atoms.Charge())); err != nil {
+		return Error{ErrCantInput, "XTB", O.inputname, "", []string{"BuildInput"}, true} //it would be nice to differenciate this error from the previous.
 	}
 
 	f.Close() //Won't use defer, as we need this file written and saved before this function exits.
 	jc := jobChoose{}
 	jc.opti = func() {
-		O.options=append(O.options,"-opt")
+		O.options = append(O.options, "-opt")
 	}
 	jc.sp = func() {
-		O.options=append(O.options,"-sp")
+		O.options = append(O.options, "-sp")
 	}
 
 	Q.Job.Do(jc)
 	if Q.Dielectric > 0 {
-		O.options=append(O.options,"-gbsa h2o") //Only water supported for now
+		O.options = append(O.options, "-gbsa h2o") //Only water supported for now
 	}
 
 	return nil
@@ -170,18 +168,15 @@ func (O *XTBHandle) Run(wait bool) (err error) {
 //Reads the latest geometry from an XTB optimization. It doesn't actually need the chem.Atomer
 //but requires it so XTBHandle fits with the QM interface.
 func (O *XTBHandle) OptimizedGeometry(atoms chem.Atomer) (*v3.Matrix, error) {
-	if !O.normalTermination(){
+	if !O.normalTermination() {
 		return nil, Error{ErrNoGeometry, XTB, O.inputname, "Calculation didn't end normally", []string{"OptimizedGeometry"}, true}
 	}
-	mol,err:=chem.XYZFileRead("xtbopt.coord") //Trying to run several calculations in parallel in the same directory will fail as the output has always the same name.
-	if err!=nil{
-		return  nil, Error{ErrNoGeometry, XTB, O.inputname, "", []string{"OptimizedGeometry"}, true}
+	mol, err := chem.XYZFileRead("xtbopt.coord") //Trying to run several calculations in parallel in the same directory will fail as the output has always the same name.
+	if err != nil {
+		return nil, Error{ErrNoGeometry, XTB, O.inputname, "", []string{"OptimizedGeometry"}, true}
 	}
 	return mol.Coords[0], nil
 }
-
-
-
 
 //This checks that an xtb calculation has terminated normally
 //I know this duplicates code, I wrote this one first and then the other one.
@@ -222,11 +217,6 @@ func (O *XTBHandle) normalTermination() bool {
 	return false
 }
 
-
-
-
-
-
 //Gets the energy of a previous XTB calculations.
 //Returns error if problem, and also if the energy returned that is product of an
 //abnormally-terminated ORCA calculation. (in this case error is "Probable problem
@@ -243,26 +233,23 @@ func (O *XTBHandle) Energy() (float64, error) {
 	err = Error{ErrNoEnergy, XTB, O.inputname, "", []string{"Energy"}, true}
 	var line string
 	line, err = out.ReadString('\n')
-		if err != nil {
-			return 0, Error{ErrNoEnergy, XTB, O.inputname, err.Error(), []string{"os.file.ReadString", "Energy"}, true}
-		}
+	if err != nil {
+		return 0, Error{ErrNoEnergy, XTB, O.inputname, err.Error(), []string{"os.file.ReadString", "Energy"}, true}
+	}
 	line, err = out.ReadString('\n')
-		if err != nil {
-			return 0, Error{ErrNoEnergy, XTB, O.inputname, err.Error(), []string{"os.file.ReadString", "Energy"}, true}
-		}
+	if err != nil {
+		return 0, Error{ErrNoEnergy, XTB, O.inputname, err.Error(), []string{"os.file.ReadString", "Energy"}, true}
+	}
 	split := strings.Fields(line)
 	if len(split) < 4 {
 		err = Error{ErrNoEnergy, Mopac, O.inputname, "", []string{"Energy"}, true}
-			return 0, Error{ErrNoEnergy, XTB, O.inputname, err.Error(), []string{"Energy"}, true}
+		return 0, Error{ErrNoEnergy, XTB, O.inputname, err.Error(), []string{"Energy"}, true}
 
-		}
+	}
 	energy, err = strconv.ParseFloat(split[1], 64)
 	if err != nil {
 		return 0, Error{ErrNoEnergy, XTB, O.inputname, err.Error(), []string{"strconv.ParseFloat", "Energy"}, true}
 	}
 
-
-
 	return energy * chem.H2Kcal, err //dummy thin
 }
-

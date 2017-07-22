@@ -367,9 +367,9 @@ func RamaList(M chem.Atomer, chains string, resran []int) ([]RamaSet, error) {
 	chainprev := "NOTAVALIDCHAIN" //any non-valid chain name
 	for num := 0; num < M.Len(); num++ {
 		at := M.Atom(num)
-		//First get the indexes we need. Change: If you give RamaList an empty string for "chains", it will 
+		//First get the indexes we need. Change: If you give RamaList an empty string for "chains", it will
 		//include all chains in the chem.Atomer.
-		if strings.Contains(chains, string(at.Chain)) || at.Chain == " " || chains=="" {
+		if strings.Contains(chains, string(at.Chain)) || at.Chain == " " || chains == "" {
 			if at.Chain != chainprev {
 				chainprev = at.Chain
 				C = -1

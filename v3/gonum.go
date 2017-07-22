@@ -97,10 +97,9 @@ func (F *Matrix) Col(dst []float64, i int) []float64 {
 func (F *Matrix) ColSlice(i int) *Matrix {
 	//	r := new(mat64.Dense)
 	Fr, _ := F.Dims()
-	r := F.Dense.Slice(0, Fr,i, i+1).(*mat.Dense)
+	r := F.Dense.Slice(0, Fr, i, i+1).(*mat.Dense)
 	return &Matrix{r}
 }
-
 
 //Puts a view of the given col of the matrix on the receiver.
 //This function is for compatibility with the gonum v1 API
@@ -109,51 +108,48 @@ func (F *Matrix) ColSlice(i int) *Matrix {
 func (F *Matrix) ColView(i int) *Matrix {
 	//	r := new(mat64.Dense)
 	Fr, _ := F.Dims()
-	r := F.Dense.Slice(0, Fr,i, i+1).(*mat.Dense)
+	r := F.Dense.Slice(0, Fr, i, i+1).(*mat.Dense)
 	return &Matrix{r}
 }
-
 
 //Returns view of the given vector of the matrix in the receiver
 func (F *Matrix) VecView(i int) *Matrix {
 	//r := new(mat64.Dense)
-/*	mr,mc:=F.Caps() /////////////////////////
-	j:=0
-	k:=1+i
-	l:=3
-	println("ESTAMOS EN LA BEEE")
-	if i < 0{
-		println(1)
-	}else if mr <= i{
-		println(2)
-	} else if j < 0{
-		println(3)
-	} else if mc <= j{
-		println(4)
-	} else if  k <= i{
-		println(5,k,i)
-	} else if mr < k {
-		println(6)
-	} else if l <= j {
-		println(7)
-	}else if mc < l {
-		println(8)
-	}
-	println("nooo",i,mr,mc)////////////
-*/
-	r := F.Dense.Slice(i,i+1,0,3).(*mat.Dense)
+	/*	mr,mc:=F.Caps() /////////////////////////
+		j:=0
+		k:=1+i
+		l:=3
+		println("ESTAMOS EN LA BEEE")
+		if i < 0{
+			println(1)
+		}else if mr <= i{
+			println(2)
+		} else if j < 0{
+			println(3)
+		} else if mc <= j{
+			println(4)
+		} else if  k <= i{
+			println(5,k,i)
+		} else if mr < k {
+			println(6)
+		} else if l <= j {
+			println(7)
+		}else if mc < l {
+			println(8)
+		}
+		println("nooo",i,mr,mc)////////////
+	*/
+	r := F.Dense.Slice(i, i+1, 0, 3).(*mat.Dense)
 	return &Matrix{r}
 }
-
 
 //VecSlice slice of the given vector of the matrix in the receiver
 //This function is to keep compatibility with the new gonum v1 API
 func (F *Matrix) VecSlice(i int) *Matrix {
 	//r := new(mat64.Dense)
-	r := F.Dense.Slice(i,i+1,0,3).(*mat.Dense)
+	r := F.Dense.Slice(i, i+1, 0, 3).(*mat.Dense)
 	return &Matrix{r}
 }
-
 
 //View returns a view of F starting from i,j and spanning r rows and
 //c columns. Changes in the view are reflected in F and vice-versa
@@ -161,20 +157,17 @@ func (F *Matrix) VecSlice(i int) *Matrix {
 //But the right signatur was not possible to implement. Notice that very little
 //memory allocation happens, only a couple of ints and pointers.
 func (F *Matrix) View(i, j, r, c int) *Matrix {
-	ret := F.Dense.Slice(i, i+r,j, j+c).(*mat.Dense)
+	ret := F.Dense.Slice(i, i+r, j, j+c).(*mat.Dense)
 	return &Matrix{ret}
 }
-
 
 //Slice returns a view of F starting from i,j and spanning r rows and
 //c columns. Changes in the view are reflected in F and vice-versa
 //This function is to keep compatibility with the gonum v1 API.
-func (F *Matrix) Slice(i,r,j, c int) *Matrix {
-	ret := F.Dense.Slice(i ,r,j, c).(*mat.Dense)
+func (F *Matrix) Slice(i, r, j, c int) *Matrix {
+	ret := F.Dense.Slice(i, r, j, c).(*mat.Dense)
 	return &Matrix{ret}
 }
-
-
 
 func (F *Matrix) Sub(A, B *Matrix) {
 	F.Dense.Sub(A.Dense, B.Dense)
@@ -347,7 +340,7 @@ func EigenWrap(in *Matrix, epsilon float64) (*Matrix, []float64, error) {
 		epsilon = appzero
 	}
 	eigen := new(mat.Eigen)
-	eigen.Factorize(mat.DenseCopyOf(in.Dense),false,true)
+	eigen.Factorize(mat.DenseCopyOf(in.Dense), false, true)
 	evals_cmp := make([]complex128, 3) //We only deal with 3-column matrixes in this package
 	evals_cmp = eigen.Values(evals_cmp)
 	evecsprev := &Matrix{eigen.Vectors()}
@@ -372,9 +365,9 @@ func EigenWrap(in *Matrix, epsilon float64) (*Matrix, []float64, error) {
 	for i := 0; i < eigrows; i++ {
 		//vectori := eig.evecs.VecView(i)
 		for j := i + 1; j < eigrows; j++ {
-		//	vectorj := eig.evecs.VecView(j)
+			//	vectorj := eig.evecs.VecView(j)
 			if math.Abs(mat.Dot(eig.evecs.Dense.RowView(i), eig.evecs.Dense.RowView(j))) > epsilon && i != j {
-				reterr := Error{fmt.Sprintln("Eigenvectors ", i, "and", j, " not orthogonal. v", i, ":", eig.evecs.Dense.RowView(i), "\nv", j, ":", eig.evecs.Dense.RowView(j), "\nDot:", math.Abs(mat.Dot(eig.evecs.Dense.RowView(i),eig.evecs.Dense.RowView(i))), "eigmatrix:", eig.evecs), []string{"EigenWrap"}, true}
+				reterr := Error{fmt.Sprintln("Eigenvectors ", i, "and", j, " not orthogonal. v", i, ":", eig.evecs.Dense.RowView(i), "\nv", j, ":", eig.evecs.Dense.RowView(j), "\nDot:", math.Abs(mat.Dot(eig.evecs.Dense.RowView(i), eig.evecs.Dense.RowView(i))), "eigmatrix:", eig.evecs), []string{"EigenWrap"}, true}
 				return eig.evecs, evals[:], reterr
 			}
 		}

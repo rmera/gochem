@@ -25,8 +25,8 @@ package chem
 
 import (
 	"fmt"
-	"gonum.org/v1/gonum/mat"
 	"github.com/rmera/gochem/v3"
+	"gonum.org/v1/gonum/mat"
 	"os"
 	"runtime"
 	"testing"

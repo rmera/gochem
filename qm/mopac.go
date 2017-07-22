@@ -258,7 +258,7 @@ func (O *MopacHandle) OptimizedGeometry(atoms chem.Atomer) (*v3.Matrix, error) {
 			continue
 		}
 
-		if !reading && (strings.Contains(line, "FINAL  POINT  AND  DERIVATIVES") || strings.Contains(line, "GEOMETRY OPTIMISED")) || strings.Contains(line, "GRADIENTS WERE INITIALLY ACCEPTABLY SMALL") || strings.Contains(line,"HERBERTS TEST WAS SATISFIED IN BFGS") {
+		if !reading && (strings.Contains(line, "FINAL  POINT  AND  DERIVATIVES") || strings.Contains(line, "GEOMETRY OPTIMISED")) || strings.Contains(line, "GRADIENTS WERE INITIALLY ACCEPTABLY SMALL") || strings.Contains(line, "HERBERTS TEST WAS SATISFIED IN BFGS") {
 			final_point = true
 			continue
 		}

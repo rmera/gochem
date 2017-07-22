@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"math"
 
-	"gonum.org/v1/gonum/mat"
 	"github.com/rmera/gochem/v3"
+	"gonum.org/v1/gonum/mat"
 )
 
 const appzero float64 = 0.000000000001 //used to correct floating point
