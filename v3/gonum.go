@@ -97,7 +97,7 @@ func (F *Matrix) Col(dst []float64, i int) []float64 {
 func (F *Matrix) ColSlice(i int) *Matrix {
 	//	r := new(mat64.Dense)
 	Fr, _ := F.Dims()
-	r := F.Dense.Slice(0, i, Fr, 1).(*mat.Dense)
+	r := F.Dense.Slice(0, Fr,i, i+1).(*mat.Dense)
 	return &Matrix{r}
 }
 
@@ -109,7 +109,7 @@ func (F *Matrix) ColSlice(i int) *Matrix {
 func (F *Matrix) ColView(i int) *Matrix {
 	//	r := new(mat64.Dense)
 	Fr, _ := F.Dims()
-	r := F.Dense.Slice(0, i, Fr, 1).(*mat.Dense)
+	r := F.Dense.Slice(0, Fr,i, i+1).(*mat.Dense)
 	return &Matrix{r}
 }
 
@@ -117,7 +117,31 @@ func (F *Matrix) ColView(i int) *Matrix {
 //Returns view of the given vector of the matrix in the receiver
 func (F *Matrix) VecView(i int) *Matrix {
 	//r := new(mat64.Dense)
-	r := F.Dense.Slice(i, 0, 1, 3).(*mat.Dense)
+/*	mr,mc:=F.Caps() /////////////////////////
+	j:=0
+	k:=1+i
+	l:=3
+	println("ESTAMOS EN LA BEEE")
+	if i < 0{
+		println(1)
+	}else if mr <= i{
+		println(2)
+	} else if j < 0{
+		println(3)
+	} else if mc <= j{
+		println(4)
+	} else if  k <= i{
+		println(5,k,i)
+	} else if mr < k {
+		println(6)
+	} else if l <= j {
+		println(7)
+	}else if mc < l {
+		println(8)
+	}
+	println("nooo",i,mr,mc)////////////
+*/
+	r := F.Dense.Slice(i,i+1,0,3).(*mat.Dense)
 	return &Matrix{r}
 }
 
@@ -126,9 +150,10 @@ func (F *Matrix) VecView(i int) *Matrix {
 //This function is to keep compatibility with the new gonum v1 API
 func (F *Matrix) VecSlice(i int) *Matrix {
 	//r := new(mat64.Dense)
-	r := F.Dense.Slice(i, 0, 1, 3).(*mat.Dense)
+	r := F.Dense.Slice(i,i+1,0,3).(*mat.Dense)
 	return &Matrix{r}
 }
+
 
 //View returns a view of F starting from i,j and spanning r rows and
 //c columns. Changes in the view are reflected in F and vice-versa
@@ -136,7 +161,7 @@ func (F *Matrix) VecSlice(i int) *Matrix {
 //But the right signatur was not possible to implement. Notice that very little
 //memory allocation happens, only a couple of ints and pointers.
 func (F *Matrix) View(i, j, r, c int) *Matrix {
-	ret := F.Dense.Slice(i, j, r, c).(*mat.Dense)
+	ret := F.Dense.Slice(i, i+r,j, j+c).(*mat.Dense)
 	return &Matrix{ret}
 }
 
@@ -144,8 +169,8 @@ func (F *Matrix) View(i, j, r, c int) *Matrix {
 //Slice returns a view of F starting from i,j and spanning r rows and
 //c columns. Changes in the view are reflected in F and vice-versa
 //This function is to keep compatibility with the gonum v1 API.
-func (F *Matrix) Slice(i, j, r, c int) *Matrix {
-	ret := F.Dense.Slice(i, j, r, c).(*mat.Dense)
+func (F *Matrix) Slice(i,r,j, c int) *Matrix {
+	ret := F.Dense.Slice(i ,r,j, c).(*mat.Dense)
 	return &Matrix{ret}
 }
 

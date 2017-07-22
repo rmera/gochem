@@ -143,7 +143,7 @@ func TestQM(Te *testing.T) {
 //TestTurbo tests the QM functionality. It prepares input for Turbomole
 //Notice that 2 TM inputs cannot be in the same directory. Notice that TMHandle
 //supports ECPs
-func TTestTurbo(Te *testing.T) {
+func TestTurbo(Te *testing.T) {
 	fmt.Println("Turbomole TEST y wea!")
 	mol, err := chem.XYZFileRead("../test/ethanol.xyz")
 	original_dir, _ := os.Getwd() //will check in a few lines

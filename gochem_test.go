@@ -50,6 +50,7 @@ func TestPDBIO(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
+	fmt.Println("NO WEI")
 	err = PDBFileWrite("test/2c9vIO.pdb", mol.Coords[0], mol, mol.Bfactors[0])
 	if err != nil {
 		Te.Error(err)

@@ -1,8 +1,4 @@
 Tested with Go 1.6 and commits: 
 
-gonum/matrix: 784069fb9eae0aff04760ad37d1ee9d09bbb3eee
-gonum/blas:  ef9fc7107e46bc76204dcdc2797d43870fd7d5a5    
-gonum/floats: 88964e2b7541fa77b600cec8777d00167489e941    
-gonum/internal:  0d49b62ff2d34fb6d0a6933b0addf86b96167a25
-gonum/lapack:  66ce2254fc0593cdd922015c46aa8064e5e2f650
+gonum.org/v1/gonum: 185d1d1b997adf3e7e6396be27287b2737450ed8
 

@@ -360,11 +360,12 @@ func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q 
 	defstring = defstring + "*\n"
 	log.Println(defstring)
 
-	if O.dryrun {
+
 		//set the frozen atoms (only cartesian constraints are supported)
 		if err := O.addFrozen(Q.CConstraints); err != nil {
 			return errDecorate(err, "BuildInput")
 		}
+	if O.dryrun {
 		return nil
 	}
 	def := exec.Command("define")
@@ -403,8 +404,10 @@ func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q 
 
 	//Finally the cosmo business.
 	err = O.addCosmo(Q.Dielectric)
-	return errDecorate(err, "BuildInput")
-	//	return nil
+	if err!=nil{
+		return errDecorate(err, "BuildInput")
+	}
+	return nil
 }
 
 var tMMethods = map[string]string{

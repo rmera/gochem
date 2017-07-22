@@ -27,10 +27,11 @@ package chem
 
 import "testing"
 import "fmt"
+import  "github.com/rmera/gochem/v3"
 
 func TestGeo(Te *testing.T) {
 	a := []float64{1.0, 2.0, 3, 4, 5, 6, 7, 8, 9}
-	A := NewMatrix(a)
+	A,_ := v3.NewMatrix(a)
 	ar, ac := A.Dims()
 	T := v3.Zeros(ar)
 	T.T(A)
