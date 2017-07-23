@@ -165,7 +165,7 @@ func (F *Matrix) SomeVecsSafe(A *Matrix, clist []int) error {
 			case PanicMsg:
 				err = Error{fmt.Sprintf("%s: %s", ErrGonum, e), []string{"SomeVecsSafe"}, true}
 			case mat.Error:
-				err = Error{fmt.Sprintf("%goChem/v3: gonum/matrix.Error: %s", e), []string{"SomeVecsSafe"}, true}
+				err = Error{fmt.Sprintf("%%goChem/v3: gonum/matrix.Error: %s", e), []string{"SomeVecsSafe"}, true}
 			default:
 				panic(r)
 			}

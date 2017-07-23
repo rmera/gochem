@@ -259,7 +259,7 @@ func pdbBufIORead(pdb *bufio.Reader, read_additional bool) (*Molecule, error) {
 		if err != nil {
 			//fmt.Println("PDB reading complete") /***change this to stderr************/
 			break
-			contlines++ //count all the lines even if empty.
+			//	contlines++ //count all the lines even if empty. This is unreachable but I'm not sure at this point if it's better this way! goChem does read PDBs correctly as far as I can see.
 		}
 		if len(line) < 4 {
 			continue

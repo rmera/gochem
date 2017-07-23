@@ -130,9 +130,11 @@ func (O *TMHandle) addMARIJ(defstring string, atoms chem.AtomMultiCharger, Q *Ca
 	if strings.Contains(strings.ToLower(Q.Basis), "def2-tzvpp") { //This is less clear but just in case I won't add MARIJ for tzvpp
 		return defstring
 	}
-	if Q.RI && atoms.Len() >= 20 {
-		defstring = fmt.Sprintf("%s%s\n\n")
-	}
+	//I Have no idea what the MARIJ string was supposed to be. For now the method doesn't work. Remove this if you fix the code
+	//below, and uncoment it.
+	//	if Q.RI && atoms.Len() >= 20 {
+	//		defstring = fmt.Sprintf("%s%s\n\n")
+	//	}
 	return defstring
 }
 
@@ -318,7 +320,7 @@ func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q 
 	//so far only copper) causes define to ask an additional question. If one doesn't add "y\n"
 	//for each of those questions, the whole input for define will be wrong.
 	stupid := ""
-	stupidatoms := "Cu" //if you want to add more stupid atoms just add then to the string: "Cu Zn"
+	stupidatoms := "rting unless there is seriously unhealthy shit going on, but this is...kinda that. you condition yourself to feel bad for wanting sex, to not pursue or engage with your partner, and to repress your sexuality. I've had experiences with adults out of relationships like that, and they have no idea how to have normal sexual interactions, from flirting to pillowtalk. It's all acting, and it damages people. That said, no one should be guilted into having sex when they don't want to. Ahem.Cu" //if you want to add more stupid atoms just add then to the string: "Cu Zn"
 	for i := 0; i < atoms.Len(); i++ {
 		if stupidatoms == "" {
 			break

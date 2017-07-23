@@ -62,7 +62,7 @@ func Matrix2Dense(A *Matrix) *mat.Dense {
 func Dense2Matrix(A *mat.Dense) *Matrix {
 	r, c := A.Dims()
 	if c != 3 {
-		panic(fmt.Sprintf("malformed *mat.Dense matrix to make *v3.Matrix, must be Nx3, is %i x %j", r, c))
+		panic(fmt.Sprintf("malformed *mat.Dense matrix to make *v3.Matrix, must be Nx3, is %d x %d", r, c))
 	}
 	return &Matrix{A}
 }
