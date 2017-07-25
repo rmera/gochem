@@ -31,9 +31,10 @@ import (
 	"math"
 	"strings"
 
-	"code.google.com/p/plotinum/plot"
-	"code.google.com/p/plotinum/plotter"
-	"code.google.com/p/plotinum/vg"
+	"github.com/gonum/plot"
+	"github.com/gonum/plot/plotter"
+	"github.com/gonum/plot/vg"
+	"github.com/gonum/plot/vg/draw"
 	"github.com/rmera/gochem"
 	"github.com/rmera/gochem/v3"
 )
@@ -76,7 +77,7 @@ func basicRamaPlot(title string) (*plot.Plot, error) {
 	if err != nil {
 		return nil, err
 	}
-	p.Title.Padding = vg.Millimeters(3)
+	p.Title.Padding = vg.Millimeter * 3
 	p.Title.Text = title //"Ramachandran plot"
 	p.X.Label.Text = "Phi"
 	p.Y.Label.Text = "Psi"
@@ -263,9 +264,11 @@ func RamaPlot(data [][]float64, tag []int, title, plotname string) error {
 		}
 		r, g, b := colors(key, len(data))
 		if tag != nil && isInInt(tag, key) {
+			//We don't check the error here. We will just get a default glyph.
 			s.GlyphStyle.Shape, err = getShape(tagged)
 			tagged++
 		}
+	//	fmt.Println("colors rgb", r,g,b)
 		s.GlyphStyle.Color = color.RGBA{R: r, B: b, G: g, A: 255}
 		//		fmt.Println(r,b,g, key, norm, len(data)) //////////////////////////
 		// Add the plotter
@@ -274,24 +277,24 @@ func RamaPlot(data [][]float64, tag []int, title, plotname string) error {
 	// Save the plot to a PNG file.
 	filename := fmt.Sprintf("%s.png", plotname)
 	//here I  intentionally shadow err.
-	if err := p.Save(4, 4, filename); err != nil {
+	if err := p.Save(4*vg.Inch, 4*vg.Inch, filename); err != nil {
 		return Error{err.Error(), "", "RamaPlot", "", true}
 	}
 	return err
 }
 
-func getShape(tagged int) (plot.GlyphDrawer, error) {
+func getShape(tagged int) (draw.GlyphDrawer, error) {
 	switch tagged {
 	case 0:
-		return plot.PyramidGlyph{}, nil
+		return draw.PyramidGlyph{}, nil
 	case 1:
-		return plot.CircleGlyph{}, nil
+		return draw.CircleGlyph{}, nil
 	case 2:
-		return plot.SquareGlyph{}, nil
+		return draw.SquareGlyph{}, nil
 	case 3:
-		return plot.CrossGlyph{}, nil
+		return draw.CrossGlyph{}, nil
 	default:
-		return plot.RingGlyph{}, Error{ErrTooManyTags, "", "getShape", "", false} // you can still ignore the error and will get just the regular glyph (your residue will not be tagegd)
+		return draw.RingGlyph{}, Error{ErrTooManyTags, "", "getShape", "", false} // you can still ignore the error and will get just the regular glyph (your residue will not be tagegd)
 	}
 }
 

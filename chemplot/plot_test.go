@@ -42,7 +42,7 @@ func TestRama(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
-	ramalist2, index := RamaResidueFilter(ramalist, []string{"HIS", "GLY"}, true)
+	ramalist2, index := RamaResidueFilter(ramalist, []string{"HIS", "GLY","ALA","VAL","LYS","CYS"}, true)
 	rama, err := RamaCalc(mol.Coords[0], ramalist2)
 	if err != nil {
 		Te.Error(err)

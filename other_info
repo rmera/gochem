@@ -2,3 +2,4 @@ Tested with Go 1.6 and commits:
 
 gonum.org/v1/gonum: 185d1d1b997adf3e7e6396be27287b2737450ed8
 
+github.com/gonum/plot: 6b3a4163cf1c36ba3b99b3e6c16901f9ad926029
