@@ -295,7 +295,7 @@ func TestReduce(Te *testing.T) {
 
 //Here PDBRead and PDBWrite are tested
 func TestSuper(Te *testing.T) {
-	backbone := []string{"CA","C", "N"} //The PDB name of the atoms in the backbone.
+	backbone := []string{"CA", "C", "N"} //The PDB name of the atoms in the backbone.
 	myhandle, _ := os.Open("test/2c9v.pdb")
 	mol1, err := PDBRead(myhandle, true) //true means that we try to read the symbol from the PDB file.
 	mol2, err2 := PDBFileRead("test/1uxm.pdb", true)
@@ -309,15 +309,15 @@ func TestSuper(Te *testing.T) {
 		for atomindex, atom := range mol.Atoms {
 			if isInString(backbone, atom.Name) && atom.Chain == "A" {
 				superlist[molnumber] = append(superlist[molnumber], atomindex)
-			//	fmt.Println(atom)
+				//	fmt.Println(atom)
 			}
 		}
 	}
 	fmt.Println("superlists!!", len(superlist[0]), len(superlist[1]))
 	mol1.Coords[0], err = Super(mol1.Coords[0], mol2.Coords[0], superlist[0], superlist[1])
-	rmsd1,_:=  rMSD(mol1.Coords[0], mol2.Coords[0], superlist[0], superlist[1])
-	rmsd2,_:=RMSD(mol1.Coords[0], mol2.Coords[0], superlist[0], superlist[1])
-	fmt.Println("RMSDs for proteins!",  rmsd2,rmsd1)
+	rmsd1, _ := rMSD(mol1.Coords[0], mol2.Coords[0], superlist[0], superlist[1])
+	rmsd2, _ := RMSD(mol1.Coords[0], mol2.Coords[0], superlist[0], superlist[1])
+	fmt.Println("RMSDs for proteins!", rmsd2, rmsd1)
 	fmt.Println("Atoms superimposed:", len(superlist[0]))
 	if err != nil {
 		panic(err.Error())
@@ -329,14 +329,13 @@ func TestSuper(Te *testing.T) {
 	ptest, _ := XYZFileRead("test/Rotated.xyz")
 	ptempla, _ := XYZFileRead("test/sample_plane.xyz")
 	newp, err := Super(ptest.Coords[0], ptempla.Coords[0], nil, nil)
-	rmsd2,_=RMSD(newp, ptempla.Coords[0], nil, nil)
-	rmsd1,_=rMSD(newp, ptempla.Coords[0], nil, nil)
-	fmt.Println("RMSD mol (should be 0):", rmsd1,rmsd2)
+	rmsd2, _ = RMSD(newp, ptempla.Coords[0], nil, nil)
+	rmsd1, _ = rMSD(newp, ptempla.Coords[0], nil, nil)
+	fmt.Println("RMSD mol (should be 0):", rmsd1, rmsd2)
 	if err != nil {
 		panic(err.Error())
 	}
 	XYZFileWrite("test/SuperPlane.xyz", newp, ptest)
-
 
 }
 

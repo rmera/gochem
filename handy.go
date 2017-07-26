@@ -85,9 +85,6 @@ func OnesMass(lenght int) *v3.Matrix {
 	return v3.Dense2Matrix(gnOnes(lenght, 1))
 }
 
-
-
-
 //Super determines the best rotation and translations to superimpose the coords in test
 //listed in testlst on te atoms of molecule templa, frame frametempla, listed in templalst.
 //It applies those rotation and translations to the whole frame frametest of molecule test, in palce.

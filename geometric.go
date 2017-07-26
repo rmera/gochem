@@ -223,54 +223,51 @@ func rmsd_fail(test, template *matrix.DenseMatrix) (float64, error) {
 */
 
 //RMSD calculates the RMSD between test and template, considering only the atoms
-//present in the testlst and templalst for each object, respectively. 
-//It does not superimpose the objects. 
+//present in the testlst and templalst for each object, respectively.
+//It does not superimpose the objects.
 func RMSD(test, templa *v3.Matrix, testlst, templalst []int) (float64, error) {
 	var L int
-	if testlst==nil || len(testlst)==0{
-		L=test.NVecs()
-	}else{
-		L=len(testlst)
+	if testlst == nil || len(testlst) == 0 {
+		L = test.NVecs()
+	} else {
+		L = len(testlst)
 	}
-	tmp:=v3.Zeros(L)
+	tmp := v3.Zeros(L)
 	//We don't test anything in-house. All the testing in done by MemRMSD
-	rmsd,err:=MemRMSD(test,templa,tmp,testlst,templalst)
+	rmsd, err := MemRMSD(test, templa, tmp, testlst, templalst)
 	return rmsd, err
 }
 
-
-
 //mRMSD calculates the RMSD between test and template, considering only the atoms
-//present in the testlst and templalst for each object, respectively. 
-//It does not superimpose the objects. 
+//present in the testlst and templalst for each object, respectively.
+//It does not superimpose the objects.
 //To save memory, it asks for the temporary matrix it needs to be supplied:
 //tmp must be Nx3 where N is the number
 //of elements in testlst and templalst
-func MemRMSD(test, template,tmp *v3.Matrix, testlst, templalst []int) (float64, error) {
+func MemRMSD(test, template, tmp *v3.Matrix, testlst, templalst []int) (float64, error) {
 	lists := [][]int{testlst, templalst}
 	var ctest *v3.Matrix
 	var ctempla *v3.Matrix
-	if testlst==nil || len(testlst)==0{
-		ctest=test
-	}else{
+	if testlst == nil || len(testlst) == 0 {
+		ctest = test
+	} else {
 		ctest = v3.Zeros(len(lists[0]))
 		ctest.SomeVecs(test, lists[0])
 	}
-	if templalst==nil || len(templalst)==0{
-		ctempla=template
-	}else{
+	if templalst == nil || len(templalst) == 0 {
+		ctempla = template
+	} else {
 		ctempla = v3.Zeros(len(lists[1]))
 		ctempla.SomeVecs(template, lists[1])
 	}
-	if ctest.NVecs()!=ctempla.NVecs() || tmp.NVecs()!=ctest.NVecs(){
+	if ctest.NVecs() != ctempla.NVecs() || tmp.NVecs() != ctest.NVecs() {
 		return -1, fmt.Errorf("memRMSD: Ill formed matrices for memRMSD calculation")
 	}
-	tmp.Sub(ctest,ctempla)
-	rmsd:=tmp.Norm(2)
-	return rmsd/math.Sqrt(float64(ctest.NVecs())), nil
+	tmp.Sub(ctest, ctempla)
+	rmsd := tmp.Norm(2)
+	return rmsd / math.Sqrt(float64(ctest.NVecs())), nil
 
 }
-
 
 //RMSD returns the RSMD (root of the mean square deviation) for the sets of cartesian
 //coordinates in test and template, only considering the template and test atoms in
@@ -280,15 +277,15 @@ func rMSD(test, template *v3.Matrix, testlst, templalst []int) (float64, error) 
 	lists := [][]int{testlst, templalst}
 	var ctest *v3.Matrix
 	var ctempla *v3.Matrix
-	if testlst==nil || len(testlst)==0{
-		ctest=test
-	}else{
+	if testlst == nil || len(testlst) == 0 {
+		ctest = test
+	} else {
 		ctest = v3.Zeros(len(lists[0]))
 		ctest.SomeVecs(test, lists[0])
 	}
-	if templalst==nil || len(templalst)==0{
-		ctempla=template
-	}else{
+	if templalst == nil || len(templalst) == 0 {
+		ctempla = template
+	} else {
 		ctempla = v3.Zeros(len(lists[1]))
 		ctempla.SomeVecs(template, lists[1])
 	}
