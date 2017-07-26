@@ -29,6 +29,7 @@
 package chem
 
 import "fmt"
+import "math"
 import "github.com/rmera/gochem/v3"
 
 //Molecules2Atoms gets a selection list from a list of residues.
@@ -554,4 +555,62 @@ func MergeAtomers(A, B Atomer) *Topology {
 		multi = 1
 	}
 	return NewTopology(full, charge, multi)
+}
+
+//SelCone, Given a set of cartesian points in sellist, obtains a vector "plane" normal to the best plane passing through the points.
+//It selects atoms from the set A that are inside a cone in the direction of "plane" that starts from the geometric center of the cartesian points,
+//and has an angle of angle (radians), up to a distance distance. The cone is approximated by a set of radius-increasing cilinders with height thickness.
+//If one starts from one given point, 2 cgnOnes, one in each direction, are possible. If whatcone is 0, both cgnOnes are considered.
+//if whatcone<0, only the cone opposite to the plane vector direction. If whatcone>0, only the cone in the plane vector direction.
+//the 'initial' argument  allows the construction of a truncate cone with a radius of initial.
+func SelCone(B, selection *v3.Matrix, angle, distance, thickness, initial float64, whatcone int) []int {
+	A := v3.Zeros(B.NVecs())
+	A.Copy(B) //We will be altering the input so its better to work with a copy.
+	ar, _ := A.Dims()
+	selected := make([]int, 0, 3)
+	neverselected := make([]int, 0, 30000)     //waters that are too far to ever be selected
+	nevercutoff := distance / math.Cos(angle)  //cutoff to be added to neverselected
+	A, _, err := MassCenter(A, selection, nil) //Centrate A in the geometric center of the selection, Its easier for the following calculations
+	if err != nil {
+		panic(PanicMsg(err.Error()))
+	}
+	selection, _, _ = MassCenter(selection, selection, nil) //Centrate the selection as well
+	plane, err := BestPlane(selection, nil)                 //I have NO idea which direction will this vector point. We might need its negative.
+	if err != nil {
+		panic(PanicMsg(err.Error()))
+	}
+	for i := thickness / 2; i <= distance; i += thickness {
+		maxdist := math.Tan(angle)*i + initial //this should give me the radius of the cone at this point
+		for j := 0; j < ar; j++ {
+			if isInInt(selected, j) || isInInt(neverselected, j) { //we dont scan things that we have already selected, or are too far
+				continue
+			}
+			atom := A.VecView(j)
+			proj := Projection(atom, plane)
+			norm := proj.Norm(0)
+			//Now at what side of the plane is the atom?
+			angle := Angle(atom, plane)
+			if whatcone > 0 {
+				if angle > math.Pi/2 {
+					continue
+				}
+			} else if whatcone < 0 {
+				if angle < math.Pi/2 {
+					continue
+				}
+			}
+			if norm > i+(thickness/2.0) || norm < (i-thickness/2.0) {
+				continue
+			}
+			proj.Sub(proj, atom)
+			projnorm := proj.Norm(0)
+			if projnorm <= maxdist {
+				selected = append(selected, j)
+			}
+			if projnorm >= nevercutoff {
+				neverselected = append(neverselected, j)
+			}
+		}
+	}
+	return selected
 }
