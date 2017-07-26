@@ -85,6 +85,9 @@ func OnesMass(lenght int) *v3.Matrix {
 	return v3.Dense2Matrix(gnOnes(lenght, 1))
 }
 
+
+
+
 //Super determines the best rotation and translations to superimpose the coords in test
 //listed in testlst on te atoms of molecule templa, frame frametempla, listed in templalst.
 //It applies those rotation and translations to the whole frame frametest of molecule test, in palce.
@@ -99,12 +102,10 @@ func Super(test, templa *v3.Matrix, testlst, templalst []int) (*v3.Matrix, error
 	//In case one or both lists are nil or have lenght zero.
 	for k, v := range lists {
 		if v == nil || len(v) == 0 {
-			fmt.Println("Invalid List!!!! Will fill it with numbers!") ////////////////
 			lists[k] = make([]int, structs[k].NVecs(), structs[k].NVecs())
 			for k2, _ := range lists[k] {
 				lists[k][k2] = k2
 			}
-			fmt.Println("produced lists:", lists[k], structs[k].NVecs()) /////////////
 		}
 	}
 	//fmt.Println(lists[0])
