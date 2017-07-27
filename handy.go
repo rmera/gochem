@@ -87,33 +87,41 @@ func OnesMass(lenght int) *v3.Matrix {
 }
 
 //Super determines the best rotation and translations to superimpose the coords in test
-//listed in testlst on te atoms of molecule templa, frame frametempla, listed in templalst.
-//It applies those rotation and translations to the whole frame frametest of molecule test, in palce.
-//testlst and templalst must have the same number of elements. If any of the two slices, or both, are
-//nil or have a zero lenght, they will be replaced by a list containing the number of all atoms in the
-//corresponding molecule.
-func Super(test, templa *v3.Matrix, testlst, templalst []int) (*v3.Matrix, error) {
-	//_, testcols := test.Dims()
-	//_, templacols := templa.Dims()
-	structs := []*v3.Matrix{test, templa}
-	lists := [][]int{testlst, templalst}
-	//In case one or both lists are nil or have lenght zero.
-	for k, v := range lists {
-		if v == nil || len(v) == 0 {
-			lists[k] = make([]int, structs[k].NVecs(), structs[k].NVecs())
-			for k2, _ := range lists[k] {
-				lists[k][k2] = k2
-			}
+//considering only the atoms present in the slices of int slices indexes.
+//The first indexes slices will be assumed to contain test indexes and the second, template indexes.
+//If you give only one, it will be assumed to correspondo to whatever molecule
+//that has more atoms than the elements in the slice. The same number of atoms
+//has to be considered for superposition in both systems.
+//It applies those rotation and translations to the whole molecule test, in palce.
+//testlst and templalst must have the same number of elements. 
+func Super(test, templa *v3.Matrix, indexes ...[]int) (*v3.Matrix, error) {
+	var ctest *v3.Matrix
+	var ctempla *v3.Matrix
+	if len(indexes)==0{
+		ctest=test
+		ctempla=templa
+	}else if len(indexes)==1{
+		if  test.NVecs()>len(indexes[0]){
+			ctest = v3.Zeros(len(indexes[0]))
+			ctest.SomeVecs(test, indexes[0])
+			ctempla=templa
+		}else if templa.NVecs()>len(indexes[0]){
+			ctempla = v3.Zeros(len(indexes[0]))
+			ctempla.SomeVecs(templa, indexes[0])
+		}else{
+			return nil, fmt.Errorf("chem.Super: Indexes don't match molecules")
 		}
+	}else{
+		ctest = v3.Zeros(len(indexes[0]))
+		ctest.SomeVecs(test, indexes[0])
+		ctempla = v3.Zeros(len(indexes[1]))
+		ctempla.SomeVecs(templa, indexes[1])
 	}
-	//fmt.Println(lists[0])
-	if len(lists[0]) != len(lists[1]) {
-		return nil, CError{fmt.Sprintf("Mismatched template and test atom numbers: %d, %d", len(lists[1]), len(lists[0])), []string{"Super"}}
+
+	if ctest.NVecs() != ctempla.NVecs() {
+		return nil, fmt.Errorf("chem.Super: Ill formed coordinates for Superposition")
 	}
-	ctest := v3.Zeros(len(lists[0]))
-	ctest.SomeVecs(test, lists[0])
-	ctempla := v3.Zeros(len(lists[1]))
-	ctempla.SomeVecs(templa, lists[1])
+
 	_, rotation, trans1, trans2, err1 := RotatorTranslatorToSuper(ctest, ctempla)
 	if err1 != nil {
 		return nil, errDecorate(err1, "Super")

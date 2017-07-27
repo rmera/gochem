@@ -329,7 +329,7 @@ func TestSuper(Te *testing.T) {
 	ptest, _ := XYZFileRead("test/Rotated.xyz")
 	ptempla, _ := XYZFileRead("test/sample_plane.xyz")
 	newp, err := Super(ptest.Coords[0], ptempla.Coords[0], nil, nil)
-	rmsd2, _ = RMSD(newp, ptempla.Coords[0], nil, nil)
+	rmsd2, _ = RMSD(newp, ptempla.Coords[0])
 	rmsd1, _ = rMSD(newp, ptempla.Coords[0], nil, nil)
 	fmt.Println("RMSD mol (should be 0):", rmsd1, rmsd2)
 	if err != nil {

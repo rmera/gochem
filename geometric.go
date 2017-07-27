@@ -246,9 +246,9 @@ func RMSD(test, templa *v3.Matrix,  indexes ...[]int) (float64, error) {
 //MemRMSD calculates the RMSD between test and template, considering only the atoms
 //present in the slices of int slices indexes. The first indexes slices will
 //be assumed to contain test indexes and the second, template indexes.
-//If you give only one, it will be assumed to correspondo to whatever molecule
+//If you give only one, it will be assumed to correspond to whatever molecule
 //that has more atoms than the elements in the slice. The same number of atoms
-//has to be considered for superposition in both systems.
+//has to be considered for the calculation in both systems.
 //It does not superimpose the objects.
 //To save memory, it asks for the temporary matrix it needs to be supplied:
 //tmp must be Nx3 where N is the number
@@ -259,21 +259,25 @@ func MemRMSD(test, templa, tmp *v3.Matrix, indexes ...[]int) (float64, error) {
 	if len(indexes)==0{
 		ctest=test
 		ctempla=templa
-	}
-	if len(indexes)==1{
-		if  test.NVecs()>len(indexes){
+	}else if len(indexes)==1{
+		if  test.NVecs()>len(indexes[0]){
 			ctest = v3.Zeros(len(indexes[0]))
 			ctest.SomeVecs(test, indexes[0])
 			ctempla=templa
-		}else if templa.NVecs()>len(indexes){
+		}else if templa.NVecs()>len(indexes[0]){
 			ctempla = v3.Zeros(len(indexes[0]))
 			ctempla.SomeVecs(templa, indexes[0])
 		}else{
-			return -1, fmt.Errorf("memRMSD: Indexes don't match molecules")
+			return -1, fmt.Errorf("chem.memRMSD: Indexes don't match molecules")
 		}
+	}else{
+		ctest = v3.Zeros(len(indexes[0]))
+		ctest.SomeVecs(test, indexes[0])
+		ctempla = v3.Zeros(len(indexes[1]))
+		ctempla.SomeVecs(templa, indexes[1])
 	}
 	if ctest.NVecs() != ctempla.NVecs() || tmp.NVecs() != ctest.NVecs() {
-		return -1, fmt.Errorf("memRMSD: Ill formed matrices for memRMSD calculation")
+		return -1, fmt.Errorf("chem.memRMSD: Ill formed matrices for memRMSD calculation")
 	}
 	tmp.Sub(ctest, ctempla)
 	rmsd := tmp.Norm(2)
