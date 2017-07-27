@@ -231,7 +231,7 @@ func rmsd_fail(test, template *matrix.DenseMatrix) (float64, error) {
 //The objects are not superimposed before the calculation.
 func RMSD(test, templa *v3.Matrix,  indexes ...[]int) (float64, error) {
 	var L int
-	if len(indexes)  == 0 {
+	if len(indexes)  == 0 || indexes[0]==nil || len(indexes[0])==0{
 		L = test.NVecs()
 	} else {
 		L = len(indexes[0])
@@ -246,8 +246,10 @@ func RMSD(test, templa *v3.Matrix,  indexes ...[]int) (float64, error) {
 //MemRMSD calculates the RMSD between test and template, considering only the atoms
 //present in the slices of int slices indexes. The first indexes slices will
 //be assumed to contain test indexes and the second, template indexes.
-//If you give only one, it will be assumed to correspond to whatever molecule
-//that has more atoms than the elements in the slice. The same number of atoms
+//If you give only one (it must be the first one), it will be assumed to correspond to whatever molecule
+//that has more atoms than the elements in the slice.  Giving a nil or 0-lenght first slice and a non-nil second
+//slice will cause MemRMSD to not consider neither of them.
+//The same number of atoms
 //has to be considered for the calculation in both systems.
 //It does not superimpose the objects.
 //To save memory, it asks for the temporary matrix it needs to be supplied:
@@ -256,7 +258,7 @@ func RMSD(test, templa *v3.Matrix,  indexes ...[]int) (float64, error) {
 func MemRMSD(test, templa, tmp *v3.Matrix, indexes ...[]int) (float64, error) {
 	var ctest *v3.Matrix
 	var ctempla *v3.Matrix
-	if len(indexes)==0{
+	if len(indexes)==0 || indexes[0]==nil || len(indexes[0])==0 {
 		ctest=test
 		ctempla=templa
 	}else if len(indexes)==1{
