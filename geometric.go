@@ -223,42 +223,54 @@ func rmsd_fail(test, template *matrix.DenseMatrix) (float64, error) {
 */
 
 //RMSD calculates the RMSD between test and template, considering only the atoms
-//present in the testlst and templalst for each object, respectively.
-//It does not superimpose the objects.
-func RMSD(test, templa *v3.Matrix, testlst, templalst []int) (float64, error) {
+//present in the slices of int slices indexes. The first indexes slices will
+//be assumed to contain test indexes and the second, template indexes.
+//If you give only one, it will be assumed to correspondo to whatever molecule
+//that has more atoms than the elements in the slice. The same number of atoms
+//has to be considered for superposition in both systems.
+//The objects are not superimposed before the calculation.
+func RMSD(test, templa *v3.Matrix,  indexes ...[]int) (float64, error) {
 	var L int
-	if testlst == nil || len(testlst) == 0 {
+	if len(indexes)  == 0 {
 		L = test.NVecs()
 	} else {
-		L = len(testlst)
+		L = len(indexes[0])
 	}
 	tmp := v3.Zeros(L)
 	//We don't test anything in-house. All the testing in done by MemRMSD
-	rmsd, err := MemRMSD(test, templa, tmp, testlst, templalst)
+	rmsd, err := MemRMSD(test, templa, tmp, indexes...)
 	return rmsd, err
 }
 
-//mRMSD calculates the RMSD between test and template, considering only the atoms
-//present in the testlst and templalst for each object, respectively.
+
+//MemRMSD calculates the RMSD between test and template, considering only the atoms
+//present in the slices of int slices indexes. The first indexes slices will
+//be assumed to contain test indexes and the second, template indexes.
+//If you give only one, it will be assumed to correspondo to whatever molecule
+//that has more atoms than the elements in the slice. The same number of atoms
+//has to be considered for superposition in both systems.
 //It does not superimpose the objects.
 //To save memory, it asks for the temporary matrix it needs to be supplied:
 //tmp must be Nx3 where N is the number
 //of elements in testlst and templalst
-func MemRMSD(test, template, tmp *v3.Matrix, testlst, templalst []int) (float64, error) {
-	lists := [][]int{testlst, templalst}
+func MemRMSD(test, templa, tmp *v3.Matrix, indexes ...[]int) (float64, error) {
 	var ctest *v3.Matrix
 	var ctempla *v3.Matrix
-	if testlst == nil || len(testlst) == 0 {
-		ctest = test
-	} else {
-		ctest = v3.Zeros(len(lists[0]))
-		ctest.SomeVecs(test, lists[0])
+	if len(indexes)==0{
+		ctest=test
+		ctempla=templa
 	}
-	if templalst == nil || len(templalst) == 0 {
-		ctempla = template
-	} else {
-		ctempla = v3.Zeros(len(lists[1]))
-		ctempla.SomeVecs(template, lists[1])
+	if len(indexes)==1{
+		if  test.NVecs()>len(indexes){
+			ctest = v3.Zeros(len(indexes[0]))
+			ctest.SomeVecs(test, indexes[0])
+			ctempla=templa
+		}else if templa.NVecs()>len(indexes){
+			ctempla = v3.Zeros(len(indexes[0]))
+			ctempla.SomeVecs(templa, indexes[0])
+		}else{
+			return -1, fmt.Errorf("memRMSD: Indexes don't match molecules")
+		}
 	}
 	if ctest.NVecs() != ctempla.NVecs() || tmp.NVecs() != ctest.NVecs() {
 		return -1, fmt.Errorf("memRMSD: Ill formed matrices for memRMSD calculation")
