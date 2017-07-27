@@ -293,6 +293,105 @@ func TestReduce(Te *testing.T) {
 	fmt.Println("END TestReduce")
 }
 
+func TestShape(Te *testing.T) {
+	myhandle, _ := os.Open("test/2c9v.pdb")
+	mol1, err := PDBRead(myhandle, true) //true means that we try to read the symbol from the PDB file.
+	masses,err:=mol1.Masses()
+	if err!=nil{
+		Te.Error(err)
+	}
+	moment,err:=MomentTensor(mol1.Coords[0],masses)
+	if err!=nil{
+		Te.Error(err)
+	}
+	rhos,err:=Rhos(moment)
+	if err!=nil{
+		Te.Error(err)
+	}
+	linear,circular,err:=RhoShapeIndexes(rhos)
+	if err!=nil{
+		Te.Error(err)
+	}
+	fmt.Println("liner,circular distortion:", linear, circular)
+	lin2,circ2,err:=EasyShape(mol1.Coords[0],-1,mol1)
+	if err!=nil{
+		Te.Error(err)
+	}
+	fmt.Println("Easier way linear,circular:", lin2,circ2)
+	mol2, _ := XYZFileRead("test/sample_plane.xyz")
+	lin3,circ3,err:=EasyShape(mol2.Coords[0],-1,mol2)
+	if err!=nil{
+		Te.Error(err)
+	}
+	fmt.Println("sample_plane.xyz shape indicators; linear,circular:", lin3,circ3)
+	//now the shapetests batterty!
+	mol2, _ = XYZFileRead("test/shapetests/porphyrin.xyz")
+	lin3,circ3,err=EasyShape(mol2.Coords[0],-1,mol2)
+	if err!=nil{
+		Te.Error(err)
+	}
+	fmt.Println("porphyrin.xyz shape indicators; linear,circular:", lin3,circ3)
+	mol2, _ = XYZFileRead("test/shapetests/2-mesoporphyrin.xyz")
+	lin3,circ3,err=EasyShape(mol2.Coords[0],-1,mol2)
+	if err!=nil{
+		Te.Error(err)
+	}
+	fmt.Println("2-mesoporphyrin.xyz shape indicators; linear,circular:", lin3,circ3)
+	mol2, _ = XYZFileRead("test/shapetests/4-mesoporphyrin.xyz")
+	lin3,circ3,err=EasyShape(mol2.Coords[0],-1,mol2)
+	if err!=nil{
+		Te.Error(err)
+	}
+	fmt.Println("4-mesoporphyrin.xyz shape indicators; linear,circular:", lin3,circ3)
+	mol2, _ = XYZFileRead("test/shapetests/heptane.xyz")
+	lin3,circ3,err=EasyShape(mol2.Coords[0],-1,mol2)
+	if err!=nil{
+		Te.Error(err)
+	}
+	fmt.Println("heptane.xyz shape indicators; linear,circular:", lin3,circ3)
+	mol2, _ = XYZFileRead("test/shapetests/decane.xyz")
+	lin3,circ3,err=EasyShape(mol2.Coords[0],-1,mol2)
+	if err!=nil{
+		Te.Error(err)
+	}
+	fmt.Println("decane.xyz shape indicators; linear,circular:", lin3,circ3)
+	mol2, _ = XYZFileRead("test/shapetests/phenantrene.xyz")
+	lin3,circ3,err=EasyShape(mol2.Coords[0],-1,mol2)
+	if err!=nil{
+		Te.Error(err)
+	}
+	fmt.Println("phenantrene.xyz shape indicators; linear,circular:", lin3,circ3)
+	mol2, _ = XYZFileRead("test/shapetests/methylphenantrene.xyz")
+	lin3,circ3,err=EasyShape(mol2.Coords[0],-1,mol2)
+	if err!=nil{
+		Te.Error(err)
+	}
+	fmt.Println("methylphenantrene shape indicators; linear,circular:", lin3,circ3)
+	mol2, _ = XYZFileRead("test/shapetests/tbutylphenantrene.xyz")
+	lin3,circ3,err=EasyShape(mol2.Coords[0],-1,mol2)
+	if err!=nil{
+		Te.Error(err)
+	}
+	fmt.Println("tbutylphenantrene shape indicators; linear,circular:", lin3,circ3)
+	mol2, _ = XYZFileRead("test/shapetests/fullerene20.xyz")
+	lin3,circ3,err=EasyShape(mol2.Coords[0],-1,mol2)
+	if err!=nil{
+		Te.Error(err)
+	}
+	fmt.Println("fullerene20.xyz shape indicators; linear,circular:", lin3,circ3)
+	mol2, _ = XYZFileRead("test/shapetests/fullerene60.xyz")
+	lin3,circ3,err=EasyShape(mol2.Coords[0],0.0001,mol2) //maybe it's too symmetrical for the default epsilon?
+	if err!=nil{
+		Te.Error(err)
+	}
+	fmt.Println("fullerene60.xyz shape indicators; linear,circular:", lin3,circ3)
+
+
+}
+
+
+
+
 //Here PDBRead and PDBWrite are tested
 func TestSuper(Te *testing.T) {
 	backbone := []string{"CA", "C", "N"} //The PDB name of the atoms in the backbone.

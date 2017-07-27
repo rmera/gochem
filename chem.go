@@ -93,12 +93,12 @@ type Topology struct {
 //charge charge and multi multiplicity.
 // It doesnt check for consitency across slices or correct charge
 //or unpaired electrons.
-func NewTopology(ats []*Atom, charge, multi int) *Topology {
+func NewTopology(charge, multi int, ats ...[]*Atom) *Topology {
 	top := new(Topology)
-	if ats == nil {
+	if len(ats)==0 || ats[0] == nil {
 		top.Atoms = make([]*Atom, 0, 0) //return nil, fmt.Errorf("Supplied a nil Topology")
 	} else {
-		top.Atoms = ats
+		top.Atoms = ats[0]
 	}
 	top.charge = charge
 	top.multi = multi
@@ -277,7 +277,7 @@ func NewMolecule(coords []*v3.Matrix, ats Atomer, bfactors [][]float64) (*Molecu
 	//	}
 	mol := new(Molecule)
 	atcopy := func() {
-		mol.Topology = NewTopology(make([]*Atom, 0, ats.Len()), 9999, -1) //I use 9999 for charge and -1 or multi to indicate that they are not truly set. So far NewTopology never actually returns any error so it's safe to ignore them. NOTE: Need to fix newtopology so it doesnt return error
+		mol.Topology = NewTopology( 9999, -1,make([]*Atom, 0, ats.Len())) //I use 9999 for charge and -1 or multi to indicate that they are not truly set. So far NewTopology never actually returns any error so it's safe to ignore them. NOTE: Need to fix newtopology so it doesnt return error
 		for i := 0; i < ats.Len(); i++ {
 			mol.Atoms = append(mol.Atoms, ats.Atom(i))
 		}

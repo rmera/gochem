@@ -49,6 +49,39 @@ func Molecules2Atoms(mol Atomer, residues []int, chains []string) []int {
 
 }
 
+//Easy shape takes a matrix of coordinates, a value for epsilon (a number close to zero, the close, the more
+//strict the orthogonality requriements are) and an (optative) masser and returns
+//two shape indicators based on the elipsoid of inertia (or it massless equivalent)
+//a linear and circular distortion indicators, and an error or nil (in that order).
+//if you give a negative number as epsilon, the default (quite strict) will be used.
+func EasyShape(coords *v3.Matrix, epsilon float64, mol ...Masser) (float64, float64, error) {
+	var masses []float64
+	var err2 error
+	var err error
+	if len(mol) < 0 {
+		masses = nil
+	} else {
+		masses, err = mol[0].Masses()
+		if err != nil {
+			masses = nil
+			err2 = err
+		}
+	}
+	moment, err := MomentTensor(coords, masses)
+	if err != nil {
+		return -1, -1, err
+	}
+	rhos, err := Rhos(moment,epsilon)
+	if err != nil {
+		return -1, -1, err
+	}
+	linear,circular, err := RhoShapeIndexes(rhos)
+	if err != nil {
+		return -1, -1, err
+	}
+	return  linear,circular, err2
+}
+
 //MolIDNameChain2Index takes a molID (residue number), atom name, chain index and a molecule Atomer.
 //it returns the index associated with the atom in question in the Ref. The function returns also an error (if failure of warning)
 // or nil (if succses and no warnings). Note that this function is not efficient to call several times to retrieve many atoms.
@@ -90,31 +123,31 @@ func OnesMass(lenght int) *v3.Matrix {
 //considering only the atoms present in the slices of int slices indexes.
 //The first indexes slices will be assumed to contain test indexes and the second, template indexes.
 //If you give only one (it must be the first one), it will be assumed to correspondo to whatever molecule
-//that has more atoms than the elements in the slice. 
+//that has more atoms than the elements in the slice.
 //Giving a nil or 0-lenght first slice and a non-nil second
 //slice will cause MemRMSD to not consider neither of them.
 //The same number of atoms
 //has to be considered for superposition in both systems.
 //It applies those rotation and translations to the whole molecule test, in palce.
-//testlst and templalst must have the same number of elements. 
+//testlst and templalst must have the same number of elements.
 func Super(test, templa *v3.Matrix, indexes ...[]int) (*v3.Matrix, error) {
 	var ctest *v3.Matrix
 	var ctempla *v3.Matrix
-	if len(indexes)==0 || indexes[0]==nil || len(indexes[0])==0{ //If you put the date in the SECOND slice, you are just messing with me.
-		ctest=test
-		ctempla=templa
-	}else if len(indexes)==1{
-		if  test.NVecs()>len(indexes[0]){
+	if len(indexes) == 0 || indexes[0] == nil || len(indexes[0]) == 0 { //If you put the date in the SECOND slice, you are just messing with me.
+		ctest = test
+		ctempla = templa
+	} else if len(indexes) == 1 {
+		if test.NVecs() > len(indexes[0]) {
 			ctest = v3.Zeros(len(indexes[0]))
 			ctest.SomeVecs(test, indexes[0])
-			ctempla=templa
-		}else if templa.NVecs()>len(indexes[0]){
+			ctempla = templa
+		} else if templa.NVecs() > len(indexes[0]) {
 			ctempla = v3.Zeros(len(indexes[0]))
 			ctempla.SomeVecs(templa, indexes[0])
-		}else{
+		} else {
 			return nil, fmt.Errorf("chem.Super: Indexes don't match molecules")
 		}
-	}else{
+	} else {
 		ctest = v3.Zeros(len(indexes[0]))
 		ctest.SomeVecs(test, indexes[0])
 		ctempla = v3.Zeros(len(indexes[1]))
@@ -565,7 +598,7 @@ func MergeAtomers(A, B Atomer) *Topology {
 	} else {
 		multi = 1
 	}
-	return NewTopology(full, charge, multi)
+	return NewTopology(charge, multi,full)
 }
 
 //SelCone, Given a set of cartesian points in sellist, obtains a vector "plane" normal to the best plane passing through the points.

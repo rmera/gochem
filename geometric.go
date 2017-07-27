@@ -367,18 +367,33 @@ func Dihedral(a, b, c, d *v3.Matrix) float64 {
 //point comparisons
 
 //RhoShapeIndexes Get shape indices based on the axes of the elipsoid of inertia.
+//linear and circular distortion, in that order, and error or nil.
 //Based on the work of Taylor et al., .(1983), J Mol Graph, 1, 30
-//This function has NOT been tested.
-func RhoShapeIndexes(evals []float64) (float64, float64, error) {
-	rhos, err := Rhos(evals)
-	linear_distortion := (1 - (rhos[1] / rhos[0])) * 100   //Prolate
-	circular_distortion := (1 - (rhos[2] / rhos[0])) * 100 //Oblate
-	return linear_distortion, circular_distortion, errDecorate(err, "RhoShapeIndexes")
+//This function has NOT been tested thoroughly in the sense of the appropiateness of the indexes definitions.
+func RhoShapeIndexes(rhos []float64) (float64, float64, error) {
+	if rhos==nil || len(rhos)<3{
+		return -1,-1,CError{"goChe: Not enough or nil rhos",[]string{"RhoShapeIndexes"}}
+	}
+//	print(rhos[0],rhos[1],rhos[2]) ////////////////////////
+// Are these definitions reasonable?
+	linear_distortion := (1-(rhos[1] / rhos[0])) * 100   //Prolate
+	circular_distortion := ((1-(rhos[2] / rhos[1])) * 100) //Oblate
+	return linear_distortion, circular_distortion, nil
 }
 
-//Rhos returns the semiaxis of the elipoid of inertia given the eigenvectors of the moment tensor.
-func Rhos(evals []float64) ([]float64, error) {
-	rhos := sort.Float64Slice{invSqrt(evals[0]), invSqrt(evals[1]), invSqrt(evals[2])}
+//Rhos returns the semiaxis of the elipoid of inertia given the the moment of inertia tensor.
+func Rhos(momentTensor *v3.Matrix, epsilon ...float64) ([]float64, error) {
+	var e float64
+	if len(epsilon)==0{
+		e=-1
+	}else{
+		e=epsilon[0]
+	}
+	_,evals,err:=v3.EigenWrap(momentTensor,e)
+	if err!=nil{
+		return nil, errDecorate(err,"Rhos")
+	}
+	rhos := sort.Float64Slice{evals[0],evals[1],evals[2]} //invSqrt(evals[0]), invSqrt(evals[1]), invSqrt(evals[2])}
 	if evals[2] <= appzero {
 		return rhos[:], CError{"goChem: Molecule colapsed to a single point. Check for blackholes", []string{"Rhos"}}
 	}
@@ -410,19 +425,22 @@ func BestPlaneP(evecs *v3.Matrix) (*v3.Matrix, error) {
 }
 
 //BestPlane returns a row vector that is normal to the plane that best contains the molecule
-//if passed a nil Masser, it will simply set all masses to 1.
-func BestPlane(coords *v3.Matrix, mol Masser) (*v3.Matrix, error) {
+//if passed a nil Masser, it will simply set all masses to 1. If more than one Masser is passed
+//Only the first will be considered
+func BestPlane(coords *v3.Matrix, mol ...Masser) (*v3.Matrix, error) {
 	var err error
 	var Mmass []float64
 	cr, _ := coords.Dims()
-	if mol != nil {
-		Mmass, err = mol.Masses()
+	if len(mol)!=0 && mol[0] != nil {
+		Mmass, err = mol[0].Masses()
 		if err != nil {
 			return nil, errDecorate(err, "BestPlane")
 		}
 		if len(Mmass) != cr {
 			return nil, CError{fmt.Sprintf("Inconsistent coordinates(%d)/atoms(%d)", len(Mmass), cr), []string{"BestPlane"}}
 		}
+	}else{
+		Mmass=nil
 	}
 	moment, err := MomentTensor(coords, Mmass)
 	if err != nil {
@@ -450,15 +468,18 @@ func ones(size int) []float64 {
 }
 
 //CenterOfMass returns the center of mass the atoms represented by the coordinates in geometry
-//and the masses in mass, and an error. If mass is nil, it calculates the geometric center
-func CenterOfMass(geometry *v3.Matrix, mass *mat.Dense) (*v3.Matrix, error) {
+//and the masses in mass, and an error. If no mass is given, it calculates the geometric center
+func CenterOfMass(geometry *v3.Matrix, massS ...*mat.Dense) (*v3.Matrix, error) {
+	var mass *mat.Dense
 	if geometry == nil {
 		return nil, CError{"goChem: nil matrix to get the center of mass", []string{"CenterOfMass"}}
 	}
 	gr, _ := geometry.Dims()
-	if mass == nil { //just obtain the geometric center
+	if len(massS) == 0 || massS[0]==nil { //just obtain the geometric center
 		tmp := ones(gr)
 		mass = mat.NewDense(gr, 1, tmp) //gnOnes(gr, 1)
+	}else{
+		mass=massS[0]
 	}
 	tmp2 := ones(gr)
 	gnOnesvector := mat.NewDense(1, gr, tmp2) //gnOnes(1, gr)
@@ -473,12 +494,15 @@ func CenterOfMass(geometry *v3.Matrix, mass *mat.Dense) (*v3.Matrix, error) {
 
 //MassCenter centers in in the center of mass of oref. Mass must be
 //A column vector. Returns the centered matrix and the displacement matrix.
-func MassCenter(in, oref *v3.Matrix, mass *mat.Dense) (*v3.Matrix, *v3.Matrix, error) {
+func MassCenter(in, oref *v3.Matrix, massS ...*mat.Dense) (*v3.Matrix, *v3.Matrix, error) {
 	or, _ := oref.Dims()
 	ir, _ := in.Dims()
-	if mass == nil { //just obtain the geometric center
+	var mass *mat.Dense
+	if len(massS)==0 || massS[0] == nil { //just obtain the geometric center
 		tmp := ones(or)
 		mass = mat.NewDense(or, 1, tmp) //gnOnes(or, 1)
+	}else{
+		mass=massS[0]
 	}
 	ref := v3.Zeros(or)
 	ref.Copy(oref)
@@ -507,14 +531,14 @@ func MassCenter(in, oref *v3.Matrix, mass *mat.Dense) (*v3.Matrix, *v3.Matrix, e
 
 //MomentTensor returns the moment tensor for a matrix A of coordinates and a column
 //vector mass with the respective massess.
-func MomentTensor(A *v3.Matrix, massslice []float64) (*v3.Matrix, error) {
+func MomentTensor(A *v3.Matrix, massslice ...[]float64) (*v3.Matrix, error) {
 	ar, ac := A.Dims()
 	var err error
 	var mass *mat.Dense
-	if massslice == nil {
+	if len(massslice)==0 || massslice[0] == nil {
 		mass = gnOnes(ar, 1)
 	} else {
-		mass = mat.NewDense(ar, 1, massslice)
+		mass = mat.NewDense(ar, 1, massslice[0])
 		//		if err != nil {
 		//			return nil, err
 		//		}

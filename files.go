@@ -63,6 +63,7 @@ var symbolMass = map[string]float64{
 	"Mn": 54.94,
 	"Si": 28.08,
 	"Be": 9.012,
+	"F":  18.998,
 }
 
 //A map between 3-letters name for aminoacidic residues to the corresponding 1-letter names.
@@ -169,7 +170,7 @@ func read_full_pdb_line(line string, read_additional bool, contlines int) (*Atom
 	// just ommit it
 	if read_additional && len(line) >= 80 {
 		atom.Symbol = strings.TrimSpace(line[76:78])
-		atom.Symbol = strings.Title(atom.Symbol)
+		atom.Symbol = strings.Title(strings.ToLower(atom.Symbol))
 		atom.Charge = float64(line[78]) //strconv.ParseFloat(strings.TrimSpace(line[78:78]),64)
 		if strings.Contains(line[79:79], "-") {
 			atom.Charge = -1.0 * atom.Charge
@@ -301,7 +302,7 @@ func pdbBufIORead(pdb *bufio.Reader, read_additional bool) (*Molecule, error) {
 	}
 	//This could be done faster if done in the same loop where the coords are read
 	//Instead of having another loop just for them.
-	top := NewTopology(molecule, 0, 1)
+	top := NewTopology(0, 1,molecule)
 	var err error
 	frames := len(coords)
 	mcoords := make([]*v3.Matrix, frames, frames) //Final thing to return
@@ -535,7 +536,7 @@ func XYZRead(xyzp io.Reader) (*Molecule, error) {
 			if err != nil {
 				return nil, errDecorate(err, "XYZRead")
 			}
-			top = NewTopology(molecule, 0, 1)
+			top = NewTopology(0, 1,molecule)
 			if err != nil {
 				return nil, errDecorate(err, "XYZRead")
 			}
