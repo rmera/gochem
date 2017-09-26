@@ -31,6 +31,37 @@ package chem
 import "fmt"
 import "math"
 import "github.com/rmera/gochem/v3"
+import "strings"
+
+const allchains = "*ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+//FixGromacsPDB fixes the problem that Gromacs PDBs have when there are more than 10000 residues
+//Gromacs simply restarts the numbering. Since solvents (where this is likely to happen) don't have
+//chain ID in Gromacs, it's impossible to distinguish between the water 1 and the water 10001. FixGromacsPDB
+//Adds a chain ID to the newly restrated residue that is the letter/symbol coming after the last seen chain ID
+//in the constant allchains defined in this file. The current implementation does nothing if a chain ID is already
+//defined, even if it is wrong (if 9999 and the following 0 residue have the same chain).
+func FixGromacsPDB(mol Atomer) {
+//	fmt.Println("FIXING!")
+	previd:=-1
+	lastchain:="*"
+	for i:=0;i<mol.Len();i++{
+		at:=mol.Atom(i)
+		if at.Chain==" "{
+			if previd>at.MolID{
+				index:=strings.Index(allchains,lastchain)+1
+			//	fmt.Println("new chain index:", index)
+				lastchain=string(allchains[index])
+			}
+			at.Chain=lastchain
+	//		fmt.Println(lastchain) /////////
+		}else{
+		lastchain=at.Chain
+		}
+		previd=at.MolID
+	}
+}
+
 
 //Molecules2Atoms gets a selection list from a list of residues.
 //It select all the atoms that form part of the residues in the list.
