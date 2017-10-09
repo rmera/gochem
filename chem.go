@@ -685,6 +685,8 @@ type PanicMsg string
 func (v PanicMsg) Error() string { return string(v) }
 
 const (
+	ErrNilData          = PanicMsg("goChem: Nil data given ")
+	ErrInconsistentData = PanicMsg("goChem: Inconsistent data length ")
 	ErrNilMatrix        = PanicMsg("goChem: Attempted to access nil v3.Matrix or gonum/mat64.Dense")
 	ErrNilAtoms         = PanicMsg("goChem: Topology has a nil []*Atom slice")
 	ErrNilAtom          = PanicMsg("goChem: Attempted to copy from or to a nil Atom")
