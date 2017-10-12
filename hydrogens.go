@@ -34,14 +34,21 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	//	"runtime" /////////
+	//	"fmt" ///////////
 )
 
+/****************
+NOTE: This function breaks in Go=>1.5 for unknown reasons.
+There seem to be an issue with StdinPipe, or the program Reduce been never actually excecuted
+*****************/
 //Reduce uses the Reduce program (Word, et. al. (1999) J. Mol. Biol. 285,
 //1735-1747. For more information see http://kinemage.biochem.duke.edu)
 //To protonate a protein and flip residues. It writes the report from Reduce
 //to a file called Reduce.err in the current dir. The Reduce executable can be given,
 //in "executable", otherwise it will be assumed that it is a file called "reduce" and it is in the PATH.
 func Reduce(mol Atomer, coords *v3.Matrix, build int, report *os.File, executable string) (*Molecule, error) {
+	//runtime.GOMAXPROCS(2) ////////////////////
 	flip := "-NOFLIP"
 	if build == 1 {
 		flip = "-FLIP"
@@ -52,7 +59,6 @@ func Reduce(mol Atomer, coords *v3.Matrix, build int, report *os.File, executabl
 		executable = "reduce"
 	}
 	reduce := exec.Command(executable, flip, "-") // , pdbname)
-	//	println("COMMAND", reduce.Path, reduce.Args[1], reduce.Args[2]) //////////////////
 	inp, err := reduce.StdinPipe()
 	if err != nil {
 		return nil, err
@@ -66,12 +72,14 @@ func Reduce(mol Atomer, coords *v3.Matrix, build int, report *os.File, executabl
 		return nil, CError{err.Error(), []string{"exec.StderrPipe", "Reduce"}}
 
 	}
+
 	if err := reduce.Start(); err != nil {
 		return nil, CError{err.Error(), []string{"exec.Start", "Reduce"}}
-
 	}
+
 	PDBWrite(inp, coords, mol, nil)
 	inp.Close()
+
 	bufiopdb := bufio.NewReader(out)
 	if report == nil {
 		report, err = os.Create("Reduce.log")
@@ -81,33 +89,59 @@ func Reduce(mol Atomer, coords *v3.Matrix, build int, report *os.File, executabl
 		}
 		defer report.Close()
 	}
-	repio := bufio.NewWriter(report)
+	repio := bufio.NewWriter(report) //The reports of Reduce, which are written mostly to StdErr but also to StdOut will be compiled here.
+	var stder_ready = make(chan error)
+	/**
+	In the following lines I am forced to use a gorutine to read the StdErr, as I need its contents, and reduce
+	does not like them to be read serially. Apparently each of them get stuck at some point if you don't read the other,
+	hence, I need to do it concurrently.
+	**/
+	go func() {
+		defer repio.Flush()
+		if _, err := repio.ReadFrom(out2); err != nil {
+			out2.Close()
+			stder_ready <- CError{err.Error(), []string{"bufio.ReadFrom", "Reduce"}}
+		}
+		out2.Close()
+		stder_ready <- nil
+	}()
+
+	//I'm forced to use this buffer and later write to the report file to prevent a data race with the gorutine
+	//reading StdErr.
+	reportBuffer := make([]string, 0, 200)
 	dashes := 0
 	for {
 		s, err := bufiopdb.ReadString('\n')
 		if err != nil {
 			return nil, errDecorate(err, "Reduce")
 		}
+		reportBuffer = append(reportBuffer, s)
+
 		if strings.Contains(s, "USER  MOD ---------------------------------------------------") {
 			dashes++
 			if dashes > 1 {
 				break
 			}
 		}
-		repio.WriteString(s)
 	}
+
 	mol2, err := pdbBufIORead(bufiopdb, false)
 	if err != nil {
 		return nil, errDecorate(err, "Reduce")
-
 	}
-	if _, err = repio.ReadFrom(out2); err != nil {
-		return mol2, CError{err.Error(), []string{"bufio.ReadFrom", "Reduce"}}
-
+	out.Close()
+	err = <-stder_ready
+	//Here we don't need the buffering so we write directly to report (the file) instead of to repio.
+	for _, v := range reportBuffer {
+		_, err := report.Write([]byte(v))
+		if err != nil {
+			return mol2, err
+		}
 	}
-	if err = reduce.Wait(); err != nil && !strings.Contains(err.Error(), "exit status 1") {
-		return mol2, CError{err.Error(), []string{"exec.Start", "Reduce"}}
-
+	if err != nil {
+		return mol2, err
 	}
+
 	return mol2, nil
+
 }

@@ -31,10 +31,10 @@
 package v3
 
 import (
-	"github.com/gonum/blas/native"
-	"github.com/gonum/matrix/mat64"
+	"gonum.org/v1/gonum/blas/native"
+	"gonum.org/v1/gonum/mat"
 )
 
 func init() {
-	mat64.Register(native.Blas{})
+	mat.Register(native.Blas{})
 }

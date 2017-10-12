@@ -35,7 +35,7 @@ import (
 	"runtime"
 )
 
-//import "fmt"
+import "fmt" //debug
 
 type paravector struct {
 	Real  float64
@@ -221,6 +221,7 @@ func getChunk(cake *v3.Matrix, i, j, r, c int) *v3.Matrix {
 //of its rows by angle radians around axis. Axis must be a 3D row vector.
 //Target must be an N,3 matrix. The result is put in Res, which is also returned.
 func Rotate(Target, Res, axis *v3.Matrix, angle float64) *v3.Matrix {
+	//	runtime.GOMAXPROCS(3)
 	gorut := runtime.GOMAXPROCS(-1)
 	cake := v3.Zeros(5 + gorut*4)
 	Rv := cake.VecView(0)
@@ -240,6 +241,7 @@ func Rotate(Target, Res, axis *v3.Matrix, angle float64) *v3.Matrix {
 //of its rows by angle radians around axis. Axis must be a 3D row vector.
 //Target must be an N,3 matrix.
 func RotateP(Target, Res, axis, Rv, Rvrev, tmp1, tmp2, tmp3, tmp4, itmp1, itmp2, itmp3 *v3.Matrix, angle float64, gorut int) {
+	//fmt.Println("Enter RotateP")//////////////
 	//	gorut := runtime.GOMAXPROCS(-1) //Do not change anything, only query
 	rows := Target.NVecs()
 	rrows := Res.NVecs()
@@ -256,12 +258,13 @@ func RotateP(Target, Res, axis, Rv, Rvrev, tmp1, tmp2, tmp3, tmp4, itmp1, itmp2,
 	Rrev := paravectorFromVector(Rvrev, itmp3) // makeParavector() //R-dagger //alloc
 	Rrev.reverse(R)
 	ended := make(chan bool, gorut)
-	//Just temporal skit to be used by the gorutines
-	/*	tmp1 := v3.Zeros(gorut)  //alloc
-		tmp2 := v3.Zeros(gorut)
-		tmp3 := v3.Zeros(gorut)
-		tmp4 := v3.Zeros(gorut) */
+	//If the gorutines are more than the rows, we will have problems afterwards, as we try to split the rows
+	//among the available gorutines, some gorutines are going to get invalid matrix positions.
+	if gorut > rows {
+		gorut = rows
+	}
 	fragmentlen := int(math.Ceil(float64(rows) / float64(gorut))) //len of the fragment of target that each gorutine will handle
+	//	println("fragmentlen", fragmentlen, rows, gorut, Target.String()) //////////
 	for i := 0; i < gorut; i++ {
 		//These are the limits of the fragment of Target in which the gorutine will operate
 		ini := i * fragmentlen
@@ -271,6 +274,11 @@ func RotateP(Target, Res, axis, Rv, Rvrev, tmp1, tmp2, tmp3, tmp4, itmp1, itmp2,
 		}
 		go func(ini, end, i int) {
 			t1 := tmp1.VecView(i)
+			//r,c:=tmp2.Dims()///
+			//this "print" causes a data race but it shouldn't matter, as it's only for debugging purposes.
+			//removing the print removes the race warning, so there isn't apparently any data race going on.
+			//fmt.Println("WTF",r,c,i,tmp2,"\n") /////////
+			fmt.Println("") ////////////
 			t2 := tmp2.VecView(i)
 			t4 := tmp4.VecView(i)
 			pv := paravectorFromVector(t2, t4)
@@ -290,6 +298,7 @@ func RotateP(Target, Res, axis, Rv, Rvrev, tmp1, tmp2, tmp3, tmp4, itmp1, itmp2,
 	for i := 0; i < gorut; i++ {
 		<-ended
 	}
+	//fmt.Println("YEY!, funcion ql!!!!")////////////////////////////
 	return
 }
 

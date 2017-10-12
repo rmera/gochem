@@ -62,6 +62,8 @@ var symbolMass = map[string]float64{
 	"Fe": 55.84,
 	"Mn": 54.94,
 	"Si": 28.08,
+	"Be": 9.012,
+	"F":  18.998,
 }
 
 //A map between 3-letters name for aminoacidic residues to the corresponding 1-letter names.
@@ -108,6 +110,10 @@ func symbolFromName(name string) (string, error) {
 		} else {
 			symbol = "C"
 		}
+	} else if name[0] == 'B' {
+		if name == "BE" {
+			symbol = "Be"
+		}
 	} else if name[0] == 'N' {
 		if name == "NA" {
 			symbol = "Na"
@@ -143,6 +149,7 @@ func read_full_pdb_line(line string, read_additional bool, contlines int) (*Atom
 	atom.Het = strings.HasPrefix(line, "HETATM") //this is called twice in the worst case. should fix
 	atom.ID, err[0] = strconv.Atoi(strings.TrimSpace(line[6:12]))
 	atom.Name = strings.TrimSpace(line[12:16])
+	atom.Char16 = line[16]
 	//PDB says that pos. 17 is for other thing but I see that is
 	//used for residue name in many cases*/
 	atom.Molname = line[17:20]
@@ -163,7 +170,7 @@ func read_full_pdb_line(line string, read_additional bool, contlines int) (*Atom
 	// just ommit it
 	if read_additional && len(line) >= 80 {
 		atom.Symbol = strings.TrimSpace(line[76:78])
-		atom.Symbol = strings.Title(atom.Symbol)
+		atom.Symbol = strings.Title(strings.ToLower(atom.Symbol))
 		atom.Charge = float64(line[78]) //strconv.ParseFloat(strings.TrimSpace(line[78:78]),64)
 		if strings.Contains(line[79:79], "-") {
 			atom.Charge = -1.0 * atom.Charge
@@ -253,7 +260,7 @@ func pdbBufIORead(pdb *bufio.Reader, read_additional bool) (*Molecule, error) {
 		if err != nil {
 			//fmt.Println("PDB reading complete") /***change this to stderr************/
 			break
-			contlines++ //count all the lines even if empty.
+			//	contlines++ //count all the lines even if empty. This is unreachable but I'm not sure at this point if it's better this way! goChem does read PDBs correctly as far as I can see.
 		}
 		if len(line) < 4 {
 			continue
@@ -295,7 +302,7 @@ func pdbBufIORead(pdb *bufio.Reader, read_additional bool) (*Molecule, error) {
 	}
 	//This could be done faster if done in the same loop where the coords are read
 	//Instead of having another loop just for them.
-	top := NewTopology(molecule, 0, 1)
+	top := NewTopology(0, 1,molecule)
 	var err error
 	frames := len(coords)
 	mcoords := make([]*v3.Matrix, frames, frames) //Final thing to return
@@ -365,7 +372,7 @@ func PDBFileWrite(pdbname string, coords *v3.Matrix, mol Atomer, Bfactors []floa
 		return CError{err.Error(), []string{"os.Create", "PDBFileWrite"}}
 	}
 	defer out.Close()
-	fmt.Fprintf(out, "REMARK WRITTEN WITH GOCHEM :-)")
+	fmt.Fprintf(out, "REMARK WRITTEN WITH GOCHEM :-) \n")
 	err = PDBWrite(out, coords, mol, Bfactors)
 	if err != nil {
 		return errDecorate(err, "PDBFileWrite")
@@ -416,7 +423,8 @@ func pdbWrite(out io.Writer, coords *v3.Matrix, mol Atomer, bfact []float64) err
 			return iowriteError(err)
 		}
 	}
-	_, err = out.Write([]byte("END")) //no newline, this is in case the write is part of a PDB and one needs to write "ENDMODEL".
+	_, err = out.Write([]byte("TER\n")) // New Addition, should help to recognize the end of the chain.
+	_, err = out.Write([]byte("END"))   //no newline, this is in case the write is part of a PDB and one needs to write "ENDMODEL".
 	if err != nil {
 		return iowriteError(err)
 	}
@@ -528,7 +536,7 @@ func XYZRead(xyzp io.Reader) (*Molecule, error) {
 			if err != nil {
 				return nil, errDecorate(err, "XYZRead")
 			}
-			top = NewTopology(molecule, 0, 1)
+			top = NewTopology(0, 1,molecule)
 			if err != nil {
 				return nil, errDecorate(err, "XYZRead")
 			}

@@ -32,10 +32,11 @@ import (
 
 //import "strings"
 
-/**Many funcitons here panic instead of returning errors. This is because they are "fundamental"
+/* Many funcitons here panic instead of returning errors. This is because they are "fundamental"
  * functions. I considered that if something goes wrong here, the program is way-most likely wrong and should
  * crash. Most panics are related to using the funciton on a nil object or trying to access out-of bounds
- * fields**/
+ * fields
+ */
 
 //Atom contains the atoms read except for the coordinates, which will be in a matrix
 //and the b-factors, which are in a separate slice of float64.
@@ -45,6 +46,7 @@ type Atom struct {
 	Tag       int     //Just added this for something that someone might want to keep that is not a float.
 	Molname   string  //PDB name of the residue or molecule (3-letter code for residues)
 	Molname1  byte    //the one letter name for residues and nucleotids
+	Char16    byte    //Whatever is in the column 16 (counting from 0) in a PDB file, anything.
 	MolID     int     //PDB index of the corresponding residue or molecule
 	Chain     string  //One-character PDB name for a chain.
 	Mass      float64 //hopefully all these float64 are not too much memory
@@ -91,12 +93,12 @@ type Topology struct {
 //charge charge and multi multiplicity.
 // It doesnt check for consitency across slices or correct charge
 //or unpaired electrons.
-func NewTopology(ats []*Atom, charge, multi int) *Topology {
+func NewTopology(charge, multi int, ats ...[]*Atom) *Topology {
 	top := new(Topology)
-	if ats == nil {
+	if len(ats)==0 || ats[0] == nil {
 		top.Atoms = make([]*Atom, 0, 0) //return nil, fmt.Errorf("Supplied a nil Topology")
 	} else {
-		top.Atoms = ats
+		top.Atoms = ats[0]
 	}
 	top.charge = charge
 	top.multi = multi
@@ -275,7 +277,7 @@ func NewMolecule(coords []*v3.Matrix, ats Atomer, bfactors [][]float64) (*Molecu
 	//	}
 	mol := new(Molecule)
 	atcopy := func() {
-		mol.Topology = NewTopology(make([]*Atom, 0, ats.Len()), 9999, -1) //I use 9999 for charge and -1 or multi to indicate that they are not truly set. So far NewTopology never actually returns any error so it's safe to ignore them. NOTE: Need to fix newtopology so it doesnt return error
+		mol.Topology = NewTopology( 9999, -1,make([]*Atom, 0, ats.Len())) //I use 9999 for charge and -1 or multi to indicate that they are not truly set. So far NewTopology never actually returns any error so it's safe to ignore them. NOTE: Need to fix newtopology so it doesnt return error
 		for i := 0; i < ats.Len(); i++ {
 			mol.Atoms = append(mol.Atoms, ats.Atom(i))
 		}
@@ -324,23 +326,30 @@ func (M *Molecule) Del(i int) error {
 
 //Copy puts in the receiver a copy of the molecule  A including coordinates
 func (M *Molecule) Copy(A *Molecule) {
+	//	println("COMO LAS WEEEEEiiiiiiiiiiiiiiiiEEEEEAS") ////////////////////////////////////////
 	if err := A.Corrupted(); err != nil {
 		panic(err.Error())
 	}
 	r, _ := A.Coords[0].Dims()
-	mol := new(Molecule)
-	mol.Topology = new(Topology)
-	mol.CopyAtoms(A)
-	mol.Coords = make([]*v3.Matrix, 0, len(M.Coords))
-	mol.Bfactors = make([][]float64, 0, len(M.Bfactors))
-	for key, val := range M.Coords {
+	//mol := new(Molecule)
+	M.Topology = new(Topology)
+	for i := 0; i < A.Len(); i++ {
+		at := new(Atom)
+		at.Copy(A.Atom(i))
+		M.Topology.Atoms = append(M.Topology.Atoms, at)
+
+	}
+	//	M.CopyAtoms(A)
+	M.Coords = make([]*v3.Matrix, 0, len(A.Coords))
+	M.Bfactors = make([][]float64, 0, len(A.Bfactors))
+	for key, val := range A.Coords {
 		tmp := v3.Zeros(r)
 		tmp.Copy(val)
-		mol.Coords = append(mol.Coords, tmp)
-		tmp2 := copyB(M.Bfactors[key])
-		mol.Bfactors = append(mol.Bfactors, tmp2)
+		M.Coords = append(M.Coords, tmp)
+		tmp2 := copyB(A.Bfactors[key])
+		M.Bfactors = append(M.Bfactors, tmp2)
 	}
-	if err := mol.Corrupted(); err != nil {
+	if err := M.Corrupted(); err != nil {
 		panic(PanicMsg(fmt.Sprintf("goChem: Molecule creation error: %s", err.Error())))
 	}
 }
@@ -676,6 +685,8 @@ type PanicMsg string
 func (v PanicMsg) Error() string { return string(v) }
 
 const (
+	ErrNilData          = PanicMsg("goChem: Nil data given ")
+	ErrInconsistentData = PanicMsg("goChem: Inconsistent data length ")
 	ErrNilMatrix        = PanicMsg("goChem: Attempted to access nil v3.Matrix or gonum/mat64.Dense")
 	ErrNilAtoms         = PanicMsg("goChem: Topology has a nil []*Atom slice")
 	ErrNilAtom          = PanicMsg("goChem: Attempted to copy from or to a nil Atom")

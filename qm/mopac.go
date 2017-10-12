@@ -94,11 +94,11 @@ func (O *MopacHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger,
 		Q.Method = O.defmethod
 	}
 	opt := "" //Empty string means optimize
-	jc:=jobChoose{}
-	jc.sp=func(){
+	jc := jobChoose{}
+	jc.sp = func() {
 		opt = "1SCF"
 	}
-	jc.opti=func(){}
+	jc.opti = func() {}
 	Q.Job.Do(jc)
 	//If this flag is set we'll look for a suitable MO file.
 	//If not found, we'll just use the default ORCA guess
@@ -258,8 +258,7 @@ func (O *MopacHandle) OptimizedGeometry(atoms chem.Atomer) (*v3.Matrix, error) {
 			continue
 		}
 
-		//MOPAC output is a pleasure to parse. IF YOU ARE A F*** PERKELEN CTM MASOCHIST!!!!!!!!!!!!!!!!!!!
-		if !reading && (strings.Contains(line, "FINAL  POINT  AND  DERIVATIVES") || strings.Contains(line, "GEOMETRY OPTIMISED")) || strings.Contains(line, "GRADIENTS WERE INITIALLY ACCEPTABLY SMALL") {
+		if !reading && (strings.Contains(line, "FINAL  POINT  AND  DERIVATIVES") || strings.Contains(line, "GEOMETRY OPTIMISED")) || strings.Contains(line, "GRADIENTS WERE INITIALLY ACCEPTABLY SMALL") || strings.Contains(line, "HERBERTS TEST WAS SATISFIED IN BFGS") {
 			final_point = true
 			continue
 		}

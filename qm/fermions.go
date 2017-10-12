@@ -128,8 +128,8 @@ func (O *FermionsHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharg
 	}
 	task := "SinglePoint"
 	dloptions := ""
-	jc:=jobChoose{}
-	jc.opti= func() {
+	jc := jobChoose{}
+	jc.opti = func() {
 		task = "DLF_OPTIMIZE"
 		dloptions = fmt.Sprintf("*start::dlfind\n JOB std\n method l-bfgs\n trust_radius energy\n dcd %s.dcd\n maxcycle 300\n maxene 200\n coord_type cartesian\n*end\n", O.inputname)
 		//Only cartesian constraints supported by now.
@@ -338,3 +338,8 @@ func searchFromEnd(templa, filename string) bool {
 	}
 	return ret
 }
+
+//I don't have this implemented so far, sorry.
+func (O *FermionsHandle) OptimizedGeometry(atoms chem.Atomer) (*v3.Matrix, error) {
+	return nil, nil
+	}

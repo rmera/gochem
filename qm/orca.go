@@ -52,6 +52,7 @@ type OrcaHandle struct {
 	command     string
 	inputname   string
 	nCPU        int
+	orca3       bool
 }
 
 func NewOrcaHandle() *OrcaHandle {
@@ -79,14 +80,22 @@ func (O *OrcaHandle) SetMOName(name string) {
 	O.previousMO = name
 }
 
+//As per the "zero value" of structures in Go, the default for goChem will be to use Orca 4
+func (O *OrcaHandle) SetOrca3(b bool) {
+	O.orca3 = b
+}
+
 /*Sets defaults for ORCA calculation. Default is a single-point at
 revPBE/def2-SVP with RI, and all the available CPU with a max of
 8. The ORCA command is set to $ORCA_PATH/orca, at least in
 unix.*/
 func (O *OrcaHandle) SetDefaults() {
-	O.defmethod = "revPBE"
+	O.defmethod = "BLYP"
 	O.defbasis = "def2-SVP"
-	O.defauxbasis = "def2-SVP/J"
+	O.defauxbasis = "def2/J"
+	if O.orca3 {
+		O.defauxbasis = "def2-SVP/J"
+	}
 	O.command = os.ExpandEnv("${ORCA_PATH}/orca")
 	if O.command == "/orca" { //if ORCA_PATH was not defined
 		O.command = "./orca"
@@ -103,7 +112,7 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 	if atoms == nil || coords == nil {
 		return Error{ErrMissingCharges, Orca, O.inputname, "", []string{"BuildInput"}, true}
 	}
-	if Q.Basis == "" {
+	if Q.Basis == "" && !strings.Contains(Q.Method, "3c") {
 		log.Printf("no basis set assigned for ORCA calculation, will used the default %s, \n", O.defbasis) //NOTE: This could be changed for a non-critical error
 		Q.Basis = O.defbasis
 	}
@@ -119,15 +128,15 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 	if Q.RI && Q.RIJ {
 		return Error{"goChem/QM: RI and RIJ cannot be activated at the same time", Orca, O.inputname, "", []string{"BuildInput"}, true}
 	}
-	if Q.RI {
-		Q.auxBasis = Q.Basis + "/J"
+	if Q.RI || Q.RIJ {
+		Q.auxBasis = "def2/J" //Of course, this will only work with Karlsruhe basis.
+		if O.orca3 {
+			Q.auxBasis = Q.Basis + "/J"
+		}
 		//	if !strings.Contains(Q.Others," RI "){
 		ri = "RI"
 	}
 	if Q.RIJ {
-		Q.auxBasis = Q.Basis + "/J"
-		Q.auxColBasis = Q.Basis + "/C"
-		//	if !strings.Contains(Q.Others,"RIJCOSX"){
 		ri = "RIJCOSX"
 	}
 
@@ -137,8 +146,8 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 	}
 	opt := ""
 	trustradius := ""
-	jc:=jobChoose{}
-	jc.opti= func() {
+	jc := jobChoose{}
+	jc.opti = func() {
 		opt = "Opt"
 		trustradius = "%geom trust 0.3\nend\n\n" //Orca uses a fixed trust radius by default. This goChem makes an input that activates variable trust radius.
 	}
@@ -161,17 +170,17 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 				continue
 			}
 			name := val.Name()
-			if strings.Contains(name,".gbw") {
+			if strings.Contains(name, ".gbw") {
 				O.previousMO = name
 				break
 			}
 		}
 		if O.previousMO != "" {
-		//	Q.Guess = "MORead"
+			//	Q.Guess = "MORead"
 			moinp = fmt.Sprintf("%%scf\n   Guess MORead\n   MOInp \"%s\"\nend\n\n", O.previousMO)
 		} else {
 			moinp = ""
-		//	Q.Guess = "" //The default guess
+			//	Q.Guess = "" //The default guess
 		}
 	}
 	tight := "TightSCF"
@@ -204,7 +213,7 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 	if bsse, err = O.buildgCP(Q); err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 	}
-	HF3cAdditional:="" // additional settings for HF-3c.
+	HF3cAdditional := ""     // additional settings for HF-3c.
 	if Q.Method == "HF-3c" { //This method includes its own basis sets and corrections, so previous choices are overwritten. NOTE: there are some defaults that should be changed to get HF-3c to work better.
 		Q.Basis = ""
 		Q.auxBasis = ""
@@ -212,9 +221,9 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 		Q.Guess = ""
 		bsse = ""
 		disp = ""
-		HF3cAdditional="%scf\n   SCFMode Direct\n   MaxIter 200\n   MaxIntMem 2000\nend\n\n"
+		HF3cAdditional = "%scf\n   SCFMode Direct\n   MaxIter 200\n   MaxIntMem 2000\nend\n\n"
 
-			}
+	}
 	MainOptions := []string{"!", hfuhf, Q.Method, Q.Basis, Q.auxBasis, Q.auxColBasis, tight, disp, conv, Q.Guess, opt, Q.Others, grid, ri, bsse, "\n\n"}
 	mainline := strings.Join(MainOptions, " ")
 	constraints := O.buildCConstraints(Q.CConstraints)
@@ -224,7 +233,11 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 	}
 	cosmo := ""
 	if Q.Dielectric > 0 {
-		cosmo = fmt.Sprintf("%%cosmo epsilon %1.0f\n        refrac 1.30\n        end\n\n", Q.Dielectric)
+		method := "cpcm"
+		if O.orca3 {
+			method = "cosmo"
+		}
+		cosmo = fmt.Sprintf("%%%s epsilon %1.0f\n        refrac 1.30\n        end\n\n", method, Q.Dielectric)
 	}
 	mem := ""
 	if Q.Memory != 0 {
@@ -259,8 +272,8 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 		return Error{ErrCantInput, Orca, O.inputname, err.Error(), []string{"fmt.Printf", "BuildInput"}, true}
 
 	}
-	fmt.Println("Ta wena la wea... chupa la callampa, uh uh uuuh", moinp) ///////////////
-	fmt.Fprint(file,HF3cAdditional)
+	//	fmt.Println("Ta wena la wea... chupa la callampa, uh uh uuuh", moinp) ///////////////
+	fmt.Fprint(file, HF3cAdditional)
 	fmt.Fprint(file, pal)
 	fmt.Fprint(file, moinp)
 	fmt.Fprint(file, mem)
@@ -328,12 +341,19 @@ func (O *OrcaHandle) buildIConstraints(C []*IConstraint) (string, error) {
 		}
 
 		var temp string
+		var value string
+		//if UseVal is false, we don't add any value to the contraint. Orca will constraint the coordinate to its value in the starting structure.
+		if val.UseVal {
+			value = fmt.Sprintf("%2.3f", val.Val)
+		} else {
+			value = ""
+		}
 		if val.Class == 'B' {
-			temp = fmt.Sprintf("         {B %d %d %2.3f C}\n", val.CAtoms[0], val.CAtoms[1], val.Val)
+			temp = fmt.Sprintf("         {B %d %d %s C}\n", val.CAtoms[0], val.CAtoms[1], value)
 		} else if val.Class == 'A' {
-			temp = fmt.Sprintf("         {A %d %d %d %2.3f C}\n", val.CAtoms[0], val.CAtoms[1], val.CAtoms[2], val.Val)
+			temp = fmt.Sprintf("         {A %d %d %d %s C}\n", val.CAtoms[0], val.CAtoms[1], val.CAtoms[2], value)
 		} else if val.Class == 'D' {
-			temp = fmt.Sprintf("         {D %d %d %d %d %2.3f C}\n", val.CAtoms[0], val.CAtoms[1], val.CAtoms[2], val.CAtoms[3], val.Val)
+			temp = fmt.Sprintf("         {D %d %d %d %d %s C}\n", val.CAtoms[0], val.CAtoms[1], val.CAtoms[2], val.CAtoms[3], value)
 		}
 		constraints[key+1] = temp
 	}

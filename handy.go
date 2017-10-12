@@ -29,7 +29,39 @@
 package chem
 
 import "fmt"
+import "math"
 import "github.com/rmera/gochem/v3"
+import "strings"
+
+const allchains = "*ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+//FixGromacsPDB fixes the problem that Gromacs PDBs have when there are more than 10000 residues
+//Gromacs simply restarts the numbering. Since solvents (where this is likely to happen) don't have
+//chain ID in Gromacs, it's impossible to distinguish between the water 1 and the water 10001. FixGromacsPDB
+//Adds a chain ID to the newly restrated residue that is the letter/symbol coming after the last seen chain ID
+//in the constant allchains defined in this file. The current implementation does nothing if a chain ID is already
+//defined, even if it is wrong (if 9999 and the following 0 residue have the same chain).
+func FixGromacsPDB(mol Atomer) {
+//	fmt.Println("FIXING!")
+	previd:=-1
+	lastchain:="*"
+	for i:=0;i<mol.Len();i++{
+		at:=mol.Atom(i)
+		if at.Chain==" "{
+			if previd>at.MolID{
+				index:=strings.Index(allchains,lastchain)+1
+			//	fmt.Println("new chain index:", index)
+				lastchain=string(allchains[index])
+			}
+			at.Chain=lastchain
+	//		fmt.Println(lastchain) /////////
+		}else{
+		lastchain=at.Chain
+		}
+		previd=at.MolID
+	}
+}
+
 
 //Molecules2Atoms gets a selection list from a list of residues.
 //It select all the atoms that form part of the residues in the list.
@@ -46,6 +78,39 @@ func Molecules2Atoms(mol Atomer, residues []int, chains []string) []int {
 	}
 	return atlist
 
+}
+
+//Easy shape takes a matrix of coordinates, a value for epsilon (a number close to zero, the close, the more
+//strict the orthogonality requriements are) and an (optative) masser and returns
+//two shape indicators based on the elipsoid of inertia (or it massless equivalent)
+//a linear and circular distortion indicators, and an error or nil (in that order).
+//if you give a negative number as epsilon, the default (quite strict) will be used.
+func EasyShape(coords *v3.Matrix, epsilon float64, mol ...Masser) (float64, float64, error) {
+	var masses []float64
+	var err2 error
+	var err error
+	if len(mol) < 0 {
+		masses = nil
+	} else {
+		masses, err = mol[0].Masses()
+		if err != nil {
+			masses = nil
+			err2 = err
+		}
+	}
+	moment, err := MomentTensor(coords, masses)
+	if err != nil {
+		return -1, -1, err
+	}
+	rhos, err := Rhos(moment,epsilon)
+	if err != nil {
+		return -1, -1, err
+	}
+	linear,circular, err := RhoShapeIndexes(rhos)
+	if err != nil {
+		return -1, -1, err
+	}
+	return  linear,circular, err2
 }
 
 //MolIDNameChain2Index takes a molID (residue number), atom name, chain index and a molecule Atomer.
@@ -86,35 +151,44 @@ func OnesMass(lenght int) *v3.Matrix {
 }
 
 //Super determines the best rotation and translations to superimpose the coords in test
-//listed in testlst on te atoms of molecule templa, frame frametempla, listed in templalst.
-//It applies those rotation and translations to the whole frame frametest of molecule test, in palce.
-//testlst and templalst must have the same number of elements. If any of the two slices, or both, are
-//nil or have a zero lenght, they will be replaced by a list containing the number of all atoms in the
-//corresponding molecule.
-func Super(test, templa *v3.Matrix, testlst, templalst []int) (*v3.Matrix, error) {
-	//_, testcols := test.Dims()
-	//_, templacols := templa.Dims()
-	structs := []*v3.Matrix{test, templa}
-	lists := [][]int{testlst, templalst}
-	//In case one or both lists are nil or have lenght zero.
-	for k, v := range lists {
-		if v == nil || len(v) == 0 {
-			fmt.Println("Invalid List!!!! Will fill it with numbers!") ////////////////
-			lists[k] = make([]int, structs[k].NVecs(), structs[k].NVecs())
-			for k2, _ := range lists[k] {
-				lists[k][k2] = k2
-			}
-			fmt.Println("produced lists:", lists[k], structs[k].NVecs()) /////////////
+//considering only the atoms present in the slices of int slices indexes.
+//The first indexes slices will be assumed to contain test indexes and the second, template indexes.
+//If you give only one (it must be the first one), it will be assumed to correspondo to whatever molecule
+//that has more atoms than the elements in the slice.
+//Giving a nil or 0-lenght first slice and a non-nil second
+//slice will cause MemRMSD to not consider neither of them.
+//The same number of atoms
+//has to be considered for superposition in both systems.
+//It applies those rotation and translations to the whole molecule test, in palce.
+//testlst and templalst must have the same number of elements.
+func Super(test, templa *v3.Matrix, indexes ...[]int) (*v3.Matrix, error) {
+	var ctest *v3.Matrix
+	var ctempla *v3.Matrix
+	if len(indexes) == 0 || indexes[0] == nil || len(indexes[0]) == 0 { //If you put the date in the SECOND slice, you are just messing with me.
+		ctest = test
+		ctempla = templa
+	} else if len(indexes) == 1 {
+		if test.NVecs() > len(indexes[0]) {
+			ctest = v3.Zeros(len(indexes[0]))
+			ctest.SomeVecs(test, indexes[0])
+			ctempla = templa
+		} else if templa.NVecs() > len(indexes[0]) {
+			ctempla = v3.Zeros(len(indexes[0]))
+			ctempla.SomeVecs(templa, indexes[0])
+		} else {
+			return nil, fmt.Errorf("chem.Super: Indexes don't match molecules")
 		}
+	} else {
+		ctest = v3.Zeros(len(indexes[0]))
+		ctest.SomeVecs(test, indexes[0])
+		ctempla = v3.Zeros(len(indexes[1]))
+		ctempla.SomeVecs(templa, indexes[1])
 	}
-	//fmt.Println(lists[0])
-	if len(lists[0]) != len(lists[1]) {
-		return nil, CError{fmt.Sprintf("Mismatched template and test atom numbers: %d, %d", len(lists[1]), len(lists[0])), []string{"Super"}}
+
+	if ctest.NVecs() != ctempla.NVecs() {
+		return nil, fmt.Errorf("chem.Super: Ill formed coordinates for Superposition")
 	}
-	ctest := v3.Zeros(len(lists[0]))
-	ctest.SomeVecs(test, lists[0])
-	ctempla := v3.Zeros(len(lists[1]))
-	ctempla.SomeVecs(templa, lists[1])
+
 	_, rotation, trans1, trans2, err1 := RotatorTranslatorToSuper(ctest, ctempla)
 	if err1 != nil {
 		return nil, errDecorate(err1, "Super")
@@ -176,7 +250,7 @@ func EulerRotateAbout(coordsorig, ax1, ax2 *v3.Matrix, angle float64) (*v3.Matri
 	}
 	//	Zsr, _ := Zswitch.Dims()
 	//	RevZ := v3.Zeros(Zsr)
-	RevZ, err := gnInverse(Zswitch)
+	RevZ, err := gnInverse(Zswitch, nil)
 	if err != nil {
 		return nil, errDecorate(err, "EulerRotateAbout")
 	}
@@ -555,5 +629,63 @@ func MergeAtomers(A, B Atomer) *Topology {
 	} else {
 		multi = 1
 	}
-	return NewTopology(full, charge, multi)
+	return NewTopology(charge, multi,full)
+}
+
+//SelCone, Given a set of cartesian points in sellist, obtains a vector "plane" normal to the best plane passing through the points.
+//It selects atoms from the set A that are inside a cone in the direction of "plane" that starts from the geometric center of the cartesian points,
+//and has an angle of angle (radians), up to a distance distance. The cone is approximated by a set of radius-increasing cilinders with height thickness.
+//If one starts from one given point, 2 cgnOnes, one in each direction, are possible. If whatcone is 0, both cgnOnes are considered.
+//if whatcone<0, only the cone opposite to the plane vector direction. If whatcone>0, only the cone in the plane vector direction.
+//the 'initial' argument  allows the construction of a truncate cone with a radius of initial.
+func SelCone(B, selection *v3.Matrix, angle, distance, thickness, initial float64, whatcone int) []int {
+	A := v3.Zeros(B.NVecs())
+	A.Copy(B) //We will be altering the input so its better to work with a copy.
+	ar, _ := A.Dims()
+	selected := make([]int, 0, 3)
+	neverselected := make([]int, 0, 30000)     //waters that are too far to ever be selected
+	nevercutoff := distance / math.Cos(angle)  //cutoff to be added to neverselected
+	A, _, err := MassCenter(A, selection, nil) //Centrate A in the geometric center of the selection, Its easier for the following calculations
+	if err != nil {
+		panic(PanicMsg(err.Error()))
+	}
+	selection, _, _ = MassCenter(selection, selection, nil) //Centrate the selection as well
+	plane, err := BestPlane(selection, nil)                 //I have NO idea which direction will this vector point. We might need its negative.
+	if err != nil {
+		panic(PanicMsg(err.Error()))
+	}
+	for i := thickness / 2; i <= distance; i += thickness {
+		maxdist := math.Tan(angle)*i + initial //this should give me the radius of the cone at this point
+		for j := 0; j < ar; j++ {
+			if isInInt(selected, j) || isInInt(neverselected, j) { //we dont scan things that we have already selected, or are too far
+				continue
+			}
+			atom := A.VecView(j)
+			proj := Projection(atom, plane)
+			norm := proj.Norm(0)
+			//Now at what side of the plane is the atom?
+			angle := Angle(atom, plane)
+			if whatcone > 0 {
+				if angle > math.Pi/2 {
+					continue
+				}
+			} else if whatcone < 0 {
+				if angle < math.Pi/2 {
+					continue
+				}
+			}
+			if norm > i+(thickness/2.0) || norm < (i-thickness/2.0) {
+				continue
+			}
+			proj.Sub(proj, atom)
+			projnorm := proj.Norm(0)
+			if projnorm <= maxdist {
+				selected = append(selected, j)
+			}
+			if projnorm >= nevercutoff {
+				neverselected = append(neverselected, j)
+			}
+		}
+	}
+	return selected
 }

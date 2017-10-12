@@ -27,18 +27,14 @@ package chem
 
 import (
 	"fmt"
+	"github.com/rmera/gochem/v3"
+	"gonum.org/v1/gonum/mat"
 	"math"
 	"sort"
-
-	"github.com/gonum/matrix/mat64"
-	"github.com/rmera/gochem/v3"
 )
-
-
 
 //NOTE: For many of these functions we could ask for a buffer vector in the arguments in order to reduce
 //memory allocation.
-
 
 //Angle takes 2 vectors and calculate the angle in radians between them
 //It does not check for correctness or return errors!
@@ -155,9 +151,23 @@ func RotatorTranslatorToSuper(test, templa *v3.Matrix) (*v3.Matrix, *v3.Matrix, 
 	Maux := v3.Zeros(r)
 	Maux.Mul(aux2, ctest)
 	Maux.Tr() //Dont understand why this is needed
-	factors := mat64.SVD(v3.Matrix2Dense(Maux), appzero, math.SmallestNonzeroFloat64, true, true)
+	svd := new(mat.SVD)
+	if ok := svd.Factorize(v3.Matrix2Dense(Maux), mat.SVDFull); !ok {
+		return nil, nil, nil, nil, errDecorate(fmt.Errorf("mat.SVD failed"), "RotatorTranslatorToSuper")
+	}
+
+	//matrix Maux dimensions must be 3x3
+	Ud := mat.NewDense(3, 3, make([]float64, 9))
+	Vd := mat.NewDense(3, 3, make([]float64, 9))
+	svd.UTo(Ud)
+	svd.VTo(Vd)
+	U := v3.Dense2Matrix(Ud) //These will panic if the matrices were not 3x3
+	V := v3.Dense2Matrix(Vd)
+	/***** OLD
+	factors := mat.SVD(v3.Matrix2Dense(Maux), appzero, math.SmallestNonzeroFloat64, true, true)
 	U := factors.U
 	V := factors.V
+	****/
 	//	if err != nil {
 	//		return nil, nil, nil, nil, err  //I'm not sure what err is this one
 	//	}
@@ -175,7 +185,7 @@ func RotatorTranslatorToSuper(test, templa *v3.Matrix) (*v3.Matrix, *v3.Matrix, 
 		RightHand.Set(2, 2, -1)
 		Rotation.Mul(V, RightHand)
 		Rotation.Mul(Rotation, gnT(U)) //If I get this to work Ill arrange so gnT(U) is calculated once, not twice as now.
-		Rotation.Tr() //TransposeTMP contains the transpose of the original Rotation      //Same, no ide why I need this
+		Rotation.Tr()                  //TransposeTMP contains the transpose of the original Rotation      //Same, no ide why I need this
 		//return nil, nil, nil, nil, fmt.Errorf("Got a reflection instead of a translations. The objects may be specular images of each others")
 	}
 	jT.Scale(Scal, jT)
@@ -212,26 +222,107 @@ func rmsd_fail(test, template *matrix.DenseMatrix) (float64, error) {
 }
 */
 
+//RMSD calculates the RMSD between test and template, considering only the atoms
+//present in the slices of int slices indexes. The first indexes slices will
+//be assumed to contain test indexes and the second, template indexes.
+//If you give only one, it will be assumed to correspondo to whatever molecule
+//that has more atoms than the elements in the slice. The same number of atoms
+//has to be considered for superposition in both systems.
+//The objects are not superimposed before the calculation.
+func RMSD(test, templa *v3.Matrix,  indexes ...[]int) (float64, error) {
+	var L int
+	if len(indexes)  == 0 || indexes[0]==nil || len(indexes[0])==0{
+		L = test.NVecs()
+	} else {
+		L = len(indexes[0])
+	}
+	tmp := v3.Zeros(L)
+	//We don't test anything in-house. All the testing in done by MemRMSD
+	rmsd, err := MemRMSD(test, templa, tmp, indexes...)
+	return rmsd, err
+}
+
+
+//MemRMSD calculates the RMSD between test and template, considering only the atoms
+//present in the slices of int slices indexes. The first indexes slices will
+//be assumed to contain test indexes and the second, template indexes.
+//If you give only one (it must be the first one), it will be assumed to correspond to whatever molecule
+//that has more atoms than the elements in the slice.  Giving a nil or 0-lenght first slice and a non-nil second
+//slice will cause MemRMSD to not consider neither of them.
+//The same number of atoms
+//has to be considered for the calculation in both systems.
+//It does not superimpose the objects.
+//To save memory, it asks for the temporary matrix it needs to be supplied:
+//tmp must be Nx3 where N is the number
+//of elements in testlst and templalst
+func MemRMSD(test, templa, tmp *v3.Matrix, indexes ...[]int) (float64, error) {
+	var ctest *v3.Matrix
+	var ctempla *v3.Matrix
+	if len(indexes)==0 || indexes[0]==nil || len(indexes[0])==0 {
+		ctest=test
+		ctempla=templa
+	}else if len(indexes)==1{
+		if  test.NVecs()>len(indexes[0]){
+			ctest = v3.Zeros(len(indexes[0]))
+			ctest.SomeVecs(test, indexes[0])
+			ctempla=templa
+		}else if templa.NVecs()>len(indexes[0]){
+			ctempla = v3.Zeros(len(indexes[0]))
+			ctempla.SomeVecs(templa, indexes[0])
+		}else{
+			return -1, fmt.Errorf("chem.memRMSD: Indexes don't match molecules")
+		}
+	}else{
+		ctest = v3.Zeros(len(indexes[0]))
+		ctest.SomeVecs(test, indexes[0])
+		ctempla = v3.Zeros(len(indexes[1]))
+		ctempla.SomeVecs(templa, indexes[1])
+	}
+	if ctest.NVecs() != ctempla.NVecs() || tmp.NVecs() != ctest.NVecs() {
+		return -1, fmt.Errorf("chem.memRMSD: Ill formed matrices for memRMSD calculation")
+	}
+	tmp.Sub(ctest, ctempla)
+	rmsd := tmp.Norm(2)
+	return rmsd / math.Sqrt(float64(ctest.NVecs())), nil
+
+}
+
 //RMSD returns the RSMD (root of the mean square deviation) for the sets of cartesian
-//coordinates in test and template.
-func RMSD(test, template *v3.Matrix) (float64, error) {
+//coordinates in test and template, only considering the template and test atoms in
+//the lists testlst and templalst, respectively. Since it is very explicit I leave it here for testing.
+func rMSD(test, template *v3.Matrix, testlst, templalst []int) (float64, error) {
 	//This is a VERY naive implementation.
-	tmr, tmc := template.Dims()
-	tsr, tsc := test.Dims()
+	lists := [][]int{testlst, templalst}
+	var ctest *v3.Matrix
+	var ctempla *v3.Matrix
+	if testlst == nil || len(testlst) == 0 {
+		ctest = test
+	} else {
+		ctest = v3.Zeros(len(lists[0]))
+		ctest.SomeVecs(test, lists[0])
+	}
+	if templalst == nil || len(templalst) == 0 {
+		ctempla = template
+	} else {
+		ctempla = v3.Zeros(len(lists[1]))
+		ctempla.SomeVecs(template, lists[1])
+	}
+	tmr, tmc := ctempla.Dims()
+	tsr, tsc := ctest.Dims()
 	if tmr != tsr || tmc != 3 || tsc != 3 {
-		return 0, fmt.Errorf("Ill formed matrices for RMSD calculation")
+		return -1, fmt.Errorf("RMSD: Ill formed matrices for RMSD calculation")
 	}
 	tr := tmr
-	ctempla := v3.Zeros(template.NVecs())
-	ctempla.Copy(template)
+	ctempla2 := v3.Zeros(ctempla.NVecs())
+	ctempla2.Copy(ctempla)
 	//the maybe thing might not be needed since we check the dimensions before.
-	f := func() { ctempla.Sub(ctempla, test) }
+	f := func() { ctempla2.Sub(ctempla2, ctest) }
 	if err := gnMaybe(gnPanicker(f)); err != nil {
-		return 0, CError{err.Error(), []string{"v3.Matrix.Sub", "RMSD"}}
+		return -1, CError{err.Error(), []string{"v3.Matrix.Sub", "RMSD"}}
 	}
 	var RMSD float64
-	for i := 0; i < template.NVecs(); i++ {
-		temp := ctempla.VecView(i)
+	for i := 0; i < ctempla.NVecs(); i++ {
+		temp := ctempla2.VecView(i)
 		RMSD += math.Pow(temp.Norm(0), 2)
 	}
 	RMSD = RMSD / float64(tr)
@@ -276,18 +367,33 @@ func Dihedral(a, b, c, d *v3.Matrix) float64 {
 //point comparisons
 
 //RhoShapeIndexes Get shape indices based on the axes of the elipsoid of inertia.
+//linear and circular distortion, in that order, and error or nil.
 //Based on the work of Taylor et al., .(1983), J Mol Graph, 1, 30
-//This function has NOT been tested.
-func RhoShapeIndexes(evals []float64) (float64, float64, error) {
-	rhos, err := Rhos(evals)
-	linear_distortion := (1 - (rhos[1] / rhos[0])) * 100   //Prolate
-	circular_distortion := (1 - (rhos[2] / rhos[0])) * 100 //Oblate
-	return linear_distortion, circular_distortion, errDecorate(err, "RhoShapeIndexes")
+//This function has NOT been tested thoroughly in the sense of the appropiateness of the indexes definitions.
+func RhoShapeIndexes(rhos []float64) (float64, float64, error) {
+	if rhos==nil || len(rhos)<3{
+		return -1,-1,CError{"goChe: Not enough or nil rhos",[]string{"RhoShapeIndexes"}}
+	}
+//	print(rhos[0],rhos[1],rhos[2]) ////////////////////////
+// Are these definitions reasonable?
+	linear_distortion := (1-(rhos[1] / rhos[0])) * 100   //Prolate
+	circular_distortion := ((1-(rhos[2] / rhos[1])) * 100) //Oblate
+	return linear_distortion, circular_distortion, nil
 }
 
-//Rhos returns the semiaxis of the elipoid of inertia given the eigenvectors of the moment tensor.
-func Rhos(evals []float64) ([]float64, error) {
-	rhos := sort.Float64Slice{invSqrt(evals[0]), invSqrt(evals[1]), invSqrt(evals[2])}
+//Rhos returns the semiaxis of the elipoid of inertia given the the moment of inertia tensor.
+func Rhos(momentTensor *v3.Matrix, epsilon ...float64) ([]float64, error) {
+	var e float64
+	if len(epsilon)==0{
+		e=-1
+	}else{
+		e=epsilon[0]
+	}
+	_,evals,err:=v3.EigenWrap(momentTensor,e)
+	if err!=nil{
+		return nil, errDecorate(err,"Rhos")
+	}
+	rhos := sort.Float64Slice{evals[0],evals[1],evals[2]} //invSqrt(evals[0]), invSqrt(evals[1]), invSqrt(evals[2])}
 	if evals[2] <= appzero {
 		return rhos[:], CError{"goChem: Molecule colapsed to a single point. Check for blackholes", []string{"Rhos"}}
 	}
@@ -319,19 +425,22 @@ func BestPlaneP(evecs *v3.Matrix) (*v3.Matrix, error) {
 }
 
 //BestPlane returns a row vector that is normal to the plane that best contains the molecule
-//if passed a nil Masser, it will simply set all masses to 1.
-func BestPlane(coords *v3.Matrix, mol Masser) (*v3.Matrix, error) {
+//if passed a nil Masser, it will simply set all masses to 1. If more than one Masser is passed
+//Only the first will be considered
+func BestPlane(coords *v3.Matrix, mol ...Masser) (*v3.Matrix, error) {
 	var err error
 	var Mmass []float64
 	cr, _ := coords.Dims()
-	if mol != nil {
-		Mmass, err = mol.Masses()
+	if len(mol)!=0 && mol[0] != nil {
+		Mmass, err = mol[0].Masses()
 		if err != nil {
 			return nil, errDecorate(err, "BestPlane")
 		}
 		if len(Mmass) != cr {
 			return nil, CError{fmt.Sprintf("Inconsistent coordinates(%d)/atoms(%d)", len(Mmass), cr), []string{"BestPlane"}}
 		}
+	}else{
+		Mmass=nil
 	}
 	moment, err := MomentTensor(coords, Mmass)
 	if err != nil {
@@ -359,35 +468,41 @@ func ones(size int) []float64 {
 }
 
 //CenterOfMass returns the center of mass the atoms represented by the coordinates in geometry
-//and the masses in mass, and an error. If mass is nil, it calculates the geometric center
-func CenterOfMass(geometry *v3.Matrix, mass *mat64.Dense) (*v3.Matrix, error) {
+//and the masses in mass, and an error. If no mass is given, it calculates the geometric center
+func CenterOfMass(geometry *v3.Matrix, massS ...*mat.Dense) (*v3.Matrix, error) {
+	var mass *mat.Dense
 	if geometry == nil {
 		return nil, CError{"goChem: nil matrix to get the center of mass", []string{"CenterOfMass"}}
 	}
 	gr, _ := geometry.Dims()
-	if mass == nil { //just obtain the geometric center
+	if len(massS) == 0 || massS[0]==nil { //just obtain the geometric center
 		tmp := ones(gr)
-		mass = mat64.NewDense(gr, 1, tmp) //gnOnes(gr, 1)
+		mass = mat.NewDense(gr, 1, tmp) //gnOnes(gr, 1)
+	}else{
+		mass=massS[0]
 	}
 	tmp2 := ones(gr)
-	gnOnesvector := mat64.NewDense(1, gr, tmp2) //gnOnes(1, gr)
+	gnOnesvector := mat.NewDense(1, gr, tmp2) //gnOnes(1, gr)
 
 	ref := v3.Zeros(gr)
 	ref.ScaleByCol(geometry, mass)
 	ref2 := v3.Zeros(1)
 	ref2.Mul(gnOnesvector, ref)
-	ref2.Scale(1.0/mass.Sum(), ref2)
+	ref2.Scale(1.0/mat.Sum(mass), ref2)
 	return ref2, nil
 }
 
 //MassCenter centers in in the center of mass of oref. Mass must be
 //A column vector. Returns the centered matrix and the displacement matrix.
-func MassCenter(in, oref *v3.Matrix, mass *mat64.Dense) (*v3.Matrix, *v3.Matrix, error) {
+func MassCenter(in, oref *v3.Matrix, massS ...*mat.Dense) (*v3.Matrix, *v3.Matrix, error) {
 	or, _ := oref.Dims()
 	ir, _ := in.Dims()
-	if mass == nil { //just obtain the geometric center
+	var mass *mat.Dense
+	if len(massS)==0 || massS[0] == nil { //just obtain the geometric center
 		tmp := ones(or)
-		mass = mat64.NewDense(or, 1, tmp) //gnOnes(or, 1)
+		mass = mat.NewDense(or, 1, tmp) //gnOnes(or, 1)
+	}else{
+		mass=massS[0]
 	}
 	ref := v3.Zeros(or)
 	ref.Copy(oref)
@@ -401,7 +516,7 @@ func MassCenter(in, oref *v3.Matrix, mass *mat64.Dense) (*v3.Matrix, *v3.Matrix,
 	if err := gnMaybe(gnPanicker(g)); err != nil {
 		return nil, nil, CError{err.Error(), []string{"v3.gOnesVector", "MassCenter"}}
 	}
-	ref2.Scale(1.0/mass.Sum(), ref2)
+	ref2.Scale(1.0/mat.Sum(mass), ref2)
 	returned := v3.Zeros(ir)
 	returned.Copy(in)
 	returned.SubVec(returned, ref2)
@@ -416,14 +531,14 @@ func MassCenter(in, oref *v3.Matrix, mass *mat64.Dense) (*v3.Matrix, *v3.Matrix,
 
 //MomentTensor returns the moment tensor for a matrix A of coordinates and a column
 //vector mass with the respective massess.
-func MomentTensor(A *v3.Matrix, massslice []float64) (*v3.Matrix, error) {
+func MomentTensor(A *v3.Matrix, massslice ...[]float64) (*v3.Matrix, error) {
 	ar, ac := A.Dims()
 	var err error
-	var mass *mat64.Dense
-	if massslice == nil {
+	var mass *mat.Dense
+	if len(massslice)==0 || massslice[0] == nil {
 		mass = gnOnes(ar, 1)
 	} else {
-		mass = mat64.NewDense(ar, 1, massslice)
+		mass = mat.NewDense(ar, 1, massslice[0])
 		//		if err != nil {
 		//			return nil, err
 		//		}
@@ -457,71 +572,15 @@ func Projection(test, ref *v3.Matrix) *v3.Matrix {
 //AntiProjection returns a vector in the direction of ref with the magnitude of
 //a vector A would have if |test| was the magnitude of its projection
 //in the direction of test.
-func AntiProjection(test, ref *v3.Matrix) *v3.Matrix{
-	rr,_:=ref.Dims()
-	testnorm:=test.Norm(0)
-	Uref:=v3.Zeros(rr)
+func AntiProjection(test, ref *v3.Matrix) *v3.Matrix {
+	rr, _ := ref.Dims()
+	testnorm := test.Norm(0)
+	Uref := v3.Zeros(rr)
 	Uref.Unit(ref)
-	scalar:=test.Dot(Uref)
-	scalar=(testnorm*testnorm)/scalar
-	Uref.Scale(scalar,Uref)
+	scalar := test.Dot(Uref)
+	scalar = (testnorm * testnorm) / scalar
+	Uref.Scale(scalar, Uref)
 	return Uref
 }
 
-//SelCone, Given a set of cartesian points in sellist, obtains a vector "plane" normal to the best plane passing through the points.
-//It selects atoms from the set A that are inside a cone in the direction of "plane" that starts from the geometric center of the cartesian points,
-//and has an angle of angle (radians), up to a distance distance. The cone is approximated by a set of radius-increasing cilinders with height thickness.
-//If one starts from one given point, 2 cgnOnes, one in each direction, are possible. If whatcone is 0, both cgnOnes are considered.
-//if whatcone<0, only the cone opposite to the plane vector direction. If whatcone>0, only the cone in the plane vector direction.
-//the 'initial' argument  allows the construction of a truncate cone with a radius of initial.
-func SelCone(B, selection *v3.Matrix, angle, distance, thickness, initial float64, whatcone int) []int {
-	A := v3.Zeros(B.NVecs())
-	A.Copy(B) //We will be altering the input so its better to work with a copy.
-	ar, _ := A.Dims()
-	selected := make([]int, 0, 3)
-	neverselected := make([]int, 0, 30000)     //waters that are too far to ever be selected
-	nevercutoff := distance / math.Cos(angle)  //cutoff to be added to neverselected
-	A, _, err := MassCenter(A, selection, nil) //Centrate A in the geometric center of the selection, Its easier for the following calculations
-	if err != nil {
-		panic(PanicMsg(err.Error()))
-	}
-	selection, _, _ = MassCenter(selection, selection, nil) //Centrate the selection as well
-	plane, err := BestPlane(selection, nil)                 //I have NO idea which direction will this vector point. We might need its negative.
-	if err != nil {
-		panic(PanicMsg(err.Error()))
-	}
-	for i := thickness / 2; i <= distance; i += thickness {
-		maxdist := math.Tan(angle)*i + initial //this should give me the radius of the cone at this point
-		for j := 0; j < ar; j++ {
-			if isInInt(selected, j) || isInInt(neverselected, j) { //we dont scan things that we have already selected, or are too far
-				continue
-			}
-			atom := A.VecView(j)
-			proj := Projection(atom, plane)
-			norm := proj.Norm(0)
-			//Now at what side of the plane is the atom?
-			angle := Angle(atom, plane)
-			if whatcone > 0 {
-				if angle > math.Pi/2 {
-					continue
-				}
-			} else if whatcone < 0 {
-				if angle < math.Pi/2 {
-					continue
-				}
-			}
-			if norm > i+(thickness/2.0) || norm < (i-thickness/2.0) {
-				continue
-			}
-			proj.Sub(proj, atom)
-			projnorm := proj.Norm(0)
-			if projnorm <= maxdist {
-				selected = append(selected, j)
-			}
-			if projnorm >= nevercutoff {
-				neverselected = append(neverselected, j)
-			}
-		}
-	}
-	return selected
-}
+

@@ -38,9 +38,10 @@ package v3
 
 import (
 	"fmt"
-	"github.com/gonum/matrix/mat64"
-	"github.com/gonum/blas/blas64"
+	"gonum.org/v1/gonum/blas/blas64"
+	"gonum.org/v1/gonum/mat"
 	"math"
+	"math/cmplx"
 	"sort"
 )
 
@@ -51,14 +52,18 @@ import (
 //cartesian coordinates of a point in 3D space. The name of some funcitions in
 //the library reflect this.
 type Matrix struct {
-	*mat64.Dense
+	*mat.Dense
 }
 
-func Matrix2Dense(A *Matrix) *mat64.Dense {
+func Matrix2Dense(A *Matrix) *mat.Dense {
 	return A.Dense
 }
 
-func Dense2Matrix(A *mat64.Dense) *Matrix {
+func Dense2Matrix(A *mat.Dense) *Matrix {
+	r, c := A.Dims()
+	if c != 3 {
+		panic(fmt.Sprintf("malformed *mat.Dense matrix to make *v3.Matrix, must be Nx3, is %d x %d", r, c))
+	}
 	return &Matrix{A}
 }
 
@@ -70,22 +75,79 @@ func NewMatrix(data []float64) (*Matrix, error) {
 	if l%cols != 0 {
 		return nil, Error{fmt.Sprintf("Input slice lenght %d not divisible by %d: %d", rows, cols, rows%cols), []string{"NewMatrix"}, true}
 	}
-	r := mat64.NewDense(rows, cols, data)
+	r := mat.NewDense(rows, cols, data)
 	return &Matrix{r}, nil
 }
 
+//Row fills the  dst slice of float64 with the ith row of matrix F and returns it.
+//The slice must have the correct size or be nil, in which case a new slice will be created.
+//This method is merely a frontend for the mat64.Row function of gonum.
+func (F *Matrix) Row(dst []float64, i int) []float64 {
+	return mat.Row(dst, i, F.Dense)
+}
+
+//Col fills the  dst slice of float64 with the ith col of matrix F and returns it.
+//The slice must have the correct size or be nil, in which case a new slice will be created.
+//This method is merely a frontend for the mat64.Col function of gonum.
+func (F *Matrix) Col(dst []float64, i int) []float64 {
+	return mat.Col(dst, i, F.Dense)
+}
+
 //Puts a view of the given col of the matrix on the receiver
+func (F *Matrix) ColSlice(i int) *Matrix {
+	//	r := new(mat64.Dense)
+	Fr, _ := F.Dims()
+	r := F.Dense.Slice(0, Fr, i, i+1).(*mat.Dense)
+	return &Matrix{r}
+}
+
+//Puts a view of the given col of the matrix on the receiver.
+//This function is for compatibility with the gonum v1 API
+//The older one might be deleted in the future, but, if at all,
+//it will take time.
 func (F *Matrix) ColView(i int) *Matrix {
 	//	r := new(mat64.Dense)
 	Fr, _ := F.Dims()
-	r := F.Dense.View(0, i, Fr, 1).(*mat64.Dense)
+	r := F.Dense.Slice(0, Fr, i, i+1).(*mat.Dense)
 	return &Matrix{r}
 }
 
 //Returns view of the given vector of the matrix in the receiver
 func (F *Matrix) VecView(i int) *Matrix {
 	//r := new(mat64.Dense)
-	r := F.Dense.View(i, 0, 1, 3).(*mat64.Dense)
+	/*	mr,mc:=F.Caps() /////////////////////////
+		j:=0
+		k:=1+i
+		l:=3
+		println("ESTAMOS EN LA BEEE")
+		if i < 0{
+			println(1)
+		}else if mr <= i{
+			println(2)
+		} else if j < 0{
+			println(3)
+		} else if mc <= j{
+			println(4)
+		} else if  k <= i{
+			println(5,k,i)
+		} else if mr < k {
+			println(6)
+		} else if l <= j {
+			println(7)
+		}else if mc < l {
+			println(8)
+		}
+		println("nooo",i,mr,mc)////////////
+	*/
+	r := F.Dense.Slice(i, i+1, 0, 3).(*mat.Dense)
+	return &Matrix{r}
+}
+
+//VecSlice slice of the given vector of the matrix in the receiver
+//This function is to keep compatibility with the new gonum v1 API
+func (F *Matrix) VecSlice(i int) *Matrix {
+	//r := new(mat64.Dense)
+	r := F.Dense.Slice(i, i+1, 0, 3).(*mat.Dense)
 	return &Matrix{r}
 }
 
@@ -95,8 +157,24 @@ func (F *Matrix) VecView(i int) *Matrix {
 //But the right signatur was not possible to implement. Notice that very little
 //memory allocation happens, only a couple of ints and pointers.
 func (F *Matrix) View(i, j, r, c int) *Matrix {
-	ret := F.Dense.View(i, j, r, c).(*mat64.Dense)
+	ret := F.Dense.Slice(i, i+r, j, j+c).(*mat.Dense)
 	return &Matrix{ret}
+}
+
+//Slice returns a view of F starting from i,j and spanning r rows and
+//c columns. Changes in the view are reflected in F and vice-versa
+//This function is to keep compatibility with the gonum v1 API.
+func (F *Matrix) Slice(i, r, j, c int) *Matrix {
+	ret := F.Dense.Slice(i, r, j, c).(*mat.Dense)
+	return &Matrix{ret}
+}
+
+func (F *Matrix) Sub(A, B *Matrix) {
+	F.Dense.Sub(A.Dense, B.Dense)
+}
+
+func (F *Matrix) Add(A, B *Matrix) {
+	F.Dense.Add(A.Dense, B.Dense)
 }
 
 //Puts the matrix A in the received starting from the ith row and jth col
@@ -116,11 +194,11 @@ func (F *Matrix) SetMatrix(i, j int, A *Matrix) {
 	}
 }
 
-//Mul Wrapps mat64.Mul to take care of the case when one of the
+//Mul Wrapps mat.Mul to take care of the case when one of the
 //arguments is also the received. Since the received is a Matrix,
 //the mat64 function could check A (mat64.Dense) vs F (Matrix) and
 //it would not know that internally F.Dense==A, hence the need for this function.
-func (F *Matrix) Mul(A, B mat64.Matrix) {
+func (F *Matrix) Mul(A, B mat.Matrix) {
 	if F == A {
 		A := A.(*Matrix)
 		F.Dense.Mul(A.Dense, B)
@@ -148,6 +226,37 @@ func (F *Matrix) Mul(A, B mat64.Matrix) {
 		}
 	*/
 }
+
+//Dot acts as a frontend for the mat function, returns the dot product of the receiver and the argument.
+//Unlike the mat64 function it's specific for the v3.Matrix type, so if you want to use other types go for the function.
+func (F *Matrix) Dot(A *Matrix) float64 {
+	//The reason for making Dot ask for a v3.Matrix is that then we can call mat64.Dot with A.Dense, which should make things faster.
+	return mat.Dot(F.Dense.RowView(0), A.Dense.RowView(0))
+}
+
+func (F *Matrix) Scale(v float64, A *Matrix) {
+	F.Dense.Scale(v, A.Dense)
+}
+
+//Norm acts as a front-end for the mat64 function. Used for compatibility.
+func (F *Matrix) Norm(i float64) float64 {
+	//NOTE: This function should be removed from the API at some point, as it's probably not
+	//inlined because of the "if". At least the if should be taken away, but the A.Norm(0) is used
+	//in several places in the package so I have to deal with that first.
+	if i == 0 {
+		i = 2
+	}
+	return mat.Norm(F.Dense, i)
+}
+
+/*
+For now I'm not sure we need this wrapper and I do try to keep the to the minimum.
+
+//Sum acts as a wrapper for the mat64 function, for compatibility. It returns the sum of the elements of F.
+func (F *Matrix) Sum() float64{
+	return mat64.Sum(F.Dense)
+}
+*/
 
 //puts A stacked over B in F
 func (F *Matrix) Stack(A, B *Matrix) {
@@ -192,7 +301,7 @@ func (F *Matrix) Stack(A, B *Matrix) {
 
 //This is a temporal function. It returns the determinant of a 3x3 matrix. Panics if the matrix is not 3x3.
 //It is also defined in the chem package which is not-so-clean.
-func det(A mat64.Matrix) float64 {
+func det(A mat.Matrix) float64 {
 	r, c := A.Dims()
 	if r != 3 || c != 3 {
 		panic(ErrDeterminant)
@@ -230,18 +339,19 @@ func EigenWrap(in *Matrix, epsilon float64) (*Matrix, []float64, error) {
 	if epsilon < 0 {
 		epsilon = appzero
 	}
-	efacs := mat64.Eigen(mat64.DenseCopyOf(in.Dense), epsilon)
-	evecsprev := &Matrix{efacs.V}
-	evalsmat := efacs.D()
-	d, _ := evalsmat.Dims()
-	evals := make([]float64, d, d)
+	eigen := new(mat.Eigen)
+	eigen.Factorize(mat.DenseCopyOf(in.Dense), false, true)
+	evals_cmp := make([]complex128, 3) //We only deal with 3-column matrixes in this package
+	evals_cmp = eigen.Values(evals_cmp)
+	evecsprev := &Matrix{eigen.Vectors()}
+	evals := make([]float64, 3, 3)
 	for k, _ := range evals {
-		evals[k] = evalsmat.At(k, k)
+		evals[k] = cmplx.Abs(evals_cmp[k]) //no check of the thing being real for now.
 	}
-	evecs:=Zeros(3)
-	fn:=func(){evecs.Copy(evecsprev.T())}
-	err:=mat64.Maybe(fn)
-	if err!=nil{
+	evecs := Zeros(3)
+	fn := func() { evecs.Copy(evecsprev.T()) }
+	err := mat.Maybe(fn)
+	if err != nil {
 		return nil, nil, Error{err.Error(), []string{"mat64.Copy/math64.T", "EigenWrap"}, true}
 
 	}
@@ -253,15 +363,15 @@ func EigenWrap(in *Matrix, epsilon float64) (*Matrix, []float64, error) {
 	//If not I'll add ortonormalization routines.
 	eigrows, _ := eig.evecs.Dims()
 	for i := 0; i < eigrows; i++ {
-		vectori := eig.evecs.VecView(i)
+		//vectori := eig.evecs.VecView(i)
 		for j := i + 1; j < eigrows; j++ {
-			vectorj := eig.evecs.VecView(j)
-			if math.Abs(vectori.Dot(vectorj)) > epsilon && i != j {
-				reterr := Error{fmt.Sprintln("Eigenvectors ", i, "and", j, " not orthogonal. v", i, ":", vectori, "\nv", j, ":", vectorj, "\nDot:", math.Abs(vectori.Dot(vectorj)), "eigmatrix:", eig.evecs), []string{"EigenWrap"}, true}
+			//	vectorj := eig.evecs.VecView(j)
+			if math.Abs(mat.Dot(eig.evecs.Dense.RowView(i), eig.evecs.Dense.RowView(j))) > epsilon && i != j {
+				reterr := Error{fmt.Sprintln("Eigenvectors ", i, "and", j, " not orthogonal. v", i, ":", eig.evecs.Dense.RowView(i), "\nv", j, ":", eig.evecs.Dense.RowView(j), "\nDot:", math.Abs(mat.Dot(eig.evecs.Dense.RowView(i), eig.evecs.Dense.RowView(i))), "eigmatrix:", eig.evecs), []string{"EigenWrap"}, true}
 				return eig.evecs, evals[:], reterr
 			}
 		}
-		if math.Abs(vectori.Norm(0)-1) > epsilon {
+		if math.Abs(eig.evecs.VecView(1).Norm(0)-1) > epsilon {
 			//Of course I could just normalize the vectors instead of complaining.
 			//err= fmt.Errorf("Vectors not normalized %s",err.Error())
 
@@ -299,7 +409,6 @@ func gnSVD(A *mat64.Dense) ( *mat64.Dense,*mat64.Dense,*mat64.Dense) {
 }
 */
 
-
 /*
 //A wrapper for mat64.Dense.T which returns a Matrix.
 func (F *Matrix) Tr () *Matrix{
@@ -319,27 +428,24 @@ var transposetmp float64
 //it relies in the fact that v3 matrix are all 3D. If the receiver has more than
 //3 rows, the square submatrix of the first 3 rows will be transposed (i.e. no panic or returned error).
 //it panics if the receiver has less than 3 rows.
-func (F *Matrix)Tr() {
+func (F *Matrix) Tr() {
 	//This function exists because I can't use the implicit tranpose provided by mat64.Dense.T()
 	//which returns a matrix that is not possible to cast into a mat64.Dense
-	if F.NVecs() <3 {
+	if F.NVecs() < 3 {
 		panic("goChem/v3/ExplicitT: Only 3x3 matrices are allowed for both the argument of ExplicitT(), while the receiver must have 3 rows or more")
 	}
-	R:=F.RawMatrix()
-	dataSwitch(R,0,1)
-	dataSwitch(R,0,2)
-	dataSwitch(R,1,2)
+	R := F.RawMatrix()
+	dataSwitch(R, 0, 1)
+	dataSwitch(R, 0, 2)
+	dataSwitch(R, 1, 2)
 }
-
 
 //I can only hope this gets inlined
-func dataSwitch(R blas64.General, r, c int){
-	transposetmp=R.Data[3*r+c]
-	R.Data[3*r+c]=R.Data[3*c+r]
-	R.Data[3*c+r]=transposetmp
+func dataSwitch(R blas64.General, r, c int) {
+	transposetmp = R.Data[3*r+c]
+	R.Data[3*r+c] = R.Data[3*c+r]
+	R.Data[3*c+r] = transposetmp
 }
-
-
 
 //Errors
 

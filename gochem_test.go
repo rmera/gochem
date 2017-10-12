@@ -25,11 +25,11 @@ package chem
 
 import (
 	"fmt"
+	"github.com/rmera/gochem/v3"
+	"gonum.org/v1/gonum/mat"
 	"os"
 	"runtime"
 	"testing"
-
-	"github.com/rmera/gochem/v3"
 )
 
 //import "runtime"
@@ -50,6 +50,7 @@ func TestPDBIO(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
+	fmt.Println("NO WEI")
 	err = PDBFileWrite("test/2c9vIO.pdb", mol.Coords[0], mol, mol.Bfactors[0])
 	if err != nil {
 		Te.Error(err)
@@ -186,7 +187,7 @@ func TestPutInXYPlane(Te *testing.T) {
 		err2 := err.(Error)
 		fmt.Println(err2.Decorate(""))
 		Te.Fatal(err)
-//		panic(err.Error())
+		//		panic(err.Error())
 	}
 	z, _ := v3.NewMatrix([]float64{0, 0, 1})
 	zero, _ := v3.NewMatrix([]float64{0, 0, 0})
@@ -259,6 +260,7 @@ func TestWater(Te *testing.T) {
 	fmt.Println("tmp water", w1, w2, tmp, c, h1)
 	coords.SetMatrix(mol.Len()-6, 0, tmp)
 	XYZFileWrite("test/WithWater.xyz", coords, mol)
+	fmt.Println("Done TestWater")
 }
 
 func TesstFixPDB(Te *testing.T) {
@@ -268,10 +270,12 @@ func TesstFixPDB(Te *testing.T) {
 	}
 	FixNumbering(mol)
 	PDBFileWrite("test/2c9vfixed.pdb", mol.Coords[0], mol, nil)
+	fmt.Println("DoneTestFixPDB")
 }
 
 //will fail if reduce is not installed!
 func TestReduce(Te *testing.T) {
+	fmt.Println("Start TestReduce")
 	mol, err := PDBFileRead("test/2c9v.pdb", true)
 	if err != nil {
 		Te.Error(err)
@@ -280,16 +284,117 @@ func TestReduce(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
+	defer logger.Close()
 	mol2, err := Reduce(mol, mol.Coords[0], 2, logger, "")
 	if err != nil {
 		Te.Error(err)
 	}
 	PDBFileWrite("test/2c9vHReduce.pdb", mol2.Coords[0], mol2, nil)
+	fmt.Println("END TestReduce")
 }
+
+func TestShape(Te *testing.T) {
+	myhandle, _ := os.Open("test/2c9v.pdb")
+	mol1, err := PDBRead(myhandle, true) //true means that we try to read the symbol from the PDB file.
+	masses,err:=mol1.Masses()
+	if err!=nil{
+		Te.Error(err)
+	}
+	moment,err:=MomentTensor(mol1.Coords[0],masses)
+	if err!=nil{
+		Te.Error(err)
+	}
+	rhos,err:=Rhos(moment)
+	if err!=nil{
+		Te.Error(err)
+	}
+	linear,circular,err:=RhoShapeIndexes(rhos)
+	if err!=nil{
+		Te.Error(err)
+	}
+	fmt.Println("liner,circular distortion:", linear, circular)
+	lin2,circ2,err:=EasyShape(mol1.Coords[0],-1,mol1)
+	if err!=nil{
+		Te.Error(err)
+	}
+	fmt.Println("Easier way linear,circular:", lin2,circ2)
+	mol2, _ := XYZFileRead("test/sample_plane.xyz")
+	lin3,circ3,err:=EasyShape(mol2.Coords[0],-1,mol2)
+	if err!=nil{
+		Te.Error(err)
+	}
+	fmt.Println("sample_plane.xyz shape indicators; linear,circular:", lin3,circ3)
+	//now the shapetests batterty!
+	mol2, _ = XYZFileRead("test/shapetests/porphyrin.xyz")
+	lin3,circ3,err=EasyShape(mol2.Coords[0],-1,mol2)
+	if err!=nil{
+		Te.Error(err)
+	}
+	fmt.Println("porphyrin.xyz shape indicators; linear,circular:", lin3,circ3)
+	mol2, _ = XYZFileRead("test/shapetests/2-mesoporphyrin.xyz")
+	lin3,circ3,err=EasyShape(mol2.Coords[0],-1,mol2)
+	if err!=nil{
+		Te.Error(err)
+	}
+	fmt.Println("2-mesoporphyrin.xyz shape indicators; linear,circular:", lin3,circ3)
+	mol2, _ = XYZFileRead("test/shapetests/4-mesoporphyrin.xyz")
+	lin3,circ3,err=EasyShape(mol2.Coords[0],-1,mol2)
+	if err!=nil{
+		Te.Error(err)
+	}
+	fmt.Println("4-mesoporphyrin.xyz shape indicators; linear,circular:", lin3,circ3)
+	mol2, _ = XYZFileRead("test/shapetests/heptane.xyz")
+	lin3,circ3,err=EasyShape(mol2.Coords[0],-1,mol2)
+	if err!=nil{
+		Te.Error(err)
+	}
+	fmt.Println("heptane.xyz shape indicators; linear,circular:", lin3,circ3)
+	mol2, _ = XYZFileRead("test/shapetests/decane.xyz")
+	lin3,circ3,err=EasyShape(mol2.Coords[0],-1,mol2)
+	if err!=nil{
+		Te.Error(err)
+	}
+	fmt.Println("decane.xyz shape indicators; linear,circular:", lin3,circ3)
+	mol2, _ = XYZFileRead("test/shapetests/phenantrene.xyz")
+	lin3,circ3,err=EasyShape(mol2.Coords[0],-1,mol2)
+	if err!=nil{
+		Te.Error(err)
+	}
+	fmt.Println("phenantrene.xyz shape indicators; linear,circular:", lin3,circ3)
+	mol2, _ = XYZFileRead("test/shapetests/methylphenantrene.xyz")
+	lin3,circ3,err=EasyShape(mol2.Coords[0],-1,mol2)
+	if err!=nil{
+		Te.Error(err)
+	}
+	fmt.Println("methylphenantrene shape indicators; linear,circular:", lin3,circ3)
+	mol2, _ = XYZFileRead("test/shapetests/tbutylphenantrene.xyz")
+	lin3,circ3,err=EasyShape(mol2.Coords[0],-1,mol2)
+	if err!=nil{
+		Te.Error(err)
+	}
+	fmt.Println("tbutylphenantrene shape indicators; linear,circular:", lin3,circ3)
+	mol2, _ = XYZFileRead("test/shapetests/fullerene20.xyz")
+	lin3,circ3,err=EasyShape(mol2.Coords[0],-1,mol2)
+	if err!=nil{
+		Te.Error(err)
+	}
+	fmt.Println("fullerene20.xyz shape indicators; linear,circular:", lin3,circ3)
+	mol2, _ = XYZFileRead("test/shapetests/fullerene60.xyz")
+	lin3,circ3,err=EasyShape(mol2.Coords[0],0.0001,mol2) //maybe it's too symmetrical for the default epsilon?
+	if err!=nil{
+		Te.Error(err)
+	}
+	fmt.Println("fullerene60.xyz shape indicators; linear,circular:", lin3,circ3)
+
+
+}
+
+
+
 
 //Here PDBRead and PDBWrite are tested
 func TestSuper(Te *testing.T) {
-	backbone := []string{"C", "CA", "N"} //The PDB name of the atoms in the backbone.
+	backbone := []string{"CA", "C", "N"} //The PDB name of the atoms in the backbone.
 	myhandle, _ := os.Open("test/2c9v.pdb")
 	mol1, err := PDBRead(myhandle, true) //true means that we try to read the symbol from the PDB file.
 	mol2, err2 := PDBFileRead("test/1uxm.pdb", true)
@@ -303,11 +408,16 @@ func TestSuper(Te *testing.T) {
 		for atomindex, atom := range mol.Atoms {
 			if isInString(backbone, atom.Name) && atom.Chain == "A" {
 				superlist[molnumber] = append(superlist[molnumber], atomindex)
+				//	fmt.Println(atom)
 			}
 		}
 	}
 	fmt.Println("superlists!!", len(superlist[0]), len(superlist[1]))
 	mol1.Coords[0], err = Super(mol1.Coords[0], mol2.Coords[0], superlist[0], superlist[1])
+	rmsd1, _ := rMSD(mol1.Coords[0], mol2.Coords[0], superlist[0], superlist[1])
+	rmsd2, _ := RMSD(mol1.Coords[0], mol2.Coords[0], superlist[0], superlist[1])
+	fmt.Println("RMSDs for proteins!", rmsd2, rmsd1)
+	fmt.Println("Atoms superimposed:", len(superlist[0]))
 	if err != nil {
 		panic(err.Error())
 	}
@@ -317,7 +427,11 @@ func TestSuper(Te *testing.T) {
 	//Now for a full molecule
 	ptest, _ := XYZFileRead("test/Rotated.xyz")
 	ptempla, _ := XYZFileRead("test/sample_plane.xyz")
-	newp, err := Super(ptest.Coords[0], ptempla.Coords[0], nil,nil)
+	newp, err := Super(ptest.Coords[0], ptempla.Coords[0], nil, nil)
+	rmsd2, _ = RMSD(newp, ptempla.Coords[0])
+	rmsd3, _ := RMSD(newp, ptempla.Coords[0],nil,nil)
+	rmsd1, _ = rMSD(newp, ptempla.Coords[0], nil, nil)
+	fmt.Println("RMSD mol (should be 0):", rmsd1, rmsd2,rmsd3)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -353,8 +467,8 @@ func TestRotateBz(Te *testing.T) {
 	carbons.SomeVecs(coords, carbonIn)
 	planevec, err := BestPlane(carbons, nil)
 	if err != nil {
-		if  e,ok:=err.(Error);ok{
-		fmt.Println("DEcoration:", e.Decorate(""))
+		if e, ok := err.(Error); ok {
+			fmt.Println("DEcoration:", e.Decorate(""))
 		}
 		Te.Fatal(err)
 	}
@@ -371,9 +485,9 @@ func TestRotateBz(Te *testing.T) {
 		rot = Rotate(bzcopy, rot, planevec, Deg2Rad*angle)
 		rot3 = RotateSer(bzcopy, rot, planevec, Deg2Rad*angle)
 		rot2, _ := EulerRotateAbout(bzcopy2, origin, planevec, Deg2Rad*angle) //should be the same as the previous
-		if !rot.EqualsApprox(rot2, 0.01) {
+		if !mat.EqualApprox(rot, rot2, 0.01) {
 			Te.Fatal("Rotors Rotate and EulerRotate not equal for angle %3.2f", angle)
-		} else if !rot3.EqualsApprox(rot2, 0.01) {
+		} else if !mat.EqualApprox(rot2, rot3, 0.01) {
 			Te.Fatal("Rotors RotateSer and EulerRotate not equal for angle %3.2f", angle)
 
 		} else {
@@ -399,14 +513,12 @@ func TestRotateBz(Te *testing.T) {
 }
 
 func TestProjectionAndAntiProjection(Te *testing.T) {
-	A:=v3.Zeros(1)
-	A.Set(0,0,2.0)
-	B,_:=v3.NewMatrix([]float64{1,1,0})
-	C:=AntiProjection(A,B)
-	D:=Projection(B,A)
+	A := v3.Zeros(1)
+	A.Set(0, 0, 2.0)
+	B, _ := v3.NewMatrix([]float64{1, 1, 0})
+	C := AntiProjection(A, B)
+	D := Projection(B, A)
 	fmt.Println("Projection of B on A (D)", D)
 	fmt.Println("Anti-projection of A on B (C):", C)
-	fmt.Println("Norm of C: ", C.Norm(0),  " Norm of A,B: ", A.Norm(0),B.Norm(0), "Norm of D:", D.Norm(0))
+	fmt.Println("Norm of C: ", C.Norm(0), " Norm of A,B: ", A.Norm(0), B.Norm(0), "Norm of D:", D.Norm(0))
 }
-
-

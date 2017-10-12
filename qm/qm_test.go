@@ -57,7 +57,7 @@ func TestQM(Te *testing.T) {
 	calc := new(Calc)
 	calc.SetDefaults()
 	calc.SCFTightness = 2 //very demanding
-	calc.Job = Job{Opti:true}
+	calc.Job = Job{Opti: true}
 	//calc.Job.Opti=true
 	calc.Method = "TPSS"
 	calc.Dielectric = 4
@@ -68,7 +68,7 @@ func TestQM(Te *testing.T) {
 	calc.HBAtoms = []int{3, 10, 12}
 	calc.HBElements = []string{"Cu", "Zn"}
 	calc.CConstraints = []int{0, 10, 20}
-	calc.OldMO=true
+	calc.OldMO = true
 	orca := NewOrcaHandle()
 	orca.SetnCPU(16) /////////////////////
 	atoms := v3.Zeros(mol.Len())
@@ -140,14 +140,15 @@ func TestQM(Te *testing.T) {
 	fmt.Println("end mopac and orca test!")
 }
 
-/*
 //TestTurbo tests the QM functionality. It prepares input for Turbomole
 //Notice that 2 TM inputs cannot be in the same directory. Notice that TMHandle
 //supports ECPs
-func TesstTurbo(Te *testing.T) {
+func TestTurbo(Te *testing.T) {
+	fmt.Println("Turbomole TEST y wea!")
 	mol, err := chem.XYZFileRead("../test/ethanol.xyz")
-	os.Chdir("test")
-	defer os.Chdir("..")
+	original_dir, _ := os.Getwd() //will check in a few lines
+	os.Chdir("../test")
+	defer os.Chdir(original_dir)
 	if err != nil {
 		Te.Error(err)
 	}
@@ -157,47 +158,51 @@ func TesstTurbo(Te *testing.T) {
 	mol.SetCharge(0)
 	mol.SetMulti(1)
 	calc := new(Calc)
+	calc.CartesianOpt = true
 	calc.SCFConvHelp = 1 //very demanding
 	calc.Memory = 1000
-	calc.ECP = "ecp-10-mdf"
-	calc.ECPElements = []string{"O"}
+	//Not advised
+	//	calc.ECP = "ecp-10-mdf"
+	//	calc.ECPElements = []string{"O"}
 	calc.Grid = 4
-	calc.Job=Job{Opti:true}
+	calc.Job = Job{Opti: true}
 	calc.Method = "BP86"
 	calc.Dielectric = 4
 	calc.Basis = "def2-SVP"
 	calc.HighBasis = "def2-TZVP"
-	calc.HBElements = []string{"O"}
+	calc.HBElements = []string{"C"}
 	calc.RI = true
 	calc.Dispersion = "D3"
 	calc.CConstraints = []int{0, 3}
 	tm := NewTMHandle()
 	atoms := mol.Coords[0]
-	//original_dir, _ := os.Getwd() //will check in a few lines
 	//if err = os.Chdir("./test"); err != nil {
 	//	Te.Error(err)
 	//}
+	//	tm.SetDryRun(true) //I don't have TM installed.
 	if err := tm.BuildInput(atoms, mol, calc); err != nil {
 		Te.Error(err)
 	}
-	//os.Chdir(original_dir)
-	if err := tm.Run(true); err != nil {
-		Te.Error(err)
-	}
-	energy, err := tm.Energy()
-	if err != nil {
-		Te.Error(err)
-	}
-	fmt.Println("energy", energy)
-	geo, err := tm.OptimizedGeometry(mol)
-	if err != nil {
-		Te.Error(err)
-	}
-	fmt.Println("GEO", geo)
-	chem.XYZFileWrite("optiethanol.xyz", geo, mol)
-	fmt.Println("end TurboTest!")
+	/*
+
+		if err := tm.Run(true); err != nil {
+			Te.Error(err)
+		}
+		energy, err := tm.Energy()
+		if err != nil {
+			Te.Error(err)
+		}
+		fmt.Println("energy", energy)
+		geo, err := tm.OptimizedGeometry(mol)
+		if err != nil {
+			Te.Error(err)
+		}
+		fmt.Println("GEO", geo)
+		chem.XYZFileWrite("optiethanol.xyz", geo, mol)
+		fmt.Println("end TurboTest!")
+	*/
+	//	os.Chdir(original_dir)
 }
-*/
 
 /*
 func TestFermions(Te *testing.T) {
@@ -241,7 +246,6 @@ func TestFermions(Te *testing.T) {
 }
 */
 
-
 func qderror_handler(err error, Te *testing.T) {
 	if err != nil {
 		if strings.Contains("NonFatal", err.Error()) {
@@ -254,19 +258,19 @@ func qderror_handler(err error, Te *testing.T) {
 
 func TestNWChem(Te *testing.T) {
 	mol, err := chem.XYZFileRead("../test/ethanol.xyz")
-	fmt.Println(mol.Coords[0], len(mol.Coords), "Quiere quedar leyenda, compadre?", err)
 	if err != nil {
 		Te.Error(err)
 	}
 	if err := mol.Corrupted(); err != nil {
 		Te.Error(err)
 	}
+	fmt.Println(mol.Coords[0], len(mol.Coords), "Quiere quedar leyenda, compadre?", err)
 	mol.SetCharge(0)
 	mol.SetMulti(1)
 	calc := new(Calc)
 	calc.SCFTightness = 1 //quite tight
 	calc.SCFConvHelp = 1
-	calc.Job=Job{Opti:true}
+	calc.Job = Job{Opti: true}
 	calc.Method = "TPSS"
 	calc.Dielectric = 4
 	calc.Basis = "def2-SVP"
@@ -304,5 +308,50 @@ func TestNWChem(Te *testing.T) {
 		Te.Error(err)
 	}
 	chem.XYZFileWrite("optiNW.xyz", newg, mol)
+
+}
+
+func TestXtb(Te *testing.T) {
+	mol, err := chem.XYZFileRead("../test/ethanol.xyz")
+	if err != nil {
+		Te.Error(err)
+	}
+	if err := mol.Corrupted(); err != nil {
+		Te.Error(err)
+	}
+	fmt.Println(mol.Coords[0], len(mol.Coords), "Quiere quedar XTB leyenda, compadre?", err)
+	mol.SetCharge(0)
+	mol.SetMulti(1)
+	calc := new(Calc)
+	calc.Job = Job{Opti: true}
+	//no support for constraints yet
+	calc.Method = "" //we only use xtb here soooo
+	calc.Dielectric = 4
+	xtb := NewXTBHandle()
+	xtb.SetName("XTBgochem")
+	atoms := v3.Zeros(mol.Len())
+	mol.Next(atoms)
+	if err = os.Chdir("../test"); err != nil {
+		Te.Error(err)
+	}
+	err = xtb.BuildInput(atoms, mol, calc)
+	if err != nil {
+		Te.Error(err)
+	}
+	if err := xtb.Run(true); err != nil {
+		Te.Error(err)
+	}
+	os.Chdir("../test")
+	defer os.Chdir("../qm")
+	energy, err := xtb.Energy()
+	if err != nil {
+		Te.Error(err)
+	}
+	fmt.Println("XTB Energy: ", energy)
+	newg, err := xtb.OptimizedGeometry(mol)
+	if err != nil {
+		Te.Error(err)
+	}
+	chem.XYZFileWrite("optiXTB.xyz", newg, mol)
 
 }
