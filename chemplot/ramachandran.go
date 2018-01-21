@@ -29,14 +29,10 @@ import (
 	"fmt"
 	"image/color"
 	"math"
-	"strings"
-	"image/color"
 	"github.com/gonum/plot"
 	"github.com/gonum/plot/plotter"
 	"github.com/gonum/plot/vg"
 	"github.com/gonum/plot/vg/draw"
-	"github.com/rmera/gochem"
-	"github.com/rmera/gochem/v3"
 )
 
 const (
