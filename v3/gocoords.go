@@ -99,7 +99,7 @@ func (F *Matrix) DelVec(A *Matrix, i int) {
 	tempF1.Copy(tempA1)
 	//now the other part
 	//	if i != ar-1 {
-	fmt.Println("options", ar, i, ar-i-1)
+	//fmt.Println("options", ar, i, ar-i-1)
 	if i < ar-1 {
 		tempA2 := A.View(i+1, 0, ar-i-1, ac) //The magic happens here
 		tempF2 := F.View(i, 0, ar-i-1, fc)

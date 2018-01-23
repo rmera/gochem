@@ -35,7 +35,7 @@ import (
 	"runtime"
 )
 
-import "fmt" //debug
+//import "fmt" //debug
 
 type paravector struct {
 	Real  float64
@@ -278,7 +278,7 @@ func RotateP(Target, Res, axis, Rv, Rvrev, tmp1, tmp2, tmp3, tmp4, itmp1, itmp2,
 			//this "print" causes a data race but it shouldn't matter, as it's only for debugging purposes.
 			//removing the print removes the race warning, so there isn't apparently any data race going on.
 			//fmt.Println("WTF",r,c,i,tmp2,"\n") /////////
-			fmt.Println("") ////////////
+			//fmt.Println("") ////////////
 			t2 := tmp2.VecView(i)
 			t4 := tmp4.VecView(i)
 			pv := paravectorFromVector(t2, t4)

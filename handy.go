@@ -313,25 +313,25 @@ func MakeWater(a1, a2 *v3.Matrix, distance, angle float64, oxygen bool) *v3.Matr
 	dist := v3.Zeros(1)
 	dist.Sub(a1, a2)
 	a1a2dist := dist.Norm(0)
-	fmt.Println("ala2dist", a1a2dist, distance) ////////////////7777
+//	fmt.Println("ala2dist", a1a2dist, distance) ////////////////7777
 	w.Scale(distance+a1a2dist, w)
 	w.Add(w, a1)
 	for i := 0; i <= 1; i++ {
 		o := water.VecView(0)
 		w = water.VecView(i + 1)
 		w.Copy(o)
-		fmt.Println("w1", w) ////////
+//		fmt.Println("w1", w) ////////
 		w.Sub(w, a2)
-		fmt.Println("w12", w) ///////////////
+//		fmt.Println("w12", w) ///////////////
 		w.Unit(w)
-		fmt.Println("w4", w)
+//		fmt.Println("w4", w)
 		w.Scale(WaterOHDist+distance, w)
-		fmt.Println("w3", w, WaterOHDist, distance)
+//		fmt.Println("w3", w, WaterOHDist, distance)
 		o.Sub(o, a2)
 		t, _ := v3.NewMatrix([]float64{0, 0, 1})
 		upp := v3.Zeros(1)
 		upp.Cross(w, t)
-		fmt.Println("upp", upp, w, t)
+//		fmt.Println("upp", upp, w, t)
 		upp.Add(upp, o)
 		upp.Add(upp, a2)
 		//water.SetMatrix(3,0,upp)
