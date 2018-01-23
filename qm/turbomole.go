@@ -445,7 +445,7 @@ func (O *TMHandle) Run(wait bool) (err error) {
 	os.Chdir(O.inputname)
 	defer os.Chdir("..")
 	filename := strings.Fields(O.command)
-	fmt.Println("nohup " + O.command + " > " + filename[0] + ".out")
+	//fmt.Println("nohup " + O.command + " > " + filename[0] + ".out")
 	command := exec.Command("sh", "-c", "nohup "+O.command+" >"+filename[0]+".out")
 	if wait == true {
 		err = command.Run()

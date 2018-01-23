@@ -29,14 +29,13 @@ import (
 	"fmt"
 	"image/color"
 	"math"
-	"strings"
-	"image/color"
+//	"strings"
 	"github.com/gonum/plot"
 	"github.com/gonum/plot/plotter"
 	"github.com/gonum/plot/vg"
 	"github.com/gonum/plot/vg/draw"
-	"github.com/rmera/gochem"
-	"github.com/rmera/gochem/v3"
+//	"github.com/rmera/gochem"
+//	"github.com/rmera/gochem/v3"
 )
 
 const (
@@ -121,7 +120,7 @@ func RamaPlotParts(data [][][]float64, tag [][]int, title, plotname string) erro
 			}
 			//set the colors
 			r, g, b := colors(key, len(data))
-			fmt.Println("DATA POINT", key, "color", r, g, b)
+		//	fmt.Println("DATA POINT", key, "color", r, g, b)
 			s.GlyphStyle.Color = color.RGBA{R: r, B: b, G: g, A: 255}
 			//The tagging procedure is a bit complex.
 			p.Add(s)

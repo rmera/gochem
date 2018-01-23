@@ -612,9 +612,9 @@ func xyzReadSnap(xyz *bufio.Reader, ReadTopol bool) (*v3.Matrix, []*Atom, error)
 	}
 	//This could be done faster if done in the same loop where the coords are read
 	//Instead of having another loop just for them.
-	for k, i := range errs {
+	for _, i := range errs {
 		if i != nil {
-			fmt.Println("line", line, k)
+		//	fmt.Println("line", line, k)
 			return nil, nil, CError{i.Error(), []string{"strconv.ParseFloat", "xyzReadSnap"}}
 		}
 	}

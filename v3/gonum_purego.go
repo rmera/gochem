@@ -206,7 +206,7 @@ func EigenWrap(in *VecMatrix, epsilon float64) (*VecMatrix, []float64, error) {
 				return eig.evecs, evals[:], notOrthogonal
 			}
 		}
-		fmt.Println("VECTORS", eig.evecs) //////////////////////////
+	//	fmt.Println("VECTORS", eig.evecs) //////////////////////////
 		if math.Abs(vectori.Norm(0)-1) > epsilon {
 			//Of course I could just normalize the vectors instead of complaining.
 			//err= fmt.Errorf("Vectors not normalized %s",err.Error())
@@ -314,7 +314,7 @@ func (F *Dense) Copy(A Matrix) {
 	ar, ac := A.Dims()
 	fr, fc := F.Dims()
 	if ac > fc || ar > fr {
-		fmt.Println(ar, ac, fr, fc)
+	//	fmt.Println(ar, ac, fr, fc)
 		panic(gnErrShape)
 	}
 
