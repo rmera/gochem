@@ -43,7 +43,7 @@ const allchains = "*ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 //defined, even if it is wrong (if 9999 and the following 0 residue have the same chain).
 func FixGromacsPDB(mol Atomer) {
 //	fmt.Println("FIXING!")
-	previd:=-1
+	previd:=99999999999999
 	lastchain:="*"
 	for i:=0;i<mol.Len();i++{
 		at:=mol.Atom(i)

@@ -30,7 +30,7 @@
 package xtc
 
 // #cgo CFLAGS:  -I.
-// #cgo LDFLAGS:  -L.  -lnsl -lm   -lxdrfile
+// #cgo LDFLAGS:  -L.  -lnsl -lm   -lxdrfile 
 //#include <xtc.h>
 //#include <stdio.h>
 //#include <stdlib.h>
