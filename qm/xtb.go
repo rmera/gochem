@@ -65,6 +65,11 @@ func (O *XTBHandle) SetnCPU(cpu int) {
 	O.nCPU = cpu
 }
 
+func (O *XTBHandle) Command() string {
+	return O.command
+}
+
+
 func (O *XTBHandle) SetName(name string) {
 	O.inputname = name
 }
@@ -75,7 +80,7 @@ func (O *XTBHandle) SetCommand(name string) {
 
 func (O *XTBHandle) SetDefaults() {
 	O.command = os.ExpandEnv("${XTBHOME}/xtb")
-	if O.command == "/xtb" { //if ORCA_PATH was not defined
+	if O.command == "/xtb" { //if XTBHOME was not defined
 		O.command = "./xtb"
 	}
 	cpu := runtime.NumCPU()
@@ -110,8 +115,15 @@ func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q
 	if err != nil {
 		return Error{ErrCantInput, "XTB", O.inputname, "", []string{"BuildInput"}, true}
 	}
-
-	if _, err = f.WriteString(fmt.Sprintf("$set\ncub_cal 1\nchrg %2d\n$end", atoms.Charge())); err != nil {
+	fixed:=""
+	if Q.CConstraints!=nil{
+		fixed="fix "
+		for _,v:=range(Q.CConstraints){
+			fixed=fixed+strconv.Itoa(v+1)+" " //I think xtb wants indexes starting from 1
+		}
+		fixed=fixed+"\n"
+	}
+	if _, err = f.WriteString(fmt.Sprintf("$set\ncub_cal 1\nchrg %2d\n%s$end", atoms.Charge(),fixed)); err != nil {
 		return Error{ErrCantInput, "XTB", O.inputname, "", []string{"BuildInput"}, true} //it would be nice to differenciate this error from the previous.
 	}
 
@@ -147,10 +159,11 @@ func (O *XTBHandle) Run(wait bool) (err error) {
 		if err != nil {
 			return Error{ErrNotRunning, XTB, O.inputname, "", []string{"Run"}, true}
 		}
-
 		defer out.Close()
 		defer ferr.Close()
-		command := exec.Command(O.command, O.options...)
+		fullCommand:=O.command
+		fmt.Println("Command", O.command, O.options) ////////////////////////
+		command := exec.Command(fullCommand, O.options...)
 		command.Stdout = out
 		command.Stderr = ferr
 		err = command.Run()
