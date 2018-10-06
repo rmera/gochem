@@ -1,0 +1,35 @@
+! RHF TPSS def2-SVP def2/J  TightSCF D3ZERO SlowConv  Opt  Grid4 FinalGrid5 RI  
+
+%pal nprocs 32
+   end
+
+%MaxCore 1000
+
+%geom Constraints
+         {C 1 C}
+         end
+ end
+
+%geom trust 0.3
+end
+
+%basis 
+  newgto O "def2-TZVP" end
+         end
+
+%cpcm epsilon 4
+        refrac 1.30
+        end
+
+
+* xyz 0 1
+H      1.627  -0.038   0.846 
+C      1.011  -0.045  -0.063 
+H      1.325   0.803  -0.685 newgto "def2-TZVP" end
+H      1.250  -0.961  -0.619 
+C     -0.462   0.031   0.295 
+H     -0.758  -0.826   0.932 
+H     -0.682   0.954   0.867 
+O     -1.198   0.018  -0.907 
+H     -2.113   0.065  -0.665 
+*
