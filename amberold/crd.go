@@ -54,32 +54,29 @@ type CrdObj struct {
 
 }
 
-func New(filename string) (*CrdObj, error) {
+func New(filename string, ats int) (*CrdObj, error) {
 	var err error
 	traj := new(CrdObj)
 	traj.ioread,err = os.Open(filename)
-	traj.filename=filename
 	if err != nil {
-		return nil, err//CHANGE!!!
+		return nil, Error{UnableToOpen, filename, []string{"New"}, true}
+
 	}
+	traj.filename=filename
 	traj.crd = bufio.NewReader(traj.ioread)
-	TEST,err:=traj.crd.ReadString('\n') //The first line is just a comment
-	println(TEST) ///////////
+	_,err=traj.crd.ReadString('\n') //The first line is just a comment
+//	println(TEST) ///////////
 //	TEST,err=traj.crd.ReadString('\n') //The first line is just a comment
 //	println(TEST) ////////////
 	if err!=nil{
 		return nil, err //CHANGE
 	}
+	traj.natoms=ats
 	traj.remaining=make([]float64,0,9)
+	traj.readable=true
 	return traj, nil
 }
 
-func (C *CrdObj) SetNatoms(ats int) {
-	C.natoms=ats
-	if C.crd!=nil{
-		C.readable=true
-	}
-}
 
 
 //Returns true if the object is ready to be read from
@@ -99,7 +96,7 @@ func (C *CrdObj) Readable() bool {
 func (C *CrdObj) Next(keep *v3.Matrix) error {
 	const ncoords = 3
 	if !C.readable {
-		return fmt.Errorf("Traj Unreadable")//Error{TrajUnIni, D.filename, []string{"Next"}, true}
+		return Error{TrajUnIni, C.filename, []string{"Next"}, true}
 	}
 	//What do we do with remaining?
 	cont:=0
@@ -129,14 +126,14 @@ func (C *CrdObj) Next(keep *v3.Matrix) error {
 			}
 	}
 	C.remaining=C.remaining[0:0] //This might not work as expected. I need it to set C.remaining to zero length.
-	println("remaining:", len(C.remaining))
+//	println("remaining:", len(C.remaining))
     for line<C.natoms-1{
 		i,err:=C.crd.ReadString('\n')
 		//here we assume the error is an EOF. I need to change this to actually check.
 		if err!=nil{
 			C.readable=false
-			println(err.Error()) //////
-			return err //newlastFrameError(C.filename,"Next")
+//			println(err.Error()) //////
+			return newlastFrameError(C.filename,"Next")
 		}
 		l:=strings.Fields(i)
 	//	fmt.Println(l) ////////////////////////////////////////////////////////////
@@ -145,7 +142,7 @@ func (C *CrdObj) Next(keep *v3.Matrix) error {
 		for _,j:=range(l){
 			coord,err := strconv.ParseFloat(j, 64)
 			if err != nil {
-				return err //CError{fmt.Sprintf("Unable to read coordinates from Amber trajectory", err.Error()), []string{"strconv.ParseFloat", "Next"}}
+				return Error{fmt.Sprintf("Unable to read coordinates from Amber trajectory", err.Error()),C.filename, []string{"strconv.ParseFloat", "Next"},true}
 			}
             if cont<ncoords{
 			//	println("no")////
@@ -163,7 +160,7 @@ func (C *CrdObj) Next(keep *v3.Matrix) error {
 			}
 			if cont>=cont && line>=C.natoms-1{
 
-				println("ql")////
+//				println("ql")////
 				C.remaining=append(C.remaining,coord)
 			}
 		}
@@ -201,7 +198,7 @@ type Error struct {
 }
 
 func (err Error) Error() string {
-	return fmt.Sprintf("dcd file %s error: %s", err.filename, err.message)
+	return fmt.Sprintf("Old Amber trajectory file %s error: %s", err.filename, err.message)
 }
 
 func (E Error) Decorate(deco string) []string {
@@ -216,7 +213,7 @@ func (E Error) Decorate(deco string) []string {
 
 func (err Error) FileName() string { return err.filename }
 
-func (err Error) Format() string { return "dcd" }
+func (err Error) Format() string { return "Old Amber" }
 
 func (err Error) Critical() bool { return err.critical }
 
@@ -225,7 +222,7 @@ const (
 	ReadError           = "Error reading frame"
 	UnableToOpen        = "Unable to open file"
 	SecurityCheckFailed = "FailedSecurityCheck"
-	WrongFormat         = "Wrong format in the DCD file or frame"
+	WrongFormat         = "Wrong format in the trajectory file or frame"
 	NotEnoughSpace      = "Not enough space in passed blocks"
 	EOF                 = "EOF"
 )
@@ -245,7 +242,7 @@ func (E lastFrameError) Error() string { return "EOF" }
 
 func (E lastFrameError) Critical() bool { return false }
 
-func (E lastFrameError) Format() string { return "dcd" }
+func (E lastFrameError) Format() string { return "Old Amber" }
 
 func (E lastFrameError) Decorate(deco string) []string {
 	//Even thought this method does not use a pointer as a receiver, and tries to alter the received,
