@@ -108,10 +108,11 @@ func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q
 	if O.inputname == "" {
 		O.inputname = "gochem"
 	}
-	O.options = make([]string, 1, 5)
-	O.options[0] = O.inputname + ".xyz"
+	O.options = make([]string, 2, 6)
+	O.options[0]=O.command
+	O.options[1] = O.inputname + ".xyz"
 	O.options= append(O.options, fmt.Sprintf("-c %d",atoms.Charge()))
-	O.options= append(O.options, fmt.Sprintf("-uhf %d",(atoms.Multi()-1)))
+	O.options= append(O.options, fmt.Sprintf("-u %d",(atoms.Multi()-1)))
 	if O.nCPU>1{
 		O.options= append(O.options, fmt.Sprintf("-P %d",O.nCPU))
 	}
@@ -129,6 +130,7 @@ func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q
 		for _,v:=range(Q.CConstraints){
 			fixed=fixed+strconv.Itoa(v)+", " //0-based indexes
 		}
+		strings.TrimRight(fixed,",")
 		fixed=fixed+"\n"
 		xcontrol, err := os.Create("xcontrol")
 		if err!=nil{
@@ -156,23 +158,26 @@ func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q
 //only for unix-compatible systems, as it uses bash and nohup.
 func (O *XTBHandle) Run(wait bool) (err error) {
 	if wait == true {
-		out, err := os.Create(fmt.Sprintf("%s.out", O.inputname))
-		if err != nil {
-			return Error{ErrNotRunning, XTB, O.inputname, "", []string{"Run"}, true}
-		}
-		ferr, err := os.Create(fmt.Sprintf("%s.err", O.inputname))
-
-		if err != nil {
-			return Error{ErrNotRunning, XTB, O.inputname, "", []string{"Run"}, true}
-		}
-		defer out.Close()
-		defer ferr.Close()
-		fullCommand:=O.command
-		fmt.Println("Command", O.command, O.options) ////////////////////////
-		command := exec.Command(fullCommand, O.options...)
-		command.Stdout = out
-		command.Stderr = ferr
-		err = command.Run()
+//		out, err := os.Create(fmt.Sprintf("%s.out", O.inputname))
+//		if err != nil {
+//			return Error{ErrNotRunning, XTB, O.inputname, "", []string{"Run"}, true}
+//		}
+//		ferr, err := os.Create(fmt.Sprintf("%s.err", O.inputname))
+//
+//		if err != nil {
+//			return Error{ErrNotRunning, XTB, O.inputname, "", []string{"Run"}, true}
+//		}
+//		defer out.Close()
+//		defer ferr.Close()
+//		fullCommand:=strings.Join(O.options," ")
+//		fmt.Println(fullCommand) //("Command", O.command, O.options) ////////////////////////
+//		command := exec.Command(fullCommand) //, O.options...)
+//		command.Stdout = out
+//		command.Stderr = ferr
+//		err = command.Run()
+//		fmt.Println(O.command+fmt.Sprintf(" %s.xyz %s > %s.out &", O.inputname, strings.Join(O.options[2:]," "), O.inputname)) ////////////////////////
+		command := exec.Command("sh", "-c", O.command+fmt.Sprintf(" %s.xyz %s > %s.out  2>&1", O.inputname, strings.Join(O.options[2:]," "), O.inputname))
+		err=command.Run()
 
 	} else {
 		command := exec.Command("sh", "-c", "nohup "+O.command+fmt.Sprintf(" %s.xyz %s > %s.out &", O.inputname, O.options[1:], O.inputname))
@@ -181,7 +186,11 @@ func (O *XTBHandle) Run(wait bool) (err error) {
 	if err != nil {
 		err = Error{ErrNotRunning, XTB, O.inputname, err.Error(), []string{"exec.Start", "Run"}, true}
 	}
+	if err!=nil{
 	return err
+	}
+	os.Remove("xtbrestart")
+	return nil
 }
 
 //Reads the latest geometry from an XTB optimization. It doesn't actually need the chem.Atomer
@@ -200,9 +209,10 @@ func (O *XTBHandle) OptimizedGeometry(atoms chem.Atomer) (*v3.Matrix, error) {
 //This checks that an xtb calculation has terminated normally
 //I know this duplicates code, I wrote this one first and then the other one.
 func (O *XTBHandle) normalTermination() bool {
-	if searchBackwards("normal termination of xtb",fmt.Sprintf("%s.out", O.inputname))!=""{
+	if searchBackwards("normal termination of x",fmt.Sprintf("%s.out", O.inputname))!="" || searchBackwards("abnormal termination of x",fmt.Sprintf("%s.out", O.inputname))==""{
 		return true
 	}
+//	fmt.Println(fmt.Sprintf("%s.out", O.inputname), searchBackwards("normal termination of x",fmt.Sprintf("%s.out", O.inputname))) ////////////////////
 	return false
 }
 
@@ -213,18 +223,23 @@ func searchBackwards(str,filename string) string {
 	var ini int64 = 0
 	var end int64 = 0
 	var first bool
+	first = true
 	buf := make([]byte, 1)
+//	fmt.Println("no wei", filename) ////////////////////////
 	f, err := os.Open(filename)
 	if err != nil {
+//		fmt.Println(err.Error())	 ////////////////
 		return  ""
 	}
 	defer f.Close()
 	var i int64 = 1
 	for ; ; i++ {
 		if _, err := f.Seek(-1*i, 2); err != nil {
+	//		fmt.Println(err.Error()) ///////////////////
 			return ""
 		}
 		if _, err := f.Read(buf); err != nil {
+	//		fmt.Println(err.Error()) //////////////////
 			return ""
 		}
 		if buf[0] == byte('\n') && first == false {
@@ -233,15 +248,18 @@ func searchBackwards(str,filename string) string {
 			end = i
 		} else if buf[0] == byte('\n') && ini == 0 {
 			ini = i
-			break
+			f.Seek(-1*(ini), 2)
+			bufF := make([]byte, ini-end)
+			f.Read(bufF)
+	//		fmt.Println("vieja", string(bufF))////////////////////
+			if strings.Contains(string(bufF), str) {
+				return string(bufF)
+			}
+		//	first=false
+			end=0
+			ini=0
 		}
 
-	}
-	f.Seek(-1*ini, 2)
-	bufF := make([]byte, ini-end)
-	f.Read(bufF)
-	if strings.Contains(string(bufF), str) {
-		return string(bufF)
 	}
 	return ""
 }
