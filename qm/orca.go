@@ -100,7 +100,7 @@ func (O *OrcaHandle) SetDefaults() {
 	if O.command == "/orca" { //if ORCA_PATH was not defined
 		O.command = "./orca"
 	}
-	cpu := runtime.NumCPU()
+	cpu := runtime.NumCPU()/2
 	O.nCPU = cpu
 
 }
@@ -221,7 +221,7 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 		Q.Guess = ""
 		bsse = ""
 		disp = ""
-		HF3cAdditional = "%scf\n   SCFMode Direct\n   MaxIter 200\n   MaxIntMem 2000\nend\n\n"
+		HF3cAdditional = "%scf\n   MaxIter 200\n   MaxIntMem 2000\nend\n\n"
 
 	}
 	MainOptions := []string{"!", hfuhf, Q.Method, Q.Basis, Q.auxBasis, Q.auxColBasis, tight, disp, conv, Q.Guess, opt, Q.Others, grid, ri, bsse, "\n\n"}
