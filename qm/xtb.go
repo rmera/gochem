@@ -32,7 +32,7 @@
 package qm
 
 import (
-	"bufio"
+//	"bufio"
 	"fmt"
 	"github.com/rmera/gochem"
 	"github.com/rmera/gochem/v3"
@@ -79,11 +79,11 @@ func (O *XTBHandle) SetCommand(name string) {
 }
 
 func (O *XTBHandle) SetDefaults() {
-	O.command = os.ExpandEnv("${XTBHOME}/xtb")
-	if O.command == "/xtb" { //if XTBHOME was not defined
-		O.command = "./xtb"
-	}
-	cpu := runtime.NumCPU()
+	O.command = os.ExpandEnv("xtb")
+//	if O.command == "/xtb" { //if XTBHOME was not defined
+//		O.command = "./xtb"
+//	}
+	cpu := runtime.NumCPU()/2
 	O.nCPU = cpu
 
 }
@@ -108,40 +108,46 @@ func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q
 	if O.inputname == "" {
 		O.inputname = "gochem"
 	}
-	O.options = make([]string, 1, 3)
+	O.options = make([]string, 1, 5)
 	O.options[0] = O.inputname + ".xyz"
-	O.options = append(O.options, "-gfn")
-	f, err := os.OpenFile(O.inputname+".xyz", os.O_APPEND|os.O_WRONLY, 0600)
-	if err != nil {
-		return Error{ErrCantInput, "XTB", O.inputname, "", []string{"BuildInput"}, true}
-	}
-	fixed:=""
-	if Q.CConstraints!=nil{
-		fixed="fix "
-		for _,v:=range(Q.CConstraints){
-			fixed=fixed+strconv.Itoa(v+1)+" " //I think xtb wants indexes starting from 1
-		}
-		fixed=fixed+"\n"
-	}
-	if _, err = f.WriteString(fmt.Sprintf("$set\ncub_cal 1\nchrg %2d\n%s$end", atoms.Charge(),fixed)); err != nil {
-		return Error{ErrCantInput, "XTB", O.inputname, "", []string{"BuildInput"}, true} //it would be nice to differenciate this error from the previous.
+	O.options= append(O.options, fmt.Sprintf("-c %d",atoms.Charge()))
+	O.options= append(O.options, fmt.Sprintf("-uhf %d",(atoms.Multi()-1)))
+	if O.nCPU>1{
+		O.options= append(O.options, fmt.Sprintf("-P %d",O.nCPU))
 	}
 
-	f.Close() //Won't use defer, as we need this file written and saved before this function exits.
+	if Q.Dielectric>0{
+		solvent,ok:=dielectric2Solvent[int(Q.Dielectric)]
+		if ok{
+			O.options= append(O.options, "-g "+solvent)
+		}
+	}
+	//O.options = append(O.options, "-gfn")
+	fixed:=""
+	if Q.CConstraints!=nil{
+		fixed="atoms: "
+		for _,v:=range(Q.CConstraints){
+			fixed=fixed+strconv.Itoa(v)+", " //0-based indexes
+		}
+		fixed=fixed+"\n"
+		xcontrol, err := os.Create("xcontrol")
+		if err!=nil{
+			return err
+		}
+		xcontrol.Write([]byte("$fix\n"))
+		xcontrol.Write([]byte("force constant=10000\n"))
+		xcontrol.Write([]byte(fixed))
+		xcontrol.Close()
+		O.options = append(O.options, "-I xcontrol")
+	}
 	jc := jobChoose{}
 	jc.opti = func() {
-		O.options = append(O.options, "-opt")
-	}
-	jc.sp = func() {
-		O.options = append(O.options, "-sp")
+		O.options = append(O.options, "-o normal")
 	}
 
 	Q.Job.Do(jc)
-	if Q.Dielectric > 0 {
-		O.options = append(O.options, "-gbsa h2o") //Only water supported for now
-	}
-
 	return nil
+	
 }
 
 //Run runs the command given by the string O.command
@@ -184,7 +190,7 @@ func (O *XTBHandle) OptimizedGeometry(atoms chem.Atomer) (*v3.Matrix, error) {
 	if !O.normalTermination() {
 		return nil, Error{ErrNoGeometry, XTB, O.inputname, "Calculation didn't end normally", []string{"OptimizedGeometry"}, true}
 	}
-	mol, err := chem.XYZFileRead("xtbopt.coord") //Trying to run several calculations in parallel in the same directory will fail as the output has always the same name.
+	mol, err := chem.XYZFileRead("xtbopt.xyz") //Trying to run several calculations in parallel in the same directory will fail as the output has always the same name.
 	if err != nil {
 		return nil, Error{ErrNoGeometry, XTB, O.inputname, "", []string{"OptimizedGeometry"}, true}
 	}
@@ -194,22 +200,32 @@ func (O *XTBHandle) OptimizedGeometry(atoms chem.Atomer) (*v3.Matrix, error) {
 //This checks that an xtb calculation has terminated normally
 //I know this duplicates code, I wrote this one first and then the other one.
 func (O *XTBHandle) normalTermination() bool {
+	if searchBackwards("normal termination of xtb",fmt.Sprintf("%s.out", O.inputname))!=""{
+		return true
+	}
+	return false
+}
+
+
+
+//search a file backwards, i.e., starting from the end, for a string. Returns the line that contains the string, or an empty string.
+func searchBackwards(str,filename string) string {
 	var ini int64 = 0
 	var end int64 = 0
 	var first bool
 	buf := make([]byte, 1)
-	f, err := os.Open(fmt.Sprintf("%s.out", O.inputname))
+	f, err := os.Open(filename)
 	if err != nil {
-		return false
+		return  ""
 	}
 	defer f.Close()
 	var i int64 = 1
 	for ; ; i++ {
 		if _, err := f.Seek(-1*i, 2); err != nil {
-			return false
+			return ""
 		}
 		if _, err := f.Read(buf); err != nil {
-			return false
+			return ""
 		}
 		if buf[0] == byte('\n') && first == false {
 			first = true
@@ -224,11 +240,14 @@ func (O *XTBHandle) normalTermination() bool {
 	f.Seek(-1*ini, 2)
 	bufF := make([]byte, ini-end)
 	f.Read(bufF)
-	if strings.Contains(string(bufF), "cpu  time for all") {
-		return true
+	if strings.Contains(string(bufF), str) {
+		return string(bufF)
 	}
-	return false
+	return ""
 }
+
+
+
 
 //Gets the energy of a previous XTB calculations.
 //Returns error if problem, and also if the energy returned that is product of an
@@ -237,32 +256,35 @@ func (O *XTBHandle) normalTermination() bool {
 func (O *XTBHandle) Energy() (float64, error) {
 	var err error
 	var energy float64
-	file, err := os.Open(fmt.Sprintf("energy"))
-	if err != nil {
-		return 0, Error{ErrNoEnergy, XTB, O.inputname, err.Error(), []string{"os.Open", "Energy"}, true}
+	energyline:=searchBackwards("total E       :",fmt.Sprintf("%s.out", O.inputname))
+	if energyline==""{
+		return 0, Error{ErrNoEnergy, XTB, O.inputname, err.Error(), []string{"searchBackwards", "Energy"}, true}
 	}
-	defer file.Close()
-	out := bufio.NewReader(file)
-	err = Error{ErrNoEnergy, XTB, O.inputname, "", []string{"Energy"}, true}
-	var line string
-	line, err = out.ReadString('\n')
-	if err != nil {
-		return 0, Error{ErrNoEnergy, XTB, O.inputname, err.Error(), []string{"os.file.ReadString", "Energy"}, true}
-	}
-	line, err = out.ReadString('\n')
-	if err != nil {
-		return 0, Error{ErrNoEnergy, XTB, O.inputname, err.Error(), []string{"os.file.ReadString", "Energy"}, true}
-	}
-	split := strings.Fields(line)
+	split := strings.Fields(energyline)
 	if len(split) < 4 {
-		err = Error{ErrNoEnergy, Mopac, O.inputname, "", []string{"Energy"}, true}
 		return 0, Error{ErrNoEnergy, XTB, O.inputname, err.Error(), []string{"Energy"}, true}
 
 	}
-	energy, err = strconv.ParseFloat(split[1], 64)
+	energy, err = strconv.ParseFloat(split[3], 64)
 	if err != nil {
 		return 0, Error{ErrNoEnergy, XTB, O.inputname, err.Error(), []string{"strconv.ParseFloat", "Energy"}, true}
 	}
 
 	return energy * chem.H2Kcal, err //dummy thin
 }
+
+
+
+var dielectric2Solvent = map[int]string{
+	80: "h2o",
+	5: "chcl3",
+	9: "ch2cl2",
+	21:"acetone",
+	37:"acetonitrile",
+	33:"methanol",
+	2: "toluene",
+	7: "thf",
+	47:"dmso",
+	38:"dmf",
+}
+
