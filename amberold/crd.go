@@ -30,54 +30,54 @@
 package amberold
 
 import (
-	"fmt"
 	"bufio"
-	"strconv"
+	"fmt"
 	"github.com/rmera/gochem"
 	"github.com/rmera/gochem/v3"
 	"os"
+	"strconv"
 	"strings"
 )
 
-
 //Container for an Charmm/NAMD binary trajectory file.
 type CrdObj struct {
-	natoms     int
-	readLast   bool //Have we read the last frame?
-	readable   bool //Is it ready to be read?
-	filename   string
-	new        bool     //Still no frame read from it?
-	fixed      int32    //Fixed atoms (not supported)
-	ioread        *os.File //The crd file
-	crd		   *bufio.Reader
-	remaining  []float64
-
+	natoms    int
+	readLast  bool //Have we read the last frame?
+	readable  bool //Is it ready to be read?
+	filename  string
+	new       bool     //Still no frame read from it?
+	fixed     int32    //Fixed atoms (not supported)
+	ioread    *os.File //The crd file
+	crd       *bufio.Reader
+	remaining []float64
+	box bool
 }
 
-func New(filename string, ats int) (*CrdObj, error) {
+func New(filename string, ats int, box bool) (*CrdObj, error) {
 	var err error
 	traj := new(CrdObj)
-	traj.ioread,err = os.Open(filename)
+	traj.ioread, err = os.Open(filename)
 	if err != nil {
 		return nil, Error{UnableToOpen, filename, []string{"New"}, true}
 
 	}
-	traj.filename=filename
+	traj.filename = filename
 	traj.crd = bufio.NewReader(traj.ioread)
-	_,err=traj.crd.ReadString('\n') //The first line is just a comment
-//	println(TEST) ///////////
-//	TEST,err=traj.crd.ReadString('\n') //The first line is just a comment
-//	println(TEST) ////////////
-	if err!=nil{
+	_, err = traj.crd.ReadString('\n') //The first line is just a comment
+	//	println(TEST) ///////////
+	//	TEST,err=traj.crd.ReadString('\n') //The first line is just a comment
+	//	println(TEST) ////////////
+	if err != nil {
 		return nil, err //CHANGE
 	}
-	traj.natoms=ats
-	traj.remaining=make([]float64,0,9)
-	traj.readable=true
+	traj.natoms = ats
+	traj.remaining = make([]float64, 0, 9)
+	if box{
+		traj.box=true
+	}
+	traj.readable = true
 	return traj, nil
 }
-
-
 
 //Returns true if the object is ready to be read from
 //false otherwise. It doesnt guarantee that there is something
@@ -87,6 +87,10 @@ func New(filename string, ats int) (*CrdObj, error) {
 func (C *CrdObj) Readable() bool {
 	return C.readable
 }
+
+
+
+
 
 
 //Next Reads the next frame in a DcDObj that has been initialized for read
@@ -106,7 +110,11 @@ func (C *CrdObj) Next(keep *v3.Matrix) error {
 	//would set the values to the matrix simply does nothing in the discard case.
 	var setter func(file,col int, val float64)
 	if keep!=nil{
-		setter=func(file,col int, val float64){ keep.Set(file,col,val)}
+		setter=func(file,col int, val float64){
+//			println(keep.NVecs()) ///////////////////////////////////////////
+			keep.Set(file,col,val)
+		
+		}
 	}else{
 		setter=func(file,col int, val float64){ }
 	}
@@ -136,8 +144,6 @@ func (C *CrdObj) Next(keep *v3.Matrix) error {
 			return newlastFrameError(C.filename,"Next")
 		}
 		l:=strings.Fields(i)
-	//	fmt.Println(l) ////////////////////////////////////////////////////////////
-	//	println("no") ///////////////////////
 		const ncoords = 3
 		for _,j:=range(l){
 			coord,err := strconv.ParseFloat(j, 64)
@@ -154,6 +160,7 @@ func (C *CrdObj) Next(keep *v3.Matrix) error {
 		//		println("wei")////
 				line++
 				cont=0
+//				println(line,cont,C.natoms) /////////////////////////////////////
 				setter(line,cont,coord)
 				cont++
 				continue
@@ -166,9 +173,190 @@ func (C *CrdObj) Next(keep *v3.Matrix) error {
 		}
 	//	println("wei") ////////////
 	}
+	if C.box{
+		C.nextBox()
+	}
 	return nil
 
 }
+
+
+//Next Reads the next frame in a DcDObj that has been initialized for read
+//With initread. If keep is true, returns a pointer to matrix.DenseMatrix
+//With the coordinates read, otherwiser, it discards the coordinates and
+//returns nil.
+func (C *CrdObj) nextVelBox() error {
+	var keep *v3.Matrix //nil
+	const ncoords = 3
+	if !C.readable {
+		return Error{TrajUnIni, C.filename, []string{"Next"}, true}
+	}
+	var natoms int =C.natoms+1
+	//What do we do with remaining?
+	cont:=0
+	line:=0
+	//The following allows discarding a frame while still keeping track of it. 
+	//Everything is the same if you read or discard, except the function that 
+	//would set the values to the matrix simply does nothing in the discard case.
+	var setter func(file,col int, val float64)
+	if keep!=nil{
+		setter=func(file,col int, val float64){ keep.Set(file,col,val)}
+	}else{
+		setter=func(file,col int, val float64){ }
+	}
+	//Here we read the coords that were left remaining in the last read.
+	for _,coord:=range(C.remaining){
+            if cont<ncoords{
+                setter(line,cont,coord)
+				coord++
+                continue
+			}
+			if cont>=ncoords && line<natoms-1{
+				line++
+				cont=0
+				setter(line,cont,coord)
+				cont++
+				continue
+			}
+	}
+	C.remaining=C.remaining[0:0] //This might not work as expected. I need it to set C.remaining to zero length.
+//	println("remaining:", len(C.remaining))
+    for line<natoms-1{
+		i,err:=C.crd.ReadString('\n')
+		//here we assume the error is an EOF. I need to change this to actually check.
+		if err!=nil{
+			C.readable=false
+//			println(err.Error()) //////
+			return newlastFrameError(C.filename,"Next")
+		}
+		l:=strings.Fields(i)
+	//	fmt.Println(l) ////////////////////////////////////////////////////////////
+	//	println("no") ///////////////////////
+		const ncoords = 3
+		for _,j:=range(l){
+			coord,err := strconv.ParseFloat(j, 64)
+			if err != nil {
+				return Error{fmt.Sprintf("Unable to read coordinates from Amber trajectory", err.Error()),C.filename, []string{"strconv.ParseFloat", "Next"},true}
+			}
+            if cont<ncoords{
+			//	println("no")////
+                setter(line,cont,coord)
+				cont++
+                continue
+			}
+			if cont>=ncoords && line<natoms-1{
+		//		println("wei")////
+				line++
+				cont=0
+				setter(line,cont,coord)
+				cont++
+				continue
+			}
+			if cont>=cont && line>=natoms-1{
+
+//				println("ql")////
+				C.remaining=append(C.remaining,coord)
+			}
+		}
+	//	println("wei") ////////////
+	}
+	return nil
+
+}
+
+
+
+
+
+
+
+
+
+//Next Reads the next frame in a DcDObj that has been initialized for read
+//With initread. If keep is true, returns a pointer to matrix.DenseMatrix
+//With the coordinates read, otherwiser, it discards the coordinates and
+//returns nil.
+func (C *CrdObj) nextBox() error {
+	var keep *v3.Matrix //nil
+	const ncoords = 3
+	if !C.readable {
+		return Error{TrajUnIni, C.filename, []string{"Next"}, true}
+	}
+	var natoms int = 1
+	//What do we do with remaining?
+	cont:=0
+	line:=0
+	//The following allows discarding a frame while still keeping track of it. 
+	//Everything is the same if you read or discard, except the function that 
+	//would set the values to the matrix simply does nothing in the discard case.
+	var setter func(file,col int, val float64)
+	if keep!=nil{
+		setter=func(file,col int, val float64){ keep.Set(file,col,val)}
+	}else{
+		setter=func(file,col int, val float64){ }
+	}
+	//Here we read the coords that were left remaining in the last read.
+	for _,coord:=range(C.remaining){
+            if cont<ncoords{
+                setter(line,cont,coord)
+				coord++
+                continue
+			}
+			if cont>=ncoords && line<natoms-1{
+				line++
+				cont=0
+				setter(line,cont,coord)
+				cont++
+				continue
+			}
+	}
+	C.remaining=C.remaining[0:0] //This might not work as expected. I need it to set C.remaining to zero length.
+//	println("remaining:", len(C.remaining))
+    for line<natoms-1{
+		i,err:=C.crd.ReadString('\n')
+		//here we assume the error is an EOF. I need to change this to actually check.
+		if err!=nil{
+			C.readable=false
+//			println(err.Error()) //////
+			return newlastFrameError(C.filename,"Next")
+		}
+		l:=strings.Fields(i)
+	//	fmt.Println(l) ////////////////////////////////////////////////////////////
+	//	println("no") ///////////////////////
+		const ncoords = 3
+		for _,j:=range(l){
+			coord,err := strconv.ParseFloat(j, 64)
+			if err != nil {
+				return Error{fmt.Sprintf("Unable to read coordinates from Amber trajectory", err.Error()),C.filename, []string{"strconv.ParseFloat", "Next"},true}
+			}
+            if cont<ncoords{
+			//	println("no")////
+                setter(line,cont,coord)
+				cont++
+                continue
+			}
+			if cont>=ncoords && line<natoms-1{
+		//		println("wei")////
+				line++
+				cont=0
+				setter(line,cont,coord)
+				cont++
+				continue
+			}
+			if cont>=cont && line>=natoms-1{
+
+//				println("ql")////
+				C.remaining=append(C.remaining,coord)
+			}
+		}
+	//	println("wei") ////////////
+	}
+	return nil
+
+}
+
+
+
 
 
 //Natoms returns the number of atoms per frame in the XtcObj.
@@ -176,7 +364,6 @@ func (C *CrdObj) Next(keep *v3.Matrix) error {
 func (C *CrdObj) Len() int {
 	return int(C.natoms)
 }
-
 
 //Errors
 

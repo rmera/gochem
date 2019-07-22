@@ -424,7 +424,7 @@ func pdbWrite(out io.Writer, coords *v3.Matrix, mol Atomer, bfact []float64) err
 		}
 	}
 	_, err = out.Write([]byte("TER\n")) // New Addition, should help to recognize the end of the chain.
-	_, err = out.Write([]byte("END"))   //no newline, this is in case the write is part of a PDB and one needs to write "ENDMODEL".
+	_, err = out.Write([]byte("END"))   //no newline, this is in case the write is part of a PDB and one needs to write "ENDMDEL".
 	if err != nil {
 		return iowriteError(err)
 	}
@@ -482,7 +482,7 @@ func MultiPDBWrite(out io.Writer, Coords []*v3.Matrix, mol Atomer, Bfactors [][]
 		if err != nil {
 			return iowriterError(err)
 		}
-		err = PDBWrite(out, Coords[j], mol, Bfactors[j])
+		err = pdbWrite(out, Coords[j], mol, Bfactors[j])
 		if err != nil {
 			return errDecorate(err, "MultiPDBWrite")
 		}
