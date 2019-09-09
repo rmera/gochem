@@ -655,7 +655,7 @@ func XYZStringWrite(Coords *v3.Matrix, mol Atomer) (string, error) {
 	return out, nil
 }
 
-//XYZStringWrite writes the mol Ref and the Coord coordinates in an XYZ-formatted string.
+//XYZWrite writes the mol Ref and the Coord coordinates to a io.Writer.
 func XYZWrite(out io.Writer, Coords *v3.Matrix, mol Atomer) error {
 	iowriterError := func(err error) error {
 		return CError{"Failed to write in io.Writer" + err.Error(), []string{"io.Writer.Write", "XYZWrite"}}
