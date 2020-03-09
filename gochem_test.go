@@ -186,7 +186,7 @@ func TestPutInXYPlane(Te *testing.T) {
 	if err != nil {
 		err2 := err.(Error)
 		fmt.Println(err2.Decorate(""))
-		Te.Fatal(err)
+		Te.Errorf(err.Error())
 		//		panic(err.Error())
 	}
 	z, _ := v3.NewMatrix([]float64{0, 0, 1})
@@ -470,7 +470,7 @@ func TestRotateBz(Te *testing.T) {
 		if e, ok := err.(Error); ok {
 			fmt.Println("DEcoration:", e.Decorate(""))
 		}
-		Te.Fatal(err)
+		Te.Errorf(err.Error())
 	}
 	basename := "BZ"
 	newcoords := v3.Zeros(mol.Len())
@@ -486,9 +486,9 @@ func TestRotateBz(Te *testing.T) {
 		rot3 = RotateSer(bzcopy, rot, planevec, Deg2Rad*angle)
 		rot2, _ := EulerRotateAbout(bzcopy2, origin, planevec, Deg2Rad*angle) //should be the same as the previous
 		if !mat.EqualApprox(rot, rot2, 0.01) {
-			Te.Fatal("Rotors Rotate and EulerRotate not equal for angle %3.2f", angle)
+			Te.Errorf("Rotors Rotate and EulerRotate not equal for angle %3.2f", angle)
 		} else if !mat.EqualApprox(rot2, rot3, 0.01) {
-			Te.Fatal("Rotors RotateSer and EulerRotate not equal for angle %3.2f", angle)
+			Te.Errorf("Rotors RotateSer and EulerRotate not equal for angle %3.2f", angle)
 
 		} else {
 			fmt.Println("Rotors EQUAL for angle", angle)
