@@ -340,10 +340,21 @@ func EigenWrap(in *Matrix, epsilon float64) (*Matrix, []float64, error) {
 		epsilon = appzero
 	}
 	eigen := new(mat.Eigen)
-	eigen.Factorize(mat.DenseCopyOf(in.Dense), false, true)
+	ok := eigen.Factorize(mat.DenseCopyOf(in.Dense), mat.EigenRight) //Not sure if that DenseCopy is still needed.
+	if !ok{
+		return nil,nil,Error{"",[]string{"mat.Eigen.Factorize", "EigenWrap"}, true}
+	}
 	evals_cmp := make([]complex128, 3) //We only deal with 3-column matrixes in this package
+	TempVec:=mat.NewCDense(3,3,nil) /// An allocation. We have to see whether I should try to minimize these. Also, see comment above.
 	evals_cmp = eigen.Values(evals_cmp)
-	evecsprev := &Matrix{eigen.Vectors()}
+	eigen.VectorsTo(TempVec)
+	evecsprev:=Zeros(3)
+	//This is horrible, but, apparently, Gonum just doesn't provide anything to go from CDense to Dense. At least these are guaranteed to be 3x3 matrices
+	for i:=0;i<3;i++{
+		for j:=0;j<3;j++{
+			evecsprev.Set(i,j,cmplx.Abs(TempVec.At(i,j)))
+		}
+	}
 	evals := make([]float64, 3, 3)
 	for k, _ := range evals {
 		evals[k] = cmplx.Abs(evals_cmp[k]) //no check of the thing being real for now.
@@ -352,7 +363,7 @@ func EigenWrap(in *Matrix, epsilon float64) (*Matrix, []float64, error) {
 	fn := func() { evecs.Copy(evecsprev.T()) }
 	err := mat.Maybe(fn)
 	if err != nil {
-		return nil, nil, Error{err.Error(), []string{"mat64.Copy/math64.T", "EigenWrap"}, true}
+		return nil, nil, Error{err.Error(), []string{"mat.Copy/math.T", "EigenWrap"}, true}
 
 	}
 	//evecs.TCopy(evecs.Dense)
