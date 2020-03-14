@@ -100,7 +100,7 @@ func (O *OrcaHandle) SetDefaults() {
 	if O.command == "/orca" { //if ORCA_PATH was not defined
 		O.command = "./orca"
 	}
-	cpu := runtime.NumCPU()/2
+	cpu := runtime.NumCPU() / 2
 	O.nCPU = cpu
 
 }

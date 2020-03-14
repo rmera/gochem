@@ -302,7 +302,7 @@ func pdbBufIORead(pdb *bufio.Reader, read_additional bool) (*Molecule, error) {
 	}
 	//This could be done faster if done in the same loop where the coords are read
 	//Instead of having another loop just for them.
-	top := NewTopology(0, 1,molecule)
+	top := NewTopology(0, 1, molecule)
 	var err error
 	frames := len(coords)
 	mcoords := make([]*v3.Matrix, frames, frames) //Final thing to return
@@ -536,7 +536,7 @@ func XYZRead(xyzp io.Reader) (*Molecule, error) {
 			if err != nil {
 				return nil, errDecorate(err, "XYZRead")
 			}
-			top = NewTopology(0, 1,molecule)
+			top = NewTopology(0, 1, molecule)
 			if err != nil {
 				return nil, errDecorate(err, "XYZRead")
 			}
@@ -614,7 +614,7 @@ func xyzReadSnap(xyz *bufio.Reader, ReadTopol bool) (*v3.Matrix, []*Atom, error)
 	//Instead of having another loop just for them.
 	for _, i := range errs {
 		if i != nil {
-		//	fmt.Println("line", line, k)
+			//	fmt.Println("line", line, k)
 			return nil, nil, CError{i.Error(), []string{"strconv.ParseFloat", "xyzReadSnap"}}
 		}
 	}

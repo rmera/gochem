@@ -50,7 +50,7 @@ type CrdObj struct {
 	ioread    *os.File //The crd file
 	crd       *bufio.Reader
 	remaining []float64
-	box bool
+	box       bool
 }
 
 func New(filename string, ats int, box bool) (*CrdObj, error) {
@@ -72,8 +72,8 @@ func New(filename string, ats int, box bool) (*CrdObj, error) {
 	}
 	traj.natoms = ats
 	traj.remaining = make([]float64, 0, 9)
-	if box{
-		traj.box=true
+	if box {
+		traj.box = true
 	}
 	traj.readable = true
 	return traj, nil
@@ -88,11 +88,6 @@ func (C *CrdObj) Readable() bool {
 	return C.readable
 }
 
-
-
-
-
-
 //Next Reads the next frame in a DcDObj that has been initialized for read
 //With initread. If keep is true, returns a pointer to matrix.DenseMatrix
 //With the coordinates read, otherwiser, it discards the coordinates and
@@ -103,83 +98,82 @@ func (C *CrdObj) Next(keep *v3.Matrix) error {
 		return Error{TrajUnIni, C.filename, []string{"Next"}, true}
 	}
 	//What do we do with remaining?
-	cont:=0
-	line:=0
-	//The following allows discarding a frame while still keeping track of it. 
-	//Everything is the same if you read or discard, except the function that 
+	cont := 0
+	line := 0
+	//The following allows discarding a frame while still keeping track of it.
+	//Everything is the same if you read or discard, except the function that
 	//would set the values to the matrix simply does nothing in the discard case.
-	var setter func(file,col int, val float64)
-	if keep!=nil{
-		setter=func(file,col int, val float64){
-//			println(keep.NVecs()) ///////////////////////////////////////////
-			keep.Set(file,col,val)
-		
+	var setter func(file, col int, val float64)
+	if keep != nil {
+		setter = func(file, col int, val float64) {
+			//			println(keep.NVecs()) ///////////////////////////////////////////
+			keep.Set(file, col, val)
+
 		}
-	}else{
-		setter=func(file,col int, val float64){ }
+	} else {
+		setter = func(file, col int, val float64) {}
 	}
 	//Here we read the coords that were left remaining in the last read.
-	for _,coord:=range(C.remaining){
-            if cont<ncoords{
-                setter(line,cont,coord)
-				coord++
-                continue
-			}
-			if cont>=ncoords && line<C.natoms-1{
-				line++
-				cont=0
-				setter(line,cont,coord)
-				cont++
-				continue
-			}
+	for _, coord := range C.remaining {
+		if cont < ncoords {
+			setter(line, cont, coord)
+			coord++
+			continue
+		}
+		if cont >= ncoords && line < C.natoms-1 {
+			line++
+			cont = 0
+			setter(line, cont, coord)
+			cont++
+			continue
+		}
 	}
-	C.remaining=C.remaining[0:0] //This might not work as expected. I need it to set C.remaining to zero length.
-//	println("remaining:", len(C.remaining))
-    for line<C.natoms-1{
-		i,err:=C.crd.ReadString('\n')
+	C.remaining = C.remaining[0:0] //This might not work as expected. I need it to set C.remaining to zero length.
+	//	println("remaining:", len(C.remaining))
+	for line < C.natoms-1 {
+		i, err := C.crd.ReadString('\n')
 		//here we assume the error is an EOF. I need to change this to actually check.
-		if err!=nil{
-			C.readable=false
-//			println(err.Error()) //////
-			return newlastFrameError(C.filename,"Next")
+		if err != nil {
+			C.readable = false
+			//			println(err.Error()) //////
+			return newlastFrameError(C.filename, "Next")
 		}
-		l:=strings.Fields(i)
+		l := strings.Fields(i)
 		const ncoords = 3
-		for _,j:=range(l){
-			coord,err := strconv.ParseFloat(j, 64)
+		for _, j := range l {
+			coord, err := strconv.ParseFloat(j, 64)
 			if err != nil {
-				return Error{fmt.Sprintf("Unable to read coordinates from Amber trajectory", err.Error()),C.filename, []string{"strconv.ParseFloat", "Next"},true}
+				return Error{fmt.Sprintf("Unable to read coordinates from Amber trajectory", err.Error()), C.filename, []string{"strconv.ParseFloat", "Next"}, true}
 			}
-            if cont<ncoords{
-			//	println("no")////
-                setter(line,cont,coord)
-				cont++
-                continue
-			}
-			if cont>=ncoords && line<C.natoms-1{
-		//		println("wei")////
-				line++
-				cont=0
-//				println(line,cont,C.natoms) /////////////////////////////////////
-				setter(line,cont,coord)
+			if cont < ncoords {
+				//	println("no")////
+				setter(line, cont, coord)
 				cont++
 				continue
 			}
-			if cont>=cont && line>=C.natoms-1{
+			if cont >= ncoords && line < C.natoms-1 {
+				//		println("wei")////
+				line++
+				cont = 0
+				//				println(line,cont,C.natoms) /////////////////////////////////////
+				setter(line, cont, coord)
+				cont++
+				continue
+			}
+			if cont >= cont && line >= C.natoms-1 {
 
-//				println("ql")////
-				C.remaining=append(C.remaining,coord)
+				//				println("ql")////
+				C.remaining = append(C.remaining, coord)
 			}
 		}
-	//	println("wei") ////////////
+		//	println("wei") ////////////
 	}
-	if C.box{
+	if C.box {
 		C.nextBox()
 	}
 	return nil
 
 }
-
 
 //Next Reads the next frame in a DcDObj that has been initialized for read
 //With initread. If keep is true, returns a pointer to matrix.DenseMatrix
@@ -191,86 +185,78 @@ func (C *CrdObj) nextVelBox() error {
 	if !C.readable {
 		return Error{TrajUnIni, C.filename, []string{"Next"}, true}
 	}
-	var natoms int =C.natoms+1
+	var natoms int = C.natoms + 1
 	//What do we do with remaining?
-	cont:=0
-	line:=0
-	//The following allows discarding a frame while still keeping track of it. 
-	//Everything is the same if you read or discard, except the function that 
+	cont := 0
+	line := 0
+	//The following allows discarding a frame while still keeping track of it.
+	//Everything is the same if you read or discard, except the function that
 	//would set the values to the matrix simply does nothing in the discard case.
-	var setter func(file,col int, val float64)
-	if keep!=nil{
-		setter=func(file,col int, val float64){ keep.Set(file,col,val)}
-	}else{
-		setter=func(file,col int, val float64){ }
+	var setter func(file, col int, val float64)
+	if keep != nil {
+		setter = func(file, col int, val float64) { keep.Set(file, col, val) }
+	} else {
+		setter = func(file, col int, val float64) {}
 	}
 	//Here we read the coords that were left remaining in the last read.
-	for _,coord:=range(C.remaining){
-            if cont<ncoords{
-                setter(line,cont,coord)
-				coord++
-                continue
-			}
-			if cont>=ncoords && line<natoms-1{
-				line++
-				cont=0
-				setter(line,cont,coord)
-				cont++
-				continue
-			}
+	for _, coord := range C.remaining {
+		if cont < ncoords {
+			setter(line, cont, coord)
+			coord++
+			continue
+		}
+		if cont >= ncoords && line < natoms-1 {
+			line++
+			cont = 0
+			setter(line, cont, coord)
+			cont++
+			continue
+		}
 	}
-	C.remaining=C.remaining[0:0] //This might not work as expected. I need it to set C.remaining to zero length.
-//	println("remaining:", len(C.remaining))
-    for line<natoms-1{
-		i,err:=C.crd.ReadString('\n')
+	C.remaining = C.remaining[0:0] //This might not work as expected. I need it to set C.remaining to zero length.
+	//	println("remaining:", len(C.remaining))
+	for line < natoms-1 {
+		i, err := C.crd.ReadString('\n')
 		//here we assume the error is an EOF. I need to change this to actually check.
-		if err!=nil{
-			C.readable=false
-//			println(err.Error()) //////
-			return newlastFrameError(C.filename,"Next")
+		if err != nil {
+			C.readable = false
+			//			println(err.Error()) //////
+			return newlastFrameError(C.filename, "Next")
 		}
-		l:=strings.Fields(i)
-	//	fmt.Println(l) ////////////////////////////////////////////////////////////
-	//	println("no") ///////////////////////
+		l := strings.Fields(i)
+		//	fmt.Println(l) ////////////////////////////////////////////////////////////
+		//	println("no") ///////////////////////
 		const ncoords = 3
-		for _,j:=range(l){
-			coord,err := strconv.ParseFloat(j, 64)
+		for _, j := range l {
+			coord, err := strconv.ParseFloat(j, 64)
 			if err != nil {
-				return Error{fmt.Sprintf("Unable to read coordinates from Amber trajectory", err.Error()),C.filename, []string{"strconv.ParseFloat", "Next"},true}
+				return Error{fmt.Sprintf("Unable to read coordinates from Amber trajectory", err.Error()), C.filename, []string{"strconv.ParseFloat", "Next"}, true}
 			}
-            if cont<ncoords{
-			//	println("no")////
-                setter(line,cont,coord)
-				cont++
-                continue
-			}
-			if cont>=ncoords && line<natoms-1{
-		//		println("wei")////
-				line++
-				cont=0
-				setter(line,cont,coord)
+			if cont < ncoords {
+				//	println("no")////
+				setter(line, cont, coord)
 				cont++
 				continue
 			}
-			if cont>=cont && line>=natoms-1{
+			if cont >= ncoords && line < natoms-1 {
+				//		println("wei")////
+				line++
+				cont = 0
+				setter(line, cont, coord)
+				cont++
+				continue
+			}
+			if cont >= cont && line >= natoms-1 {
 
-//				println("ql")////
-				C.remaining=append(C.remaining,coord)
+				//				println("ql")////
+				C.remaining = append(C.remaining, coord)
 			}
 		}
-	//	println("wei") ////////////
+		//	println("wei") ////////////
 	}
 	return nil
 
 }
-
-
-
-
-
-
-
-
 
 //Next Reads the next frame in a DcDObj that has been initialized for read
 //With initread. If keep is true, returns a pointer to matrix.DenseMatrix
@@ -284,80 +270,76 @@ func (C *CrdObj) nextBox() error {
 	}
 	var natoms int = 1
 	//What do we do with remaining?
-	cont:=0
-	line:=0
-	//The following allows discarding a frame while still keeping track of it. 
-	//Everything is the same if you read or discard, except the function that 
+	cont := 0
+	line := 0
+	//The following allows discarding a frame while still keeping track of it.
+	//Everything is the same if you read or discard, except the function that
 	//would set the values to the matrix simply does nothing in the discard case.
-	var setter func(file,col int, val float64)
-	if keep!=nil{
-		setter=func(file,col int, val float64){ keep.Set(file,col,val)}
-	}else{
-		setter=func(file,col int, val float64){ }
+	var setter func(file, col int, val float64)
+	if keep != nil {
+		setter = func(file, col int, val float64) { keep.Set(file, col, val) }
+	} else {
+		setter = func(file, col int, val float64) {}
 	}
 	//Here we read the coords that were left remaining in the last read.
-	for _,coord:=range(C.remaining){
-            if cont<ncoords{
-                setter(line,cont,coord)
-				coord++
-                continue
-			}
-			if cont>=ncoords && line<natoms-1{
-				line++
-				cont=0
-				setter(line,cont,coord)
-				cont++
-				continue
-			}
+	for _, coord := range C.remaining {
+		if cont < ncoords {
+			setter(line, cont, coord)
+			coord++
+			continue
+		}
+		if cont >= ncoords && line < natoms-1 {
+			line++
+			cont = 0
+			setter(line, cont, coord)
+			cont++
+			continue
+		}
 	}
-	C.remaining=C.remaining[0:0] //This might not work as expected. I need it to set C.remaining to zero length.
-//	println("remaining:", len(C.remaining))
-    for line<natoms-1{
-		i,err:=C.crd.ReadString('\n')
+	C.remaining = C.remaining[0:0] //This might not work as expected. I need it to set C.remaining to zero length.
+	//	println("remaining:", len(C.remaining))
+	for line < natoms-1 {
+		i, err := C.crd.ReadString('\n')
 		//here we assume the error is an EOF. I need to change this to actually check.
-		if err!=nil{
-			C.readable=false
-//			println(err.Error()) //////
-			return newlastFrameError(C.filename,"Next")
+		if err != nil {
+			C.readable = false
+			//			println(err.Error()) //////
+			return newlastFrameError(C.filename, "Next")
 		}
-		l:=strings.Fields(i)
-	//	fmt.Println(l) ////////////////////////////////////////////////////////////
-	//	println("no") ///////////////////////
+		l := strings.Fields(i)
+		//	fmt.Println(l) ////////////////////////////////////////////////////////////
+		//	println("no") ///////////////////////
 		const ncoords = 3
-		for _,j:=range(l){
-			coord,err := strconv.ParseFloat(j, 64)
+		for _, j := range l {
+			coord, err := strconv.ParseFloat(j, 64)
 			if err != nil {
-				return Error{fmt.Sprintf("Unable to read coordinates from Amber trajectory", err.Error()),C.filename, []string{"strconv.ParseFloat", "Next"},true}
+				return Error{fmt.Sprintf("Unable to read coordinates from Amber trajectory", err.Error()), C.filename, []string{"strconv.ParseFloat", "Next"}, true}
 			}
-            if cont<ncoords{
-			//	println("no")////
-                setter(line,cont,coord)
-				cont++
-                continue
-			}
-			if cont>=ncoords && line<natoms-1{
-		//		println("wei")////
-				line++
-				cont=0
-				setter(line,cont,coord)
+			if cont < ncoords {
+				//	println("no")////
+				setter(line, cont, coord)
 				cont++
 				continue
 			}
-			if cont>=cont && line>=natoms-1{
+			if cont >= ncoords && line < natoms-1 {
+				//		println("wei")////
+				line++
+				cont = 0
+				setter(line, cont, coord)
+				cont++
+				continue
+			}
+			if cont >= cont && line >= natoms-1 {
 
-//				println("ql")////
-				C.remaining=append(C.remaining,coord)
+				//				println("ql")////
+				C.remaining = append(C.remaining, coord)
 			}
 		}
-	//	println("wei") ////////////
+		//	println("wei") ////////////
 	}
 	return nil
 
 }
-
-
-
-
 
 //Natoms returns the number of atoms per frame in the XtcObj.
 //XtcObj must be initialized. 0 means an uninitialized object.

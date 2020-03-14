@@ -32,7 +32,7 @@
 package qm
 
 import (
-//	"bufio"
+	//	"bufio"
 	"fmt"
 	"github.com/rmera/gochem"
 	"github.com/rmera/gochem/v3"
@@ -69,7 +69,6 @@ func (O *XTBHandle) Command() string {
 	return O.command
 }
 
-
 func (O *XTBHandle) SetName(name string) {
 	O.inputname = name
 }
@@ -80,10 +79,10 @@ func (O *XTBHandle) SetCommand(name string) {
 
 func (O *XTBHandle) SetDefaults() {
 	O.command = os.ExpandEnv("xtb")
-//	if O.command == "/xtb" { //if XTBHOME was not defined
-//		O.command = "./xtb"
-//	}
-	cpu := runtime.NumCPU()/2
+	//	if O.command == "/xtb" { //if XTBHOME was not defined
+	//		O.command = "./xtb"
+	//	}
+	cpu := runtime.NumCPU() / 2
 	O.nCPU = cpu
 
 }
@@ -109,31 +108,31 @@ func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q
 		O.inputname = "gochem"
 	}
 	O.options = make([]string, 2, 6)
-	O.options[0]=O.command
+	O.options[0] = O.command
 	O.options[1] = O.inputname + ".xyz"
-	O.options= append(O.options, fmt.Sprintf("-c %d",atoms.Charge()))
-	O.options= append(O.options, fmt.Sprintf("-u %d",(atoms.Multi()-1)))
-	if O.nCPU>1{
-		O.options= append(O.options, fmt.Sprintf("-P %d",O.nCPU))
+	O.options = append(O.options, fmt.Sprintf("-c %d", atoms.Charge()))
+	O.options = append(O.options, fmt.Sprintf("-u %d", (atoms.Multi()-1)))
+	if O.nCPU > 1 {
+		O.options = append(O.options, fmt.Sprintf("-P %d", O.nCPU))
 	}
 
-	if Q.Dielectric>0{
-		solvent,ok:=dielectric2Solvent[int(Q.Dielectric)]
-		if ok{
-			O.options= append(O.options, "-g "+solvent)
+	if Q.Dielectric > 0 {
+		solvent, ok := dielectric2Solvent[int(Q.Dielectric)]
+		if ok {
+			O.options = append(O.options, "-g "+solvent)
 		}
 	}
 	//O.options = append(O.options, "-gfn")
-	fixed:=""
-	if Q.CConstraints!=nil{
-		fixed="atoms: "
-		for _,v:=range(Q.CConstraints){
-			fixed=fixed+strconv.Itoa(v)+", " //0-based indexes
+	fixed := ""
+	if Q.CConstraints != nil {
+		fixed = "atoms: "
+		for _, v := range Q.CConstraints {
+			fixed = fixed + strconv.Itoa(v) + ", " //0-based indexes
 		}
-		strings.TrimRight(fixed,",")
-		fixed=fixed+"\n"
+		strings.TrimRight(fixed, ",")
+		fixed = fixed + "\n"
 		xcontrol, err := os.Create("xcontrol")
-		if err!=nil{
+		if err != nil {
 			return err
 		}
 		xcontrol.Write([]byte("$fix\n"))
@@ -149,7 +148,7 @@ func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q
 
 	Q.Job.Do(jc)
 	return nil
-	
+
 }
 
 //Run runs the command given by the string O.command
@@ -158,26 +157,26 @@ func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q
 //only for unix-compatible systems, as it uses bash and nohup.
 func (O *XTBHandle) Run(wait bool) (err error) {
 	if wait == true {
-//		out, err := os.Create(fmt.Sprintf("%s.out", O.inputname))
-//		if err != nil {
-//			return Error{ErrNotRunning, XTB, O.inputname, "", []string{"Run"}, true}
-//		}
-//		ferr, err := os.Create(fmt.Sprintf("%s.err", O.inputname))
-//
-//		if err != nil {
-//			return Error{ErrNotRunning, XTB, O.inputname, "", []string{"Run"}, true}
-//		}
-//		defer out.Close()
-//		defer ferr.Close()
-//		fullCommand:=strings.Join(O.options," ")
-//		fmt.Println(fullCommand) //("Command", O.command, O.options) ////////////////////////
-//		command := exec.Command(fullCommand) //, O.options...)
-//		command.Stdout = out
-//		command.Stderr = ferr
-//		err = command.Run()
-//		fmt.Println(O.command+fmt.Sprintf(" %s.xyz %s > %s.out &", O.inputname, strings.Join(O.options[2:]," "), O.inputname)) ////////////////////////
-		command := exec.Command("sh", "-c", O.command+fmt.Sprintf(" %s.xyz %s > %s.out  2>&1", O.inputname, strings.Join(O.options[2:]," "), O.inputname))
-		err=command.Run()
+		//		out, err := os.Create(fmt.Sprintf("%s.out", O.inputname))
+		//		if err != nil {
+		//			return Error{ErrNotRunning, XTB, O.inputname, "", []string{"Run"}, true}
+		//		}
+		//		ferr, err := os.Create(fmt.Sprintf("%s.err", O.inputname))
+		//
+		//		if err != nil {
+		//			return Error{ErrNotRunning, XTB, O.inputname, "", []string{"Run"}, true}
+		//		}
+		//		defer out.Close()
+		//		defer ferr.Close()
+		//		fullCommand:=strings.Join(O.options," ")
+		//		fmt.Println(fullCommand) //("Command", O.command, O.options) ////////////////////////
+		//		command := exec.Command(fullCommand) //, O.options...)
+		//		command.Stdout = out
+		//		command.Stderr = ferr
+		//		err = command.Run()
+		//		fmt.Println(O.command+fmt.Sprintf(" %s.xyz %s > %s.out &", O.inputname, strings.Join(O.options[2:]," "), O.inputname)) ////////////////////////
+		command := exec.Command("sh", "-c", O.command+fmt.Sprintf(" %s.xyz %s > %s.out  2>&1", O.inputname, strings.Join(O.options[2:], " "), O.inputname))
+		err = command.Run()
 
 	} else {
 		command := exec.Command("sh", "-c", "nohup "+O.command+fmt.Sprintf(" %s.xyz %s > %s.out &", O.inputname, O.options[1:], O.inputname))
@@ -186,8 +185,8 @@ func (O *XTBHandle) Run(wait bool) (err error) {
 	if err != nil {
 		err = Error{ErrNotRunning, XTB, O.inputname, err.Error(), []string{"exec.Start", "Run"}, true}
 	}
-	if err!=nil{
-	return err
+	if err != nil {
+		return err
 	}
 	os.Remove("xtbrestart")
 	return nil
@@ -209,37 +208,35 @@ func (O *XTBHandle) OptimizedGeometry(atoms chem.Atomer) (*v3.Matrix, error) {
 //This checks that an xtb calculation has terminated normally
 //I know this duplicates code, I wrote this one first and then the other one.
 func (O *XTBHandle) normalTermination() bool {
-	if searchBackwards("normal termination of x",fmt.Sprintf("%s.out", O.inputname))!="" || searchBackwards("abnormal termination of x",fmt.Sprintf("%s.out", O.inputname))==""{
+	if searchBackwards("normal termination of x", fmt.Sprintf("%s.out", O.inputname)) != "" || searchBackwards("abnormal termination of x", fmt.Sprintf("%s.out", O.inputname)) == "" {
 		return true
 	}
-//	fmt.Println(fmt.Sprintf("%s.out", O.inputname), searchBackwards("normal termination of x",fmt.Sprintf("%s.out", O.inputname))) ////////////////////
+	//	fmt.Println(fmt.Sprintf("%s.out", O.inputname), searchBackwards("normal termination of x",fmt.Sprintf("%s.out", O.inputname))) ////////////////////
 	return false
 }
 
-
-
 //search a file backwards, i.e., starting from the end, for a string. Returns the line that contains the string, or an empty string.
-func searchBackwards(str,filename string) string {
+func searchBackwards(str, filename string) string {
 	var ini int64 = 0
 	var end int64 = 0
 	var first bool
 	first = true
 	buf := make([]byte, 1)
-//	fmt.Println("no wei", filename) ////////////////////////
+	//	fmt.Println("no wei", filename) ////////////////////////
 	f, err := os.Open(filename)
 	if err != nil {
-//		fmt.Println(err.Error())	 ////////////////
-		return  ""
+		//		fmt.Println(err.Error())	 ////////////////
+		return ""
 	}
 	defer f.Close()
 	var i int64 = 1
 	for ; ; i++ {
 		if _, err := f.Seek(-1*i, 2); err != nil {
-	//		fmt.Println(err.Error()) ///////////////////
+			//		fmt.Println(err.Error()) ///////////////////
 			return ""
 		}
 		if _, err := f.Read(buf); err != nil {
-	//		fmt.Println(err.Error()) //////////////////
+			//		fmt.Println(err.Error()) //////////////////
 			return ""
 		}
 		if buf[0] == byte('\n') && first == false {
@@ -251,21 +248,18 @@ func searchBackwards(str,filename string) string {
 			f.Seek(-1*(ini), 2)
 			bufF := make([]byte, ini-end)
 			f.Read(bufF)
-	//		fmt.Println("vieja", string(bufF))////////////////////
+			//		fmt.Println("vieja", string(bufF))////////////////////
 			if strings.Contains(string(bufF), str) {
 				return string(bufF)
 			}
-		//	first=false
-			end=0
-			ini=0
+			//	first=false
+			end = 0
+			ini = 0
 		}
 
 	}
 	return ""
 }
-
-
-
 
 //Gets the energy of a previous XTB calculations.
 //Returns error if problem, and also if the energy returned that is product of an
@@ -274,8 +268,8 @@ func searchBackwards(str,filename string) string {
 func (O *XTBHandle) Energy() (float64, error) {
 	var err error
 	var energy float64
-	energyline:=searchBackwards("total E       :",fmt.Sprintf("%s.out", O.inputname))
-	if energyline==""{
+	energyline := searchBackwards("total E       :", fmt.Sprintf("%s.out", O.inputname))
+	if energyline == "" {
 		return 0, Error{ErrNoEnergy, XTB, O.inputname, err.Error(), []string{"searchBackwards", "Energy"}, true}
 	}
 	split := strings.Fields(energyline)
@@ -291,18 +285,15 @@ func (O *XTBHandle) Energy() (float64, error) {
 	return energy * chem.H2Kcal, err //dummy thin
 }
 
-
-
 var dielectric2Solvent = map[int]string{
 	80: "h2o",
-	5: "chcl3",
-	9: "ch2cl2",
-	21:"acetone",
-	37:"acetonitrile",
-	33:"methanol",
-	2: "toluene",
-	7: "thf",
-	47:"dmso",
-	38:"dmf",
+	5:  "chcl3",
+	9:  "ch2cl2",
+	21: "acetone",
+	37: "acetonitrile",
+	33: "methanol",
+	2:  "toluene",
+	7:  "thf",
+	47: "dmso",
+	38: "dmf",
 }
-

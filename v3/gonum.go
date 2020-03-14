@@ -41,12 +41,9 @@ import (
 	"gonum.org/v1/gonum/blas/blas64"
 	"gonum.org/v1/gonum/mat"
 	"math"
-//	"math/cmplx"
+	//	"math/cmplx"
 	"sort"
 )
-
-
-
 
 //The main container, must be able to implement any
 //gonum interface.
@@ -230,17 +227,16 @@ func (F *Matrix) Mul(A, B mat.Matrix) {
 	*/
 }
 
-
-func stupidDot(A,B *Matrix) float64 {
-	return A.At(0,0)*B.At(0,0) + A.At(0,1)*B.At(0,1) + A.At(0,2)*B.At(0,2)
+func stupidDot(A, B *Matrix) float64 {
+	return A.At(0, 0)*B.At(0, 0) + A.At(0, 1)*B.At(0, 1) + A.At(0, 2)*B.At(0, 2)
 }
 
-//Dot gets the dot product between the first row of F and the first row of A. It's a vector dot product, 
+//Dot gets the dot product between the first row of F and the first row of A. It's a vector dot product,
 // to be used with 1-row matrices.
 func (F *Matrix) Dot(A *Matrix) float64 {
 	//The reason for making Dot ask for a v3.Matrix is that then we can call mat64.Dot with A.Dense, which should make things faster.
-	id := mat.NewDense(3,3,[]float64{1,0,0,0,1,0,0,0,1}) //Identity matrix
-	return mat.Inner(F.Dense.RowView(0),id, A.Dense.RowView(0))
+	id := mat.NewDense(3, 3, []float64{1, 0, 0, 0, 1, 0, 0, 0, 1}) //Identity matrix
+	return mat.Inner(F.Dense.RowView(0), id, A.Dense.RowView(0))
 }
 
 func (F *Matrix) Scale(v float64, A *Matrix) {
@@ -318,10 +314,6 @@ func det(A mat.Matrix) float64 {
 	return (A.At(0, 0)*(A.At(1, 1)*A.At(2, 2)-A.At(2, 1)*A.At(1, 2)) - A.At(1, 0)*(A.At(0, 1)*A.At(2, 2)-A.At(2, 1)*A.At(0, 2)) + A.At(2, 0)*(A.At(0, 1)*A.At(1, 2)-A.At(1, 1)*A.At(0, 2)))
 }
 
-
-
-
-
 type eigenpair struct {
 	//evecs must have as many rows as evals has elements.
 	evecs *Matrix
@@ -340,8 +332,6 @@ func (E eigenpair) Swap(i, j int) {
 func (E eigenpair) Len() int {
 	return len(E.evals)
 }
-
-
 
 //EigenWrap wraps the mat.Eigen structure in order to guarantee
 //That the eigenvectors and eigenvalues are sorted according to the eigenvalues
@@ -367,8 +357,8 @@ func EigenWrap(in *Matrix, epsilon float64) (*Matrix, []float64, error) {
 	//This is horrible, but, apparently, Gonum just doesn't provide anything to go from CDense to Dense. At least these are guaranteed to be 3x3 matrices
 	for i := 0; i < 3; i++ {
 		for j := 0; j < 3; j++ {
-			scalar:=TempVec.At(i,j)
-			if imag(scalar)!=0{
+			scalar := TempVec.At(i, j)
+			if imag(scalar) != 0 {
 				return nil, nil, Error{"Found a complex Eigenvector", []string{"mat.Eigen.Factorize", "EigenWrap"}, true}
 			}
 			evecsprev.Set(i, j, real(scalar))
@@ -398,7 +388,7 @@ func EigenWrap(in *Matrix, epsilon float64) (*Matrix, []float64, error) {
 		for j := i + 1; j < eigrows; j++ {
 			//	vectorj := eig.evecs.VecView(j)
 			if math.Abs(eig.evecs.RowView(i).Dot(eig.evecs.RowView(j))) > epsilon && i != j {
-				fmt.Println("Dot should be", stupidDot(eig.evecs.RowView(i),eig.evecs.RowView(j)))
+				fmt.Println("Dot should be", stupidDot(eig.evecs.RowView(i), eig.evecs.RowView(j)))
 				reterr := Error{fmt.Sprintln("Eigenvectors ", i, "and", j, " not orthogonal. v", i, ":", eig.evecs.Dense.RowView(i), "\nv", j, ":", eig.evecs.Dense.RowView(j), "\nDot:", math.Abs(eig.evecs.RowView(i).Dot(eig.evecs.RowView(j))), "eigmatrix:", eig.evecs), []string{"EigenWrap"}, true}
 				return eig.evecs, evals[:], reterr
 			}

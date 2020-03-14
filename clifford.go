@@ -223,8 +223,8 @@ func getChunk(cake *v3.Matrix, i, j, r, c int) *v3.Matrix {
 func Rotate(Target, Res, axis *v3.Matrix, angle float64) *v3.Matrix {
 	//	runtime.GOMAXPROCS(3)
 	gorut := runtime.GOMAXPROCS(-1)
-	rows:=Target.NVecs()
-//	println("rows and goruts", rows,gorut) /////
+	rows := Target.NVecs()
+	//	println("rows and goruts", rows,gorut) /////
 	if gorut > rows {
 		gorut = rows
 	}
@@ -262,15 +262,15 @@ func RotateP(Target, Res, axis, Rv, Rvrev, tmp1, tmp2, tmp3, tmp4, itmp1, itmp2,
 	}
 	Rrev := paravectorFromVector(Rvrev, itmp3) // makeParavector() //R-dagger //alloc
 	Rrev.reverse(R)
-//	if gorut > rows {
-//		gorut = rows
-//	}
+	//	if gorut > rows {
+	//		gorut = rows
+	//	}
 	ended := make(chan bool, gorut)
 	//If the gorutines are more than the rows, we will have problems afterwards, as we try to split the rows
 	//among the available gorutines, some gorutines are going to get invalid matrix positions.
 	fragmentlen := int(math.Floor(float64(rows) / float64(gorut))) //len of the fragment of target that each gorutine will handle
 	//	println("fragmentlen", fragmentlen, rows, gorut, Target.String()) //////////
-//	println("gorutines!!!", gorut) ///////
+	//	println("gorutines!!!", gorut) ///////
 	for i := 0; i < gorut; i++ {
 		//These are the limits of the fragment of Target in which the gorutine will operate
 		ini := i * fragmentlen

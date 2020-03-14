@@ -29,13 +29,13 @@ import (
 	"fmt"
 	"image/color"
 	"math"
-//	"strings"
+	//	"strings"
 	"gonum.org/v1/plot"
 	"gonum.org/v1/plot/plotter"
 	"gonum.org/v1/plot/vg"
 	"gonum.org/v1/plot/vg/draw"
-//	"github.com/rmera/gochem"
-//	"github.com/rmera/gochem/v3"
+	//	"github.com/rmera/gochem"
+	//	"github.com/rmera/gochem/v3"
 )
 
 const (
@@ -60,7 +60,6 @@ func (err Error) Code() string { return err.code } //May not be needed
 func (err Error) FunctionName() string { return err.function }
 
 func (err Error) Critical() bool { return err.critical }
-
 
 func basicRamaPlot(title string) (*plot.Plot, error) {
 	p, err := plot.New()
@@ -120,7 +119,7 @@ func RamaPlotParts(data [][][]float64, tag [][]int, title, plotname string) erro
 			}
 			//set the colors
 			r, g, b := colors(key, len(data))
-		//	fmt.Println("DATA POINT", key, "color", r, g, b)
+			//	fmt.Println("DATA POINT", key, "color", r, g, b)
 			s.GlyphStyle.Color = color.RGBA{R: r, B: b, G: g, A: 255}
 			//The tagging procedure is a bit complex.
 			p.Add(s)
@@ -258,7 +257,7 @@ func RamaPlot(data [][]float64, tag []int, title, plotname string) error {
 			s.GlyphStyle.Shape, err = getShape(tagged)
 			tagged++
 		}
-	//	fmt.Println("colors rgb", r,g,b)
+		//	fmt.Println("colors rgb", r,g,b)
 		s.GlyphStyle.Color = color.RGBA{R: r, B: b, G: g, A: 255}
 		//		fmt.Println(r,b,g, key, norm, len(data)) //////////////////////////
 		// Add the plotter
@@ -287,5 +286,3 @@ func getShape(tagged int) (draw.GlyphDrawer, error) {
 		return draw.RingGlyph{}, Error{ErrTooManyTags, "", "getShape", "", false} // you can still ignore the error and will get just the regular glyph (your residue will not be tagegd)
 	}
 }
-
-

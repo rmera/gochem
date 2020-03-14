@@ -274,7 +274,7 @@ func TesstFixPDB(Te *testing.T) {
 }
 
 //will fail if reduce is not installed!
-func TTTestReduce(Te *testing.T) {   //silenced
+func TTTestReduce(Te *testing.T) { //silenced
 	fmt.Println("Start TestReduce")
 	mol, err := PDBFileRead("test/2c9v.pdb", true)
 	if err != nil {
@@ -296,101 +296,97 @@ func TTTestReduce(Te *testing.T) {   //silenced
 func TTestShape(Te *testing.T) {
 	myhandle, _ := os.Open("test/2c9v.pdb")
 	mol1, err := PDBRead(myhandle, true) //true means that we try to read the symbol from the PDB file.
-	masses,err:=mol1.Masses()
-	if err!=nil{
+	masses, err := mol1.Masses()
+	if err != nil {
 		Te.Error(err)
 	}
-	moment,err:=MomentTensor(mol1.Coords[0],masses)
-	if err!=nil{
+	moment, err := MomentTensor(mol1.Coords[0], masses)
+	if err != nil {
 		Te.Error(err)
 	}
-	rhos,err:=Rhos(moment)
-	if err!=nil{
+	rhos, err := Rhos(moment)
+	if err != nil {
 		Te.Error(err)
 	}
-	linear,circular,err:=RhoShapeIndexes(rhos)
-	if err!=nil{
+	linear, circular, err := RhoShapeIndexes(rhos)
+	if err != nil {
 		Te.Error(err)
 	}
 	fmt.Println("liner,circular distortion:", linear, circular)
-	lin2,circ2,err:=EasyShape(mol1.Coords[0],-1,mol1)
-	if err!=nil{
+	lin2, circ2, err := EasyShape(mol1.Coords[0], -1, mol1)
+	if err != nil {
 		Te.Error(err)
 	}
-	fmt.Println("Easier way linear,circular:", lin2,circ2)
+	fmt.Println("Easier way linear,circular:", lin2, circ2)
 	mol2, _ := XYZFileRead("test/sample_plane.xyz")
-	lin3,circ3,err:=EasyShape(mol2.Coords[0],-1,mol2)
-	if err!=nil{
+	lin3, circ3, err := EasyShape(mol2.Coords[0], -1, mol2)
+	if err != nil {
 		Te.Error(err)
 	}
-	fmt.Println("sample_plane.xyz shape indicators; linear,circular:", lin3,circ3)
+	fmt.Println("sample_plane.xyz shape indicators; linear,circular:", lin3, circ3)
 	//now the shapetests batterty!
 	mol2, _ = XYZFileRead("test/shapetests/porphyrin.xyz")
-	lin3,circ3,err=EasyShape(mol2.Coords[0],-1,mol2)
-	if err!=nil{
+	lin3, circ3, err = EasyShape(mol2.Coords[0], -1, mol2)
+	if err != nil {
 		Te.Error(err)
 	}
-	fmt.Println("porphyrin.xyz shape indicators; linear,circular:", lin3,circ3)
+	fmt.Println("porphyrin.xyz shape indicators; linear,circular:", lin3, circ3)
 	mol2, _ = XYZFileRead("test/shapetests/2-mesoporphyrin.xyz")
-	lin3,circ3,err=EasyShape(mol2.Coords[0],-1,mol2)
-	if err!=nil{
+	lin3, circ3, err = EasyShape(mol2.Coords[0], -1, mol2)
+	if err != nil {
 		Te.Error(err)
 	}
-	fmt.Println("2-mesoporphyrin.xyz shape indicators; linear,circular:", lin3,circ3)
+	fmt.Println("2-mesoporphyrin.xyz shape indicators; linear,circular:", lin3, circ3)
 	mol2, _ = XYZFileRead("test/shapetests/4-mesoporphyrin.xyz")
-	lin3,circ3,err=EasyShape(mol2.Coords[0],-1,mol2)
-	if err!=nil{
+	lin3, circ3, err = EasyShape(mol2.Coords[0], -1, mol2)
+	if err != nil {
 		Te.Error(err)
 	}
-	fmt.Println("4-mesoporphyrin.xyz shape indicators; linear,circular:", lin3,circ3)
+	fmt.Println("4-mesoporphyrin.xyz shape indicators; linear,circular:", lin3, circ3)
 	mol2, _ = XYZFileRead("test/shapetests/heptane.xyz")
-	lin3,circ3,err=EasyShape(mol2.Coords[0],-1,mol2)
-	if err!=nil{
+	lin3, circ3, err = EasyShape(mol2.Coords[0], -1, mol2)
+	if err != nil {
 		Te.Error(err)
 	}
-	fmt.Println("heptane.xyz shape indicators; linear,circular:", lin3,circ3)
+	fmt.Println("heptane.xyz shape indicators; linear,circular:", lin3, circ3)
 	mol2, _ = XYZFileRead("test/shapetests/decane.xyz")
-	lin3,circ3,err=EasyShape(mol2.Coords[0],-1,mol2)
-	if err!=nil{
+	lin3, circ3, err = EasyShape(mol2.Coords[0], -1, mol2)
+	if err != nil {
 		Te.Error(err)
 	}
-	fmt.Println("decane.xyz shape indicators; linear,circular:", lin3,circ3)
+	fmt.Println("decane.xyz shape indicators; linear,circular:", lin3, circ3)
 	mol2, _ = XYZFileRead("test/shapetests/phenantrene.xyz")
-	lin3,circ3,err=EasyShape(mol2.Coords[0],-1,mol2)
-	if err!=nil{
+	lin3, circ3, err = EasyShape(mol2.Coords[0], -1, mol2)
+	if err != nil {
 		Te.Error(err)
 	}
-	fmt.Println("phenantrene.xyz shape indicators; linear,circular:", lin3,circ3)
+	fmt.Println("phenantrene.xyz shape indicators; linear,circular:", lin3, circ3)
 	mol2, _ = XYZFileRead("test/shapetests/methylphenantrene.xyz")
-	lin3,circ3,err=EasyShape(mol2.Coords[0],-1,mol2)
-	if err!=nil{
+	lin3, circ3, err = EasyShape(mol2.Coords[0], -1, mol2)
+	if err != nil {
 		Te.Error(err)
 	}
-	fmt.Println("methylphenantrene shape indicators; linear,circular:", lin3,circ3)
+	fmt.Println("methylphenantrene shape indicators; linear,circular:", lin3, circ3)
 	mol2, _ = XYZFileRead("test/shapetests/tbutylphenantrene.xyz")
-	lin3,circ3,err=EasyShape(mol2.Coords[0],-1,mol2)
-	if err!=nil{
+	lin3, circ3, err = EasyShape(mol2.Coords[0], -1, mol2)
+	if err != nil {
 		Te.Error(err)
 	}
-	fmt.Println("tbutylphenantrene shape indicators; linear,circular:", lin3,circ3)
+	fmt.Println("tbutylphenantrene shape indicators; linear,circular:", lin3, circ3)
 	mol2, _ = XYZFileRead("test/shapetests/fullerene20.xyz")
-	lin3,circ3,err=EasyShape(mol2.Coords[0],-1,mol2)
-	if err!=nil{
+	lin3, circ3, err = EasyShape(mol2.Coords[0], -1, mol2)
+	if err != nil {
 		Te.Error(err)
 	}
-	fmt.Println("fullerene20.xyz shape indicators; linear,circular:", lin3,circ3)
+	fmt.Println("fullerene20.xyz shape indicators; linear,circular:", lin3, circ3)
 	mol2, _ = XYZFileRead("test/shapetests/fullerene60.xyz")
-	lin3,circ3,err=EasyShape(mol2.Coords[0],0.0001,mol2) //maybe it's too symmetrical for the default epsilon?
-	if err!=nil{
+	lin3, circ3, err = EasyShape(mol2.Coords[0], 0.0001, mol2) //maybe it's too symmetrical for the default epsilon?
+	if err != nil {
 		Te.Error(err)
 	}
-	fmt.Println("fullerene60.xyz shape indicators; linear,circular:", lin3,circ3)
-
+	fmt.Println("fullerene60.xyz shape indicators; linear,circular:", lin3, circ3)
 
 }
-
-
-
 
 //Here PDBRead and PDBWrite are tested
 func TestSuper(Te *testing.T) {
@@ -429,9 +425,9 @@ func TestSuper(Te *testing.T) {
 	ptempla, _ := XYZFileRead("test/sample_plane.xyz")
 	newp, err := Super(ptest.Coords[0], ptempla.Coords[0], nil, nil)
 	rmsd2, _ = RMSD(newp, ptempla.Coords[0])
-	rmsd3, _ := RMSD(newp, ptempla.Coords[0],nil,nil)
+	rmsd3, _ := RMSD(newp, ptempla.Coords[0], nil, nil)
 	rmsd1, _ = rMSD(newp, ptempla.Coords[0], nil, nil)
-	fmt.Println("RMSD mol (should be 0):", rmsd1, rmsd2,rmsd3)
+	fmt.Println("RMSD mol (should be 0):", rmsd1, rmsd2, rmsd3)
 	if err != nil {
 		panic(err.Error())
 	}

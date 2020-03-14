@@ -229,9 +229,9 @@ func rmsd_fail(test, template *matrix.DenseMatrix) (float64, error) {
 //that has more atoms than the elements in the slice. The same number of atoms
 //has to be considered for superposition in both systems.
 //The objects are not superimposed before the calculation.
-func RMSD(test, templa *v3.Matrix,  indexes ...[]int) (float64, error) {
+func RMSD(test, templa *v3.Matrix, indexes ...[]int) (float64, error) {
 	var L int
-	if len(indexes)  == 0 || indexes[0]==nil || len(indexes[0])==0{
+	if len(indexes) == 0 || indexes[0] == nil || len(indexes[0]) == 0 {
 		L = test.NVecs()
 	} else {
 		L = len(indexes[0])
@@ -241,7 +241,6 @@ func RMSD(test, templa *v3.Matrix,  indexes ...[]int) (float64, error) {
 	rmsd, err := MemRMSD(test, templa, tmp, indexes...)
 	return rmsd, err
 }
-
 
 //MemRMSD calculates the RMSD between test and template, considering only the atoms
 //present in the slices of int slices indexes. The first indexes slices will
@@ -258,21 +257,21 @@ func RMSD(test, templa *v3.Matrix,  indexes ...[]int) (float64, error) {
 func MemRMSD(test, templa, tmp *v3.Matrix, indexes ...[]int) (float64, error) {
 	var ctest *v3.Matrix
 	var ctempla *v3.Matrix
-	if len(indexes)==0 || indexes[0]==nil || len(indexes[0])==0 {
-		ctest=test
-		ctempla=templa
-	}else if len(indexes)==1{
-		if  test.NVecs()>len(indexes[0]){
+	if len(indexes) == 0 || indexes[0] == nil || len(indexes[0]) == 0 {
+		ctest = test
+		ctempla = templa
+	} else if len(indexes) == 1 {
+		if test.NVecs() > len(indexes[0]) {
 			ctest = v3.Zeros(len(indexes[0]))
 			ctest.SomeVecs(test, indexes[0])
-			ctempla=templa
-		}else if templa.NVecs()>len(indexes[0]){
+			ctempla = templa
+		} else if templa.NVecs() > len(indexes[0]) {
 			ctempla = v3.Zeros(len(indexes[0]))
 			ctempla.SomeVecs(templa, indexes[0])
-		}else{
+		} else {
 			return -1, fmt.Errorf("chem.memRMSD: Indexes don't match molecules")
 		}
-	}else{
+	} else {
 		ctest = v3.Zeros(len(indexes[0]))
 		ctest.SomeVecs(test, indexes[0])
 		ctempla = v3.Zeros(len(indexes[1]))
@@ -371,29 +370,29 @@ func Dihedral(a, b, c, d *v3.Matrix) float64 {
 //Based on the work of Taylor et al., .(1983), J Mol Graph, 1, 30
 //This function has NOT been tested thoroughly in the sense of the appropiateness of the indexes definitions.
 func RhoShapeIndexes(rhos []float64) (float64, float64, error) {
-	if rhos==nil || len(rhos)<3{
-		return -1,-1,CError{"goChe: Not enough or nil rhos",[]string{"RhoShapeIndexes"}}
+	if rhos == nil || len(rhos) < 3 {
+		return -1, -1, CError{"goChe: Not enough or nil rhos", []string{"RhoShapeIndexes"}}
 	}
-//	print(rhos[0],rhos[1],rhos[2]) ////////////////////////
-// Are these definitions reasonable?
-	linear_distortion := (1-(rhos[1] / rhos[0])) * 100   //Prolate
-	circular_distortion := ((1-(rhos[2] / rhos[1])) * 100) //Oblate
+	//	print(rhos[0],rhos[1],rhos[2]) ////////////////////////
+	// Are these definitions reasonable?
+	linear_distortion := (1 - (rhos[1] / rhos[0])) * 100     //Prolate
+	circular_distortion := ((1 - (rhos[2] / rhos[1])) * 100) //Oblate
 	return linear_distortion, circular_distortion, nil
 }
 
 //Rhos returns the semiaxis of the elipoid of inertia given the the moment of inertia tensor.
 func Rhos(momentTensor *v3.Matrix, epsilon ...float64) ([]float64, error) {
 	var e float64
-	if len(epsilon)==0{
-		e=-1
-	}else{
-		e=epsilon[0]
+	if len(epsilon) == 0 {
+		e = -1
+	} else {
+		e = epsilon[0]
 	}
-	_,evals,err:=v3.EigenWrap(momentTensor,e)
-	if err!=nil{
-		return nil, errDecorate(err,"Rhos")
+	_, evals, err := v3.EigenWrap(momentTensor, e)
+	if err != nil {
+		return nil, errDecorate(err, "Rhos")
 	}
-	rhos := sort.Float64Slice{evals[0],evals[1],evals[2]} //invSqrt(evals[0]), invSqrt(evals[1]), invSqrt(evals[2])}
+	rhos := sort.Float64Slice{evals[0], evals[1], evals[2]} //invSqrt(evals[0]), invSqrt(evals[1]), invSqrt(evals[2])}
 	if evals[2] <= appzero {
 		return rhos[:], CError{"goChem: Molecule colapsed to a single point. Check for blackholes", []string{"Rhos"}}
 	}
@@ -431,7 +430,7 @@ func BestPlane(coords *v3.Matrix, mol ...Masser) (*v3.Matrix, error) {
 	var err error
 	var Mmass []float64
 	cr, _ := coords.Dims()
-	if len(mol)!=0 && mol[0] != nil {
+	if len(mol) != 0 && mol[0] != nil {
 		Mmass, err = mol[0].Masses()
 		if err != nil {
 			return nil, errDecorate(err, "BestPlane")
@@ -439,8 +438,8 @@ func BestPlane(coords *v3.Matrix, mol ...Masser) (*v3.Matrix, error) {
 		if len(Mmass) != cr {
 			return nil, CError{fmt.Sprintf("Inconsistent coordinates(%d)/atoms(%d)", len(Mmass), cr), []string{"BestPlane"}}
 		}
-	}else{
-		Mmass=nil
+	} else {
+		Mmass = nil
 	}
 	moment, err := MomentTensor(coords, Mmass)
 	if err != nil {
@@ -475,11 +474,11 @@ func CenterOfMass(geometry *v3.Matrix, massS ...*mat.Dense) (*v3.Matrix, error) 
 		return nil, CError{"goChem: nil matrix to get the center of mass", []string{"CenterOfMass"}}
 	}
 	gr, _ := geometry.Dims()
-	if len(massS) == 0 || massS[0]==nil { //just obtain the geometric center
+	if len(massS) == 0 || massS[0] == nil { //just obtain the geometric center
 		tmp := ones(gr)
 		mass = mat.NewDense(gr, 1, tmp) //gnOnes(gr, 1)
-	}else{
-		mass=massS[0]
+	} else {
+		mass = massS[0]
 	}
 	tmp2 := ones(gr)
 	gnOnesvector := mat.NewDense(1, gr, tmp2) //gnOnes(1, gr)
@@ -498,11 +497,11 @@ func MassCenter(in, oref *v3.Matrix, massS ...*mat.Dense) (*v3.Matrix, *v3.Matri
 	or, _ := oref.Dims()
 	ir, _ := in.Dims()
 	var mass *mat.Dense
-	if len(massS)==0 || massS[0] == nil { //just obtain the geometric center
+	if len(massS) == 0 || massS[0] == nil { //just obtain the geometric center
 		tmp := ones(or)
 		mass = mat.NewDense(or, 1, tmp) //gnOnes(or, 1)
-	}else{
-		mass=massS[0]
+	} else {
+		mass = massS[0]
 	}
 	ref := v3.Zeros(or)
 	ref.Copy(oref)
@@ -535,7 +534,7 @@ func MomentTensor(A *v3.Matrix, massslice ...[]float64) (*v3.Matrix, error) {
 	ar, ac := A.Dims()
 	var err error
 	var mass *mat.Dense
-	if len(massslice)==0 || massslice[0] == nil {
+	if len(massslice) == 0 || massslice[0] == nil {
 		mass = gnOnes(ar, 1)
 	} else {
 		mass = mat.NewDense(ar, 1, massslice[0])
@@ -582,5 +581,3 @@ func AntiProjection(test, ref *v3.Matrix) *v3.Matrix {
 	Uref.Scale(scalar, Uref)
 	return Uref
 }
-
-

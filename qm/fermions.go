@@ -342,4 +342,4 @@ func searchFromEnd(templa, filename string) bool {
 //I don't have this implemented so far, sorry.
 func (O *FermionsHandle) OptimizedGeometry(atoms chem.Atomer) (*v3.Matrix, error) {
 	return nil, nil
-	}
+}
