@@ -2,11 +2,10 @@ package chem
 
 import (
 	"fmt"
+	"github.com/rmera/gochem/v3"
 	"math"
 	"strings"
-	"github.com/rmera/gochem/v3"
 )
-
 
 type RamaSet struct {
 	Cprev   int
@@ -17,7 +16,6 @@ type RamaSet struct {
 	MolID   int
 	Molname string
 }
-
 
 // RamaCalc Obtains the values for the phi and psi dihedrals indicated in []Ramaset, for the
 // structure M. The angles are in *degrees*.  It returns a slice of 2-element slices, one for the phi the next for the psi
@@ -127,7 +125,7 @@ func RamaList(M Atomer, chains string, resran []int) ([]RamaSet, error) {
 				r3 := M.Atom(Npost).MolID
 				if (len(resran) == 2 && (r2 >= resran[0] && r2 <= resran[1])) || isInInt(resran, r2) {
 					if r1 != r2-1 || r2 != r2a || r2a != r2b || r2b != r3-1 {
-						return nil, CError{fmt.Sprintf("Incorrect backbone Cprev: %d N-1: %d CA: %d C: %d Npost-1: %d", r1, r2-1, r2a, r2b, r3-1), []string{"RamaList"},}
+						return nil, CError{fmt.Sprintf("Incorrect backbone Cprev: %d N-1: %d CA: %d C: %d Npost-1: %d", r1, r2-1, r2a, r2b, r3-1), []string{"RamaList"}}
 					}
 					temp := RamaSet{Cprev, N, Ca, C, Npost, r2, M.Atom(Ca).Molname}
 					RamaList = append(RamaList, temp)

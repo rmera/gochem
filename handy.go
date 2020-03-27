@@ -42,26 +42,25 @@ const allchains = "*ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 //in the constant allchains defined in this file. The current implementation does nothing if a chain ID is already
 //defined, even if it is wrong (if 9999 and the following 0 residue have the same chain).
 func FixGromacsPDB(mol Atomer) {
-//	fmt.Println("FIXING!")
-	previd:=-1
-	lastchain:="*"
-	for i:=0;i<mol.Len();i++{
-		at:=mol.Atom(i)
-		if at.Chain==" "{
-			if previd>at.MolID{
-				index:=strings.Index(allchains,lastchain)+1
-			//	fmt.Println("new chain index:", index)
-				lastchain=string(allchains[index])
+	//	fmt.Println("FIXING!")
+	previd := 99999999999999
+	lastchain := "*"
+	for i := 0; i < mol.Len(); i++ {
+		at := mol.Atom(i)
+		if at.Chain == " " {
+			if previd > at.MolID {
+				index := strings.Index(allchains, lastchain) + 1
+				//	fmt.Println("new chain index:", index)
+				lastchain = string(allchains[index])
 			}
-			at.Chain=lastchain
-	//		fmt.Println(lastchain) /////////
-		}else{
-		lastchain=at.Chain
+			at.Chain = lastchain
+			//		fmt.Println(lastchain) /////////
+		} else {
+			lastchain = at.Chain
 		}
-		previd=at.MolID
+		previd = at.MolID
 	}
 }
-
 
 //Molecules2Atoms gets a selection list from a list of residues.
 //It select all the atoms that form part of the residues in the list.
@@ -102,15 +101,15 @@ func EasyShape(coords *v3.Matrix, epsilon float64, mol ...Masser) (float64, floa
 	if err != nil {
 		return -1, -1, err
 	}
-	rhos, err := Rhos(moment,epsilon)
+	rhos, err := Rhos(moment, epsilon)
 	if err != nil {
 		return -1, -1, err
 	}
-	linear,circular, err := RhoShapeIndexes(rhos)
+	linear, circular, err := RhoShapeIndexes(rhos)
 	if err != nil {
 		return -1, -1, err
 	}
-	return  linear,circular, err2
+	return linear, circular, err2
 }
 
 //MolIDNameChain2Index takes a molID (residue number), atom name, chain index and a molecule Atomer.
@@ -313,25 +312,25 @@ func MakeWater(a1, a2 *v3.Matrix, distance, angle float64, oxygen bool) *v3.Matr
 	dist := v3.Zeros(1)
 	dist.Sub(a1, a2)
 	a1a2dist := dist.Norm(0)
-//	fmt.Println("ala2dist", a1a2dist, distance) ////////////////7777
+	//	fmt.Println("ala2dist", a1a2dist, distance) ////////////////7777
 	w.Scale(distance+a1a2dist, w)
 	w.Add(w, a1)
 	for i := 0; i <= 1; i++ {
 		o := water.VecView(0)
 		w = water.VecView(i + 1)
 		w.Copy(o)
-//		fmt.Println("w1", w) ////////
+		//		fmt.Println("w1", w) ////////
 		w.Sub(w, a2)
-//		fmt.Println("w12", w) ///////////////
+		//		fmt.Println("w12", w) ///////////////
 		w.Unit(w)
-//		fmt.Println("w4", w)
+		//		fmt.Println("w4", w)
 		w.Scale(WaterOHDist+distance, w)
-//		fmt.Println("w3", w, WaterOHDist, distance)
+		//		fmt.Println("w3", w, WaterOHDist, distance)
 		o.Sub(o, a2)
 		t, _ := v3.NewMatrix([]float64{0, 0, 1})
 		upp := v3.Zeros(1)
 		upp.Cross(w, t)
-//		fmt.Println("upp", upp, w, t)
+		//		fmt.Println("upp", upp, w, t)
 		upp.Add(upp, o)
 		upp.Add(upp, a2)
 		//water.SetMatrix(3,0,upp)
@@ -629,7 +628,7 @@ func MergeAtomers(A, B Atomer) *Topology {
 	} else {
 		multi = 1
 	}
-	return NewTopology(charge, multi,full)
+	return NewTopology(charge, multi, full)
 }
 
 //SelCone, Given a set of cartesian points in sellist, obtains a vector "plane" normal to the best plane passing through the points.

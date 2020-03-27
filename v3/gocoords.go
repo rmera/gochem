@@ -258,9 +258,9 @@ func (F *Matrix) ScaleByCol(A, Col mat.Matrix) {
 	if ar != cr || cc > 1 || ar != fr || ac != fc {
 		panic(ErrShape)
 	}
-		if F != A {
-			F.Copy(A)
-		}
+	if F != A {
+		F.Copy(A)
+	}
 	for i := 0; i < ac; i++ {
 		temp := F.ColView(i)
 

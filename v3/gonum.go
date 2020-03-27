@@ -41,7 +41,7 @@ import (
 	"gonum.org/v1/gonum/blas/blas64"
 	"gonum.org/v1/gonum/mat"
 	"math"
-	"math/cmplx"
+	//	"math/cmplx"
 	"sort"
 )
 
@@ -227,11 +227,16 @@ func (F *Matrix) Mul(A, B mat.Matrix) {
 	*/
 }
 
-//Dot acts as a frontend for the mat function, returns the dot product of the receiver and the argument.
-//Unlike the mat64 function it's specific for the v3.Matrix type, so if you want to use other types go for the function.
+func stupidDot(A, B *Matrix) float64 {
+	return A.At(0, 0)*B.At(0, 0) + A.At(0, 1)*B.At(0, 1) + A.At(0, 2)*B.At(0, 2)
+}
+
+//Dot gets the dot product between the first row of F and the first row of A. It's a vector dot product,
+// to be used with 1-row matrices.
 func (F *Matrix) Dot(A *Matrix) float64 {
 	//The reason for making Dot ask for a v3.Matrix is that then we can call mat64.Dot with A.Dense, which should make things faster.
-	return mat.Dot(F.Dense.RowView(0), A.Dense.RowView(0))
+	id := mat.NewDense(3, 3, []float64{1, 0, 0, 0, 1, 0, 0, 0, 1}) //Identity matrix
+	return mat.Inner(F.Dense.RowView(0), id, A.Dense.RowView(0))
 }
 
 func (F *Matrix) Scale(v float64, A *Matrix) {
@@ -328,7 +333,7 @@ func (E eigenpair) Len() int {
 	return len(E.evals)
 }
 
-//gnEigen wraps the matrix.DenseMatrix.Eigen() function in order to guarantee
+//EigenWrap wraps the mat.Eigen structure in order to guarantee
 //That the eigenvectors and eigenvalues are sorted according to the eigenvalues
 //It also guarantees orthonormality and handness. I don't know how many of
 //these are already guaranteed by Eig(). Will delete the unneeded parts
@@ -340,19 +345,35 @@ func EigenWrap(in *Matrix, epsilon float64) (*Matrix, []float64, error) {
 		epsilon = appzero
 	}
 	eigen := new(mat.Eigen)
-	eigen.Factorize(mat.DenseCopyOf(in.Dense), false, true)
-	evals_cmp := make([]complex128, 3) //We only deal with 3-column matrixes in this package
+	ok := eigen.Factorize(mat.DenseCopyOf(in.Dense), mat.EigenRight) //Not sure if that DenseCopy is still needed.
+	if !ok {
+		return nil, nil, Error{"", []string{"mat.Eigen.Factorize", "EigenWrap"}, true}
+	}
+	evals_cmp := make([]complex128, 3)  //We only deal with 3-column matrixes in this package
+	TempVec := mat.NewCDense(3, 3, nil) /// An allocation. We have to see whether I should try to minimize these. Also, see comment above.
 	evals_cmp = eigen.Values(evals_cmp)
-	evecsprev := &Matrix{eigen.Vectors()}
+	eigen.VectorsTo(TempVec)
+	evecsprev := Zeros(3)
+	//This is horrible, but, apparently, Gonum just doesn't provide anything to go from CDense to Dense. At least these are guaranteed to be 3x3 matrices
+	for i := 0; i < 3; i++ {
+		for j := 0; j < 3; j++ {
+			scalar := TempVec.At(i, j)
+			if imag(scalar) != 0 {
+				return nil, nil, Error{"Found a complex Eigenvector", []string{"mat.Eigen.Factorize", "EigenWrap"}, true}
+			}
+			evecsprev.Set(i, j, real(scalar))
+		}
+	}
 	evals := make([]float64, 3, 3)
+
 	for k, _ := range evals {
-		evals[k] = cmplx.Abs(evals_cmp[k]) //no check of the thing being real for now.
+		evals[k] = real(evals_cmp[k]) //no check of the thing being real for now.
 	}
 	evecs := Zeros(3)
 	fn := func() { evecs.Copy(evecsprev.T()) }
 	err := mat.Maybe(fn)
 	if err != nil {
-		return nil, nil, Error{err.Error(), []string{"mat64.Copy/math64.T", "EigenWrap"}, true}
+		return nil, nil, Error{err.Error(), []string{"mat.Copy/math.T", "EigenWrap"}, true}
 
 	}
 	//evecs.TCopy(evecs.Dense)
@@ -366,8 +387,9 @@ func EigenWrap(in *Matrix, epsilon float64) (*Matrix, []float64, error) {
 		//vectori := eig.evecs.VecView(i)
 		for j := i + 1; j < eigrows; j++ {
 			//	vectorj := eig.evecs.VecView(j)
-			if math.Abs(mat.Dot(eig.evecs.Dense.RowView(i), eig.evecs.Dense.RowView(j))) > epsilon && i != j {
-				reterr := Error{fmt.Sprintln("Eigenvectors ", i, "and", j, " not orthogonal. v", i, ":", eig.evecs.Dense.RowView(i), "\nv", j, ":", eig.evecs.Dense.RowView(j), "\nDot:", math.Abs(mat.Dot(eig.evecs.Dense.RowView(i), eig.evecs.Dense.RowView(i))), "eigmatrix:", eig.evecs), []string{"EigenWrap"}, true}
+			if math.Abs(eig.evecs.RowView(i).Dot(eig.evecs.RowView(j))) > epsilon && i != j {
+				fmt.Println("Dot should be", stupidDot(eig.evecs.RowView(i), eig.evecs.RowView(j)))
+				reterr := Error{fmt.Sprintln("Eigenvectors ", i, "and", j, " not orthogonal. v", i, ":", eig.evecs.Dense.RowView(i), "\nv", j, ":", eig.evecs.Dense.RowView(j), "\nDot:", math.Abs(eig.evecs.RowView(i).Dot(eig.evecs.RowView(j))), "eigmatrix:", eig.evecs), []string{"EigenWrap"}, true}
 				return eig.evecs, evals[:], reterr
 			}
 		}

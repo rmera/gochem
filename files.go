@@ -302,7 +302,7 @@ func pdbBufIORead(pdb *bufio.Reader, read_additional bool) (*Molecule, error) {
 	}
 	//This could be done faster if done in the same loop where the coords are read
 	//Instead of having another loop just for them.
-	top := NewTopology(0, 1,molecule)
+	top := NewTopology(0, 1, molecule)
 	var err error
 	frames := len(coords)
 	mcoords := make([]*v3.Matrix, frames, frames) //Final thing to return
@@ -424,7 +424,7 @@ func pdbWrite(out io.Writer, coords *v3.Matrix, mol Atomer, bfact []float64) err
 		}
 	}
 	_, err = out.Write([]byte("TER\n")) // New Addition, should help to recognize the end of the chain.
-	_, err = out.Write([]byte("END"))   //no newline, this is in case the write is part of a PDB and one needs to write "ENDMODEL".
+	_, err = out.Write([]byte("END"))   //no newline, this is in case the write is part of a PDB and one needs to write "ENDMDEL".
 	if err != nil {
 		return iowriteError(err)
 	}
@@ -482,7 +482,7 @@ func MultiPDBWrite(out io.Writer, Coords []*v3.Matrix, mol Atomer, Bfactors [][]
 		if err != nil {
 			return iowriterError(err)
 		}
-		err = PDBWrite(out, Coords[j], mol, Bfactors[j])
+		err = pdbWrite(out, Coords[j], mol, Bfactors[j])
 		if err != nil {
 			return errDecorate(err, "MultiPDBWrite")
 		}
@@ -536,7 +536,7 @@ func XYZRead(xyzp io.Reader) (*Molecule, error) {
 			if err != nil {
 				return nil, errDecorate(err, "XYZRead")
 			}
-			top = NewTopology(0, 1,molecule)
+			top = NewTopology(0, 1, molecule)
 			if err != nil {
 				return nil, errDecorate(err, "XYZRead")
 			}
@@ -614,7 +614,7 @@ func xyzReadSnap(xyz *bufio.Reader, ReadTopol bool) (*v3.Matrix, []*Atom, error)
 	//Instead of having another loop just for them.
 	for _, i := range errs {
 		if i != nil {
-		//	fmt.Println("line", line, k)
+			//	fmt.Println("line", line, k)
 			return nil, nil, CError{i.Error(), []string{"strconv.ParseFloat", "xyzReadSnap"}}
 		}
 	}
@@ -655,7 +655,7 @@ func XYZStringWrite(Coords *v3.Matrix, mol Atomer) (string, error) {
 	return out, nil
 }
 
-//XYZStringWrite writes the mol Ref and the Coord coordinates in an XYZ-formatted string.
+//XYZWrite writes the mol Ref and the Coord coordinates to a io.Writer.
 func XYZWrite(out io.Writer, Coords *v3.Matrix, mol Atomer) error {
 	iowriterError := func(err error) error {
 		return CError{"Failed to write in io.Writer" + err.Error(), []string{"io.Writer.Write", "XYZWrite"}}

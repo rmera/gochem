@@ -11,12 +11,8 @@ operations. The user can choose to have gonum backed by a pure-go
 (and some assembly) implementation of BLAS (which allows not having 
 runtime dependencies) or by the somewhat more efficient cBLAS. 
 
-Ramachandran plots require the Plotinum 
-(http://code.google.com/p/plotinum/) library.
-
 Reading xtc files require the xdrfile
 library from Gromacs (www.gromacs.org) 
-
 
 All dependencies of goChem are open source.
 
@@ -30,8 +26,6 @@ Design goals:
 *Easy to extend
 *Useful for Computational Chemistry/Biochemistry 
 at a classical and QM levels.
-
-
 
 
 Current capabilities.
@@ -114,8 +108,6 @@ please support the library by citing in your publication:
 Mera-Adasme, R., Savasci, G., Pesonen, J. 
 "goChem: a library for computational chemistry".
 https://www.github.com/rmera/gochem
-
-
 
 Currently, gochem is licensed under LGPL2.1. This might change 
 towards BSD in the future. Meanwhile, if you want to use some 

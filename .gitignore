@@ -1,1 +1,9 @@
 *.swp
+*.out
+*err
+*.xyz
+*.pdb
+*.inp
+*.in
+*.mop
+test/

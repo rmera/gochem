@@ -95,7 +95,7 @@ type Topology struct {
 //or unpaired electrons.
 func NewTopology(charge, multi int, ats ...[]*Atom) *Topology {
 	top := new(Topology)
-	if len(ats)==0 || ats[0] == nil {
+	if len(ats) == 0 || ats[0] == nil {
 		top.Atoms = make([]*Atom, 0, 0) //return nil, fmt.Errorf("Supplied a nil Topology")
 	} else {
 		top.Atoms = ats[0]
@@ -277,7 +277,7 @@ func NewMolecule(coords []*v3.Matrix, ats Atomer, bfactors [][]float64) (*Molecu
 	//	}
 	mol := new(Molecule)
 	atcopy := func() {
-		mol.Topology = NewTopology( 9999, -1,make([]*Atom, 0, ats.Len())) //I use 9999 for charge and -1 or multi to indicate that they are not truly set. So far NewTopology never actually returns any error so it's safe to ignore them. NOTE: Need to fix newtopology so it doesnt return error
+		mol.Topology = NewTopology(9999, -1, make([]*Atom, 0, ats.Len())) //I use 9999 for charge and -1 or multi to indicate that they are not truly set. So far NewTopology never actually returns any error so it's safe to ignore them. NOTE: Need to fix newtopology so it doesnt return error
 		for i := 0; i < ats.Len(); i++ {
 			mol.Atoms = append(mol.Atoms, ats.Atom(i))
 		}

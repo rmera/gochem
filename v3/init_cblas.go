@@ -31,13 +31,13 @@
 package v3
 
 import (
-	"github.com/gonum/blas/cblas"
-	"github.com/gonum/matrix/mat64"
+	"gonum.org/v1/gonum/blas/cblas64"
+	"gonum.org/v1/gonum/mat"
 )
 
 //For now this is here as we do not have other blas engine options.
 //When we do, there will be several files with different inits,
 //That will be chosen with compiler flags.
 func init() {
-	mat64.Register(cblas.Blas{})
+	mat.Register(cblas64.Blas{})
 }

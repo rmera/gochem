@@ -29,13 +29,13 @@ import (
 	"fmt"
 	"image/color"
 	"math"
-//	"strings"
-	"github.com/gonum/plot"
-	"github.com/gonum/plot/plotter"
-	"github.com/gonum/plot/vg"
-	"github.com/gonum/plot/vg/draw"
-//	"github.com/rmera/gochem"
-//	"github.com/rmera/gochem/v3"
+	//	"strings"
+	"gonum.org/v1/plot"
+	"gonum.org/v1/plot/plotter"
+	"gonum.org/v1/plot/vg"
+	"gonum.org/v1/plot/vg/draw"
+	//	"github.com/rmera/gochem"
+	//	"github.com/rmera/gochem/v3"
 )
 
 const (
@@ -120,7 +120,7 @@ func RamaPlotParts(data [][][]float64, tag [][]int, title, plotname string) erro
 			}
 			//set the colors
 			r, g, b := colors(key, len(data))
-			fmt.Println("DATA POINT", key, "color", r, g, b)
+			//	fmt.Println("DATA POINT", key, "color", r, g, b)
 			s.GlyphStyle.Color = color.RGBA{R: r, B: b, G: g, A: 255}
 			//The tagging procedure is a bit complex.
 			p.Add(s)
@@ -258,7 +258,7 @@ func RamaPlot(data [][]float64, tag []int, title, plotname string) error {
 			s.GlyphStyle.Shape, err = getShape(tagged)
 			tagged++
 		}
-	//	fmt.Println("colors rgb", r,g,b)
+		//	fmt.Println("colors rgb", r,g,b)
 		s.GlyphStyle.Color = color.RGBA{R: r, B: b, G: g, A: 255}
 		//		fmt.Println(r,b,g, key, norm, len(data)) //////////////////////////
 		// Add the plotter

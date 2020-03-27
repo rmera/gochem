@@ -75,7 +75,7 @@ func (O *MopacHandle) SetCommand(name string) {
   SetCommand function. */
 func (O *MopacHandle) SetDefaults() {
 	O.defmethod = "PM6-D3H4 NOMM"
-	O.command = os.ExpandEnv("${MOPAC_LICENSE}/MOPAC2012.exe")
+	O.command = os.ExpandEnv("${MOPAC_LICENSE}/MOPAC2016.exe")
 }
 
 //BuildInput builds an input for ORCA based int the data in atoms, coords and C.
