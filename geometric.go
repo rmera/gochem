@@ -27,10 +27,11 @@ package chem
 
 import (
 	"fmt"
-	"github.com/rmera/gochem/v3"
-	"gonum.org/v1/gonum/mat"
 	"math"
 	"sort"
+
+	v3 "github.com/rmera/gochem/v3"
+	"gonum.org/v1/gonum/mat"
 )
 
 //NOTE: For many of these functions we could ask for a buffer vector in the arguments in order to reduce

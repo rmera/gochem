@@ -32,11 +32,12 @@ package amberold
 import (
 	"bufio"
 	"fmt"
-	"github.com/rmera/gochem"
-	"github.com/rmera/gochem/v3"
 	"os"
 	"strconv"
 	"strings"
+
+	chem "github.com/rmera/gochem"
+	v3 "github.com/rmera/gochem/v3"
 )
 
 //Container for an Charmm/NAMD binary trajectory file.
@@ -143,7 +144,7 @@ func (C *CrdObj) Next(keep *v3.Matrix) error {
 		for _, j := range l {
 			coord, err := strconv.ParseFloat(j, 64)
 			if err != nil {
-				return Error{fmt.Sprintf("Unable to read coordinates from Amber trajectory", err.Error()), C.filename, []string{"strconv.ParseFloat", "Next"}, true}
+				return Error{fmt.Sprint("Unable to read coordinates from Amber trajectory", err.Error()), C.filename, []string{"strconv.ParseFloat", "Next"}, true}
 			}
 			if cont < ncoords {
 				//	println("no")////
@@ -230,7 +231,7 @@ func (C *CrdObj) nextVelBox() error {
 		for _, j := range l {
 			coord, err := strconv.ParseFloat(j, 64)
 			if err != nil {
-				return Error{fmt.Sprintf("Unable to read coordinates from Amber trajectory", err.Error()), C.filename, []string{"strconv.ParseFloat", "Next"}, true}
+				return Error{fmt.Sprint("Unable to read coordinates from Amber trajectory", err.Error()), C.filename, []string{"strconv.ParseFloat", "Next"}, true}
 			}
 			if cont < ncoords {
 				//	println("no")////
@@ -313,7 +314,7 @@ func (C *CrdObj) nextBox() error {
 		for _, j := range l {
 			coord, err := strconv.ParseFloat(j, 64)
 			if err != nil {
-				return Error{fmt.Sprintf("Unable to read coordinates from Amber trajectory", err.Error()), C.filename, []string{"strconv.ParseFloat", "Next"}, true}
+				return Error{fmt.Sprint("Unable to read coordinates from Amber trajectory", err.Error()), C.filename, []string{"strconv.ParseFloat", "Next"}, true}
 			}
 			if cont < ncoords {
 				//	println("no")////

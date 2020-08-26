@@ -28,10 +28,13 @@
 
 package chem
 
-import "fmt"
-import "math"
-import "github.com/rmera/gochem/v3"
-import "strings"
+import (
+	"fmt"
+	"math"
+	"strings"
+
+	v3 "github.com/rmera/gochem/v3"
+)
 
 const allchains = "*ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 

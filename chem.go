@@ -27,7 +27,8 @@ package chem
 
 import (
 	"fmt"
-	"github.com/rmera/gochem/v3"
+
+	v3 "github.com/rmera/gochem/v3"
 )
 
 //import "strings"
@@ -617,6 +618,10 @@ func (E *lastFrameError) Format() string {
 //Frame returns the frame at which the error was detected.
 func (E *lastFrameError) Frame() int {
 	return E.frame
+}
+
+func (E *lastFrameError) Critical() bool {
+	return false
 }
 
 //FileName returns the name of the file from where the trajectory that gave the error is read.
