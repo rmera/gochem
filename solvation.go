@@ -1,8 +1,32 @@
+/*
+ * solvation.go, part of gochem
+ *
+ * Copyright 2020 Raul Mera A. (raulpuntomeraatusachpuntocl)
+ *
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Lesser General Public License as published by
+    the Free Software Foundation, either version 2.1 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *
+*/
+/***Dedicated to the long life of the Ven. Khenpo Phuntzok Tenzin Rinpoche***/
 package chem
 
 import (
 	"fmt"
+	"log"
+	"math"
 	"runtime"
+	"sort"
 	"strings"
 
 	//	"sort"
@@ -10,22 +34,54 @@ import (
 	v3 "github.com/rmera/gochem/v3"
 )
 
-func SerialMolRDF(traj Traj, mol *Molecule, refindexes []int, residues []string, step, end float64, frameskip int) ([]float64, error) {
+//preescreens the system returning a new one with all molecules farther away than the cutoff removed. Updates the refindexes also
+func prescreen(coords *v3.Matrix, mol Atomer, refindexes []int, residues []string, end float64) (*v3.Matrix, *Topology, []int) {
+	inner := DistRank(coords, mol, refindexes, residues, end)
+	indexes := inner.AtomIDs(mol)
+	//	newindexes:=make([]int,len(indexes)+len(refindexes))
+	sort.Ints(indexes)
+	newrefindexes := make([]int, len(refindexes))
+	for i, _ := range refindexes {
+		newrefindexes[i] = len(indexes) + i
+	}
+	indexes = append(indexes, refindexes...)
+	newcoords := v3.Zeros(len(indexes))
+	newcoords.SomeVecs(coords, indexes)
+	newmol := NewTopology(0, 1)
+	newmol.SomeAtoms(mol, indexes)
+	//	PDBFileWrite("screened.pdb", newcoords, newmol, nil) //////////////
+
+	return newcoords, newmol, newrefindexes
+}
+
+//Obtains the molecular RDF between the set of atoms in refindexes, and the residues with names given in the slice residues.
+//uses shells of deltar=step going from zero to end. Works concurrently
+func MolRDF(traj Traj, mol Atomer, refindexes []int, residues []string, step, end float64, frameskip int) ([]float64, []float64, error) {
 	var ret []float64
 	coords := v3.Zeros(mol.Len())
 	framesread := 0
+	var err error
+	if frameskip < 1 {
+		frameskip = 1
+	}
 reading:
 	for i := 0; ; i++ {
-		err := traj.Next(coords)
+		if i > 0 && i%frameskip != 0 && err == nil {
+			err = traj.Next(nil) //if this err is not nil, the next traj.Next() will not be excecuted, whether it's a skip or a read. Instead, we'll go directly to error processing.
+			continue
+		} else if err == nil { //in case the frame we skipped before gave an error
+			err = traj.Next(coords)
+		}
 		if err != nil {
 			switch err := err.(type) {
 			default:
-				return nil, err
+				return nil, nil, err
 			case LastFrameError:
 				break reading
 			}
 		}
-		rdf := FrameUMolCRDF(coords, mol, refindexes, residues, step, end)
+		coords2, mol2, refindexes2 := prescreen(coords, mol, refindexes, residues, end)
+		rdf := OriginalConcFrameUMolCRDF(coords2, mol2, refindexes2, residues, step, end) ///only difference
 		if ret == nil {
 			ret = make([]float64, len(rdf))
 		}
@@ -35,143 +91,204 @@ reading:
 		framesread += 1
 
 	}
-	//yeeeeah, I'm not super sure about this.
-	avtotalsolv := ret[len(ret)-1] / float64(framesread)
-	for i, _ := range ret {
-		if i > 0 {
-			ret[i] = ret[i] - ret[i-1]
-		}
-		ret[i] = ret[i] / avtotalsolv
-		ret[i] = ret[i] / float64(framesread)
+	ret, ret2 := mdfFromcdf(ret, framesread, step)
 
-	}
-
-	return ret, nil
+	return ret, ret2, nil
 }
 
-//Calculates the RDF for a trajectory given the indexes of the solute atoms, the solvent molecule name, the step for the "layers" and the cutoff.
-func MolRDF(traj ConcTraj, mol *Molecule, refindexes []int, residues []string, step, end float64, frameskip int) ([]float64, error) {
+func SerialMolRDF(traj Traj, mol Atomer, refindexes []int, residues []string, step, end float64, frameskip int) ([]float64, []float64, error) {
 	var ret []float64
-	simulframes := runtime.NumCPU()
-	runtime.GOMAXPROCS(simulframes) //shouldn't be needed anymore, I think.
-	frames := make([]*v3.Matrix, simulframes, simulframes)
+	coords := v3.Zeros(mol.Len())
 	framesread := 0
-	for i, _ := range frames {
-		frames[i] = v3.Zeros(traj.Len())
+	var err error
+	if frameskip < 1 {
+		frameskip = 1
 	}
-	results := make([][]chan []float64, 0, 0)
+reading:
 	for i := 0; ; i++ {
-		results = append(results, make([]chan []float64, 0, len(frames)))
-		coordchans, err := traj.NextConc(frames)
+		if i > 0 && i%frameskip != 0 && err == nil {
+			err = traj.Next(nil) //if this err is not nil, the next traj.Next() will not be excecuted, whether it's a skip or a read. Instead, we'll go directly to error processing.
+			continue
+		} else if err == nil { //in case the frame we skipped before gave an error
+			err = traj.Next(coords)
+		}
 		if err != nil {
-			if err, ok := err.(LastFrameError); ok {
-				if coordchans == nil {
-					break
-				}
-			} else {
-				return nil, err //Must decorate this error
+			switch err := err.(type) {
+			default:
+				return nil, nil, err
+			case LastFrameError:
+				break reading
 			}
 		}
-		for key, channel := range coordchans {
-			results[len(results)-1] = append(results[len(results)-1], make(chan []float64))
-			go unitRDF(channel, results[len(results)-1][key], mol, refindexes, residues, step, end)
+		coords2, mol2, refindexes2 := prescreen(coords, mol, refindexes, residues, end)
+		rdf := FrameUMolCRDF(coords2, mol2, refindexes2, residues, step, end) ///only difference
+		if ret == nil {
+			ret = make([]float64, len(rdf))
 		}
-		res := len(results) - 1
-		for _, k := range results[res] {
-			if k == nil {
-				continue //this means we skipped the frame. Right now, it should never happen.
-			}
-			framesread++
-			rettemp := <-k
-			if ret == nil {
-				ret = make([]float64, len(rettemp))
-			}
-			for i, _ := range ret {
-				ret[i] = ret[i] + rettemp[i]
-			}
+		for j, _ := range ret {
+			ret[j] = ret[j] + rdf[j]
 		}
-	}
-	//yeeeeah, I'm not super sure about this.
-	avtotalsolv := ret[len(ret)-1] / float64(framesread)
-	for i, _ := range ret {
-		if i > 0 {
-			ret[i] = ret[i] - ret[i-1]
-		}
-		ret[i] = ret[i] / avtotalsolv
-		ret[i] = ret[i] / float64(framesread)
+		framesread += 1
 
 	}
+	ret, ret2 := mdfFromcdf(ret, framesread, step)
 
-	return ret, nil
+	return ret, ret2, nil
 }
 
-//The worker function for the RDF
-func unitRDF(channelin chan *v3.Matrix, channelout chan []float64, mol *Molecule, refindexes []int, residues []string, step, end float64) {
-	if channelin != nil {
-		temp := <-channelin
-		rdf := FrameUMolCRDF(temp, mol, refindexes, residues, step, end)
-		channelout <- rdf
-	} else {
-		channelout <- nil
+// transforms a cdf into mdf, and normalizes it by the total value
+//it also divides from the total number of datapoints to go from
+//accumulated data, to the mean. It returns a slice with the molecule
+//density (divide by the volume of the sector) and a slice with the
+//number of molecules i nthe sector.
+// it overwrites the original slice!
+func mdfFromcdf(ret []float64, framesread int, step float64) ([]float64, []float64) {
+	ret2 := make([]float64, len(ret))
+	vp := (4.0 / 3.0) * math.Pi
+	//vp := 4 * math.Pi
+	//	avtotalsolv := ret[len(ret)-1]   //I think this is not needed, as we are already dealing with densities
+	var vol float64
+	acc := 0.0
+	for i, _ := range ret {
+		if i >= 1 {
+			acc = acc + ret[i-1]
+			ret2[i] = ret[i]
+			ret[i] = ret[i] - acc
+		}
 	}
-	return
+	for i, _ := range ret {
+		if i >= 1 {
+			fi := float64(i)
+			vol = vp * (math.Pow((fi+1)*step, 3) - math.Pow((fi)*step, 3))
+
+		} else if i == 0 {
+			vol = vp * math.Pow(step, 3)
+
+		} else {
+			vol = 1
+		}
+		ret[i] = ret[i] / float64(framesread)
+		ret2[i] = ret2[i] / float64(framesread)
+		ret[i] = ret[i] / vol
+
+	}
+	last := ret[len(ret)-1]
+	for i, _ := range ret {
+		ret[i] = ret[i] / last
+	}
+
+	return ret, ret2
 }
 
 //obtains the Unnormalized "Cummulative Molecular RDF" for one solvated structure. The RDF would be these values averaged over several structures.
-func FrameUMolCRDF(coord *v3.Matrix, mol *Molecule, refindexes []int, residues []string, step, end float64) []float64 {
+func FrameUMolCRDF(coord *v3.Matrix, mol Atomer, refindexes []int, residues []string, step, end float64) []float64 {
 	if step <= 0 {
 		step = 0.5
 	}
 	if end <= 0 {
 		end = 15
 	}
-	totalsteps := int(end/step) + 1
+	totalsteps := int(end / step)
 	ret := make([]float64, 0, totalsteps)
 	// Here we get the RDF by counting the molecules at X distance or less from the solute, and subtracting the result from the previous callculation.
 	//This means that we do more calculation than needed, as every time keep including the solvent that was in previous layers.
 	//	acclen := 0.0
-	for i := 0.0; i <= end; i = i + step {
-		result := DistRank(coord, mol, refindexes, residues, i)
-		l := float64(result.Len())
-		//		acclen = l //keeps track of the last calculated. To be used for later normalization
-		//		if len(ret) >= 1 {
-		//			l = l - ret[len(ret)-1]
-		//		}
+
+	res := make([]MolDistList, len(refindexes))
+
+	for i := 1; i <= totalsteps; i++ {
+		for k, v := range refindexes {
+			res[k] = DistRank(coord, mol, []int{v}, residues, float64(i)*step)
+		}
+		if len(res) > 1 {
+			res[0].Merge(res[1:]...) // This is a critical step. Here we merge the residues in the radius from all the atoms, and take away the repeated.
+		}
+		l := float64(res[0].Len())
 		ret = append(ret, l)
 	}
 	return ret
 }
 
 //obtains the unnormalized "Cummulative Molecular RDF" for one solvated structure. The RDF would be these values averaged over several structures.
-//works concurrently
-func ConcFrameUMolCRDF(coord *v3.Matrix, mol *Molecule, refindexes []int, residues []string, step, end float64) []float64 {
+//works concurrently. It would be better to assign a chunk of the total steps to each workers instead of making several workers with one step each.
+func ConcFrameUMolCRDF(coord *v3.Matrix, mol Atomer, refindexes []int, residues []string, step, end float64) []float64 {
 	if step <= 0 {
 		step = 0.5
 	}
 	if end <= 0 {
 		end = 15
 	}
-	totalsteps := int(end/step) + 1
+	totalsteps := int(end / step)
 	ret := make([]float64, totalsteps)
-	results := make([][]chan float64, 0, totalsteps)
-
 	simulchunks := runtime.NumCPU()
+	results := make([]chan float64, simulchunks)
+	for i, _ := range results {
+		results[i] = make(chan float64)
+	}
+
 	runtime.GOMAXPROCS(simulchunks) //shouldn't be needed anymore, I think.
-	for i := 0; i < totalsteps; i = i + simulchunks {
-		results = append(results, make([]chan float64, 0, simulchunks))
-		reslen := len(results) - 1
-		for j := 0; j < simulchunks || i+j <= totalsteps; j++ {
-			results[reslen] = append(results[reslen], make(chan float64))
+	for i := 1; i <= totalsteps; i = i + simulchunks {
+		for j := 0; j < simulchunks && i+j <= totalsteps; j++ {
 			go func(reschan chan float64, cutoff float64) {
-
-				res := DistRank(coord, mol, refindexes, residues, cutoff)
-				reschan <- float64(res.Len())
-
-			}(results[reslen][i], float64(i+j)*step)
+				res := make([]MolDistList, len(refindexes))
+				for k, v := range refindexes {
+					res[k] = DistRank(coord, mol, []int{v}, residues, cutoff)
+				}
+				if len(res) > 1 {
+					res[0].Merge(res[1:]...) // This is a critical step. Here we merge the residues in the radius from all the atoms, and take away the repeated.
+				}
+				reschan <- float64(res[0].Len())
+			}(results[j], float64(i+j)*step)
+			//	println(float64(i+j)*step, i, j, step) ///////////
 		}
 		//now get the results from the workers
-		for index, val := range results[reslen] {
-			ret[i+index] = <-val
+		for index, val := range results {
+			if i-1+index >= totalsteps {
+				break // up there we never initialize a gorutine to send on the results[j] channel when i+j>=totalsteps. We need to skip that channel here to avoid the program waiting forever.
+			}
+			//	println("stuck here?", i, index, totalsteps)
+			ret[i-1+index] = <-val
+			//	println("no!")
+		}
+
+	}
+	return ret
+}
+
+//obtains the unnormalized "Cummulative Molecular RDF" for one solvated structure. The RDF would be these values averaged over several structures.
+//works concurrently. It would be better to assign a chunk of the total steps to each workers instead of making several workers with one step each.
+func OriginalConcFrameUMolCRDF(coord *v3.Matrix, mol Atomer, refindexes []int, residues []string, step, end float64) []float64 {
+	if step <= 0 {
+		step = 0.5
+	}
+	if end <= 0 {
+		end = 15
+	}
+	totalsteps := int(end / step)
+	ret := make([]float64, totalsteps)
+	simulchunks := runtime.NumCPU()
+	results := make([]chan float64, simulchunks)
+	for i, _ := range results {
+		results[i] = make(chan float64)
+	}
+
+	runtime.GOMAXPROCS(simulchunks) //shouldn't be needed anymore, I think.
+	for i := 1; i <= totalsteps; i = i + simulchunks {
+		for j := 0; j < simulchunks && i+j <= totalsteps; j++ {
+			go func(reschan chan float64, cutoff float64) {
+				res := DistRank(coord, mol, refindexes, residues, cutoff)
+				reschan <- float64(res.Len())
+			}(results[j], float64(i+j)*step)
+			//	println(float64(i+j)*step, i, j, step) ///////////
+		}
+		//now get the results from the workers
+		for index, val := range results {
+			if i-1+index >= totalsteps {
+				break // up there we never initialize a gorutine to send on the results[j] channel when i+j>=totalsteps. We need to skip that channel here to avoid the program waiting forever.
+			}
+			//	println("stuck here?", i, index, totalsteps)
+			ret[i-1+index] = <-val
+			//	println("no!")
 		}
 
 	}
@@ -204,7 +321,10 @@ func repeated(id int, chain string, rac []*resAndChain) bool {
 	return false
 }
 
-func DistRank(coord *v3.Matrix, mol *Molecule, refindexes []int, residues []string, cutoff float64) MolDistList {
+//DistRank determines, for a reference set of coordinates and a set of residue names, the minimum distance between any atom from the reference
+//and any atom from each residue with one of the names given (or the centroid of each residue, if a variadic "com" bool is given)
+//returns a list with ID and distances, which satisfies the sort interface and has several other useful methods.
+func DistRank(coord *v3.Matrix, mol Atomer, refindexes []int, residues []string, cutoff float64, com ...bool) MolDistList {
 	ranks := make([]*molDist, 0, 30)
 	//	resIDs := make([]*resAndChain, 0, 30)
 	var molname string
@@ -223,6 +343,7 @@ func DistRank(coord *v3.Matrix, mol *Molecule, refindexes []int, residues []stri
 	cutoffplus := cutoff + 3
 	//	chunk := NewTopology(0, 1)
 	tmp := v3.Zeros(1)
+	//	fmt.Println("Start looking!") ///////////////////
 	for i := 0; i < mol.Len(); i++ {
 		at := mol.Atom(i)
 		molname = at.Molname
@@ -238,7 +359,8 @@ func DistRank(coord *v3.Matrix, mol *Molecule, refindexes []int, residues []stri
 			expectedreslen := 6
 			indexes := make([]int, 1, expectedreslen)
 			indexes[0] = i
-			for j := i + 1; j < i+80; j++ {
+			//	fmt.Println("New mol!", molname, id, chain) //////////
+			for j := i + 1; j < mol.Len(); j++ {
 				at2 := mol.Atom(j)
 				if at2.MolID != id {
 					break
@@ -251,12 +373,25 @@ func DistRank(coord *v3.Matrix, mol *Molecule, refindexes []int, residues []stri
 				test = v3.Zeros(len(indexes))
 			}
 			test.SomeVecs(coord, indexes)
-			distance = MolShortestDist(test, ref)
+			//This is a bit ugly, but it implements using the centroid of the solute. We can implement the proper COM by using type assertion and seeing if the Atomer is also a Masser.
+			//*****************************************This hasn't been tested!!********************************
+			if len(com) != 0 && com[0] == true {
+				c, err := CenterOfMass(test)
+				if err != nil { //this really is very unlikely to fail. The ref matrix would have to be wrong. It could even warrant a panic.
+					com[0] = false //if it fails, we don't try again, for consistency. Any previous successful COM use will not comparable with numbers used from now on.
+					log.Println("Couldn't obtain the COM/centroid. Worked with all solvent atoms")
+					distance = MolShortestDist(test, ref) //we don't panic, we just
+				}
+				distance = MolShortestDist(c, ref)
+			} else {
+				distance = MolShortestDist(test, ref)
+			}
 			if distance <= cutoff {
 				ranks = append(ranks, &molDist{Distance: distance, MolID: id})
-				molid_skip = id
-				chain_skip = chain
 			}
+			molid_skip = id
+			chain_skip = chain
+
 		}
 	}
 	return MolDistList(ranks)
@@ -336,6 +471,20 @@ func (M MolDistList) AtomIDs(mol Atomer) []int {
 	return Molecules2Atoms(mol, molids, []string{})
 }
 
+//Aggregates the receiver and the arguments in the receiver
+//it removes entries with repeated MolIDs
+func (M MolDistList) Merge(list ...MolDistList) {
+	for _, v := range list {
+		ref := M.MolIDs()
+		for _, w := range v {
+			if !isInInt(ref, w.MolID) {
+				M = append(M, w)
+			}
+		}
+	}
+
+}
+
 //MolShortestDistGiven two sets of coordinates, it obtains the shortest distance from any 2 points
 //in the set. This is probably not a very efficient way to do it.
 func MolShortestDist(test, ref *v3.Matrix) float64 {
@@ -344,7 +493,7 @@ func MolShortestDist(test, ref *v3.Matrix) float64 {
 	var vt1, vr1 *v3.Matrix // vtclosest,vr1, vrclosest *v3.Matrix
 	dclosest = 100000       //we initialize this to some crazy large value so it's immediately replaced with the first calculated distance.
 	// dist(ref.VecView(0), test.VecView(0), temp)
-	for i := 0; i < test.NVecs(); i++ { //We do on not-needed comparison
+	for i := 0; i < test.NVecs(); i++ {
 		vt1 = test.VecView(i)
 		for j := 0; j < ref.NVecs(); j++ {
 			vr1 = ref.VecView(j)
