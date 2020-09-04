@@ -36,6 +36,7 @@ import (
 )
 
 //Calculates the RDF for a trajectory given the indexes of the solute atoms, the solvent molecule name, the step for the "layers" and the cutoff.
+//The code includes some extra comments, so it can be used as a template for concurrent trajectory processing.
 func ConcMolRDF(traj ConcTraj, mol *Molecule, refindexes []int, residues []string, step, end float64, com ...bool) ([]float64, []float64, error) {
 	var ret []float64
 	simulframes := runtime.NumCPU()
@@ -51,22 +52,27 @@ func ConcMolRDF(traj ConcTraj, mol *Molecule, refindexes []int, residues []strin
 	}
 	var err error
 	for i := 0; ; i++ {
-		if err != nil { //if we got a LastFrameError intheprevious
+		if err != nil { //if we got a LastFrameError in the previous
 			break
 		}
-		coordchans, err := traj.NextConc(frames)
+		coordchans, err := traj.NextConc(frames) //we get a slice of channels, each of which will receive a frame. They are sorted by the frame they receive.
 		if err != nil {
 			if err, ok := err.(LastFrameError); ok {
 				if coordchans == nil {
 					break
 				}
 			} else {
-				return nil, nil, err //Must decorate this error
+				if err, ok := err.(Error); ok {
+					err.Decorate(fmt.Sprintf("ConcMolRDF, failed when reading the %d th frame", i))
+					return nil, nil, err
+				}
+				return nil, nil, err // somehow it wasn't a chem.Error.  This should never happen.
 			}
 		}
 		for key, channel := range coordchans {
-			go unitRDF(channel, results[key], mol, refindexes, residues, step, end, com...)
+			go unitRDF(channel, results[key], mol, refindexes, residues, step, end, com...) //we give each of the channels we got from NextConc to a gorutine "worker" that performs the analysis. We pass them a chan to transmit the results back.
 		}
+		//Here we go through the "results" channels, which are sorted by frame, so if we just iterate with a for, we'll get the results for the frames in the right order (not that it matters here).
 		for _, k := range results {
 			if k == nil {
 				break //shouldn't happen
@@ -118,10 +124,14 @@ reading:
 		}
 		if err != nil {
 			switch err := err.(type) {
-			default:
-				return nil, nil, err
 			case LastFrameError:
 				break reading
+			case Error:
+				err.Decorate(fmt.Sprintf("MolRDF: Failed while reading the %d th frame", i))
+				return nil, nil, err
+			default:
+				return nil, nil, err
+
 			}
 		}
 		rdf := FrameUMolCRDF(coords, mol, refindexes, residues, step, end, com...) ///only difference
