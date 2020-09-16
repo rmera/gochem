@@ -31,8 +31,8 @@ package qm
 import (
 	"fmt"
 
-	"github.com/rmera/gochem"
-	"github.com/rmera/gochem/v3"
+	chem "github.com/rmera/gochem"
+	v3 "github.com/rmera/gochem/v3"
 )
 
 //builds an input for a QM calculation
@@ -148,6 +148,7 @@ type jobChoose struct {
 	opti   func()
 	forces func()
 	sp     func()
+	md     func()
 }
 
 //This is what the user actually deasl with. The user should set one of these to true,
@@ -158,6 +159,7 @@ type Job struct {
 	Opti   bool
 	Forces bool
 	SP     bool
+	MD     bool
 }
 
 //Do sets the job set to true in J, according to the corresponding function in plan. A "nil" plan
@@ -173,6 +175,10 @@ func (J *Job) Do(plan jobChoose) {
 	}
 	if J.Forces && plan.forces != nil {
 		plan.forces()
+		return
+	}
+	if J.MD && plan.md != nil {
+		plan.md()
 		return
 	}
 	if plan.sp != nil { //the default option is a single-point
@@ -222,10 +228,14 @@ type Calc struct {
 	Dispersion string //D2, D3, etc.
 	Others     string //analysis methods, etc
 	//	PCharges []PointCharge
-	Guess        string //initial guess
-	Grid         int
-	OldMO        bool //Try to look for a file with MO. The
-	Job          Job  //NOTE: This should probably be a pointer: FIX!
+	Guess string //initial guess
+	Grid  int
+	OldMO bool //Try to look for a file with MO. The
+	Job   Job  //NOTE: This should probably be a pointer: FIX!
+	//The following 3 are only for MD simulations, will be ignored in every other case.
+	MDTime       int     //simulation time (whatever unit the program uses!)
+	MDTemp       float64 //simulation temperature (K)
+	MDPressure   int     //simulation pressure (whatever unit the program uses!)
 	SCFTightness int
 	SCFConvHelp  int
 	ECP          string //The ECP to be used. It is the programmers responsibility to use a supported ECP (for instance, trying to use 10-electron core ECP for Carbon will fail)
@@ -233,13 +243,12 @@ type Calc struct {
 	Memory       int //Max memory to be used in MB (the effect depends on the QM program)
 }
 
+//Utilities here
 func (Q *Calc) SetDefaults() {
 	Q.RI = true
 	//	Q.BSSE = "gcp"
 	Q.Dispersion = "D3"
 }
-
-//Utilities here
 
 //isIn is a helper for the RamaList function,
 //returns true if test is in container, false otherwise.

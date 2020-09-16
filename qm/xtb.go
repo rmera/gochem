@@ -34,13 +34,15 @@ package qm
 import (
 	//	"bufio"
 	"fmt"
-	"github.com/rmera/gochem"
-	"github.com/rmera/gochem/v3"
+	"log"
 	"os"
 	"os/exec"
 	"runtime"
 	"strconv"
 	"strings"
+
+	chem "github.com/rmera/gochem"
+	v3 "github.com/rmera/gochem/v3"
 )
 
 //Note that the default methods and basis vary with each program, and even
@@ -90,7 +92,10 @@ func (O *XTBHandle) SetDefaults() {
 //BuildInput builds an input for XTB. Right now it's very limited, only singlets are allowed and
 //only unconstrained optimizations and single-points.
 func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q *Calc) error {
-
+	//Now lets write the thing
+	if O.inputname == "" {
+		O.inputname = "gochem"
+	}
 	//Only error so far
 	if atoms == nil || coords == nil {
 		return Error{ErrMissingCharges, "XTB", O.inputname, "", []string{"BuildInput"}, true}
@@ -103,23 +108,34 @@ func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q
 	if Q.Memory != 0 {
 		//Here we can adjust memory if needed
 	}
-	//Now lets write the thing
-	if O.inputname == "" {
-		O.inputname = "gochem"
+
+	xcontrol, err := os.Create("xcontrol")
+	if err != nil {
+		return err
 	}
-	O.options = make([]string, 2, 6)
-	O.options[0] = O.command
-	O.options[1] = O.inputname + ".xyz"
+	O.options = make([]string, 0, 6)
+	O.options = append(O.options, O.command)
+	if Q.Method == "gfnff" {
+		O.options = append(O.options, "--gfnff")
+	}
+	O.options = append(O.options, O.inputname+".xyz")
 	O.options = append(O.options, fmt.Sprintf("-c %d", atoms.Charge()))
 	O.options = append(O.options, fmt.Sprintf("-u %d", (atoms.Multi()-1)))
 	if O.nCPU > 1 {
 		O.options = append(O.options, fmt.Sprintf("-P %d", O.nCPU))
 	}
+	//Added new things to select a method in xtb
+	if !isInString([]string{"gfn1", "gfn2", "gfn0", "gfnff"}, Q.Method) {
+		O.options = append(O.options, "--gfn 2") //default method
+	} else if Q.Method != "gfnff" {
+		m := strings.ReplaceAll(Q.Method, "gfn", "") //so m should be "0", "1" or "2"
+		O.options = append(O.options, "--gfn "+m)    //default method
+	}
 
-	if Q.Dielectric > 0 {
+	if Q.Dielectric > 0 && Q.Method != "gfn0" { //as of the current version, gfn0 doesn't support implicit solvation
 		solvent, ok := dielectric2Solvent[int(Q.Dielectric)]
 		if ok {
-			O.options = append(O.options, "-g "+solvent)
+			O.options = append(O.options, "-alpb "+solvent)
 		}
 	}
 	//O.options = append(O.options, "-gfn")
@@ -131,22 +147,22 @@ func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q
 		}
 		strings.TrimRight(fixed, ",")
 		fixed = fixed + "\n"
-		xcontrol, err := os.Create("xcontrol")
-		if err != nil {
-			return err
-		}
 		xcontrol.Write([]byte("$fix\n"))
 		xcontrol.Write([]byte("force constant=10000\n"))
 		xcontrol.Write([]byte(fixed))
-		xcontrol.Close()
 		O.options = append(O.options, "-I xcontrol")
 	}
 	jc := jobChoose{}
 	jc.opti = func() {
 		O.options = append(O.options, "-o normal")
 	}
-
+	jc.md = func() {
+		O.options = append(O.options, "--omd")
+		xcontrol.Write([]byte(fmt.Sprintf("$md\n temp=%5.3f\n time=%d\n velo=false\n nvt=true\n$end", Q.MDTemp, Q.MDTime)))
+		xcontrol.Close()
+	}
 	Q.Job.Do(jc)
+	xcontrol.Close()
 	return nil
 
 }
@@ -175,6 +191,7 @@ func (O *XTBHandle) Run(wait bool) (err error) {
 		//		command.Stderr = ferr
 		//		err = command.Run()
 		//		fmt.Println(O.command+fmt.Sprintf(" %s.xyz %s > %s.out &", O.inputname, strings.Join(O.options[2:]," "), O.inputname)) ////////////////////////
+		log.Printf(" %s.xyz %s > %s.out  2>&1", O.inputname, strings.Join(O.options[2:], " "), O.inputname) //this is stderr, I suppose
 		command := exec.Command("sh", "-c", O.command+fmt.Sprintf(" %s.xyz %s > %s.out  2>&1", O.inputname, strings.Join(O.options[2:], " "), O.inputname))
 		err = command.Run()
 
@@ -258,7 +275,6 @@ func searchBackwards(str, filename string) string {
 		}
 
 	}
-	return ""
 }
 
 //Gets the energy of a previous XTB calculations.

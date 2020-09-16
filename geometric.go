@@ -330,6 +330,37 @@ func rMSD(test, template *v3.Matrix, testlst, templalst []int) (float64, error) 
 	return RMSD, nil
 }
 
+//Improper calculates the improper dihedral between the points a, b,c,d
+// as the angle between the plane defined by a,b,c and the cd vector
+//is defined by abc and the second by bcd.
+//NOT TESTED!
+func Improper(a, b, c, d *v3.Matrix) float64 {
+	all := []*v3.Matrix{a, b, c, d}
+	for number, point := range all {
+		pr, pc := point.Dims()
+		if point == nil {
+			panic(PanicMsg(fmt.Sprintf("goChem-Improper: Vector %d is nil", number)))
+		}
+		if pr != 1 || pc != 3 {
+			panic(PanicMsg(fmt.Sprintf("goChem-Improper: Vector %d has invalid shape", number)))
+		}
+	}
+	//bma=b minus a
+	amb := v3.Zeros(1)
+	cmb := v3.Zeros(1)
+	dmc := v3.Zeros(1)
+	amb.Sub(b, a)
+	cmb.Sub(c, b)
+	dmc.Sub(d, c)
+	plane := cross(amb, cmb)
+	angle := Angle(plane, dmc)
+	if angle <= math.Pi/2.0 {
+		return math.Pi/2.0 - angle
+	} else {
+		return angle - math.Pi/2.0
+	}
+}
+
 //Dihedral calculates the dihedral between the points a, b, c, d, where the first plane
 //is defined by abc and the second by bcd.
 func Dihedral(a, b, c, d *v3.Matrix) float64 {

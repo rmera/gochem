@@ -603,6 +603,7 @@ func (M *Molecule) NextConc(frames []bool) ([]chan *v3.Matrix, error) {
 type lastFrameError struct {
 	fileName string
 	frame    int
+	deco     []string
 }
 
 //Error returns an error message string.
@@ -632,6 +633,16 @@ func (E *lastFrameError) FileName() string {
 //NormalLastFrameTermination does nothing, it is there so we can have an interface unifying all
 //"normal termination" errors so they can be filtered out by type switch.
 func (E *lastFrameError) NormalLastFrameTermination() {
+}
+
+//Decorate will add the dec string to the decoration slice of strings of the error,
+//and return the resulting slice.
+func (E *lastFrameError) Decorate(dec string) []string {
+	if dec == "" {
+		return E.deco
+	}
+	E.deco = append(E.deco, dec)
+	return E.deco
 }
 
 func newlastFrameError(filename string, frame int) *lastFrameError {
