@@ -46,5 +46,8 @@ const (
 
 //Others
 const (
-	CHDist = 1.098 //C(sp3)--H distance in A
+	CHDist = 1.098               //C(sp3)--H distance in A
+	KB     = 1.380649e-26        // Boltzmann constant kJ/K
+	R      = 8.31446261815324e-3 // kJ/(K*mol)
+	NA     = 6.02214076e+23
 )
