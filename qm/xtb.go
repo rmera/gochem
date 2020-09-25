@@ -109,7 +109,7 @@ func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q
 		//Here we can adjust memory if needed
 	}
 
-	xcontrol, err := os.Create("xcontrol")
+	xcontrol, err := os.Create(O.inputname + ".inp")
 	if err != nil {
 		return err
 	}
@@ -150,7 +150,6 @@ func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q
 		xcontrol.Write([]byte("$fix\n"))
 		xcontrol.Write([]byte("force constant=10000\n"))
 		xcontrol.Write([]byte(fixed))
-		O.options = append(O.options, "-I xcontrol")
 	}
 	jc := jobChoose{}
 	jc.opti = func() {
@@ -161,6 +160,8 @@ func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q
 		xcontrol.Write([]byte(fmt.Sprintf("$md\n temp=%5.3f\n time=%d\n velo=false\n nvt=true\n$end", Q.MDTemp, Q.MDTime)))
 		xcontrol.Close()
 	}
+	//	O.options = append(O.options, "--input xcontrol")
+
 	Q.Job.Do(jc)
 	xcontrol.Close()
 	return nil
@@ -192,11 +193,11 @@ func (O *XTBHandle) Run(wait bool) (err error) {
 		//		err = command.Run()
 		//		fmt.Println(O.command+fmt.Sprintf(" %s.xyz %s > %s.out &", O.inputname, strings.Join(O.options[2:]," "), O.inputname)) ////////////////////////
 		log.Printf(" %s.xyz %s > %s.out  2>&1", O.inputname, strings.Join(O.options[2:], " "), O.inputname) //this is stderr, I suppose
-		command := exec.Command("sh", "-c", O.command+fmt.Sprintf(" %s.xyz %s > %s.out  2>&1", O.inputname, strings.Join(O.options[2:], " "), O.inputname))
+		command := exec.Command("sh", "-c", O.command+fmt.Sprintf(" %s.xyz  --input %s.inp  %s > %s.out  2>&1", O.inputname, O.inputname, strings.Join(O.options[2:], " "), O.inputname))
 		err = command.Run()
 
 	} else {
-		command := exec.Command("sh", "-c", "nohup "+O.command+fmt.Sprintf(" %s.xyz %s > %s.out &", O.inputname, O.options[1:], O.inputname))
+		command := exec.Command("sh", "-c", "nohup "+O.command+fmt.Sprintf(" %s.xyz --input %s.inp  %s > %s.out &", O.inputname, O.inputname, O.options[1:], O.inputname))
 		err = command.Start()
 	}
 	if err != nil {

@@ -354,11 +354,44 @@ func Improper(a, b, c, d *v3.Matrix) float64 {
 	dmc.Sub(d, c)
 	plane := cross(amb, cmb)
 	angle := Angle(plane, dmc)
-	if angle <= math.Pi/2.0 {
-		return math.Pi/2.0 - angle
-	} else {
-		return angle - math.Pi/2.0
+	return math.Pi/2.0 + angle
+	/*	if angle <= math.Pi/2.0 {
+
+		//	return math.Pi/2.0 - angle
+			return math.Pi/2.0 + angle
+		} else {
+			//return (angle - math.Pi/2.0)
+		}
+	*/
+}
+
+//DihedralAlt calculates the dihedral between the points a, b, c, d, where the first plane
+//is defined by abc and the second by bcd.
+func DihedralAlt(a, b, c, d *v3.Matrix) float64 {
+	all := []*v3.Matrix{a, b, c, d}
+	for number, point := range all {
+		pr, pc := point.Dims()
+		if point == nil {
+			panic(PanicMsg(fmt.Sprintf("goChem-Dihedral: Vector %d is nil", number)))
+		}
+		if pr != 1 || pc != 3 {
+			panic(PanicMsg(fmt.Sprintf("goChem-Dihedral: Vector %d has invalid shape", number)))
+		}
 	}
+	//bma=b minus a
+	amb := v3.Zeros(1)
+	cmb := v3.Zeros(1)
+	bmc := v3.Zeros(1)
+	dmc := v3.Zeros(1)
+	amb.Sub(a, b)
+	cmb.Sub(c, b)
+	bmc.Sub(b, c)
+	dmc.Sub(d, c)
+	v1 := cross(amb, cmb)
+	v2 := cross(bmc, dmc)
+	dihedral := Angle(v1, v2)
+	//	dihedral := math.Atan2(first, second)
+	return dihedral
 }
 
 //Dihedral calculates the dihedral between the points a, b, c, d, where the first plane

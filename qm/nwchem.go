@@ -29,14 +29,16 @@
 package qm
 
 import (
+	"bufio"
 	"fmt"
-	"github.com/rmera/gochem"
-	"github.com/rmera/gochem/v3"
 	"log"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
+
+	chem "github.com/rmera/gochem"
+	v3 "github.com/rmera/gochem/v3"
 )
 
 //Note that the default methods and basis vary with each program, and even
@@ -216,8 +218,12 @@ func (O *NWChemHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger
 	task := "dft energy"
 	driver := ""
 	preopt := ""
+	esp := ""
 	jc := jobChoose{}
-
+	jc.charges = func() {
+		esp = "esp\n restrain\nend\n"
+		task = task + "\ntask esp"
+	}
 	jc.opti = func() {
 		eprec := "" //The available presition is set to default except if tighter SCF convergene criteria are being used.
 		if Q.SCFTightness > 0 {
@@ -341,6 +347,9 @@ func (O *NWChemHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger
 	//task part
 	fmt.Fprintf(file, " mult %d\n", atoms.Multi())
 	fmt.Fprint(file, "end\n")
+	if Q.Job.Charges {
+		fmt.Fprintf(file, esp)
+	}
 	fmt.Fprintf(file, "%s", driver)
 	fmt.Fprintf(file, "task %s\n", task)
 
@@ -517,6 +526,70 @@ func (O *NWChemHandle) Energy() (float64, error) {
 
 	}
 	return energy * chem.H2Kcal, err
+}
+
+func (O *NWChemHandle) move2lines(fin *bufio.Reader) error {
+	_, err := fin.ReadString('\n')
+	if err != nil {
+		return Error{ErrNoEnergy, NWChem, O.inputname, err.Error(), []string{"os.Open", "Charges"}, true}
+	}
+	_, err = fin.ReadString('\n')
+	if err != nil {
+		return Error{ErrNoEnergy, NWChem, O.inputname, err.Error(), []string{"os.Open", "Charges"}, true}
+	}
+	return nil
+}
+
+//Gets the energy of a previous NWChem calculation.
+//Returns error if problem, and also if the energy returned that is product of an
+//abnormally-terminated NWChem calculation. (in this case error is "Probable problem
+//in calculation")
+func (O *NWChemHandle) Charges() ([]float64, error) {
+	f, err1 := os.Open(fmt.Sprintf("%s.out", O.inputname))
+	if err1 != nil {
+		return nil, Error{ErrNoCharges, NWChem, O.inputname, err1.Error(), []string{"os.Open", "Charges"}, true}
+	}
+	charges := make([]float64, 0, 30)
+	var reading bool = false
+	defer f.Close()
+	fin := bufio.NewReader(f)
+	for {
+
+		line, err := fin.ReadString('\n')
+		if err != nil {
+			if strings.Contains(err.Error(), "EOF") { //This allows that an XYZ ends without a newline
+				break
+			} else {
+				return nil, Error{ErrNoCharges, NWChem, O.inputname, err.Error(), []string{"os.Open", "Charges"}, true}
+			}
+		}
+		if strings.Contains(line, "ESP         RESP        RESP2") {
+			reading = true
+			err := O.move2lines(fin)
+			if err != nil {
+				return nil, err
+			}
+			continue
+		}
+		if !reading {
+			continue
+		}
+		if reading && strings.Contains(line, "------------------------------------") {
+			break
+		}
+		fields := strings.Fields(line)
+		if len(fields) < 7 {
+			return nil, Error{ErrNoCharges, NWChem, O.inputname, "", []string{"os.Open", "Charges"}, true}
+		}
+		charge, err := strconv.ParseFloat(fields[len(fields)-2], 64)
+		if err != nil {
+			return nil, Error{ErrNoCharges, NWChem, O.inputname, err.Error(), []string{"os.Open", "Charges"}, true}
+		}
+		charges = append(charges, charge)
+
+	}
+
+	return charges, nil
 }
 
 //This checks that an NWChem calculation has terminated normally

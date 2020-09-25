@@ -85,7 +85,8 @@ const (
 	ErrProbableProblem = "goChem/QM: Probable problem with calculations" //this is never to be used for fatal errors
 	ErrMissingCharges  = "goChem/QM: Missing charges or coordinates"
 	ErrNoEnergy        = "goChem/QM: No energy in output"
-	ErrNoGeometry      = "gochem/QM: Unable to read Geometry from input"
+	ErrNoCharges       = "goChem/QM: Unable to read charges from  output"
+	ErrNoGeometry      = "gochem/QM: Unable to read geometry from output"
 	ErrNotRunning      = "gochem/QM: Couldn't run calculation"
 	ErrCantInput       = "goChem/QM: Can't build input file"
 )
@@ -145,10 +146,11 @@ func errDecorate(err error, caller string) error {
 
 //jobChoose is a structure where each QM handler has to provide a closure that makes the proper arrangements for each supported case.
 type jobChoose struct {
-	opti   func()
-	forces func()
-	sp     func()
-	md     func()
+	opti    func()
+	forces  func()
+	sp      func()
+	md      func()
+	charges func()
 }
 
 //This is what the user actually deasl with. The user should set one of these to true,
@@ -156,10 +158,11 @@ type jobChoose struct {
 //fields to true, the priority will be Opti>Forces>SP (i.e. if you set Forces and SP to true,
 //only the function handling forces will be called).
 type Job struct {
-	Opti   bool
-	Forces bool
-	SP     bool
-	MD     bool
+	Opti    bool
+	Forces  bool
+	SP      bool
+	MD      bool
+	Charges bool
 }
 
 //Do sets the job set to true in J, according to the corresponding function in plan. A "nil" plan
@@ -181,10 +184,16 @@ func (J *Job) Do(plan jobChoose) {
 		plan.md()
 		return
 	}
+	if J.Charges && plan.charges != nil { //the default option is a single-point
+		plan.charges()
+		return
+	}
+
 	if plan.sp != nil { //the default option is a single-point
 		plan.sp()
 		return
 	}
+
 }
 
 type IntConstraint struct {
