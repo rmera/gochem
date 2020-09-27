@@ -25,14 +25,28 @@ package chem
 
 import (
 	"fmt"
-	"github.com/rmera/gochem/v3"
-	"gonum.org/v1/gonum/mat"
 	"os"
 	"runtime"
 	"testing"
+
+	v3 "github.com/rmera/gochem/v3"
+	"gonum.org/v1/gonum/mat"
 )
 
 //import "runtime"
+
+func TestGROIO(Te *testing.T) {
+	mol, err := GroFileRead("test/test.gro")
+	if err != nil {
+		Te.Error(err)
+	}
+	fmt.Println("NO WEI", mol.Len(), len(mol.Coords))
+	fmt.Println(mol.Atom(3), mol.Coords[0].VecView(3))
+	err = PDBFileWrite("test/testgro.pdb", mol.Coords[0], mol, nil)
+	if err != nil {
+		Te.Error(err)
+	}
+}
 
 //TestMultiXYZ tests that multi-XYZ files are opened and read correctly.
 func TestXYZIO(Te *testing.T) {

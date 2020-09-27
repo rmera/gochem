@@ -36,7 +36,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/rmera/gochem/v3"
+	v3 "github.com/rmera/gochem/v3"
 )
 
 //PDB_read family
@@ -679,4 +679,148 @@ func XYZWrite(out io.Writer, Coords *v3.Matrix, mol Atomer) error {
 		}
 	}
 	return nil
+}
+
+func GroFileRead(groname string) (*Molecule, error) {
+	grofile, err := os.Open(groname)
+	if err != nil {
+		//fmt.Println("Unable to open file!!")
+		return nil, CError{err.Error(), []string{"os.Open", "GroFileRead"}}
+	}
+	defer grofile.Close()
+	snaps := 1
+	gro := bufio.NewReader(grofile)
+	var top *Topology
+	var molecule []*Atom
+	Coords := make([]*v3.Matrix, 1, 1)
+
+	for {
+		//When we read the first snapshot we collect also the topology data, later
+		//only coords are collected.
+		if snaps == 1 {
+			Coords[0], molecule, err = groReadSnap(gro, true)
+			if err != nil {
+				return nil, errDecorate(err, "GroFileRead")
+			}
+			top = NewTopology(0, 1, molecule)
+			if err != nil {
+				return nil, errDecorate(err, "GroFileRead")
+			}
+			snaps++
+			continue
+		}
+		//fmt.Println("how manytimes?") /////////////////////
+		tmpcoords, _, err := groReadSnap(gro, false)
+		if err != nil {
+			//An error here may just mean that there are no more snapshots
+			errm := err.Error()
+			if strings.Contains(errm, "Empty") || strings.Contains(errm, "EOF") {
+				err = nil
+				break
+			}
+			return nil, errDecorate(err, "GroRead")
+		}
+		Coords = append(Coords, tmpcoords)
+	}
+	returned, err := NewMolecule(Coords, top, nil)
+	fmt.Println("2 return!", top.Atom(1), returned.Coords[0].VecView(2)) ///////////////////////
+	return returned, errDecorate(err, "GroRead")
+}
+
+func groReadSnap(gro *bufio.Reader, ReadTopol bool) (*v3.Matrix, []*Atom, error) {
+	nm2A := 10.0
+	chains := "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	line, err := gro.ReadString('\n') //we don't care about this line,but it has to be there
+	if err != nil {
+		return nil, nil, CError{fmt.Sprintf("Empty gro File: %s", err.Error()), []string{"bufio.Reader.ReadString", "groReadSnap"}}
+	}
+	line, err = gro.ReadString('\n')
+	if err != nil {
+		return nil, nil, CError{fmt.Sprintf("Malformed gro File: %s", err.Error()), []string{"bufio.Reader.ReadString", "groReadSnap"}}
+	}
+
+	natoms, err := strconv.Atoi(strings.TrimSpace(line))
+	if err != nil {
+		return nil, nil, CError{fmt.Sprintf("Wrong header for a gro file %s", err.Error()), []string{"strconv.Atoi", "groReadSnap"}}
+	}
+	var molecule []*Atom
+	if ReadTopol {
+		molecule = make([]*Atom, 0, natoms)
+	}
+	coords := make([]float64, 0, natoms*3)
+	prevres := 0
+	chainindex := 0
+	for i := 0; i < natoms; i++ {
+		line, err = gro.ReadString('\n')
+		if err != nil {
+			return nil, nil, CError{fmt.Sprintf("Failure to read gro File: %s", err.Error()), []string{"bufio.Reader.ReadString", "groReadSnap"}}
+		}
+		fields := strings.Fields(line)
+		if len(fields) < 4 {
+			break //meaning this line contains the unit cell vectors, and it is the last line of the snapshot
+		}
+		if ReadTopol {
+			atom, c, err := read_gro_line(line)
+			if err != nil {
+				return nil, nil, CError{fmt.Sprintf("Failure to read gro File: %s", err.Error()), []string{"bufio.Reader.ReadString", "groReadSnap"}}
+			}
+			if atom.MolID < prevres {
+				chainindex++
+			}
+			prevres = atom.MolID
+			if chainindex >= len(chains) {
+				chainindex = 0 //more chains inthe molecule than letters in the alphabet!
+			}
+			atom.Chain = string(chains[chainindex])
+			molecule = append(molecule, atom)
+			coords = append(coords, c...)
+			//	fmt.Println(atom, c) //////////////////
+			continue
+
+		}
+		c := make([]float64, 3, 3)
+		for i := 0; i < 3; i++ {
+			c[i], err = strconv.ParseFloat(strings.TrimSpace(line[20+(i*8):28+(i*8)]), 64)
+			if err != nil {
+				return nil, nil, err
+			}
+			c[i] = c[i] * nm2A //gro uses nm, goChem uses A.
+		}
+		coords = append(coords, c...)
+
+	}
+	mcoords, err := v3.NewMatrix(coords)
+	//	fmt.Println(molecule) //, mcoords) ////////////////////////
+	return mcoords, molecule, nil
+}
+
+//Parses a valid ATOM or HETATM line of a PDB file, returns an Atom
+// object with the info except for the coordinates and b-factors, which  are returned
+// separately as an array of 3 float64 and a float64, respectively
+func read_gro_line(line string) (*Atom, []float64, error) {
+	coords := make([]float64, 3, 3)
+	atom := new(Atom)
+	nm2A := 10.0
+	var err error
+	atom.MolID, err = strconv.Atoi(strings.TrimSpace(line[0:5]))
+	if err != nil {
+		return nil, nil, err
+	}
+	atom.Molname = strings.TrimSpace(line[5:10])
+	atom.Molname1 = three2OneLetter[atom.Molname]
+	atom.Name = strings.TrimSpace(line[10:15])
+	atom.ID, err = strconv.Atoi(strings.TrimSpace(line[15:20]))
+	if err != nil {
+		return nil, nil, err
+	}
+	for i := 0; i < 3; i++ {
+		coords[i], err = strconv.ParseFloat(strings.TrimSpace(line[20+(i*8):28+(i*8)]), 64)
+		if err != nil {
+			return nil, nil, err
+		}
+		coords[i] = coords[i] * nm2A //gro uses nm, goChem uses A.
+	}
+
+	atom.Symbol, _ = symbolFromName(atom.Name)
+	return atom, coords, nil
 }
