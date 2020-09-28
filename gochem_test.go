@@ -46,6 +46,11 @@ func TestGROIO(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
+	err = GroFileWrite("test/testgro.gro", mol.Coords, mol)
+	if err != nil {
+		Te.Error(err)
+	}
+
 }
 
 //TestMultiXYZ tests that multi-XYZ files are opened and read correctly.

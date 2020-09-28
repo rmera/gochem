@@ -824,3 +824,52 @@ func read_gro_line(line string) (*Atom, []float64, error) {
 	atom.Symbol, _ = symbolFromName(atom.Name)
 	return atom, coords, nil
 }
+
+func GroFileWrite(outname string, Coords []*v3.Matrix, mol Atomer) error {
+	out, err := os.Create(outname)
+	if err != nil {
+		return CError{"Failed to write open file" + err.Error(), []string{"os.Create", "GroFileWrite"}}
+	}
+	defer out.Close()
+	for _, v := range Coords {
+		err := GroSnapWrite(v, mol, out)
+		if err != nil {
+			return errDecorate(err, "GoFileWrite")
+		}
+	}
+	return nil
+}
+
+func GroSnapWrite(coords *v3.Matrix, mol Atomer, out io.Writer) error {
+	A2nm := 0.1
+	iowriterError := func(err error) error {
+		return CError{"Failed to write in io.Writer" + err.Error(), []string{"io.Writer.Write", "GroSnapWrite"}}
+	}
+	if mol.Len() != coords.NVecs() {
+		return CError{"Ref and Coords dont have the same number of atoms", []string{"GroSnapWrite"}}
+	}
+	c := make([]float64, 3, 3)
+	_, err := out.Write([]byte(fmt.Sprintf("Written with goChem :-)\n%-4d\n", mol.Len())))
+	if err != nil {
+		return iowriterError(err)
+	}
+	//towrite := Coords.Arrays() //An array of array with the data in the matrix
+	for i := 0; i < mol.Len(); i++ {
+		//c := towrite[i] //coordinates for the corresponding atoms
+		c = coords.Row(c, i)
+		at := mol.Atom(i)
+		//velocities are set to 0
+		temp := fmt.Sprintf("%5d%-5s%5s%5d%8.3f%8.3f%8.3f%8.4f%8.4f%8.4f\n", at.MolID, at.Molname, at.Name, at.ID, c[0]*A2nm, c[1]*A2nm, c[2]*A2nm, 0.0, 0.0, 0.0)
+		_, err := out.Write([]byte(temp))
+		if err != nil {
+			return iowriterError(err)
+		}
+
+	}
+	//the box vectors at the end of the snappshot
+	_, err = out.Write([]byte("0.0 0.0 0.0\n"))
+	if err != nil {
+		return iowriterError(err)
+	}
+	return nil
+}
