@@ -34,6 +34,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -64,6 +65,10 @@ func NewNWChemHandle() *NWChemHandle {
 //NWChemHandle methods
 
 //Sets the number of CPU to be used
+func (O *NWChemHandle) SetnCPU(cpu int) {
+	O.nCPU = cpu
+}
+
 func (O *NWChemHandle) SetRestart(r bool) {
 	O.restart = r
 }
@@ -99,6 +104,8 @@ func (O *NWChemHandle) SetDefaults() {
 	O.defbasis = "def2-svp"
 	O.command = "nwchem"
 	O.smartCosmo = false
+	cpu := runtime.NumCPU() / 2 //we divide by 2 because of the hyperthreading that is so frequent nowadays.
+	O.nCPU = cpu
 
 }
 
@@ -369,7 +376,12 @@ func (O *NWChemHandle) Run(wait bool) (err error) {
 		}
 		defer out.Close()
 		command := exec.Command(O.command, fmt.Sprintf("%s.nw", O.inputname))
+		if O.nCPU > 1 {
+			//	fmt.Println("mpirun", "-np", fmt.Sprintf("%d", O.nCPU), O.command, fmt.Sprintf("%s.nw", O.inputname)) ////////////////////////////
+			command = exec.Command("mpirun", "-np", fmt.Sprintf("%d", O.nCPU), O.command, fmt.Sprintf("%s.nw", O.inputname))
+		}
 		command.Stdout = out
+		command.Stderr = out
 		err = command.Run()
 
 	} else {
