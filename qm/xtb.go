@@ -135,7 +135,7 @@ func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q
 	if Q.Dielectric > 0 && Q.Method != "gfn0" { //as of the current version, gfn0 doesn't support implicit solvation
 		solvent, ok := dielectric2Solvent[int(Q.Dielectric)]
 		if ok {
-			O.options = append(O.options, "-alpb "+solvent)
+			O.options = append(O.options, "--alpb "+solvent)
 		}
 	}
 	//O.options = append(O.options, "-gfn")
@@ -157,7 +157,12 @@ func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q
 	}
 	jc.md = func() {
 		O.options = append(O.options, "--omd")
-		xcontrol.Write([]byte(fmt.Sprintf("$md\n temp=%5.3f\n time=%d\n velo=false\n nvt=true\n$end", Q.MDTemp, Q.MDTime)))
+		//There are specific settings needed with gfnff, mainly, a shorter timestep
+		if Q.Method == "gfnff" {
+			xcontrol.Write([]byte(fmt.Sprintf("$md\n temp=%5.3f\n time=%d\n velo=false\n nvt=true\n step=2.0\n hmass=4.0\n shake=0\n$end", Q.MDTemp, Q.MDTime)))
+		} else {
+			xcontrol.Write([]byte(fmt.Sprintf("$md\n temp=%5.3f\n time=%d\n velo=false\n nvt=true\n$end", Q.MDTemp, Q.MDTime)))
+		}
 		xcontrol.Close()
 	}
 	//	O.options = append(O.options, "--input xcontrol")
