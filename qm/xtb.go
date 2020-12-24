@@ -52,6 +52,7 @@ type XTBHandle struct {
 	inputname string
 	nCPU      int
 	options   []string
+	gfnff     bool
 }
 
 func NewXTBHandle() *XTBHandle {
@@ -116,7 +117,7 @@ func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q
 	O.options = make([]string, 0, 6)
 	O.options = append(O.options, O.command)
 	if Q.Method == "gfnff" {
-		O.options = append(O.options, "--gfnff")
+		O.gfnff = true
 	}
 	O.options = append(O.options, O.inputname+".xyz")
 	O.options = append(O.options, fmt.Sprintf("-c %d", atoms.Charge()))
@@ -178,31 +179,20 @@ func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q
 //Not waiting for results works
 //only for unix-compatible systems, as it uses bash and nohup.
 func (O *XTBHandle) Run(wait bool) (err error) {
+	var com string
+	if O.gfnff {
+		com = fmt.Sprintf(" --gfnff %s.xyz  --input %s.inp  %s > %s.out  2>&1", O.inputname, O.inputname, strings.Join(O.options[2:], " "), O.inputname)
+	} else {
+
+		com = fmt.Sprintf(" %s.xyz  --input %s.inp  %s > %s.out  2>&1", O.inputname, O.inputname, strings.Join(O.options[2:], " "), O.inputname)
+	}
 	if wait == true {
-		//		out, err := os.Create(fmt.Sprintf("%s.out", O.inputname))
-		//		if err != nil {
-		//			return Error{ErrNotRunning, XTB, O.inputname, "", []string{"Run"}, true}
-		//		}
-		//		ferr, err := os.Create(fmt.Sprintf("%s.err", O.inputname))
-		//
-		//		if err != nil {
-		//			return Error{ErrNotRunning, XTB, O.inputname, "", []string{"Run"}, true}
-		//		}
-		//		defer out.Close()
-		//		defer ferr.Close()
-		//		fullCommand:=strings.Join(O.options," ")
-		//		fmt.Println(fullCommand) //("Command", O.command, O.options) ////////////////////////
-		//		command := exec.Command(fullCommand) //, O.options...)
-		//		command.Stdout = out
-		//		command.Stderr = ferr
-		//		err = command.Run()
-		//		fmt.Println(O.command+fmt.Sprintf(" %s.xyz %s > %s.out &", O.inputname, strings.Join(O.options[2:]," "), O.inputname)) ////////////////////////
-		log.Printf(" %s.xyz %s > %s.out  2>&1", O.inputname, strings.Join(O.options[2:], " "), O.inputname) //this is stderr, I suppose
-		command := exec.Command("sh", "-c", O.command+fmt.Sprintf(" %s.xyz  --input %s.inp  %s > %s.out  2>&1", O.inputname, O.inputname, strings.Join(O.options[2:], " "), O.inputname))
+		log.Printf(com) //this is stderr, I suppose
+		command := exec.Command("sh", "-c", O.command+com)
 		err = command.Run()
 
 	} else {
-		command := exec.Command("sh", "-c", "nohup "+O.command+fmt.Sprintf(" %s.xyz --input %s.inp  %s > %s.out &", O.inputname, O.inputname, O.options[1:], O.inputname))
+		command := exec.Command("sh", "-c", "nohup "+O.command+com)
 		err = command.Start()
 	}
 	if err != nil {
@@ -319,3 +309,24 @@ var dielectric2Solvent = map[int]string{
 	47: "dmso",
 	38: "dmf",
 }
+
+//old code
+
+//		out, err := os.Create(fmt.Sprintf("%s.out", O.inputname))
+//		if err != nil {
+//			return Error{ErrNotRunning, XTB, O.inputname, "", []string{"Run"}, true}
+//		}
+//		ferr, err := os.Create(fmt.Sprintf("%s.err", O.inputname))
+//
+//		if err != nil {
+//			return Error{ErrNotRunning, XTB, O.inputname, "", []string{"Run"}, true}
+//		}
+//		defer out.Close()
+//		defer ferr.Close()
+//		fullCommand:=strings.Join(O.options," ")
+//		fmt.Println(fullCommand) //("Command", O.command, O.options) ////////////////////////
+//		command := exec.Command(fullCommand) //, O.options...)
+//		command.Stdout = out
+//		command.Stderr = ferr
+//		err = command.Run()
+//		fmt.Println(O.command+fmt.Sprintf(" %s.xyz %s > %s.out &", O.inputname, strings.Join(O.options[2:]," "), O.inputname)) ////////////////////////
