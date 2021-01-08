@@ -70,7 +70,7 @@ func TestDCDWrite(Te *testing.T) {
  * read frames at the end.*/
 func TestDCD(Te *testing.T) {
 	fmt.Println("Fist test!")
-	traj, err := New("../test/test.dcd")
+	traj, err := New("../test/testW.dcd")
 	if err != nil {
 		Te.Error(err)
 	}

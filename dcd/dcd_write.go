@@ -1,3 +1,4 @@
+// +build !goyira
 /*
  * dcd.go, part of gochem
  *
@@ -30,8 +31,9 @@
 package dcd
 
 import (
-	"bytes"
 	"encoding/binary"
+	"fmt"
+	"io"
 	"os"
 	"runtime"
 
@@ -40,6 +42,19 @@ import (
 
 //const mAXTITLE int32 = 80
 //const rSCAL32BITS int32 = 1
+
+//A writing buffer
+type WB []byte
+
+func (B WB) Write(w []byte) (int, error) {
+	if len(B) < len(w) {
+		return 0, fmt.Errorf("mismatched buffers")
+	}
+	for i := range w {
+		B[i] = w[i]
+	}
+	return len(w), nil
+}
 
 //Container for an Charmm/NAMD binary trajectory file.
 type DCDWObj struct {
@@ -51,6 +66,7 @@ type DCDWObj struct {
 	charmm     bool //Charmm traj?
 	extrablock bool
 	fourdim    bool
+	frames     int32
 	new        bool     //Still no frame written to it it?
 	fixed      int32    //Fixed atoms (not supported)
 	dcd        *os.File //The DCD file
@@ -59,6 +75,8 @@ type DCDWObj struct {
 	endian     binary.ByteOrder
 }
 
+//Initializes a trajectory for writing.
+// You need to provide _some_ estimate of the frames to be write here.
 func NewWriter(filename string, natoms int) (*DCDWObj, error) {
 	traj := new(DCDWObj)
 	traj.natoms = int32(natoms)
@@ -84,7 +102,6 @@ func (D *DCDWObj) initWrite(name string) error {
 	}
 
 	D.endian = binary.LittleEndian
-	NB := bytes.NewBuffer //shortness sake
 	var err error
 	D.dcd, err = os.Create(name)
 	if err != nil {
@@ -98,57 +115,74 @@ func (D *DCDWObj) initWrite(name string) error {
 	if err := binary.Write(D.dcd, D.endian, magic); err != nil {
 		return wrapbinerr(err)
 	}
-	//We first read a big chuck for random access.
-	buf := make([]byte, 80, 80)
-	//X-plor sets this last int to zero, charmm sets it to its version number.
-	//if we have a charmm file we get some additional flags.
-	if err := binary.Write(NB(buf[76:]), D.endian, int32(2)); err != nil {
-		return wrapbinerr(err)
-	}
-	D.charmm = true
-	//no extra block of fourth dimmension
-	if err := binary.Write(NB(buf[40:]), D.endian, int32(0)); err != nil {
-		return wrapbinerr(err)
-	}
-	//here go the fixed atoms, I just set it to 0
-	if err := binary.Write(NB(buf[32:]), D.endian, D.fixed); err != nil {
-		return Error{err.Error(), D.filename, []string{"initWrite"}, true}
-
-	}
-	var delta float32 = 1.0 //This should work only on Charmm and namd >=2.1
-	//no idea what delta is. Right now, I just write 0.
-	//I really have to check this with the format!
-	if err := binary.Write(NB(buf[36:]), D.endian, delta); err != nil {
-		return wrapbinerr(err)
-	}
-	//we now write the buffer we had prepared to the file.
-	binary.Write(D.dcd, D.endian, buf)
-	//Again, no idea why the number 84 goes here. But it does.
-	if err := binary.Write(D.dcd, D.endian, int32(84)); err != nil {
-		return Error{err.Error(), D.filename, []string{"initWrite"}, true}
-	}
-	//another number that I seem to have ignored when reading. Will just write 0
+	//The frames in the file go here. No frames written yet, but will update this part after every write.
 	if err := binary.Write(D.dcd, D.endian, int32(0)); err != nil {
 		return wrapbinerr(err)
 	}
+	//Initial time
+	if err := binary.Write(D.dcd, D.endian, int32(0)); err != nil {
+		return wrapbinerr(err)
+	}
+	//step interval (nsavc)
+	if err := binary.Write(D.dcd, D.endian, int32(1)); err != nil {
+		return wrapbinerr(err)
+	}
+	//5 zeros plus natom-rfreat
+	for i := 0; i < 6; i++ {
+		if err := binary.Write(D.dcd, D.endian, int32(0)); err != nil {
+			return wrapbinerr(err)
+		}
+
+	}
+	//delta time
+	if err := binary.Write(D.dcd, D.endian, float32(1)); err != nil {
+		return wrapbinerr(err)
+	}
+	//No unit cell
+	if err := binary.Write(D.dcd, D.endian, int32(0)); err != nil {
+		return wrapbinerr(err)
+	}
+	//8 zeros for charmm
+	for i := 0; i < 8; i++ {
+		if err := binary.Write(D.dcd, D.endian, int32(0)); err != nil {
+			return wrapbinerr(err)
+		}
+	}
+	//charmm version, let's say, 24
+	if err := binary.Write(D.dcd, D.endian, int32(24)); err != nil {
+		return wrapbinerr(err)
+	}
+
+	//don't ask me why
+	if err := binary.Write(D.dcd, D.endian, int32(84)); err != nil {
+		return wrapbinerr(err)
+	}
+	//same as above
+	if err := binary.Write(D.dcd, D.endian, int32(244)); err != nil {
+		return wrapbinerr(err)
+	}
+
 	//how many units of mAXTITLE does the title have?
-	var ntitle int32 = 1 //just a dummy title of the smallest size possible.
+	var ntitle int32 = 2 //just a dummy title.
 	if err := binary.Write(D.dcd, D.endian, ntitle); err != nil {
 		return wrapbinerr(err)
 	}
-	title := make([]byte, mAXTITLE, mAXTITLE)
+	title := make([]byte, 2*mAXTITLE, 2*mAXTITLE)
+	//Not a very good title, I suppose
+	for j := range title {
+		title[j] = byte('l')
+	}
+	title[len(title)-1] = byte('\000') //null-ended
 	if err := binary.Write(D.dcd, D.endian, title); err != nil {
 		return wrapbinerr(err)
 	}
-	//another unknown value, agains, I'm just writing 0 here, because I don't know what this is.
-	if err := binary.Write(D.dcd, D.endian, int32(0)); err != nil {
+	//no idea
+	if err := binary.Write(D.dcd, D.endian, int32(244)); err != nil {
 		return wrapbinerr(err)
-
 	}
-	//For some reason, there must be a 4 before the natoms.
+	//no idea
 	if err := binary.Write(D.dcd, D.endian, int32(4)); err != nil {
 		return wrapbinerr(err)
-
 	}
 	//ok, this is important, the number of atoms in each snapshot
 	//We should have got the number of atoms when we created the object. Will check just in case.
@@ -159,7 +193,7 @@ func (D *DCDWObj) initWrite(name string) error {
 	if err := binary.Write(D.dcd, D.endian, D.natoms); err != nil {
 		return wrapbinerr(err)
 	}
-	//one more fore for some reason.
+	//same as above
 	if err := binary.Write(D.dcd, D.endian, int32(4)); err != nil {
 		return wrapbinerr(err)
 	}
@@ -191,12 +225,14 @@ func (D *DCDWObj) WNext(towrite *v3.Matrix) error {
 	}
 	//This is easier to write to the dcd
 	for i := 0; i < int(D.natoms); i++ {
-		k := i - i*(i/int(D.natoms))
+		k := i - i*(i/int(D.natoms)) //magic xD
 		D.dcdFields[0][k] = float32(towrite.At(k, 0))
 		D.dcdFields[1][k] = float32(towrite.At(k, 1))
 		D.dcdFields[2][k] = float32(towrite.At(k, 2))
 	}
 	D.wnextRaw(D.dcdFields)
+	D.frames++
+	D.updateFrames()
 	return nil
 }
 
@@ -209,7 +245,7 @@ func (D *DCDWObj) wnextRaw(blocks [][]float32) error {
 		return Error{NotEnoughSpace, D.filename, []string{"nextRaw"}, true}
 	}
 	D.new = false
-	var blocksize int32 = int32(len(blocks[0]))
+	var blocksize int32 = int32(len(blocks[0])) * 4 //the "4" is because the size is required in bytes, apparently.
 	//now get the coords, each as a slice of float32
 	//X
 	if err := binary.Write(D.dcd, D.endian, blocksize); err != nil {
@@ -246,7 +282,7 @@ func (D *DCDWObj) wnextRaw(blocks [][]float32) error {
 
 //Writes a block of float32s to the file, adding its size
 func (D *DCDWObj) writeFloat32Block(block []float32) error {
-	var blocksize int32 = int32(len(block))
+	var blocksize int32 = int32(len(block)) * 4
 	if err := binary.Write(D.dcd, D.endian, block); err != nil {
 		return Error{err.Error(), D.filename, []string{"binary.Write", "writeFloat32Block"}, true}
 
@@ -255,4 +291,42 @@ func (D *DCDWObj) writeFloat32Block(block []float32) error {
 		return Error{err.Error(), D.filename, []string{"binary.Write", "writeFloat32Block"}, true}
 	}
 	return nil
+}
+
+//DCD is silly enough to require the number of frames at the begining.
+func (D *DCDWObj) updateFrames() error {
+	currentoffset, err := D.dcd.Seek(0, io.SeekCurrent) //we'll need it to go back
+	if err != nil {
+		return Error{err.Error(), D.filename, []string{"dcd.Seek", "updateFrame"}, true}
+	}
+	//now we go to the begining of the file
+	_, err = D.dcd.Seek(0, io.SeekStart)
+	if err != nil {
+		return Error{err.Error(), D.filename, []string{"dcd.Seek", "updateFrame"}, true}
+	}
+
+	wrapbinerr := func(err error) error {
+		return Error{err.Error(), D.filename, []string{"binary.Write", "updateFrame"}, true}
+	}
+	//I could try to get directly to the part we need to write, but it's so close to the begining that I think it's best to just write a couple
+	//of unnecesary numbers.
+	if err := binary.Write(D.dcd, D.endian, int32(84)); err != nil {
+		return wrapbinerr(err)
+	}
+	//For some reason, we have to write this magic number.
+	magic := []byte("CORD")
+	if err := binary.Write(D.dcd, D.endian, magic); err != nil {
+		return wrapbinerr(err)
+	}
+	if err := binary.Write(D.dcd, D.endian, int32(D.frames)); err != nil {
+		return wrapbinerr(err)
+	}
+	//we go back to the part of the file we were reading
+	_, err = D.dcd.Seek(currentoffset, io.SeekStart)
+	if err != nil {
+		return Error{err.Error(), D.filename, []string{"dcd.Seek", "updateFrame"}, true}
+	}
+
+	return nil
+
 }
