@@ -564,11 +564,12 @@ func XYZRead(xyzp io.Reader) (*Molecule, error) {
 }
 
 type XYZTraj struct {
-	natoms   int
-	xyz      *bufio.Reader //The DCD file
-	frames   int
-	xyzfile  *os.File
-	readable bool
+	natoms     int
+	xyz        *bufio.Reader //The DCD file
+	frames     int
+	xyzfile    *os.File
+	readable   bool
+	firstframe *v3.Matrix
 }
 
 func (X *XYZTraj) Readable() bool {
@@ -580,6 +581,12 @@ func (X *XYZTraj) Len() int {
 }
 
 func (X *XYZTraj) Next(coords *v3.Matrix) error {
+	if X.frames == 0 {
+		coords.Copy(X.firstframe) //slow, but I don't want to mess with the pointer I got.
+		X.frames++
+		X.firstframe = nil
+		return nil
+	}
 	_, _, err := xyzReadSnap(X.xyz, coords, false)
 	if err != nil {
 		//An error here simply means that there are no more snapshots
@@ -614,8 +621,8 @@ func XYZFileAsTraj(xyzname string) (*Molecule, *XYZTraj, error) {
 	traj.xyzfile = xyzfile
 	traj.xyz = xyz
 	traj.natoms = returned.Len()
-	traj.frames++ //we already read the first frame!
 	traj.readable = true
+	traj.firstframe = coords
 	return returned, traj, nil
 }
 
