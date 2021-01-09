@@ -37,9 +37,36 @@ import (
 	v3 "github.com/rmera/gochem/v3"
 )
 
+func TestDCDWrite2(Te *testing.T) {
+	mol, traj, err := chem.XYZFileAsTraj("../test/traj.xyz")
+	if err != nil {
+		fmt.Println("There was an error!", err.Error())
+		Te.Error(err)
+	}
+	trajW, err := NewWriter("../test/testW2.dcd", mol.Len())
+	if err != nil {
+		Te.Error(err)
+	}
+
+	for i := 0; ; i++ {
+		fmt.Println("frame", i, "!!")
+		err := traj.Next(mol.Coords[0])
+		if err != nil {
+			if _, ok := err.(chem.LastFrameError); ok {
+				break
+			}
+			Te.Error(err)
+			break
+		}
+		trajW.WNext(mol.Coords[0])
+	}
+
+	fmt.Println("XYZ read!")
+}
+
 //Tests the writing capabilities.
 func TestDCDWrite(Te *testing.T) {
-	fmt.Println("Fist test!")
+	fmt.Println("First test!")
 	mol, err := chem.XYZFileRead("../test/traj.xyz")
 	if err != nil {
 		Te.Error(err)
@@ -70,7 +97,7 @@ func TestDCDWrite(Te *testing.T) {
  * read frames at the end.*/
 func TestDCD(Te *testing.T) {
 	fmt.Println("Fist test!")
-	traj, err := New("../test/testW.dcd")
+	traj, err := New("../test/test.dcd")
 	if err != nil {
 		Te.Error(err)
 	}

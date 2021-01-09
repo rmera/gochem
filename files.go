@@ -532,7 +532,7 @@ func XYZRead(xyzp io.Reader) (*Molecule, error) {
 		//When we read the first snapshot we collect also the topology data, later
 		//only coords are collected.
 		if snaps == 1 {
-			Coords[0], molecule, err = xyzReadSnap(xyz, true)
+			Coords[0], molecule, err = xyzReadSnap(xyz, nil, true)
 			if err != nil {
 				return nil, errDecorate(err, "XYZRead")
 			}
@@ -543,7 +543,7 @@ func XYZRead(xyzp io.Reader) (*Molecule, error) {
 			snaps++
 			continue
 		}
-		tmpcoords, _, err := xyzReadSnap(xyz, false)
+		tmpcoords, _, err := xyzReadSnap(xyz, nil, false)
 		if err != nil {
 			//An error here simply means that there are no more snapshots
 			errm := err.Error()
@@ -563,9 +563,65 @@ func XYZRead(xyzp io.Reader) (*Molecule, error) {
 	return returned, errDecorate(err, "XYZRead")
 }
 
+type XYZTraj struct {
+	natoms   int
+	xyz      *bufio.Reader //The DCD file
+	frames   int
+	xyzfile  *os.File
+	readable bool
+}
+
+func (X *XYZTraj) Readable() bool {
+	return X.readable
+}
+
+func (X *XYZTraj) Len() int {
+	return X.natoms
+}
+
+func (X *XYZTraj) Next(coords *v3.Matrix) error {
+	_, _, err := xyzReadSnap(X.xyz, coords, false)
+	if err != nil {
+		//An error here simply means that there are no more snapshots
+		errm := err.Error()
+		if strings.Contains(errm, "Empty") || strings.Contains(errm, "header") {
+			X.xyzfile.Close()
+			X.readable = false
+			return newlastFrameError("", X.frames)
+		}
+
+	}
+	X.frames++
+	return err
+}
+
+//Reads a multi-xyz file. Returns the first snapshot as a molecule, and the other ones as a XYZTraj
+func XYZFileAsTraj(xyzname string) (*Molecule, *XYZTraj, error) {
+	xyzfile, err := os.Open(xyzname)
+	if err != nil {
+		//fmt.Println("Unable to open file!!")
+		return nil, nil, CError{err.Error(), []string{"os.Open", "XYZFileRead"}}
+	}
+	xyz := bufio.NewReader(xyzfile)
+	//the molecule first
+	coords, atoms, err := xyzReadSnap(xyz, nil, true)
+	top := NewTopology(0, 1, atoms)
+	bfactors := make([][]float64, 1, 1)
+	bfactors[0] = make([]float64, top.Len())
+	returned, err := NewMolecule([]*v3.Matrix{coords}, top, bfactors)
+	//now the traj
+	traj := new(XYZTraj)
+	traj.xyzfile = xyzfile
+	traj.xyz = xyz
+	traj.natoms = returned.Len()
+	traj.frames++ //we already read the first frame!
+	traj.readable = true
+	return returned, traj, nil
+}
+
 //xyzReadSnap reads an xyz file snapshot from a bufio.Reader, returns a slice of Atom objects, which will be nil if ReadTopol is false,
 // a slice of matrix.DenseMatrix and an error or nil.
-func xyzReadSnap(xyz *bufio.Reader, ReadTopol bool) (*v3.Matrix, []*Atom, error) {
+func xyzReadSnap(xyz *bufio.Reader, toplace *v3.Matrix, ReadTopol bool) (*v3.Matrix, []*Atom, error) {
 	line, err := xyz.ReadString('\n')
 	if err != nil {
 		return nil, nil, CError{fmt.Sprintf("Empty XYZ File: %s", err.Error()), []string{"bufio.Reader.ReadString", "xyzReadSnap"}}
@@ -578,7 +634,12 @@ func xyzReadSnap(xyz *bufio.Reader, ReadTopol bool) (*v3.Matrix, []*Atom, error)
 	if ReadTopol {
 		molecule = make([]*Atom, natoms, natoms)
 	}
-	coords := make([]float64, natoms*3, natoms*3)
+	var coords []float64
+	if toplace == nil {
+		coords = make([]float64, natoms*3, natoms*3)
+	} else {
+		coords = toplace.RawSlice()
+	}
 	_, err = xyz.ReadString('\n') //We dont care about this line
 	if err != nil {
 		return nil, nil, CError{fmt.Sprintf("Ill formatted XYZ file: %s", err.Error()), []string{"bufio.Reader.ReadString", "xyzReadSnap"}}
@@ -618,6 +679,7 @@ func xyzReadSnap(xyz *bufio.Reader, ReadTopol bool) (*v3.Matrix, []*Atom, error)
 			return nil, nil, CError{i.Error(), []string{"strconv.ParseFloat", "xyzReadSnap"}}
 		}
 	}
+	//this should be fine even if I had a toplace matrix. Both toplace and mcoord should just point to the same data.
 	mcoords, err := v3.NewMatrix(coords)
 	return mcoords, molecule, errDecorate(err, "xyzReadSnap")
 }

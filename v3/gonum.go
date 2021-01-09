@@ -38,9 +38,11 @@ package v3
 
 import (
 	"fmt"
+	"math"
+
 	"gonum.org/v1/gonum/blas/blas64"
 	"gonum.org/v1/gonum/mat"
-	"math"
+
 	//	"math/cmplx"
 	"sort"
 )
@@ -77,6 +79,13 @@ func NewMatrix(data []float64) (*Matrix, error) {
 	}
 	r := mat.NewDense(rows, cols, data)
 	return &Matrix{r}, nil
+}
+
+//RawSlice returns the underlying []float64 slice for the receiver.
+//Changes on either the []float64 or the receiver are expected to
+//reflect on the other.
+func (F *Matrix) RawSlice() []float64 {
+	return F.RawMatrix().Data
 }
 
 //Row fills the  dst slice of float64 with the ith row of matrix F and returns it.
