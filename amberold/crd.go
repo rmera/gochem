@@ -46,7 +46,7 @@ type CrdObj struct {
 	readLast  bool //Have we read the last frame?
 	readable  bool //Is it ready to be read?
 	filename  string
-	new       bool     //Still no frame read from it?
+	nnew      bool     //Still no frame read from it?
 	fixed     int32    //Fixed atoms (not supported)
 	ioread    *os.File //The crd file
 	crd       *bufio.Reader
@@ -129,9 +129,9 @@ func (C *CrdObj) Next(keep *v3.Matrix) error {
 			continue
 		}
 	}
+
 	C.remaining = C.remaining[0:0] //This might not work as expected. I need it to set C.remaining to zero length.
-	//	println("remaining:", len(C.remaining))
-	for line < C.natoms-1 {
+	for line < C.natoms-1 || cont < 2 {
 		i, err := C.crd.ReadString('\n')
 		//here we assume the error is an EOF. I need to change this to actually check.
 		if err != nil {
@@ -140,7 +140,6 @@ func (C *CrdObj) Next(keep *v3.Matrix) error {
 			return newlastFrameError(C.filename, "Next")
 		}
 		l := strings.Fields(i)
-		const ncoords = 3
 		for _, j := range l {
 			coord, err := strconv.ParseFloat(j, 64)
 			if err != nil {
