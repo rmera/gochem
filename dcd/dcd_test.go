@@ -28,12 +28,70 @@
 
 package dcd
 
-import "fmt"
-import "testing"
-import "github.com/rmera/gochem"
-import "github.com/rmera/gochem/v3"
+import (
+	"fmt"
+	"testing"
 
-/*TestXtc reads the frames of the test xtc file using the
+	chem "github.com/rmera/gochem"
+
+	v3 "github.com/rmera/gochem/v3"
+)
+
+func TestDCDWrite2(Te *testing.T) {
+	mol, traj, err := chem.XYZFileAsTraj("../test/traj.xyz")
+	if err != nil {
+		fmt.Println("There was an error!", err.Error())
+		Te.Error(err)
+	}
+	trajW, err := NewWriter("../test/testW2.dcd", mol.Len())
+	if err != nil {
+		Te.Error(err)
+	}
+
+	for i := 0; ; i++ {
+		fmt.Println("frame", i, "!!")
+		err := traj.Next(mol.Coords[0])
+		if err != nil {
+			if _, ok := err.(chem.LastFrameError); ok {
+				break
+			}
+			Te.Error(err)
+			break
+		}
+		trajW.WNext(mol.Coords[0])
+	}
+
+	fmt.Println("XYZ read!")
+}
+
+//Tests the writing capabilities.
+func TestDCDWrite(Te *testing.T) {
+	fmt.Println("First test!")
+	mol, err := chem.XYZFileRead("../test/traj.xyz")
+	if err != nil {
+		Te.Error(err)
+	}
+	traj, err := NewWriter("../test/testW.dcd", mol.Len())
+	if err != nil {
+		Te.Error(err)
+	}
+	i := 0
+	mat := v3.Zeros(mol.Len())
+	for ; ; i++ {
+		err := mol.Next(mat)
+		if err != nil {
+			if _, ok := err.(chem.LastFrameError); ok {
+				break
+			}
+			Te.Error(err)
+			break
+		}
+		traj.WNext(mat)
+	}
+	fmt.Println("Over! frames read and written:", i)
+}
+
+/*TestDCD reads the frames of the test xtc file using the
  * "interactive" or "low level" functions, i.e. one frame at a time
  * It prints the firs 2 coordinates of each frame and the number of
  * read frames at the end.*/

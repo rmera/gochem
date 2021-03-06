@@ -32,11 +32,12 @@ package amberold
 import (
 	"bufio"
 	"fmt"
-	"github.com/rmera/gochem"
-	"github.com/rmera/gochem/v3"
 	"os"
 	"strconv"
 	"strings"
+
+	chem "github.com/rmera/gochem"
+	v3 "github.com/rmera/gochem/v3"
 )
 
 //Container for an Charmm/NAMD binary trajectory file.
@@ -45,7 +46,7 @@ type CrdObj struct {
 	readLast  bool //Have we read the last frame?
 	readable  bool //Is it ready to be read?
 	filename  string
-	new       bool     //Still no frame read from it?
+	nnew      bool     //Still no frame read from it?
 	fixed     int32    //Fixed atoms (not supported)
 	ioread    *os.File //The crd file
 	crd       *bufio.Reader
@@ -98,7 +99,7 @@ func (C *CrdObj) Next(keep *v3.Matrix) error {
 		return Error{TrajUnIni, C.filename, []string{"Next"}, true}
 	}
 	//What do we do with remaining?
-	cont := 0
+	cont := -1
 	line := 0
 	//The following allows discarding a frame while still keeping track of it.
 	//Everything is the same if you read or discard, except the function that
@@ -115,22 +116,21 @@ func (C *CrdObj) Next(keep *v3.Matrix) error {
 	}
 	//Here we read the coords that were left remaining in the last read.
 	for _, coord := range C.remaining {
-		if cont < ncoords {
+		if cont < ncoords-1 {
+			cont++
 			setter(line, cont, coord)
-			coord++
 			continue
 		}
-		if cont >= ncoords && line < C.natoms-1 {
+		if cont >= ncoords-1 && line < C.natoms-1 {
 			line++
 			cont = 0
 			setter(line, cont, coord)
-			cont++
 			continue
 		}
 	}
+	cont = -1
 	C.remaining = C.remaining[0:0] //This might not work as expected. I need it to set C.remaining to zero length.
-	//	println("remaining:", len(C.remaining))
-	for line < C.natoms-1 {
+	for line < C.natoms-1 || cont < 2 {
 		i, err := C.crd.ReadString('\n')
 		//here we assume the error is an EOF. I need to change this to actually check.
 		if err != nil {
@@ -139,28 +139,23 @@ func (C *CrdObj) Next(keep *v3.Matrix) error {
 			return newlastFrameError(C.filename, "Next")
 		}
 		l := strings.Fields(i)
-		const ncoords = 3
 		for _, j := range l {
 			coord, err := strconv.ParseFloat(j, 64)
 			if err != nil {
-				return Error{fmt.Sprintf("Unable to read coordinates from Amber trajectory", err.Error()), C.filename, []string{"strconv.ParseFloat", "Next"}, true}
+				return Error{fmt.Sprint("Unable to read coordinates from Amber trajectory", err.Error()), C.filename, []string{"strconv.ParseFloat", "Next"}, true}
 			}
-			if cont < ncoords {
-				//	println("no")////
-				setter(line, cont, coord)
+			if cont < ncoords-1 {
 				cont++
+				setter(line, cont, coord)
 				continue
 			}
-			if cont >= ncoords && line < C.natoms-1 {
-				//		println("wei")////
+			if cont >= ncoords-1 && line < C.natoms-1 {
 				line++
 				cont = 0
-				//				println(line,cont,C.natoms) /////////////////////////////////////
 				setter(line, cont, coord)
-				cont++
 				continue
 			}
-			if cont >= cont && line >= C.natoms-1 {
+			if cont >= cont-1 && line >= C.natoms-1 {
 
 				//				println("ql")////
 				C.remaining = append(C.remaining, coord)
@@ -230,7 +225,7 @@ func (C *CrdObj) nextVelBox() error {
 		for _, j := range l {
 			coord, err := strconv.ParseFloat(j, 64)
 			if err != nil {
-				return Error{fmt.Sprintf("Unable to read coordinates from Amber trajectory", err.Error()), C.filename, []string{"strconv.ParseFloat", "Next"}, true}
+				return Error{fmt.Sprint("Unable to read coordinates from Amber trajectory", err.Error()), C.filename, []string{"strconv.ParseFloat", "Next"}, true}
 			}
 			if cont < ncoords {
 				//	println("no")////
@@ -313,7 +308,7 @@ func (C *CrdObj) nextBox() error {
 		for _, j := range l {
 			coord, err := strconv.ParseFloat(j, 64)
 			if err != nil {
-				return Error{fmt.Sprintf("Unable to read coordinates from Amber trajectory", err.Error()), C.filename, []string{"strconv.ParseFloat", "Next"}, true}
+				return Error{fmt.Sprint("Unable to read coordinates from Amber trajectory", err.Error()), C.filename, []string{"strconv.ParseFloat", "Next"}, true}
 			}
 			if cont < ncoords {
 				//	println("no")////

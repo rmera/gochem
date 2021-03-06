@@ -28,10 +28,26 @@
 
 package chem
 
-import "fmt"
-import "math"
-import "github.com/rmera/gochem/v3"
-import "strings"
+import (
+	"fmt"
+	"math"
+	"strings"
+
+	v3 "github.com/rmera/gochem/v3"
+)
+
+//Given a set of indexes and the length of a molecule, produces
+//a setof all the indexes _not_ in the original set.
+func NegateIndexes(indexes []int, length int) []int {
+	ret := make([]int, 0, length-len(indexes))
+	for i := 0; i < length; i++ {
+		if !isInInt(indexes, i) {
+			ret = append(ret, i)
+
+		}
+	}
+	return ret
+}
 
 const allchains = "*ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 

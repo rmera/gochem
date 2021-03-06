@@ -36,7 +36,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/rmera/gochem/v3"
+	v3 "github.com/rmera/gochem/v3"
 )
 
 //PDB_read family
@@ -532,7 +532,7 @@ func XYZRead(xyzp io.Reader) (*Molecule, error) {
 		//When we read the first snapshot we collect also the topology data, later
 		//only coords are collected.
 		if snaps == 1 {
-			Coords[0], molecule, err = xyzReadSnap(xyz, true)
+			Coords[0], molecule, err = xyzReadSnap(xyz, nil, true)
 			if err != nil {
 				return nil, errDecorate(err, "XYZRead")
 			}
@@ -543,7 +543,7 @@ func XYZRead(xyzp io.Reader) (*Molecule, error) {
 			snaps++
 			continue
 		}
-		tmpcoords, _, err := xyzReadSnap(xyz, false)
+		tmpcoords, _, err := xyzReadSnap(xyz, nil, false)
 		if err != nil {
 			//An error here simply means that there are no more snapshots
 			errm := err.Error()
@@ -563,9 +563,72 @@ func XYZRead(xyzp io.Reader) (*Molecule, error) {
 	return returned, errDecorate(err, "XYZRead")
 }
 
+type XYZTraj struct {
+	natoms     int
+	xyz        *bufio.Reader //The DCD file
+	frames     int
+	xyzfile    *os.File
+	readable   bool
+	firstframe *v3.Matrix
+}
+
+func (X *XYZTraj) Readable() bool {
+	return X.readable
+}
+
+func (X *XYZTraj) Len() int {
+	return X.natoms
+}
+
+func (X *XYZTraj) Next(coords *v3.Matrix) error {
+	if X.frames == 0 {
+		coords.Copy(X.firstframe) //slow, but I don't want to mess with the pointer I got.
+		X.frames++
+		X.firstframe = nil
+		return nil
+	}
+	_, _, err := xyzReadSnap(X.xyz, coords, false)
+	if err != nil {
+		//An error here simply means that there are no more snapshots
+		errm := err.Error()
+		if strings.Contains(errm, "Empty") || strings.Contains(errm, "header") {
+			X.xyzfile.Close()
+			X.readable = false
+			return newlastFrameError("", X.frames)
+		}
+
+	}
+	X.frames++
+	return err
+}
+
+//Reads a multi-xyz file. Returns the first snapshot as a molecule, and the other ones as a XYZTraj
+func XYZFileAsTraj(xyzname string) (*Molecule, *XYZTraj, error) {
+	xyzfile, err := os.Open(xyzname)
+	if err != nil {
+		//fmt.Println("Unable to open file!!")
+		return nil, nil, CError{err.Error(), []string{"os.Open", "XYZFileRead"}}
+	}
+	xyz := bufio.NewReader(xyzfile)
+	//the molecule first
+	coords, atoms, err := xyzReadSnap(xyz, nil, true)
+	top := NewTopology(0, 1, atoms)
+	bfactors := make([][]float64, 1, 1)
+	bfactors[0] = make([]float64, top.Len())
+	returned, err := NewMolecule([]*v3.Matrix{coords}, top, bfactors)
+	//now the traj
+	traj := new(XYZTraj)
+	traj.xyzfile = xyzfile
+	traj.xyz = xyz
+	traj.natoms = returned.Len()
+	traj.readable = true
+	traj.firstframe = coords
+	return returned, traj, nil
+}
+
 //xyzReadSnap reads an xyz file snapshot from a bufio.Reader, returns a slice of Atom objects, which will be nil if ReadTopol is false,
 // a slice of matrix.DenseMatrix and an error or nil.
-func xyzReadSnap(xyz *bufio.Reader, ReadTopol bool) (*v3.Matrix, []*Atom, error) {
+func xyzReadSnap(xyz *bufio.Reader, toplace *v3.Matrix, ReadTopol bool) (*v3.Matrix, []*Atom, error) {
 	line, err := xyz.ReadString('\n')
 	if err != nil {
 		return nil, nil, CError{fmt.Sprintf("Empty XYZ File: %s", err.Error()), []string{"bufio.Reader.ReadString", "xyzReadSnap"}}
@@ -578,7 +641,12 @@ func xyzReadSnap(xyz *bufio.Reader, ReadTopol bool) (*v3.Matrix, []*Atom, error)
 	if ReadTopol {
 		molecule = make([]*Atom, natoms, natoms)
 	}
-	coords := make([]float64, natoms*3, natoms*3)
+	var coords []float64
+	if toplace == nil {
+		coords = make([]float64, natoms*3, natoms*3)
+	} else {
+		coords = toplace.RawSlice()
+	}
 	_, err = xyz.ReadString('\n') //We dont care about this line
 	if err != nil {
 		return nil, nil, CError{fmt.Sprintf("Ill formatted XYZ file: %s", err.Error()), []string{"bufio.Reader.ReadString", "xyzReadSnap"}}
@@ -618,6 +686,7 @@ func xyzReadSnap(xyz *bufio.Reader, ReadTopol bool) (*v3.Matrix, []*Atom, error)
 			return nil, nil, CError{i.Error(), []string{"strconv.ParseFloat", "xyzReadSnap"}}
 		}
 	}
+	//this should be fine even if I had a toplace matrix. Both toplace and mcoord should just point to the same data.
 	mcoords, err := v3.NewMatrix(coords)
 	return mcoords, molecule, errDecorate(err, "xyzReadSnap")
 }
@@ -677,6 +746,199 @@ func XYZWrite(out io.Writer, Coords *v3.Matrix, mol Atomer) error {
 		if err != nil {
 			return iowriterError(err)
 		}
+	}
+	return nil
+}
+
+func GroFileRead(groname string) (*Molecule, error) {
+	grofile, err := os.Open(groname)
+	if err != nil {
+		//fmt.Println("Unable to open file!!")
+		return nil, CError{err.Error(), []string{"os.Open", "GroFileRead"}}
+	}
+	defer grofile.Close()
+	snaps := 1
+	gro := bufio.NewReader(grofile)
+	var top *Topology
+	var molecule []*Atom
+	Coords := make([]*v3.Matrix, 1, 1)
+
+	for {
+		//When we read the first snapshot we collect also the topology data, later
+		//only coords are collected.
+		if snaps == 1 {
+			Coords[0], molecule, err = groReadSnap(gro, true)
+			if err != nil {
+				return nil, errDecorate(err, "GroFileRead")
+			}
+			top = NewTopology(0, 1, molecule)
+			if err != nil {
+				return nil, errDecorate(err, "GroFileRead")
+			}
+			snaps++
+			continue
+		}
+		//fmt.Println("how manytimes?") /////////////////////
+		tmpcoords, _, err := groReadSnap(gro, false)
+		if err != nil {
+			//An error here may just mean that there are no more snapshots
+			errm := err.Error()
+			if strings.Contains(errm, "Empty") || strings.Contains(errm, "EOF") {
+				err = nil
+				break
+			}
+			return nil, errDecorate(err, "GroRead")
+		}
+		Coords = append(Coords, tmpcoords)
+	}
+	returned, err := NewMolecule(Coords, top, nil)
+	fmt.Println("2 return!", top.Atom(1), returned.Coords[0].VecView(2)) ///////////////////////
+	return returned, errDecorate(err, "GroRead")
+}
+
+func groReadSnap(gro *bufio.Reader, ReadTopol bool) (*v3.Matrix, []*Atom, error) {
+	nm2A := 10.0
+	chains := "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	line, err := gro.ReadString('\n') //we don't care about this line,but it has to be there
+	if err != nil {
+		return nil, nil, CError{fmt.Sprintf("Empty gro File: %s", err.Error()), []string{"bufio.Reader.ReadString", "groReadSnap"}}
+	}
+	line, err = gro.ReadString('\n')
+	if err != nil {
+		return nil, nil, CError{fmt.Sprintf("Malformed gro File: %s", err.Error()), []string{"bufio.Reader.ReadString", "groReadSnap"}}
+	}
+
+	natoms, err := strconv.Atoi(strings.TrimSpace(line))
+	if err != nil {
+		return nil, nil, CError{fmt.Sprintf("Wrong header for a gro file %s", err.Error()), []string{"strconv.Atoi", "groReadSnap"}}
+	}
+	var molecule []*Atom
+	if ReadTopol {
+		molecule = make([]*Atom, 0, natoms)
+	}
+	coords := make([]float64, 0, natoms*3)
+	prevres := 0
+	chainindex := 0
+	for i := 0; i < natoms; i++ {
+		line, err = gro.ReadString('\n')
+		if err != nil {
+			return nil, nil, CError{fmt.Sprintf("Failure to read gro File: %s", err.Error()), []string{"bufio.Reader.ReadString", "groReadSnap"}}
+		}
+		fields := strings.Fields(line)
+		if len(fields) < 4 {
+			break //meaning this line contains the unit cell vectors, and it is the last line of the snapshot
+		}
+		if ReadTopol {
+			atom, c, err := read_gro_line(line)
+			if err != nil {
+				return nil, nil, CError{fmt.Sprintf("Failure to read gro File: %s", err.Error()), []string{"bufio.Reader.ReadString", "groReadSnap"}}
+			}
+			if atom.MolID < prevres {
+				chainindex++
+			}
+			prevres = atom.MolID
+			if chainindex >= len(chains) {
+				chainindex = 0 //more chains inthe molecule than letters in the alphabet!
+			}
+			atom.Chain = string(chains[chainindex])
+			molecule = append(molecule, atom)
+			coords = append(coords, c...)
+			//	fmt.Println(atom, c) //////////////////
+			continue
+
+		}
+		c := make([]float64, 3, 3)
+		for i := 0; i < 3; i++ {
+			c[i], err = strconv.ParseFloat(strings.TrimSpace(line[20+(i*8):28+(i*8)]), 64)
+			if err != nil {
+				return nil, nil, err
+			}
+			c[i] = c[i] * nm2A //gro uses nm, goChem uses A.
+		}
+		coords = append(coords, c...)
+
+	}
+	mcoords, err := v3.NewMatrix(coords)
+	//	fmt.Println(molecule) //, mcoords) ////////////////////////
+	return mcoords, molecule, nil
+}
+
+//Parses a valid ATOM or HETATM line of a PDB file, returns an Atom
+// object with the info except for the coordinates and b-factors, which  are returned
+// separately as an array of 3 float64 and a float64, respectively
+func read_gro_line(line string) (*Atom, []float64, error) {
+	coords := make([]float64, 3, 3)
+	atom := new(Atom)
+	nm2A := 10.0
+	var err error
+	atom.MolID, err = strconv.Atoi(strings.TrimSpace(line[0:5]))
+	if err != nil {
+		return nil, nil, err
+	}
+	atom.Molname = strings.TrimSpace(line[5:10])
+	atom.Molname1 = three2OneLetter[atom.Molname]
+	atom.Name = strings.TrimSpace(line[10:15])
+	atom.ID, err = strconv.Atoi(strings.TrimSpace(line[15:20]))
+	if err != nil {
+		return nil, nil, err
+	}
+	for i := 0; i < 3; i++ {
+		coords[i], err = strconv.ParseFloat(strings.TrimSpace(line[20+(i*8):28+(i*8)]), 64)
+		if err != nil {
+			return nil, nil, err
+		}
+		coords[i] = coords[i] * nm2A //gro uses nm, goChem uses A.
+	}
+
+	atom.Symbol, _ = symbolFromName(atom.Name)
+	return atom, coords, nil
+}
+
+func GroFileWrite(outname string, Coords []*v3.Matrix, mol Atomer) error {
+	out, err := os.Create(outname)
+	if err != nil {
+		return CError{"Failed to write open file" + err.Error(), []string{"os.Create", "GroFileWrite"}}
+	}
+	defer out.Close()
+	for _, v := range Coords {
+		err := GroSnapWrite(v, mol, out)
+		if err != nil {
+			return errDecorate(err, "GoFileWrite")
+		}
+	}
+	return nil
+}
+
+func GroSnapWrite(coords *v3.Matrix, mol Atomer, out io.Writer) error {
+	A2nm := 0.1
+	iowriterError := func(err error) error {
+		return CError{"Failed to write in io.Writer" + err.Error(), []string{"io.Writer.Write", "GroSnapWrite"}}
+	}
+	if mol.Len() != coords.NVecs() {
+		return CError{"Ref and Coords dont have the same number of atoms", []string{"GroSnapWrite"}}
+	}
+	c := make([]float64, 3, 3)
+	_, err := out.Write([]byte(fmt.Sprintf("Written with goChem :-)\n%-4d\n", mol.Len())))
+	if err != nil {
+		return iowriterError(err)
+	}
+	//towrite := Coords.Arrays() //An array of array with the data in the matrix
+	for i := 0; i < mol.Len(); i++ {
+		//c := towrite[i] //coordinates for the corresponding atoms
+		c = coords.Row(c, i)
+		at := mol.Atom(i)
+		//velocities are set to 0
+		temp := fmt.Sprintf("%5d%-5s%5s%5d%8.3f%8.3f%8.3f%8.4f%8.4f%8.4f\n", at.MolID, at.Molname, at.Name, at.ID, c[0]*A2nm, c[1]*A2nm, c[2]*A2nm, 0.0, 0.0, 0.0)
+		_, err := out.Write([]byte(temp))
+		if err != nil {
+			return iowriterError(err)
+		}
+
+	}
+	//the box vectors at the end of the snappshot
+	_, err = out.Write([]byte("0.0 0.0 0.0\n"))
+	if err != nil {
+		return iowriterError(err)
 	}
 	return nil
 }

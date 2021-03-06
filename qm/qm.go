@@ -31,8 +31,8 @@ package qm
 import (
 	"fmt"
 
-	"github.com/rmera/gochem"
-	"github.com/rmera/gochem/v3"
+	chem "github.com/rmera/gochem"
+	v3 "github.com/rmera/gochem/v3"
 )
 
 //builds an input for a QM calculation
@@ -85,7 +85,8 @@ const (
 	ErrProbableProblem = "goChem/QM: Probable problem with calculations" //this is never to be used for fatal errors
 	ErrMissingCharges  = "goChem/QM: Missing charges or coordinates"
 	ErrNoEnergy        = "goChem/QM: No energy in output"
-	ErrNoGeometry      = "gochem/QM: Unable to read Geometry from input"
+	ErrNoCharges       = "goChem/QM: Unable to read charges from  output"
+	ErrNoGeometry      = "gochem/QM: Unable to read geometry from output"
 	ErrNotRunning      = "gochem/QM: Couldn't run calculation"
 	ErrCantInput       = "goChem/QM: Can't build input file"
 )
@@ -145,9 +146,11 @@ func errDecorate(err error, caller string) error {
 
 //jobChoose is a structure where each QM handler has to provide a closure that makes the proper arrangements for each supported case.
 type jobChoose struct {
-	opti   func()
-	forces func()
-	sp     func()
+	opti    func()
+	forces  func()
+	sp      func()
+	md      func()
+	charges func()
 }
 
 //This is what the user actually deasl with. The user should set one of these to true,
@@ -155,9 +158,11 @@ type jobChoose struct {
 //fields to true, the priority will be Opti>Forces>SP (i.e. if you set Forces and SP to true,
 //only the function handling forces will be called).
 type Job struct {
-	Opti   bool
-	Forces bool
-	SP     bool
+	Opti    bool
+	Forces  bool
+	SP      bool
+	MD      bool
+	Charges bool
 }
 
 //Do sets the job set to true in J, according to the corresponding function in plan. A "nil" plan
@@ -175,10 +180,20 @@ func (J *Job) Do(plan jobChoose) {
 		plan.forces()
 		return
 	}
+	if J.MD && plan.md != nil {
+		plan.md()
+		return
+	}
+	if J.Charges && plan.charges != nil { //the default option is a single-point
+		plan.charges()
+		return
+	}
+
 	if plan.sp != nil { //the default option is a single-point
 		plan.sp()
 		return
 	}
+
 }
 
 type IntConstraint struct {
@@ -222,10 +237,14 @@ type Calc struct {
 	Dispersion string //D2, D3, etc.
 	Others     string //analysis methods, etc
 	//	PCharges []PointCharge
-	Guess        string //initial guess
-	Grid         int
-	OldMO        bool //Try to look for a file with MO. The
-	Job          Job  //NOTE: This should probably be a pointer: FIX!
+	Guess string //initial guess
+	Grid  int
+	OldMO bool //Try to look for a file with MO. The
+	Job   Job  //NOTE: This should probably be a pointer: FIX!
+	//The following 3 are only for MD simulations, will be ignored in every other case.
+	MDTime       int     //simulation time (whatever unit the program uses!)
+	MDTemp       float64 //simulation temperature (K)
+	MDPressure   int     //simulation pressure (whatever unit the program uses!)
 	SCFTightness int
 	SCFConvHelp  int
 	ECP          string //The ECP to be used. It is the programmers responsibility to use a supported ECP (for instance, trying to use 10-electron core ECP for Carbon will fail)
@@ -233,13 +252,12 @@ type Calc struct {
 	Memory       int //Max memory to be used in MB (the effect depends on the QM program)
 }
 
+//Utilities here
 func (Q *Calc) SetDefaults() {
 	Q.RI = true
 	//	Q.BSSE = "gcp"
 	Q.Dispersion = "D3"
 }
-
-//Utilities here
 
 //isIn is a helper for the RamaList function,
 //returns true if test is in container, false otherwise.
