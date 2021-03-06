@@ -29,6 +29,7 @@ import (
 	"fmt"
 	"image/color"
 	"math"
+
 	//	"strings"
 	"gonum.org/v1/plot"
 	"gonum.org/v1/plot/plotter"
@@ -52,6 +53,11 @@ type Error struct {
 	additional string //anything else!
 	critical   bool
 }
+
+const (
+	glyphSize = 2.3 * vg.Millimeter
+	plotSide  = 6 * vg.Inch
+)
 
 func (err Error) Error() string { return fmt.Sprintf("%s  Message: %s", err.function, err.message) }
 
@@ -96,8 +102,8 @@ func RamaPlotParts(data [][][]float64, tag [][]int, title, plotname string) erro
 		return Error{err2.Error(), "", "RamaPlotParts", "", true}
 	}
 	var tagged int
+	temp := make(plotter.XYs, 1) //len(val))
 	for key, val := range data {
-		temp := make(plotter.XYs, 1) //len(val))
 		//	fmt.Println(key, len(val))
 		for k, v := range val {
 			temp[0].X = v[0]
@@ -108,6 +114,7 @@ func RamaPlotParts(data [][][]float64, tag [][]int, title, plotname string) erro
 				return Error{err.Error(), "", "RamaPlotParts", "", true}
 
 			}
+			s.GlyphStyle.Radius = glyphSize
 			if tag != nil {
 				if len(tag) < len(data) {
 					return Error{ErrInconsistentData, "", "RamaPlotParts", "If a non-nil tag slice is provided it must contain an element (which can be nil) for each element in the dihedral slice", true}
@@ -128,7 +135,7 @@ func RamaPlotParts(data [][][]float64, tag [][]int, title, plotname string) erro
 	}
 	filename := fmt.Sprintf("%s.png", plotname)
 	//here I  intentionally shadow err.
-	if err := p.Save(5, 5, filename); err != nil {
+	if err := p.Save(6*vg.Inch, 6*vg.Inch, filename); err != nil {
 		return Error{err2.Error(), "", "RamaPlotParts", "", true}
 	}
 
@@ -252,6 +259,7 @@ func RamaPlot(data [][]float64, tag []int, title, plotname string) error {
 			return Error{err.Error(), "", "RamaPlot", "", true}
 		}
 		r, g, b := colors(key, len(data))
+		s.GlyphStyle.Radius = glyphSize
 		if tag != nil && isInInt(tag, key) {
 			//We don't check the error here. We will just get a default glyph.
 			s.GlyphStyle.Shape, err = getShape(tagged)
@@ -266,7 +274,7 @@ func RamaPlot(data [][]float64, tag []int, title, plotname string) error {
 	// Save the plot to a PNG file.
 	filename := fmt.Sprintf("%s.png", plotname)
 	//here I  intentionally shadow err.
-	if err := p.Save(4*vg.Inch, 4*vg.Inch, filename); err != nil {
+	if err := p.Save(6*vg.Inch, 6*vg.Inch, filename); err != nil {
 		return Error{err.Error(), "", "RamaPlot", "", true}
 	}
 	return err
