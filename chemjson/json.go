@@ -32,10 +32,11 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"github.com/rmera/gochem"
-	"github.com/rmera/gochem/v3"
 	"io"
 	"strings"
+
+	chem "github.com/rmera/gochem"
+	v3 "github.com/rmera/gochem/v3"
 )
 
 type Atom struct {
@@ -61,6 +62,13 @@ type Error struct {
 	Atom          int
 	Function      string //which go function gave the error
 	Message       string //the error itself
+}
+
+func NewError(error err) *Error {
+	E = new(Error)
+	E.IsError = true
+	E.Message = err.Error()
+	return E
 }
 
 //implements the error interface

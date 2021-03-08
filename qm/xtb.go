@@ -144,13 +144,14 @@ func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q
 	if Q.CConstraints != nil {
 		fixed = "atoms: "
 		for _, v := range Q.CConstraints {
-			fixed = fixed + strconv.Itoa(v) + ", " //0-based indexes
+			fixed = fixed + strconv.Itoa(v+1) + ", " //1-based indexes
 		}
 		strings.TrimRight(fixed, ",")
 		fixed = fixed + "\n"
 		xcontrol.Write([]byte("$fix\n"))
-		xcontrol.Write([]byte("force constant=10000\n"))
 		xcontrol.Write([]byte(fixed))
+		xcontrol.Write([]byte("$end\n"))
+
 	}
 	jc := jobChoose{}
 	jc.opti = func() {
