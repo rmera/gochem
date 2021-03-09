@@ -64,13 +64,6 @@ type Error struct {
 	Message       string //the error itself
 }
 
-func NewError(error err) *Error {
-	E = new(Error)
-	E.IsError = true
-	E.Message = err.Error()
-	return E
-}
-
 //implements the error interface
 func (J *Error) Error() string {
 	return J.Message

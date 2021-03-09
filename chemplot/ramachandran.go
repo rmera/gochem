@@ -67,7 +67,6 @@ func (err Error) FunctionName() string { return err.function }
 
 func (err Error) Critical() bool { return err.critical }
 
-
 func basicRamaPlot(title string) (*plot.Plot, error) {
 	p, err := plot.New()
 	if err != nil {
@@ -126,7 +125,7 @@ func RamaPlotParts(data [][][]float64, tag [][]int, title, plotname string) erro
 				}
 			}
 			//set the colors
-			r, g, b := colors(key, len(data))
+			r, g, b := colors(key, len(data)-1)
 			//	fmt.Println("DATA POINT", key, "color", r, g, b)
 			s.GlyphStyle.Color = color.RGBA{R: r, B: b, G: g, A: 255}
 			//The tagging procedure is a bit complex.
@@ -189,52 +188,29 @@ func iHVS2RGB(h, v, s float64) (uint8, uint8, uint8) {
 	r = r * conversion
 	g = g * conversion
 	b = b * conversion
-	return uint8(r), uint8(g), uint8(b)
+	return uint8(r), uint8(g), uint8(b) //just a test
 }
 
+//colors assigns an color to the number key  depending
+//on its place in a linear interpolation from 0 to steps
+//the colors go by decreasing hue with step, from 0 to 240
+//we stop at a hue of 240 to avoid violet colors that can be
+//confusing
+//meaning that keys closer to 0 will be blue, while keys close
+//to steps will be red.
 func colors(key, steps int) (r, g, b uint8) {
-	norm := 260.0 / float64(steps)
-	hp := float64((float64(key) * norm) + 20.0)
+	const MAXHUE float64 = 240.0
+	norm := MAXHUE / float64(steps)
+	hp := float64((float64(key) * norm))
 	var h float64
-	if hp < 55 {
-		h = hp - 20.0
-	} else {
-		h = hp + 20.0
-	}
-	//	fmt.Println("HUE", h, hp)
+	h = MAXHUE - hp //we invert the order
 	s := 1.0
 	v := 1.0
 	r, g, b = iHVS2RGB(h, v, s)
 	return r, g, b
 }
 
-func colorsOld(key, steps int) (r, g, b uint8) {
-	norm := (2 * 255.0 / (steps - 1))
-	b = uint8(key * norm)
-	r = uint8(255) - b
-	var critical int
-	if norm*(key-1) < 256 && norm*key >= 256 {
-		critical = key
-	}
-	if key*norm > 255 {
-		g = uint8(norm * (key - critical))
-		b = 255 - g
-		r = 0
-	}
-	//	fmt.Println("crit", critical, norm, steps, key, r, g, b)
-	/*	if (key-critical)*norm>255{
-			r=uint8(norm*(key-critical))
-			g=90
-			b=255-r
-
-			}
-		}
-		fmt.Println(r,g,b, norm, steps)
-	*/
-	return r, g, b
-}
-
-// Produce plots, in png format for the ramachandran data (psi and phi dihedrals)
+// RamaPlot Produces plots, in png format for the ramachandran data (psi and phi dihedrals)
 // contained in data. Data points in tag (maximun 4) are highlighted in the plot.
 // the extension must be included in plotname. Returns an error or nil*/
 func RamaPlot(data [][]float64, tag []int, title, plotname string) error {
@@ -259,7 +235,7 @@ func RamaPlot(data [][]float64, tag []int, title, plotname string) error {
 		if err != nil {
 			return Error{err.Error(), "", "RamaPlot", "", true}
 		}
-		r, g, b := colors(key, len(data))
+		r, g, b := colors(key, len(data)-1)
 		s.GlyphStyle.Radius = glyphSize
 		if tag != nil && isInInt(tag, key) {
 			//We don't check the error here. We will just get a default glyph.
@@ -295,5 +271,3 @@ func getShape(tagged int) (draw.GlyphDrawer, error) {
 		return draw.RingGlyph{}, Error{ErrTooManyTags, "", "getShape", "", false} // you can still ignore the error and will get just the regular glyph (your residue will not be tagegd)
 	}
 }
-
-
