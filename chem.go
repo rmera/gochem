@@ -123,9 +123,19 @@ func (T *Topology) SetCharge(i int) {
 	T.charge = i
 }
 
-//SetUnpaired sets the multiplicity in the topology to i
+//SetMulti sets the multiplicity in the topology to i
 func (T *Topology) SetMulti(i int) {
 	T.multi = i
+}
+
+//FillMasses tries to get fill the  masses for atom that don't have one
+//by getting it from the symbol. Only a few common elements are supported
+func (T *Topology) FillMasses() {
+	for _, val := range T.Atoms {
+		if val.Symbol != "" && val.Mass == 0 {
+			val.Mass = symbolMass[val.Symbol] //Not error checking
+		}
+	}
 }
 
 //Sets the current order of atoms as Id and the order of molecules as
