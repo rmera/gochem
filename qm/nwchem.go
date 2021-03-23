@@ -245,15 +245,15 @@ func (O *NWChemHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger
 			preopt = fmt.Sprintf("%sdft\n iterations 100\n %s\n %s\n print low\nend\ntask dft energy\n", preopt, vectors, method)
 			vectors = fmt.Sprintf("vectors input %s.movecs output  %s.movecs", O.inputname, O.inputname) //We must modify the initial guess so we use the vectors we have just generated
 		}
-		//The NWCHem optimizer is horrible. To try to get something out of it we use this 3-step optimization scheme where we try to compensate for the lack of
-		//variable trust radius in nwchem.
+		//We use this 3-step optimization scheme where we try to compensate for the lack of
+		//variable trust radius in nwchem (at least, back when I wrote this!)
 		task = "dft optimize"
-		//First an optimization with very loose convergency and the standard trust radius.
-		driver = fmt.Sprintf("driver\n maxiter 200\n%s trust 0.3\n gmax 0.0500\n grms 0.0300\n xmax 0.1800\n xrms 0.1200\n xyz %s_prev\nend\ntask dft optimize", eprec, O.inputname)
-		//Then a second optimization with a looser convergency and a 0.1 trust radius
+		//First an optimization with very loose convergency and a small trust radius.
+		driver = fmt.Sprintf("driver\n maxiter 200\n%s trust 0.05\n gmax 0.0500\n grms 0.0300\n xmax 0.1800\n xrms 0.1200\n xyz %s_prev\nend\ntask dft optimize", eprec, O.inputname)
+		//Then a second optimization with a less loose convergency and a 0.1 trust radius
 		driver = fmt.Sprintf("%s\ndriver\n maxiter 200\n%s trust 0.1\n gmax 0.009\n grms 0.001\n xmax 0.04 \n xrms 0.02\n xyz %s_prev2\nend\ntask dft optimize", driver, eprec, O.inputname)
-		//Then the final optimization with a small trust radius and the NWChem default convergence criteria.
-		driver = fmt.Sprintf("%s\ndriver\n maxiter 200\n%s trust 0.05\n xyz %s\nend\n", driver, eprec, O.inputname)
+		//Then the final optimization with the default trust radius and convergence criteria.
+		driver = fmt.Sprintf("%s\ndriver\n maxiter 200\n%s trust 0.3\n xyz %s\nend\n", driver, eprec, O.inputname)
 		//Old criteria (ORCA): gmax 0.003\n grms 0.0001\n xmax 0.004 \n xrms 0.002\n
 	}
 	Q.Job.Do(jc)
