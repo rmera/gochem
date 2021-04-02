@@ -6,12 +6,12 @@ written in the Go programming language.
 
 Check out www.gochem.org for more information.
 
-goChem uses gonum (https://github.com/gonum/matrix) for matrix
+goChem uses gonum (https://www.gonum.org) for matrix
 operations. The user can choose to have gonum backed by a pure-go 
 (and some assembly) implementation of BLAS (which allows not having 
 runtime dependencies) or by the somewhat more efficient cBLAS. 
 
-Reading xtc files require the xdrfile
+Reading xtc files requires the xdrfile
 library from Gromacs (www.gromacs.org) 
 
 All dependencies of goChem are open source.
@@ -28,86 +28,18 @@ Design goals:
 at a classical and QM levels.
 
 
-Current capabilities.
-
-1.  Reads/writes PDB and XYZ files.
-
-2.   Reads XTC and DCD files, both sequentially and concurrently.
-
-3.  Superimposes molecules (especially adequate for non-proteins since  
-	doesn't use sequence information). The user specify what 
-	atoms to use for the superimposing transformation calculation. 
-	Then all the atoms will be superimposed accordingly. This means that
-	non-identical molecules can be superimposed.
-
-4.   Calculates RMSD between sets of coordinates.
-
-5.   Allows to select atoms and coordinates by using a go slice 
-     of indexes.
-
-6.   Allows to replace selected coordinates for a new set.
-
-7.   Calculates moment tensor and elipsoid of inertia--related properties 
-
-8.   The Molecule object implements the sort.Interface interface, 
-     so atoms can easily be sorted by b-factors.
-
-9.   Axis manipulation:
-	 + Align a vector with the Z axis
-	 + Rotate around the Z axis until the xy projection of a vector becomes 
-	  the Y axis
-	 + Rotate a sub-group of atoms in a molecule using any 2 coordinates as
-      the rotation axis.
-
-	 **The latter is implemented using Clifford algebra and, as a 
-	 legacy version, Euler angles and rotation matrices (math for the 
-	 Cliffor algebra implementation by Doc. Dr. Janne Pesonen). 
-	 The Clifford algebra implementation is concurrent. In general, 
-	 Clifford algebra is mathematically better behaving than Euler 
-	 angles, which are not defined for certain rotations.*
-
-10.  Calculates and draws Ramachandran plots (uses the Plotinum library).
-        for an aminoacidic chain or a subset of it.
-
-11.  Generates input for, run and recover results from QM calculations
-	 with NWChem, Turbomole, Orca and MOPAC (which must be obtained independently 
-	 from their respective distributors.)
-
-12.	Implements a JSON interface that allows easy communication of goChem
-	programs with the PyMOL visualization program (www.pymol.org)
+See the Wiki por goChem's current capabilities
+(https://github.com/rmera/gochem/wiki)
 
 
-NOTES ON THE API:
+There is no publication on goChem yet. If you use one goAnalyze,
+or any program based on goChem before such a publication is available,
+we ask you to support goChem by citing the library in your publication as:
 
-On XX/XX/2015 the API has suffered a few changes. The main ones are: 
+Domínguez, C., Jiménez, V, Savasci, G., Pesonen, J., Mera-Adasme, 
+"goChem: A library for computational 
+chemistry". https://www.gochem.org
 
-1) All names involving identification numbers (IDs) have changed
-from Id or id to ID. e.g., the Atom.Molid field has become 
-Atom.MolID.
-
-2) Some functions have been moved into new packages under the library.
-all funcitons for JSON serialization of goChem objects or options
-(intended for communicating Go programs with programs written in other
-languages, PyMOL plugins in particular) have been moved to their 
-own package, "chson" (github.com/rmera/gochem/chson).
-Several convenience functions have been taken from the chem package
-and upt into the  XXXXX package.
-
-On 13/11/2013 the API has been made stable. This means that only 
-backward-compatible changes to the current API will be made 
-to it for a year.
-In the unlikely event that a serious problem requiring a minor API 
-change would arise, Tools to automatically upgrade code will be made 
-available.
-
-
-There is no publication on gochem yet. If you use the library, or a
-program based on gochem before such a publication is available,
-please support the library by citing in your publication:
-
-Mera-Adasme, R., Savasci, G., Pesonen, J. 
-"goChem: a library for computational chemistry".
-https://www.github.com/rmera/gochem
 
 Currently, gochem is licensed under LGPL2.1. This might change 
 towards BSD in the future. Meanwhile, if you want to use some 
@@ -117,7 +49,7 @@ of this for a BSD-licensed project, contact the developer.
 
 LICENSE
 
-Copyright 2012 Raul Mera <rmera{at}chemDOThelsinkiDOTfi> 
+Copyright 2012 Raul Mera rauldotmeraatusachdotcl 
 
 
 This program, including its documentation, 
