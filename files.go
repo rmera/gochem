@@ -61,9 +61,12 @@ var symbolMass = map[string]float64{
 	"Co": 58.93,
 	"Fe": 55.84,
 	"Mn": 54.94,
+	"Cr": 51.996,
 	"Si": 28.08,
 	"Be": 9.012,
 	"F":  18.998,
+	"Br": 79.904,
+	"I":  126.90,
 }
 
 //A map between 3-letters name for aminoacidic residues to the corresponding 1-letter names.

@@ -43,8 +43,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/rmera/gochem"
-	"github.com/rmera/gochem/v3"
+	chem "github.com/rmera/gochem"
+	v3 "github.com/rmera/gochem/v3"
 )
 
 //This imlpementation supports only singlets and doublets.
@@ -388,6 +388,16 @@ func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q 
 			O.command = O.command + " -c 200"
 		}
 	}
+	jc.forces = func() {
+		O.command = "NumForce"
+		if Q.RI {
+			O.command = O.command + " -ri"
+		} else {
+			O.command = O.command
+		}
+	}
+	Q.Job.Do(jc)
+
 	//Now modify control
 	args := make([]string, 1, 2)
 	args[0], ok = tMDisp[Q.Dispersion]
@@ -428,6 +438,7 @@ var tMMethods = map[string]string{
 	"blyp":   "b-lyp",
 	"BLYP":   "b-lyp",
 	"b-lyp":  "b-lyp",
+	"b97-3c": "b97-3c",
 }
 
 var tMDisp = map[string]string{
@@ -436,6 +447,7 @@ var tMDisp = map[string]string{
 	"D":      "$olddisp",
 	"D2":     "$disp2",
 	"D3":     "$disp3",
+	"D3BJ":   "$disp3 -bj",
 }
 
 //Run runs the command given by the string O.command
