@@ -268,9 +268,12 @@ func (T *Topology) Masses() ([]float64, error) {
 //Coordinates and b-factors are stored separately from other atomic info.
 type Molecule struct {
 	*Topology
-	Coords   []*v3.Matrix
-	Bfactors [][]float64
-	current  int
+	Coords      []*v3.Matrix
+	Bfactors    [][]float64
+	XYZFileData []string //This can be anything. The main rationale for including it is that XYZ files have a "comment"
+	//line after the first one. This line is sometimes used to write the energy of the structure.
+	//So here the line can be kept for each XYZ frame, and parse later
+	current int
 }
 
 //NewMolecule makes a molecule with ats atoms, coords coordinates, bfactors b-factors

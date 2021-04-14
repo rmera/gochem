@@ -530,12 +530,13 @@ func XYZRead(xyzp io.Reader) (*Molecule, error) {
 	var top *Topology
 	var molecule []*Atom
 	Coords := make([]*v3.Matrix, 1, 1)
+	Data := make([]string, 1, 1)
 
 	for {
 		//When we read the first snapshot we collect also the topology data, later
 		//only coords are collected.
 		if snaps == 1 {
-			Coords[0], molecule, err = xyzReadSnap(xyz, nil, true)
+			Coords[0], molecule, Data[0], err = xyzReadSnap(xyz, nil, true)
 			if err != nil {
 				return nil, errDecorate(err, "XYZRead")
 			}
@@ -546,7 +547,7 @@ func XYZRead(xyzp io.Reader) (*Molecule, error) {
 			snaps++
 			continue
 		}
-		tmpcoords, _, err := xyzReadSnap(xyz, nil, false)
+		tmpcoords, _, data, err := xyzReadSnap(xyz, nil, false)
 		if err != nil {
 			//An error here simply means that there are no more snapshots
 			errm := err.Error()
@@ -557,12 +558,14 @@ func XYZRead(xyzp io.Reader) (*Molecule, error) {
 			return nil, errDecorate(err, "XYZRead")
 		}
 		Coords = append(Coords, tmpcoords)
+		Data = append(Data, data)
 	}
 	bfactors := make([][]float64, len(Coords), len(Coords))
 	for key, _ := range bfactors {
 		bfactors[key] = make([]float64, top.Len())
 	}
 	returned, err := NewMolecule(Coords, top, bfactors)
+	returned.XYZFileData = Data
 	return returned, errDecorate(err, "XYZRead")
 }
 
@@ -590,7 +593,7 @@ func (X *XYZTraj) Next(coords *v3.Matrix) error {
 		X.firstframe = nil
 		return nil
 	}
-	_, _, err := xyzReadSnap(X.xyz, coords, false)
+	_, _, _, err := xyzReadSnap(X.xyz, coords, false)
 	if err != nil {
 		//An error here simply means that there are no more snapshots
 		errm := err.Error()
@@ -614,7 +617,7 @@ func XYZFileAsTraj(xyzname string) (*Molecule, *XYZTraj, error) {
 	}
 	xyz := bufio.NewReader(xyzfile)
 	//the molecule first
-	coords, atoms, err := xyzReadSnap(xyz, nil, true)
+	coords, atoms, _, err := xyzReadSnap(xyz, nil, true)
 	top := NewTopology(0, 1, atoms)
 	bfactors := make([][]float64, 1, 1)
 	bfactors[0] = make([]float64, top.Len())
@@ -631,14 +634,14 @@ func XYZFileAsTraj(xyzname string) (*Molecule, *XYZTraj, error) {
 
 //xyzReadSnap reads an xyz file snapshot from a bufio.Reader, returns a slice of Atom objects, which will be nil if ReadTopol is false,
 // a slice of matrix.DenseMatrix and an error or nil.
-func xyzReadSnap(xyz *bufio.Reader, toplace *v3.Matrix, ReadTopol bool) (*v3.Matrix, []*Atom, error) {
+func xyzReadSnap(xyz *bufio.Reader, toplace *v3.Matrix, ReadTopol bool) (*v3.Matrix, []*Atom, string, error) {
 	line, err := xyz.ReadString('\n')
 	if err != nil {
-		return nil, nil, CError{fmt.Sprintf("Empty XYZ File: %s", err.Error()), []string{"bufio.Reader.ReadString", "xyzReadSnap"}}
+		return nil, nil, "", CError{fmt.Sprintf("Empty XYZ File: %s", err.Error()), []string{"bufio.Reader.ReadString", "xyzReadSnap"}}
 	}
 	natoms, err := strconv.Atoi(strings.TrimSpace(line))
 	if err != nil {
-		return nil, nil, CError{fmt.Sprintf("Wrong header for an XYZ file %s", err.Error()), []string{"strconv.Atoi", "xyzReadSnap"}}
+		return nil, nil, "", CError{fmt.Sprintf("Wrong header for an XYZ file %s", err.Error()), []string{"strconv.Atoi", "xyzReadSnap"}}
 	}
 	var molecule []*Atom
 	if ReadTopol {
@@ -650,9 +653,9 @@ func xyzReadSnap(xyz *bufio.Reader, toplace *v3.Matrix, ReadTopol bool) (*v3.Mat
 	} else {
 		coords = toplace.RawSlice()
 	}
-	_, err = xyz.ReadString('\n') //We dont care about this line
+	data, err := xyz.ReadString('\n') //The text in "data" could be anything, including just "\n"
 	if err != nil {
-		return nil, nil, CError{fmt.Sprintf("Ill formatted XYZ file: %s", err.Error()), []string{"bufio.Reader.ReadString", "xyzReadSnap"}}
+		return nil, nil, "", CError{fmt.Sprintf("Ill formatted XYZ file: %s", err.Error()), []string{"bufio.Reader.ReadString", "xyzReadSnap"}}
 
 	}
 	errs := make([]error, 3, 3)
@@ -686,12 +689,12 @@ func xyzReadSnap(xyz *bufio.Reader, toplace *v3.Matrix, ReadTopol bool) (*v3.Mat
 	for _, i := range errs {
 		if i != nil {
 			//	fmt.Println("line", line, k)
-			return nil, nil, CError{i.Error(), []string{"strconv.ParseFloat", "xyzReadSnap"}}
+			return nil, nil, "", CError{i.Error(), []string{"strconv.ParseFloat", "xyzReadSnap"}}
 		}
 	}
 	//this should be fine even if I had a toplace matrix. Both toplace and mcoord should just point to the same data.
 	mcoords, err := v3.NewMatrix(coords)
-	return mcoords, molecule, errDecorate(err, "xyzReadSnap")
+	return mcoords, molecule, data, errDecorate(err, "xyzReadSnap")
 }
 
 //XYZWrite writes the mol Ref and the Coord coordinates in an XYZ file with name xyzname which will
