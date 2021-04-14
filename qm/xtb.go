@@ -33,6 +33,7 @@ package qm
 
 import (
 	//	"bufio"
+	"bufio"
 	"fmt"
 	"log"
 	"os"
@@ -296,6 +297,60 @@ func (O *XTBHandle) Energy() (float64, error) {
 	}
 
 	return energy * chem.H2Kcal, err //dummy thin
+}
+
+//MDAverageEnergy gets the average potential and kinetic energy along a trajectory.
+func (O *XTBHandle) MDAverageEnergy(skip int) (float64, float64, error) {
+	var potential, kinetic float64
+	if !O.normalTermination() {
+		return 0, 0, Error{ErrNoEnergy, XTB, O.inputname, "Calculation didn't end normally", []string{"MDAverageEnergy"}, true}
+	}
+	outname := fmt.Sprintf("%s.out", O.inputname)
+	outfile, err := os.Open(outname)
+	if err != nil {
+		return 0, 0, Error{ErrNoEnergy, XTB, O.inputname, "Couldn't open output file", []string{"MDAverageEnergy"}, true}
+	}
+	out := bufio.NewReader(outfile)
+	reading := false
+	cont := 0
+	read := 0
+	for {
+		line, err := out.ReadString('\n')
+		if err != nil && strings.Contains(err.Error(), "EOF") {
+			break
+		} else if err != nil {
+			return 0, 0, Error{ErrNoEnergy, XTB, O.inputname, "Error while iterating through output file", []string{"MDAverageEnergy"}, true}
+		}
+		if strings.Contains(line, "time (ps)    <Epot>      Ekin   <T>   T     Etot") {
+			reading = true
+			continue
+		}
+		if !reading {
+			continue
+		}
+		fields := strings.Fields(line)
+		if len(fields) != 7 {
+			continue
+		}
+		cont++
+		if (cont-1)%skip != 0 {
+			continue
+		}
+		K, err := strconv.ParseFloat(fields[3], 64)
+		if err != nil {
+			return 0, 0, Error{ErrNoEnergy, XTB, O.inputname, fmt.Sprintf("Error while retrieving %d th kinetic energy", cont), []string{"MDAverageEnergy"}, true}
+
+		}
+		V, err := strconv.ParseFloat(fields[3], 64)
+		if err != nil {
+			return 0, 0, Error{ErrNoEnergy, XTB, O.inputname, fmt.Sprintf("Error while retrieving %d th potential energy", cont), []string{"MDAverageEnergy"}, true}
+
+		}
+		kinetic += K
+		potential += V
+		read++
+	}
+	return kinetic / float64(read), potential / float64(read), nil
 }
 
 var dielectric2Solvent = map[int]string{
