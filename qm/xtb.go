@@ -359,7 +359,7 @@ func (O *XTBHandle) Energy() (float64, error) {
 }
 
 //MDAverageEnergy gets the average potential and kinetic energy along a trajectory.
-func (O *XTBHandle) MDAverageEnergy(skip int) (float64, float64, error) {
+func (O *XTBHandle) MDAverageEnergy(start, skip int) (float64, float64, error) {
 	var potential, kinetic float64
 	if !O.normalTermination() {
 		return 0, 0, Error{ErrNoEnergy, XTB, O.inputname, "Calculation didn't end normally", []string{"MDAverageEnergy"}, true}
@@ -392,7 +392,7 @@ func (O *XTBHandle) MDAverageEnergy(skip int) (float64, float64, error) {
 			continue
 		}
 		cont++
-		if (cont-1)%skip != 0 {
+		if (cont-1)%skip != 0 || (cont-1) < start {
 			continue
 		}
 		K, err := strconv.ParseFloat(fields[3], 64)
