@@ -49,11 +49,13 @@ import (
 //Note that the default methods and basis vary with each program, and even
 //for a given program they are NOT considered part of the API, so they can always change.
 type XTBHandle struct {
-	command   string
-	inputname string
-	nCPU      int
-	options   []string
-	gfnff     bool
+	command        string
+	inputname      string
+	nCPU           int
+	options        []string
+	gfnff          bool
+	relconstraints bool
+	force          float64
 }
 
 func NewXTBHandle() *XTBHandle {
@@ -81,6 +83,19 @@ func (O *XTBHandle) SetCommand(name string) {
 	O.command = name
 }
 
+//RelConstraints sets the use of relative contraints
+//instead of absolute position restraints
+//with the force force constant. If force is
+//less than 0, the default value is employed.
+func (O *XTBHandle) RelConstraints(force float64) {
+	if force > 0 {
+		//goChem units (Kcal/A^2) to xtb units (Eh/Bohr^2)
+		O.force = force * (chem.Kcal2H / (chem.A2Bohr * chem.A2Bohr))
+	}
+	O.relconstraints = true
+
+}
+
 func (O *XTBHandle) SetDefaults() {
 	O.command = os.ExpandEnv("xtb")
 	//	if O.command == "/xtb" { //if XTBHOME was not defined
@@ -88,6 +103,32 @@ func (O *XTBHandle) SetDefaults() {
 	//	}
 	cpu := runtime.NumCPU() / 2
 	O.nCPU = cpu
+
+}
+
+func (O *XTBHandle) seticonstraints(Q *Calc, xcontrol *os.File) {
+	//Here xtb expects distances in A and angles in deg, so no conversion needed.
+	var g2x = map[byte]string{
+		'B': "distance: ",
+		'A': "angle: ",
+		'D': "dihedral: ",
+	}
+
+	for _, v := range Q.IConstraints {
+		constra := g2x[v.Class]
+
+		for _, w := range v.CAtoms {
+			constra += strconv.Itoa(w+1) + ", " //1-based indexes for xtb
+		}
+		strings.TrimRight(constra, ",")
+		if v.UseVal {
+			constra += fmt.Sprintf(" %4.2f\n", v.Val)
+		} else {
+			constra += " auto\n"
+		}
+		xcontrol.Write([]byte(constra))
+
+	}
 
 }
 
@@ -142,15 +183,33 @@ func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q
 	}
 	//O.options = append(O.options, "-gfn")
 	fixed := ""
-	if Q.CConstraints != nil {
-		fixed = "atoms: "
-		for _, v := range Q.CConstraints {
-			fixed = fixed + strconv.Itoa(v+1) + ", " //1-based indexes
+	fixtoken := "$fix\n"
+	if O.relconstraints {
+		force := ""
+		if O.force > 0 {
+			force = fmt.Sprintf("force constant = %4.2f\n", O.force)
 		}
-		strings.TrimRight(fixed, ",")
-		fixed = fixed + "\n"
-		xcontrol.Write([]byte("$fix\n"))
-		xcontrol.Write([]byte(fixed))
+		fixtoken = "$constrain\n" + force
+	}
+	if Q.CConstraints != nil || Q.IConstraints != nil {
+		xcontrol.Write([]byte(fixtoken))
+
+		if Q.CConstraints != nil {
+			fixed = "atoms: "
+			for _, v := range Q.CConstraints {
+				fixed = fixed + strconv.Itoa(v+1) + ", " //1-based indexes
+			}
+			strings.TrimRight(fixed, ",")
+			fixed = fixed + "\n"
+			xcontrol.Write([]byte(fixed))
+		}
+		if Q.IConstraints != nil {
+			if !O.relconstraints {
+				xcontrol.Write([]byte("$end\n$constrain\n"))
+			}
+			O.seticonstraints(Q, xcontrol)
+
+		}
 		xcontrol.Write([]byte("$end\n"))
 
 	}
