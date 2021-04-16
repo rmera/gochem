@@ -217,6 +217,10 @@ func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q
 	jc.opti = func() {
 		O.options = append(O.options, "-o normal")
 	}
+	jc.forces = func() {
+		O.options = append(O.options, "--ohess")
+	}
+
 	jc.md = func() {
 		O.options = append(O.options, "--omd")
 		//There are specific settings needed with gfnff, mainly, a shorter timestep
@@ -356,6 +360,28 @@ func (O *XTBHandle) Energy() (float64, error) {
 	}
 
 	return energy * chem.H2Kcal, err //dummy thin
+}
+
+//Gets the Gibbs free energy of a previous XTB calculations.
+//A frequencies/solvation calculation is needed for this to work
+func (O *XTBHandle) FreeEnergy() (float64, error) {
+	var err error
+	var energy float64
+	energyline := searchBackwards("| TOTAL FREE ENERGY", fmt.Sprintf("%s.out", O.inputname))
+	if energyline == "" {
+		return 0, Error{ErrNoFreeEnergy, XTB, O.inputname, err.Error(), []string{"searchBackwards", "FreeEnergy"}, true}
+	}
+	split := strings.Fields(energyline)
+	if len(split) < 4 {
+		return 0, Error{ErrNoFreeEnergy, XTB, O.inputname, err.Error(), []string{"Energy"}, true}
+
+	}
+	energy, err = strconv.ParseFloat(split[4], 64)
+	if err != nil {
+		return 0, Error{ErrNoFreeEnergy, XTB, O.inputname, err.Error(), []string{"strconv.ParseFloat", "Energy"}, true}
+	}
+
+	return energy * chem.H2Kcal, err //err should be nil at this point.
 }
 
 //MDAverageEnergy gets the average potential and kinetic energy along a trajectory.

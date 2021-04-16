@@ -85,6 +85,7 @@ const (
 	ErrProbableProblem = "goChem/QM: Probable problem with calculations" //this is never to be used for fatal errors
 	ErrMissingCharges  = "goChem/QM: Missing charges or coordinates"
 	ErrNoEnergy        = "goChem/QM: No energy in output"
+	ErrNoFreeEnergy    = "goChem/QM: No free energy in output. Forces calculation might have not been performed"
 	ErrNoCharges       = "goChem/QM: Unable to read charges from  output"
 	ErrNoGeometry      = "gochem/QM: Unable to read geometry from output"
 	ErrNotRunning      = "gochem/QM: Couldn't run calculation"
