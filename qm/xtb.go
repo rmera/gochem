@@ -36,6 +36,7 @@ import (
 	"bufio"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"os/exec"
 	"runtime"
@@ -294,6 +295,7 @@ func (O *XTBHandle) normalTermination() bool {
 }
 
 //search a file backwards, i.e., starting from the end, for a string. Returns the line that contains the string, or an empty string.
+//I really really should have commented this one.
 func searchBackwards(str, filename string) string {
 	var ini int64 = 0
 	var end int64 = 0
@@ -322,12 +324,14 @@ func searchBackwards(str, filename string) string {
 		} else if buf[0] == byte('\n') && end == 0 {
 			end = i
 		} else if buf[0] == byte('\n') && ini == 0 {
+			i--
 			ini = i
 			f.Seek(-1*(ini), 2)
 			bufF := make([]byte, ini-end)
 			f.Read(bufF)
-			//		fmt.Println("vieja", string(bufF))////////////////////
+			//	fmt.Println("vieja", string(bufF), str) ////////////////////
 			if strings.Contains(string(bufF), str) {
+				//	fmt.Println("aca esta la wea") /////////////
 				return string(bufF)
 			}
 			//	first=false
@@ -347,7 +351,7 @@ func (O *XTBHandle) Energy() (float64, error) {
 	var energy float64
 	energyline := searchBackwards("total E       :", fmt.Sprintf("%s.out", O.inputname))
 	if energyline == "" {
-		return 0, Error{ErrNoEnergy, XTB, O.inputname, err.Error(), []string{"searchBackwards", "Energy"}, true}
+		return 0, Error{ErrNoEnergy, XTB, O.inputname, fmt.Sprintf("%s.out", O.inputname), []string{"searchBackwards", "Energy"}, true}
 	}
 	split := strings.Fields(energyline)
 	if len(split) < 4 {
@@ -362,14 +366,61 @@ func (O *XTBHandle) Energy() (float64, error) {
 	return energy * chem.H2Kcal, err //dummy thin
 }
 
+//LargestImaginary returns the absolute value of the wave number (in 1/cm) for the largest imaginary mode in the vibspectrum file
+//produced by a forces calculation with xtb. Returns an error and -1 if unable to check.
+func (O *XTBHandle) LargestImaginary() (float64, error) {
+	largestimag := 0.0
+	vibf, err := os.Open("vibspectrum")
+	if err != nil {
+		//fmt.Println("Unable to open file!!")
+		return -1, Error{ErrCantValue, XTB, "vibspectrum", err.Error(), []string{"os.Open", "LargestImaginary"}, true}
+	}
+	vib := bufio.NewReader(vibf)
+	for i := 0; i < 3; i++ {
+		_, err := vib.ReadString('\n') //The text in "data" could be anything, including just "\n"
+		if err != nil {
+			return -1, Error{ErrCantValue, XTB, "vibspectrum", err.Error(), []string{"ReadString", "LargestImaginary"}, true}
+
+		}
+	}
+	for {
+		line, err := vib.ReadString('\n')
+		if err != nil { //inefficient, (errs[1] can be checked once before), but clearer.
+			if strings.Contains(err.Error(), "EOF") {
+				err = nil //it's not an actual error
+				break
+			} else {
+				return -1, Error{ErrCantValue, XTB, "vibspectrum", err.Error(), []string{"ReadString", "LargestImaginary"}, true}
+
+			}
+		}
+
+		fields := strings.Fields(line)
+		if len(fields) < 5 {
+			return -1, Error{ErrCantValue, XTB, "vibspectrum", "Can't parse vibspectrum", []string{"ReadString", "LargestImaginary"}, true}
+		}
+		wave, err := strconv.ParseFloat(fields[len(fields)-4], 64)
+		if err != nil {
+			return -1, Error{ErrCantValue, XTB, "vibspectrum", "Can't parse vibspectrum", []string{"strconv.ParseFloat", "LargestImaginary"}, true}
+		}
+		if wave > 0.0 {
+			return largestimag, nil //no more imaginary frequencies so we just return the largest so far.
+		} else if math.Abs(wave) > largestimag {
+			largestimag = math.Abs(wave)
+		}
+	}
+	return largestimag, nil
+}
+
 //Gets the Gibbs free energy of a previous XTB calculations.
-//A frequencies/solvation calculation is needed for this to work
+//A frequencies/solvation calculation is needed for this to work. FreeEnergy does _not_ check that the structure was at a minimum. You can check that with
+//the LargestIm
 func (O *XTBHandle) FreeEnergy() (float64, error) {
 	var err error
 	var energy float64
-	energyline := searchBackwards("| TOTAL FREE ENERGY", fmt.Sprintf("%s.out", O.inputname))
+	energyline := searchBackwards("total free energy", fmt.Sprintf("%s.out", O.inputname))
 	if energyline == "" {
-		return 0, Error{ErrNoFreeEnergy, XTB, O.inputname, err.Error(), []string{"searchBackwards", "FreeEnergy"}, true}
+		return 0, Error{ErrNoFreeEnergy, XTB, O.inputname, fmt.Sprintf("%s.out", O.inputname), []string{"searchBackwards", "FreeEnergy"}, true}
 	}
 	split := strings.Fields(energyline)
 	if len(split) < 4 {

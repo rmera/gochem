@@ -84,6 +84,7 @@ type Handle interface {
 const (
 	ErrProbableProblem = "goChem/QM: Probable problem with calculations" //this is never to be used for fatal errors
 	ErrMissingCharges  = "goChem/QM: Missing charges or coordinates"
+	ErrCantValue       = "goChem/QM: Can't obtain requested value" //for whatever doesn't match anything else
 	ErrNoEnergy        = "goChem/QM: No energy in output"
 	ErrNoFreeEnergy    = "goChem/QM: No free energy in output. Forces calculation might have not been performed"
 	ErrNoCharges       = "goChem/QM: Unable to read charges from  output"
