@@ -225,10 +225,12 @@ func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q
 	jc.md = func() {
 		O.options = append(O.options, "--omd")
 		//There are specific settings needed with gfnff, mainly, a shorter timestep
+		//The restart=false option doesn't have any effect, but it's added so it's easier later to use sed or whatever to change it to true, and  restart
+		//a calculation.
 		if Q.Method == "gfnff" {
-			xcontrol.Write([]byte(fmt.Sprintf("$md\n temp=%5.3f\n time=%d\n velo=false\n nvt=true\n step=2.0\n hmass=4.0\n shake=0\n$end", Q.MDTemp, Q.MDTime)))
+			xcontrol.Write([]byte(fmt.Sprintf("$md\n temp=%5.3f\n time=%d\n velo=false\n nvt=true\n step=2.0\n hmass=4.0\n shake=0\n restart=false\n$end", Q.MDTemp, Q.MDTime)))
 		} else {
-			xcontrol.Write([]byte(fmt.Sprintf("$md\n temp=%5.3f\n time=%d\n velo=false\n nvt=true\n$end", Q.MDTemp, Q.MDTime)))
+			xcontrol.Write([]byte(fmt.Sprintf("$md\n temp=%5.3f\n time=%d\n velo=false\n nvt=true\n restart=false\n$end", Q.MDTemp, Q.MDTime)))
 		}
 		xcontrol.Close()
 	}
@@ -302,21 +304,17 @@ func searchBackwards(str, filename string) string {
 	var first bool
 	first = true
 	buf := make([]byte, 1)
-	//	fmt.Println("no wei", filename) ////////////////////////
 	f, err := os.Open(filename)
 	if err != nil {
-		//		fmt.Println(err.Error())	 ////////////////
 		return ""
 	}
 	defer f.Close()
 	var i int64 = 1
 	for ; ; i++ {
 		if _, err := f.Seek(-1*i, 2); err != nil {
-			//		fmt.Println(err.Error()) ///////////////////
 			return ""
 		}
 		if _, err := f.Read(buf); err != nil {
-			//		fmt.Println(err.Error()) //////////////////
 			return ""
 		}
 		if buf[0] == byte('\n') && first == false {
@@ -329,9 +327,7 @@ func searchBackwards(str, filename string) string {
 			f.Seek(-1*(ini), 2)
 			bufF := make([]byte, ini-end)
 			f.Read(bufF)
-			//	fmt.Println("vieja", string(bufF), str) ////////////////////
 			if strings.Contains(string(bufF), str) {
-				//	fmt.Println("aca esta la wea") /////////////
 				return string(bufF)
 			}
 			//	first=false
@@ -452,6 +448,7 @@ func (O *XTBHandle) MDAverageEnergy(start, skip int) (float64, float64, error) {
 	read := 0
 	for {
 		line, err := out.ReadString('\n')
+		//	fmt.Println("LINE", line) /////////
 		if err != nil && strings.Contains(err.Error(), "EOF") {
 			break
 		} else if err != nil {
@@ -482,24 +479,32 @@ func (O *XTBHandle) MDAverageEnergy(start, skip int) (float64, float64, error) {
 			return 0, 0, Error{ErrNoEnergy, XTB, O.inputname, fmt.Sprintf("Error while retrieving %d th potential energy", cont), []string{"MDAverageEnergy"}, true}
 
 		}
+		fmt.Println("potential", V) //////////
 		kinetic += K
 		potential += V
 		read++
 	}
-	return kinetic / float64(read), potential / float64(read), nil
+	N := float64(read)
+	if math.IsNaN(potential/N) || math.IsNaN(kinetic/N) { //note that we still return whatever we got here, in addition to the error. The user can decide.
+		return potential / N, kinetic / N, Error{ErrProbableProblem, XTB, O.inputname, "At least one of the energies is NaN", []string{"MDAverageEnergy"}, true}
+	}
+	return potential / N, kinetic / N, nil
 }
 
 var dielectric2Solvent = map[int]string{
-	80: "h2o",
-	5:  "chcl3",
-	9:  "ch2cl2",
-	21: "acetone",
-	37: "acetonitrile",
-	33: "methanol",
-	2:  "toluene",
-	7:  "thf",
-	47: "dmso",
-	38: "dmf",
+	80:   "h2o",
+	5:    "chcl3",
+	9:    "ch2cl2",
+	10:   "octanol",
+	21:   "acetone",
+	37:   "acetonitrile",
+	33:   "methanol",
+	2:    "toluene",
+	7:    "thf",
+	47:   "dmso",
+	38:   "dmf",
+	1000: "woctanol", //This is a hackish way to have both dry and wet octanol. I gave wet octanol an fake epsilon that won't be used by anything else.
+	//really, what I should do is to add to the API a way to specify either epsilon or solvent name. FIX
 }
 
 //old code

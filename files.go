@@ -586,7 +586,32 @@ func (X *XYZTraj) Len() int {
 	return X.natoms
 }
 
+//xyztrajerror returns a LastFrameError if the given error message contains certain keywords.
+//otherwise, returns the original error.
+func (X *XYZTraj) xyztrajerror(err error) error {
+	errm := err.Error()
+	if strings.Contains(errm, "Empty") || strings.Contains(errm, "header") {
+		X.xyzfile.Close()
+		X.readable = false
+		return newlastFrameError("", X.frames)
+	} else {
+		return err
+	}
+
+}
+
+//Next reads the next snapshot of the trajectory into coords, or discards it, if coords
+//is nil
 func (X *XYZTraj) Next(coords *v3.Matrix) error {
+	if coords == nil {
+		_, _, _, err := xyzReadSnap(X.xyz, coords, false)
+		if err != nil {
+			//An error here probably means that there are no more snapshots
+			return X.xyztrajerror(err)
+		}
+		X.frames++
+		return nil
+	}
 	if X.frames == 0 {
 		coords.Copy(X.firstframe) //slow, but I don't want to mess with the pointer I got.
 		X.frames++
@@ -595,15 +620,10 @@ func (X *XYZTraj) Next(coords *v3.Matrix) error {
 	}
 	_, _, _, err := xyzReadSnap(X.xyz, coords, false)
 	if err != nil {
-		//An error here simply means that there are no more snapshots
-		errm := err.Error()
-		if strings.Contains(errm, "Empty") || strings.Contains(errm, "header") {
-			X.xyzfile.Close()
-			X.readable = false
-			return newlastFrameError("", X.frames)
-		}
-
+		//An error here probably means that there are no more snapshots
+		return X.xyztrajerror(err)
 	}
+
 	X.frames++
 	return err
 }
