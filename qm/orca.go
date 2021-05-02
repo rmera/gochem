@@ -37,8 +37,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/rmera/gochem"
-	"github.com/rmera/gochem/v3"
+	chem "github.com/rmera/gochem"
+	v3 "github.com/rmera/gochem/v3"
 )
 
 //Note that the default methods and basis vary with each program, and even
@@ -51,6 +51,7 @@ type OrcaHandle struct {
 	bsse        string
 	command     string
 	inputname   string
+	wrkdir      string
 	nCPU        int
 	orca3       bool
 }
@@ -78,6 +79,10 @@ func (O *OrcaHandle) SetCommand(name string) {
 
 func (O *OrcaHandle) SetMOName(name string) {
 	O.previousMO = name
+}
+
+func (O *OrcaHandle) SetWorkDir(d string) {
+	O.wrkdir = d
 }
 
 //As per the "zero value" of structures in Go, the default for goChem will be to use Orca 4
@@ -314,10 +319,12 @@ func (O *OrcaHandle) Run(wait bool) (err error) {
 		defer out.Close()
 		command := exec.Command(O.command, fmt.Sprintf("%s.inp", O.inputname))
 		command.Stdout = out
+		command.Dir = O.wrkdir
 		err = command.Run()
 
 	} else {
 		command := exec.Command("sh", "-c", "nohup "+O.command+fmt.Sprintf(" %s.inp > %s.out &", O.inputname, O.inputname))
+		command.Dir = O.wrkdir
 		err = command.Start()
 	}
 	if err != nil {

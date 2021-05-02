@@ -54,6 +54,7 @@ type NWChemHandle struct {
 	command     string
 	inputname   string
 	nCPU        int
+	wrkdir      string
 }
 
 func NewNWChemHandle() *NWChemHandle {
@@ -79,6 +80,10 @@ func (O *NWChemHandle) SetName(name string) {
 
 func (O *NWChemHandle) SetCommand(name string) {
 	O.command = name
+}
+
+func (O *NWChemHandle) SetWorkDir(d string) {
+	O.wrkdir = d
 }
 
 //Sets the name of a file containing orbitals which will be used as a guess for this calculations
@@ -380,6 +385,7 @@ func (O *NWChemHandle) Run(wait bool) (err error) {
 			//	fmt.Println("mpirun", "-np", fmt.Sprintf("%d", O.nCPU), O.command, fmt.Sprintf("%s.nw", O.inputname)) ////////////////////////////
 			command = exec.Command("mpirun", "-np", fmt.Sprintf("%d", O.nCPU), O.command, fmt.Sprintf("%s.nw", O.inputname))
 		}
+		command.Dir = O.wrkdir
 		command.Stdout = out
 		command.Stderr = out
 		err = command.Run()
@@ -387,6 +393,7 @@ func (O *NWChemHandle) Run(wait bool) (err error) {
 	} else {
 		//This will not work in windows.
 		command := exec.Command("sh", "-c", "nohup "+O.command+fmt.Sprintf(" %s.nw > %s.out &", O.inputname, O.inputname))
+		command.Dir = O.wrkdir
 		err = command.Start()
 	}
 	if err != nil {

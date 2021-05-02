@@ -57,6 +57,7 @@ type XTBHandle struct {
 	gfnff          bool
 	relconstraints bool
 	force          float64
+	wrkdir         string
 }
 
 func NewXTBHandle() *XTBHandle {
@@ -82,6 +83,10 @@ func (O *XTBHandle) SetName(name string) {
 
 func (O *XTBHandle) SetCommand(name string) {
 	O.command = name
+}
+
+func (O *XTBHandle) SetWorkDir(d string) {
+	O.wrkdir = d
 }
 
 //RelConstraints sets the use of relative contraints
@@ -137,6 +142,10 @@ func (O *XTBHandle) seticonstraints(Q *Calc, xcontrol *os.File) {
 //only unconstrained optimizations and single-points.
 func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q *Calc) error {
 	//Now lets write the thing
+	if O.wrkdir != "" {
+		O.wrkdir += "/"
+	}
+	w := O.wrkdir
 	if O.inputname == "" {
 		O.inputname = "gochem"
 	}
@@ -144,7 +153,7 @@ func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q
 	if atoms == nil || coords == nil {
 		return Error{ErrMissingCharges, "XTB", O.inputname, "", []string{"BuildInput"}, true}
 	}
-	err := chem.XYZFileWrite(O.inputname+".xyz", coords, atoms)
+	err := chem.XYZFileWrite(w+O.inputname+".xyz", coords, atoms)
 	if err != nil {
 		return Error{ErrCantInput, "XTB", O.inputname, "", []string{"BuildInput"}, true}
 	}
@@ -153,7 +162,7 @@ func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q
 		//Here we can adjust memory if needed
 	}
 
-	xcontrol, err := os.Create(O.inputname + ".inp")
+	xcontrol, err := os.Create(w + O.inputname + ".inp")
 	if err != nil {
 		return err
 	}
@@ -194,7 +203,6 @@ func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q
 	}
 	if Q.CConstraints != nil || Q.IConstraints != nil {
 		xcontrol.Write([]byte(fixtoken))
-
 		if Q.CConstraints != nil {
 			fixed = "atoms: "
 			for _, v := range Q.CConstraints {
@@ -223,7 +231,7 @@ func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q
 	}
 
 	jc.md = func() {
-		O.options = append(O.options, "--omd")
+		O.options = append(O.options, "--md")
 		//There are specific settings needed with gfnff, mainly, a shorter timestep
 		//The restart=false option doesn't have any effect, but it's added so it's easier later to use sed or whatever to change it to true, and  restart
 		//a calculation.
@@ -239,7 +247,6 @@ func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q
 	Q.Job.Do(jc)
 	xcontrol.Close()
 	return nil
-
 }
 
 //Run runs the command given by the string O.command
@@ -257,10 +264,12 @@ func (O *XTBHandle) Run(wait bool) (err error) {
 	if wait == true {
 		log.Printf(com) //this is stderr, I suppose
 		command := exec.Command("sh", "-c", O.command+com)
+		command.Dir = O.wrkdir
 		err = command.Run()
 
 	} else {
 		command := exec.Command("sh", "-c", "nohup "+O.command+com)
+		command.Dir = O.wrkdir
 		err = command.Start()
 	}
 	if err != nil {
@@ -276,12 +285,13 @@ func (O *XTBHandle) Run(wait bool) (err error) {
 //Reads the latest geometry from an XTB optimization. It doesn't actually need the chem.Atomer
 //but requires it so XTBHandle fits with the QM interface.
 func (O *XTBHandle) OptimizedGeometry(atoms chem.Atomer) (*v3.Matrix, error) {
+	inp := O.wrkdir + O.inputname
 	if !O.normalTermination() {
-		return nil, Error{ErrNoGeometry, XTB, O.inputname, "Calculation didn't end normally", []string{"OptimizedGeometry"}, true}
+		return nil, Error{ErrNoGeometry, XTB, inp, "Calculation didn't end normally", []string{"OptimizedGeometry"}, true}
 	}
-	mol, err := chem.XYZFileRead("xtbopt.xyz") //Trying to run several calculations in parallel in the same directory will fail as the output has always the same name.
+	mol, err := chem.XYZFileRead(O.wrkdir + "xtbopt.xyz") //Trying to run several calculations in parallel in the same directory will fail as the output has always the same name.
 	if err != nil {
-		return nil, Error{ErrNoGeometry, XTB, O.inputname, "", []string{"OptimizedGeometry"}, true}
+		return nil, Error{ErrNoGeometry, XTB, inp, "", []string{"OptimizedGeometry"}, true}
 	}
 	return mol.Coords[0], nil
 }
@@ -289,7 +299,8 @@ func (O *XTBHandle) OptimizedGeometry(atoms chem.Atomer) (*v3.Matrix, error) {
 //This checks that an xtb calculation has terminated normally
 //I know this duplicates code, I wrote this one first and then the other one.
 func (O *XTBHandle) normalTermination() bool {
-	if searchBackwards("normal termination of x", fmt.Sprintf("%s.out", O.inputname)) != "" || searchBackwards("abnormal termination of x", fmt.Sprintf("%s.out", O.inputname)) == "" {
+	inp := O.wrkdir + O.inputname
+	if searchBackwards("normal termination of x", fmt.Sprintf("%s.out", inp)) != "" || searchBackwards("abnormal termination of x", fmt.Sprintf("%s.out", inp)) == "" {
 		return true
 	}
 	//	fmt.Println(fmt.Sprintf("%s.out", O.inputname), searchBackwards("normal termination of x",fmt.Sprintf("%s.out", O.inputname))) ////////////////////
@@ -343,20 +354,21 @@ func searchBackwards(str, filename string) string {
 //abnormally-terminated ORCA calculation. (in this case error is "Probable problem
 //in calculation")
 func (O *XTBHandle) Energy() (float64, error) {
+	inp := O.wrkdir + O.inputname
 	var err error
 	var energy float64
-	energyline := searchBackwards("total E       :", fmt.Sprintf("%s.out", O.inputname))
+	energyline := searchBackwards("TOTAL ENERGY", fmt.Sprintf("%s.out", inp))
 	if energyline == "" {
-		return 0, Error{ErrNoEnergy, XTB, O.inputname, fmt.Sprintf("%s.out", O.inputname), []string{"searchBackwards", "Energy"}, true}
+		return 0, Error{ErrNoEnergy, XTB, inp, fmt.Sprintf("%s.out", inp), []string{"searchBackwards", "Energy"}, true}
 	}
 	split := strings.Fields(energyline)
-	if len(split) < 4 {
-		return 0, Error{ErrNoEnergy, XTB, O.inputname, err.Error(), []string{"Energy"}, true}
+	if len(split) < 5 {
+		return 0, Error{ErrNoEnergy, XTB, inp, err.Error(), []string{"Energy"}, true}
 
 	}
 	energy, err = strconv.ParseFloat(split[3], 64)
 	if err != nil {
-		return 0, Error{ErrNoEnergy, XTB, O.inputname, err.Error(), []string{"strconv.ParseFloat", "Energy"}, true}
+		return 0, Error{ErrNoEnergy, XTB, inp, err.Error(), []string{"strconv.ParseFloat", "Energy"}, true}
 	}
 
 	return energy * chem.H2Kcal, err //dummy thin
@@ -366,7 +378,7 @@ func (O *XTBHandle) Energy() (float64, error) {
 //produced by a forces calculation with xtb. Returns an error and -1 if unable to check.
 func (O *XTBHandle) LargestImaginary() (float64, error) {
 	largestimag := 0.0
-	vibf, err := os.Open("vibspectrum")
+	vibf, err := os.Open(O.wrkdir + "vibspectrum")
 	if err != nil {
 		//fmt.Println("Unable to open file!!")
 		return -1, Error{ErrCantValue, XTB, "vibspectrum", err.Error(), []string{"os.Open", "LargestImaginary"}, true}
@@ -414,18 +426,19 @@ func (O *XTBHandle) LargestImaginary() (float64, error) {
 func (O *XTBHandle) FreeEnergy() (float64, error) {
 	var err error
 	var energy float64
-	energyline := searchBackwards("total free energy", fmt.Sprintf("%s.out", O.inputname))
+	inp := O.wrkdir + O.inputname
+	energyline := searchBackwards("total free energy", fmt.Sprintf("%s.out", inp))
 	if energyline == "" {
-		return 0, Error{ErrNoFreeEnergy, XTB, O.inputname, fmt.Sprintf("%s.out", O.inputname), []string{"searchBackwards", "FreeEnergy"}, true}
+		return 0, Error{ErrNoFreeEnergy, XTB, inp, fmt.Sprintf("%s.out", inp), []string{"searchBackwards", "FreeEnergy"}, true}
 	}
 	split := strings.Fields(energyline)
 	if len(split) < 4 {
-		return 0, Error{ErrNoFreeEnergy, XTB, O.inputname, err.Error(), []string{"Energy"}, true}
+		return 0, Error{ErrNoFreeEnergy, XTB, inp, err.Error(), []string{"Energy"}, true}
 
 	}
 	energy, err = strconv.ParseFloat(split[4], 64)
 	if err != nil {
-		return 0, Error{ErrNoFreeEnergy, XTB, O.inputname, err.Error(), []string{"strconv.ParseFloat", "Energy"}, true}
+		return 0, Error{ErrNoFreeEnergy, XTB, inp, err.Error(), []string{"strconv.ParseFloat", "Energy"}, true}
 	}
 
 	return energy * chem.H2Kcal, err //err should be nil at this point.
@@ -433,14 +446,15 @@ func (O *XTBHandle) FreeEnergy() (float64, error) {
 
 //MDAverageEnergy gets the average potential and kinetic energy along a trajectory.
 func (O *XTBHandle) MDAverageEnergy(start, skip int) (float64, float64, error) {
+	inp := O.wrkdir + O.inputname
 	var potential, kinetic float64
 	if !O.normalTermination() {
-		return 0, 0, Error{ErrNoEnergy, XTB, O.inputname, "Calculation didn't end normally", []string{"MDAverageEnergy"}, true}
+		return 0, 0, Error{ErrNoEnergy, XTB, inp, "Calculation didn't end normally", []string{"MDAverageEnergy"}, true}
 	}
-	outname := fmt.Sprintf("%s.out", O.inputname)
+	outname := fmt.Sprintf("%s.out", inp)
 	outfile, err := os.Open(outname)
 	if err != nil {
-		return 0, 0, Error{ErrNoEnergy, XTB, O.inputname, "Couldn't open output file", []string{"MDAverageEnergy"}, true}
+		return 0, 0, Error{ErrNoEnergy, XTB, inp, "Couldn't open output file", []string{"MDAverageEnergy"}, true}
 	}
 	out := bufio.NewReader(outfile)
 	reading := false
@@ -452,7 +466,7 @@ func (O *XTBHandle) MDAverageEnergy(start, skip int) (float64, float64, error) {
 		if err != nil && strings.Contains(err.Error(), "EOF") {
 			break
 		} else if err != nil {
-			return 0, 0, Error{ErrNoEnergy, XTB, O.inputname, "Error while iterating through output file", []string{"MDAverageEnergy"}, true}
+			return 0, 0, Error{ErrNoEnergy, XTB, inp, "Error while iterating through output file", []string{"MDAverageEnergy"}, true}
 		}
 		if strings.Contains(line, "time (ps)    <Epot>      Ekin   <T>   T     Etot") {
 			reading = true
@@ -471,12 +485,12 @@ func (O *XTBHandle) MDAverageEnergy(start, skip int) (float64, float64, error) {
 		}
 		K, err := strconv.ParseFloat(fields[3], 64)
 		if err != nil {
-			return 0, 0, Error{ErrNoEnergy, XTB, O.inputname, fmt.Sprintf("Error while retrieving %d th kinetic energy", cont), []string{"MDAverageEnergy"}, true}
+			return 0, 0, Error{ErrNoEnergy, XTB, inp, fmt.Sprintf("Error while retrieving %d th kinetic energy", cont), []string{"MDAverageEnergy"}, true}
 
 		}
 		V, err := strconv.ParseFloat(fields[3], 64)
 		if err != nil {
-			return 0, 0, Error{ErrNoEnergy, XTB, O.inputname, fmt.Sprintf("Error while retrieving %d th potential energy", cont), []string{"MDAverageEnergy"}, true}
+			return 0, 0, Error{ErrNoEnergy, XTB, inp, fmt.Sprintf("Error while retrieving %d th potential energy", cont), []string{"MDAverageEnergy"}, true}
 
 		}
 		fmt.Println("potential", V) //////////
@@ -486,7 +500,7 @@ func (O *XTBHandle) MDAverageEnergy(start, skip int) (float64, float64, error) {
 	}
 	N := float64(read)
 	if math.IsNaN(potential/N) || math.IsNaN(kinetic/N) { //note that we still return whatever we got here, in addition to the error. The user can decide.
-		return potential / N, kinetic / N, Error{ErrProbableProblem, XTB, O.inputname, "At least one of the energies is NaN", []string{"MDAverageEnergy"}, true}
+		return potential / N, kinetic / N, Error{ErrProbableProblem, XTB, inp, "At least one of the energies is NaN", []string{"MDAverageEnergy"}, true}
 	}
 	return potential / N, kinetic / N, nil
 }

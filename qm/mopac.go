@@ -37,14 +37,15 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/rmera/gochem"
-	"github.com/rmera/gochem/v3"
+	chem "github.com/rmera/gochem"
+	v3 "github.com/rmera/gochem/v3"
 )
 
 type MopacHandle struct {
 	defmethod string
 	command   string
 	inputname string
+	wrkdir    string
 }
 
 //Creates and initialized a new instance of MopacRunner, with values set
@@ -76,6 +77,10 @@ func (O *MopacHandle) SetCommand(name string) {
 func (O *MopacHandle) SetDefaults() {
 	O.defmethod = "PM6-D3H4 NOMM"
 	O.command = os.ExpandEnv("${MOPAC_LICENSE}/MOPAC2016.exe")
+}
+
+func (O *MopacHandle) SetWorkDir(d string) {
+	O.wrkdir = d
 }
 
 //BuildInput builds an input for ORCA based int the data in atoms, coords and C.
@@ -166,9 +171,11 @@ var mopacMultiplicity = map[int]string{
 func (O *MopacHandle) Run(wait bool) (err error) {
 	if wait == true {
 		command := exec.Command(O.command, fmt.Sprintf("%s.mop", O.inputname))
+		command.Dir = O.wrkdir
 		err = command.Run()
 	} else {
 		command := exec.Command("sh", "-c", "nohup "+O.command+fmt.Sprintf(" %s.mop &", O.inputname))
+		command.Dir = O.wrkdir
 		err = command.Start()
 	}
 	if err != nil {

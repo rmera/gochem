@@ -36,8 +36,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/rmera/gochem"
-	"github.com/rmera/gochem/v3"
+	chem "github.com/rmera/gochem"
+	v3 "github.com/rmera/gochem/v3"
 )
 
 //Note that the default methods and basis vary with each program, and even
@@ -53,6 +53,7 @@ type FermionsHandle struct {
 	inputname string
 	nCPU      int
 	gpu       string
+	wrkdir    string
 }
 
 func NewFermionsHandle() *FermionsHandle {
@@ -79,6 +80,10 @@ func (O *FermionsHandle) SetName(name string) {
 
 func (O *FermionsHandle) SetCommand(name string) {
 	O.command = name
+}
+
+func (O *FermionsHandle) SetWorkDir(d string) {
+	O.wrkdir = d
 }
 
 //Sets defaults for Fermions++ calculation. Default is a single-point at
@@ -185,11 +190,13 @@ func (O *FermionsHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharg
 func (O *FermionsHandle) Run(wait bool) (err error) {
 	if wait == true {
 		command := exec.Command(O.command, fmt.Sprintf("%s.in", O.inputname), fmt.Sprintf("%s.out", O.inputname))
+		command.Dir = O.wrkdir
 		err = command.Run()
 
 	} else {
 		//This will not work in windows.
 		command := exec.Command("sh", "-c", "nohup "+O.command+fmt.Sprintf(" %s.in > %s.out &", O.inputname, O.inputname))
+		command.Dir = O.wrkdir
 		err = command.Start()
 	}
 	if err != nil {
