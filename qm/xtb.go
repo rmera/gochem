@@ -24,15 +24,12 @@
 //In order to use this part of the library you need the xtb program, which must be obtained from Prof. Stefan Grimme's group.
 //Please cite the the xtb references if you used the program.
 
-
-
 package qm
 
 import (
 	//	"bufio"
 	"bufio"
 	"fmt"
-	"log"
 	"math"
 	"os"
 	"os/exec"
@@ -259,7 +256,7 @@ func (O *XTBHandle) Run(wait bool) (err error) {
 		com = fmt.Sprintf(" %s.xyz  --input %s.inp  %s > %s.out  2>&1", O.inputname, O.inputname, strings.Join(O.options[2:], " "), O.inputname)
 	}
 	if wait == true {
-		log.Printf(com) //this is stderr, I suppose
+		//log.Printf(com) //this is stderr, I suppose
 		command := exec.Command("sh", "-c", O.command+com)
 		command.Dir = O.wrkdir
 		err = command.Run()
