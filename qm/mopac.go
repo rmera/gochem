@@ -86,6 +86,9 @@ func (O *MopacHandle) SetWorkDir(d string) {
 //BuildInput builds an input for ORCA based int the data in atoms, coords and C.
 //returns only error.
 func (O *MopacHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q *Calc) error {
+	if O.wrkdir != "" {
+		O.wrkdir = O.wrkdir + "/"
+	}
 	if strings.Contains(Q.Others, "RI") {
 		Q.Others = ""
 	}
@@ -127,7 +130,7 @@ func (O *MopacHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger,
 	if O.inputname == "" {
 		O.inputname = "input"
 	}
-	file, err := os.Create(fmt.Sprintf("%s.mop", O.inputname))
+	file, err := os.Create(fmt.Sprintf("%s.mop", O.wrkdir+O.inputname))
 	if err != nil {
 		return Error{ErrCantInput, Mopac, O.inputname, "", []string{"os.Create", "BuildInput"}, true}
 
@@ -190,14 +193,15 @@ func (O *MopacHandle) Run(wait bool) (err error) {
   if there is a energy but the calculation didnt end properly*/
 func (O *MopacHandle) Energy() (float64, error) {
 	var err error
+	inp := O.wrkdir + O.inputname
 	var energy float64
-	file, err := os.Open(fmt.Sprintf("%s.out", O.inputname))
+	file, err := os.Open(fmt.Sprintf("%s.out", inp))
 	if err != nil {
-		return 0, Error{ErrNoEnergy, Mopac, O.inputname, err.Error(), []string{"os.Open", "Energy"}, true}
+		return 0, Error{ErrNoEnergy, Mopac, inp, err.Error(), []string{"os.Open", "Energy"}, true}
 	}
 	defer file.Close()
 	out := bufio.NewReader(file)
-	err = Error{ErrNoEnergy, Mopac, O.inputname, "", []string{"Energy"}, true}
+	err = Error{ErrNoEnergy, Mopac, inp, "", []string{"Energy"}, true}
 	trust_radius_warning := false
 	for {
 		var line string
@@ -212,7 +216,7 @@ func (O *MopacHandle) Energy() (float64, error) {
 		if strings.Contains(line, "TOTAL ENERGY") {
 			splitted := strings.Fields(line)
 			if len(splitted) < 4 {
-				err = Error{ErrNoEnergy, Mopac, O.inputname, "", []string{"Energy"}, true}
+				err = Error{ErrNoEnergy, Mopac, inp, "", []string{"Energy"}, true}
 				break
 			}
 			energy, err = strconv.ParseFloat(splitted[3], 64)
@@ -228,7 +232,7 @@ func (O *MopacHandle) Energy() (float64, error) {
 		return 0, err
 	}
 	if trust_radius_warning {
-		err = Error{ErrProbableProblem, Mopac, O.inputname, "", []string{"Energy"}, false}
+		err = Error{ErrProbableProblem, Mopac, inp, "", []string{"Energy"}, false}
 	}
 	return energy, err
 }
@@ -238,15 +242,16 @@ func (O *MopacHandle) Energy() (float64, error) {
   if there is a geometry but the calculation didnt end properly*/
 func (O *MopacHandle) OptimizedGeometry(atoms chem.Atomer) (*v3.Matrix, error) {
 	var err error
+	inp := O.wrkdir + O.inputname
 	natoms := atoms.Len()
 	coords := make([]float64, natoms*3, natoms*3) //will be used for return
-	file, err := os.Open(fmt.Sprintf("%s.out", O.inputname))
+	file, err := os.Open(fmt.Sprintf("%s.out", inp))
 	if err != nil {
-		return nil, Error{ErrNoGeometry, Mopac, O.inputname, "", []string{"os.Open", "OptimizedGeometry"}, true}
+		return nil, Error{ErrNoGeometry, Mopac, inp, "", []string{"os.Open", "OptimizedGeometry"}, true}
 	}
 	defer file.Close()
 	out := bufio.NewReader(file)
-	err = Error{ErrNoGeometry, Mopac, O.inputname, "", []string{"OptimizedGeometry"}, true}
+	err = Error{ErrNoGeometry, Mopac, inp, "", []string{"OptimizedGeometry"}, true}
 	//some variables that will be changed/increased during the next for loop
 	final_point := false //to see if we got to the right part of the file
 	reading := false     //start reading
@@ -294,11 +299,11 @@ func (O *MopacHandle) OptimizedGeometry(atoms chem.Atomer) (*v3.Matrix, error) {
 		}
 	}
 	if err != nil {
-		return nil, Error{ErrNoGeometry, Mopac, O.inputname, err.Error(), []string{"OptimizedGeometry"}, true}
+		return nil, Error{ErrNoGeometry, Mopac, inp, err.Error(), []string{"OptimizedGeometry"}, true}
 	}
 	mcoords, err := v3.NewMatrix(coords)
 	if trust_radius_warning {
-		return mcoords, Error{ErrProbableProblem, Mopac, O.inputname, "", []string{"OptimizedGeometry"}, false}
+		return mcoords, Error{ErrProbableProblem, Mopac, inp, "", []string{"OptimizedGeometry"}, false}
 	}
 	return mcoords, err
 }

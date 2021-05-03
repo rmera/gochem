@@ -101,7 +101,9 @@ func (O *FermionsHandle) SetDefaults() {
 //returns only error.
 func (O *FermionsHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q *Calc) error {
 	//Only error so far
-
+	if O.wrkdir != "" {
+		O.wrkdir = O.wrkdir + "/"
+	}
 	if atoms == nil || coords == nil {
 		return Error{ErrMissingCharges, Fermions, O.inputname, "", []string{"BuildInput"}, true}
 	}
@@ -155,7 +157,7 @@ func (O *FermionsHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharg
 	//////////////////////////////////////////////////////////////
 	//Now lets write the thing.
 	//////////////////////////////////////////////////////////////
-	file, err := os.Create(fmt.Sprintf("%s.in", O.inputname))
+	file, err := os.Create(fmt.Sprintf("%s%s.in", O.wrkdir, O.inputname))
 	if err != nil {
 		return Error{ErrCantInput, Fermions, O.inputname, err.Error(), []string{"os.Create", "BuildInput"}, true}
 	}
@@ -280,10 +282,11 @@ func (O *FermionsHandle) OptimizedGeometry(atoms chem.Ref) (*v3.Matrix, error) {
 //in calculation")
 func (O *FermionsHandle) Energy() (float64, error) {
 	var err error
-	err = Error{ErrProbableProblem, Fermions, O.inputname, "", []string{"Energy"}, false}
-	f, err1 := os.Open(fmt.Sprintf("%s.out", O.inputname))
+	inp := O.wrkdir + O.inputname
+	err = Error{ErrProbableProblem, Fermions, inp, "", []string{"Energy"}, false}
+	f, err1 := os.Open(fmt.Sprintf("%s.out", inp))
 	if err1 != nil {
-		return 0, Error{ErrNoEnergy, Fermions, O.inputname, err1.Error(), []string{"os.Open", "Energy"}, true}
+		return 0, Error{ErrNoEnergy, Fermions, inp, err1.Error(), []string{"os.Open", "Energy"}, true}
 	}
 	defer f.Close()
 	f.Seek(-1, 2) //We start at the end of the file
@@ -292,7 +295,7 @@ func (O *FermionsHandle) Energy() (float64, error) {
 	for i := 0; ; i++ {
 		line, err1 := getTailLine(f)
 		if err1 != nil {
-			return 0.0, Error{ErrNoEnergy, Fermions, O.inputname, err1.Error(), []string{"os.File.Seek", "Energy"}, true}
+			return 0.0, Error{ErrNoEnergy, Fermions, inp, err1.Error(), []string{"os.File.Seek", "Energy"}, true}
 		}
 		if strings.Contains(line, "Timing report") {
 			err = nil
@@ -301,14 +304,14 @@ func (O *FermionsHandle) Energy() (float64, error) {
 			splitted := strings.Fields(line)
 			energy, err1 = strconv.ParseFloat(splitted[len(splitted)-3], 64)
 			if err1 != nil {
-				return 0.0, Error{ErrNoEnergy, Fermions, O.inputname, err1.Error(), []string{"strconv.ParseFloat", "Energy"}, true}
+				return 0.0, Error{ErrNoEnergy, Fermions, inp, err1.Error(), []string{"strconv.ParseFloat", "Energy"}, true}
 			}
 			found = true
 			break
 		}
 	}
 	if !found {
-		return 0.0, Error{ErrNoEnergy, Fermions, O.inputname, "", []string{"Energy"}, true}
+		return 0.0, Error{ErrNoEnergy, Fermions, inp, "", []string{"Energy"}, true}
 	}
 	return energy * chem.H2Kcal, err
 }
@@ -320,7 +323,7 @@ func (O *FermionsHandle) Energy() (float64, error) {
 //interface, whose the equivalent function will return true ONLY
 //if the optimization converged)
 func (O *FermionsHandle) fermionsNormalTermination() bool {
-	return searchFromEnd("Timing report", fmt.Sprintf("%s.out", O.inputname))
+	return searchFromEnd("Timing report", fmt.Sprintf("%s.out", O.wrkdir+O.inputname))
 }
 
 //This will return true if the templa string is present in the file filename

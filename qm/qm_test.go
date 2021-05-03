@@ -34,16 +34,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/rmera/gochem"
-	"github.com/rmera/gochem/v3"
+	chem "github.com/rmera/gochem"
+	v3 "github.com/rmera/gochem/v3"
 )
 
 //TestQM tests the QM functionality. It prepares input for ORCA and MOPAC
 //In the case of MOPAC it reads a previously prepared output and gets the energy.
 func TestQM(Te *testing.T) {
-	mol, err := chem.XYZFileRead("../test/sample.xyz")
-
-	fmt.Println(mol.Coords[0], len(mol.Coords), "LOS JUIMOS CTM", err)
+	mol, err := chem.XYZFileRead("../test/water.xyz")
 	if err != nil {
 		Te.Error(err)
 
@@ -51,8 +49,9 @@ func TestQM(Te *testing.T) {
 	if err := mol.Corrupted(); err != nil {
 		Te.Error(err)
 	}
-	mol.Del(mol.Len() - 1)
-	mol.SetCharge(1)
+	fmt.Println(mol.Coords[0], len(mol.Coords), "LOS JUIMOS CTM", err)
+	//	mol.Del(mol.Len() - 1)
+	mol.SetCharge(0)
 	mol.SetMulti(1)
 	calc := new(Calc)
 	calc.SetDefaults()
@@ -65,14 +64,15 @@ func TestQM(Te *testing.T) {
 	calc.HighBasis = "def2-TZVP"
 	calc.Grid = 4
 	calc.Memory = 1000
-	calc.HBAtoms = []int{3, 10, 12}
-	calc.HBElements = []string{"Cu", "Zn"}
-	calc.CConstraints = []int{0, 10, 20}
+	//	calc.HBAtoms = []int{3, 10, 12}
+	//	calc.HBElements = []string{"Cu", "Zn"}
+	calc.CConstraints = []int{0, 2}
 	calc.OldMO = true
 	orca := NewOrcaHandle()
-	orca.SetnCPU(16) /////////////////////
-	atoms := v3.Zeros(mol.Len())
-	mol.Next(atoms)
+	orca.SetnCPU(1) /////////////////////
+	orca.SetWorkDir("orca")
+	atoms := mol.Coords[0] //v3.Zeros(mol.Len())
+	//	mol.Next(atoms)
 	original_dir, _ := os.Getwd() //will check in a few lines
 	if err = os.Chdir("../test"); err != nil {
 		Te.Error(err)
@@ -96,39 +96,39 @@ func TestQM(Te *testing.T) {
 	fmt.Println(path)
 	//Now a MOPAC optimization with the same configuration.
 	mopac := NewMopacHandle()
+	mopac.SetWorkDir("mopac")
 	mopac.BuildInput(atoms, mol, calc)
-	mopaccommand := os.Getenv("MOPAC_LICENSE") + "/MOPAC2012.exe"
+	mopaccommand := os.Getenv("MOPAC_LICENSE") + "/MOPAC2016.exe"
 	mopac.SetCommand(mopaccommand)
 	fmt.Println("command", mopaccommand)
-	/*	if err := mopac.Run(true); err != nil {
-			if strings.Contains(err.Error(), "no such file") {
-				fmt.Println("Error", err.Error(), (" Will continue."))
-			} else {
-				Te.Error(err.Error())
-			}
+	if err := mopac.Run(true); err != nil {
+		if strings.Contains(err.Error(), "no such file") {
+			fmt.Println("Error", err.Error(), (" Will continue."))
+		} else {
+			Te.Error(err.Error())
 		}
-		energy, err := mopac.Energy()
-		if err != nil {
-			if err.Error() == "Probable problem in calculation" {
-				fmt.Println(err.Error())
-			} else {
-				Te.Error(err)
-			}
-		}
-		geometry, err := mopac.OptimizedGeometry(mol)
-		if err != nil {
-			if err.Error() == "Probable problem in calculation" {
-				fmt.Println(err.Error())
-			} else {
-				Te.Error(err)
-			}
-		}
-		mol.Coords[0] = geometry
-		fmt.Println(energy)
-		if err := XYZFileWrite("mopac.xyz", mol, mol.Coords[0]); err != nil {
+	}
+	energy, err := mopac.Energy()
+	if err != nil {
+		if err.Error() == "Probable problem in calculation" {
+			fmt.Println(err.Error())
+		} else {
 			Te.Error(err)
 		}
-	*/
+	}
+	geometry, err := mopac.OptimizedGeometry(mol)
+	if err != nil {
+		if err.Error() == "Probable problem in calculation" {
+			fmt.Println(err.Error())
+		} else {
+			Te.Error(err)
+		}
+	}
+	mol.Coords[0] = geometry
+	fmt.Println(energy)
+	if err := chem.XYZFileWrite("mopac.xyz", mol.Coords[0], mol); err != nil {
+		Te.Error(err)
+	}
 	//Took away this because it takes too long to run :-)
 	/*	if err=orca.Run(true); err!=nil{
 		Te.Error(err)
@@ -204,7 +204,6 @@ func TestTurbo(Te *testing.T) {
 	//	os.Chdir(original_dir)
 }
 
-/*
 func TestFermions(Te *testing.T) {
 	mol, err := chem.XYZFileRead("../test/ethanol.xyz")
 	if err != nil {
@@ -216,7 +215,7 @@ func TestFermions(Te *testing.T) {
 	mol.SetCharge(0)
 	mol.SetMulti(1)
 	calc := new(Calc)
-	calc.Job=Job{Opti:true}
+	calc.Job = Job{Opti: true}
 	calc.Method = "BLYP"
 	calc.Dielectric = 4
 	calc.Basis = "def2-SVP"
@@ -224,6 +223,7 @@ func TestFermions(Te *testing.T) {
 	calc.Dispersion = "D3"
 	calc.CConstraints = []int{0, 10, 20}
 	cs := NewFermionsHandle()
+	cs.SetWorkDir("fermions")
 	cs.SetName("gochemF")
 	atoms := mol.Coords[0]
 	original_dir, _ := os.Getwd() //will check in a few lines
@@ -232,11 +232,11 @@ func TestFermions(Te *testing.T) {
 	}
 	err = cs.BuildInput(atoms, mol, calc)
 	defer os.Chdir(original_dir)
-	E, err := cs.Energy()
-	if err != nil {
-		Te.Error(err)
-	}
-	fmt.Println("Final energy:", E, "kcal/mol")
+	//	E, err := cs.Energy()
+	//	if err != nil {
+	//		Te.Error(err)
+	//	}
+	//	fmt.Println("Final energy:", E, "kcal/mol")
 	//	ngeo,err:=cs.OptimizedGeometry(mol)
 	//	if err!=nil{
 	//		fmt.Println("Error with the geometry?: ", err.Error())
@@ -244,7 +244,6 @@ func TestFermions(Te *testing.T) {
 	//	chem.XYZFileWrite("LastGeoFermions.xyz",ngeo,mol)
 	fmt.Println("Passed FermiONs++ test!")
 }
-*/
 
 func qderror_handler(err error, Te *testing.T) {
 	if err != nil {
@@ -257,7 +256,7 @@ func qderror_handler(err error, Te *testing.T) {
 }
 
 func TestNWChem(Te *testing.T) {
-	mol, err := chem.XYZFileRead("../test/ethanol.xyz")
+	mol, err := chem.XYZFileRead("../test/water.xyz")
 	if err != nil {
 		Te.Error(err)
 	}
@@ -284,16 +283,21 @@ func TestNWChem(Te *testing.T) {
 	nw := NewNWChemHandle()
 	orca := NewOrcaHandle()
 	nw.SetName("gochem")
+	nw.SetnCPU(1)
+	nw.SetCommand("/usr/lib64/openmpi/bin/nwchem_openmpi")
 	orca.SetName("gochemII")
-	atoms := v3.Zeros(mol.Len())
-	mol.Next(atoms)
-	if err = os.Chdir("../test"); err != nil {
-		Te.Error(err)
-	}
+	nw.SetWorkDir("../test/nwchem")
+	orca.SetWorkDir("../test/nwchem")
+	atoms := mol.Coords[0] //v3.Zeros(mol.Len())
+	//	mol.Next(atoms)
+	//	if err = os.Chdir("../test"); err != nil {
+	//		Te.Error(err)
+	//	}
 	err = nw.BuildInput(atoms, mol, calc)
 	if err != nil {
 		Te.Error(err)
 	}
+	nw.Run(true)
 	_ = orca.BuildInput(atoms, mol, calc)
 	//The files are already in ./test.
 	os.Chdir("../test")
@@ -329,6 +333,7 @@ func TestXtb(Te *testing.T) {
 	calc.Dielectric = 4
 	xtb := NewXTBHandle()
 	xtb.SetName("XTBgochem")
+	xtb.SetWorkDir("xtb")
 	atoms := v3.Zeros(mol.Len())
 	mol.Next(atoms)
 	if err = os.Chdir("../test"); err != nil {

@@ -133,6 +133,9 @@ func (O *NWChemHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger
 	if O.inputname == "" {
 		O.inputname = "gochem"
 	}
+	if O.wrkdir != "" {
+		O.wrkdir = O.wrkdir + "/"
+	}
 	//The initial guess
 	vectors := fmt.Sprintf("output  %s.movecs", O.inputname) //The initial guess
 	switch Q.Guess {
@@ -265,9 +268,9 @@ func (O *NWChemHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger
 	//////////////////////////////////////////////////////////////
 	//Now lets write the thing. Ill process/write the basis later
 	//////////////////////////////////////////////////////////////
-	file, err := os.Create(fmt.Sprintf("%s.nw", O.inputname))
+	file, err := os.Create(fmt.Sprintf("%s.nw", O.wrkdir+O.inputname))
 	if err != nil {
-		return Error{err.Error(), NWChem, O.inputname, "", []string{"os.Create", "BuildInput"}, true}
+		return Error{err.Error(), NWChem, O.wrkdir + O.inputname, "", []string{"os.Create", "BuildInput"}, true}
 
 	}
 	defer file.Close()
@@ -275,6 +278,7 @@ func (O *NWChemHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger
 	if O.restart {
 		start = "restart"
 	}
+
 	_, err = fmt.Fprintf(file, "%s %s\n", start, O.inputname)
 	//after this check its assumed that the file is ok.
 	if err != nil {
@@ -374,9 +378,9 @@ func (O *NWChemHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger
 //only for unix-compatible systems, as it uses bash and nohup.
 func (O *NWChemHandle) Run(wait bool) (err error) {
 	if wait == true {
-		out, err := os.Create(fmt.Sprintf("%s.out", O.inputname))
+		out, err := os.Create(fmt.Sprintf("%s.out", O.wrkdir+O.inputname))
 		if err != nil {
-			return Error{ErrNotRunning, NWChem, O.inputname, err.Error(), []string{"os.Create", "Run"}, true}
+			return Error{ErrNotRunning, NWChem, O.wrkdir + O.inputname, err.Error(), []string{"os.Create", "Run"}, true}
 
 		}
 		defer out.Close()
@@ -469,7 +473,7 @@ func (O *NWChemHandle) OptimizedGeometry(atoms chem.Atomer) (*v3.Matrix, error) 
 	if !O.nwchemNormalTermination() {
 		err2 = Error{ErrProbableProblem, NWChem, O.inputname, "", []string{"OptimizedGeometry"}, false}
 	}
-	dir, err := os.Open("./")
+	dir, err := os.Open(O.wrkdir)
 	if err != nil {
 		return nil, Error{ErrNoGeometry, NWChem, O.inputname, err.Error(), []string{"os.Open", "OptimizedGeometry"}, true}
 	}
@@ -499,7 +503,7 @@ func (O *NWChemHandle) OptimizedGeometry(atoms chem.Atomer) (*v3.Matrix, error) 
 	if lastname == "" {
 		return nil, Error{ErrNoGeometry, NWChem, O.inputname, "", []string{"OptimizedGeometry"}, true}
 	}
-	mol, err := chem.XYZFileRead(lastname)
+	mol, err := chem.XYZFileRead(O.wrkdir + lastname)
 	if err != nil {
 		return nil, errDecorate(err, "qm.OptimizedGeometry "+" "+NWChem+" "+O.inputname+" "+ErrNoGeometry)
 	}
@@ -513,7 +517,7 @@ func (O *NWChemHandle) OptimizedGeometry(atoms chem.Atomer) (*v3.Matrix, error) 
 func (O *NWChemHandle) Energy() (float64, error) {
 	var err error
 	err = Error{ErrProbableProblem, NWChem, O.inputname, "", []string{"Energy"}, false}
-	f, err1 := os.Open(fmt.Sprintf("%s.out", O.inputname))
+	f, err1 := os.Open(fmt.Sprintf("%s.out", O.wrkdir+O.inputname))
 	if err1 != nil {
 		return 0, Error{ErrNoEnergy, NWChem, O.inputname, err1.Error(), []string{"os.Open", "Energy"}, true}
 	}
@@ -564,7 +568,7 @@ func (O *NWChemHandle) move2lines(fin *bufio.Reader) error {
 //abnormally-terminated NWChem calculation. (in this case error is "Probable problem
 //in calculation")
 func (O *NWChemHandle) Charges() ([]float64, error) {
-	f, err1 := os.Open(fmt.Sprintf("%s.out", O.inputname))
+	f, err1 := os.Open(fmt.Sprintf("%s.out", O.wrkdir+O.inputname))
 	if err1 != nil {
 		return nil, Error{ErrNoCharges, NWChem, O.inputname, err1.Error(), []string{"os.Open", "Charges"}, true}
 	}
@@ -615,7 +619,7 @@ func (O *NWChemHandle) Charges() ([]float64, error) {
 //I know this duplicates code, I wrote this one first and then the other one.
 func (O *NWChemHandle) nwchemNormalTermination() bool {
 	ret := false
-	f, err1 := os.Open(fmt.Sprintf("%s.out", O.inputname))
+	f, err1 := os.Open(fmt.Sprintf("%s.out", O.wrkdir+O.inputname))
 	if err1 != nil {
 		return false
 	}

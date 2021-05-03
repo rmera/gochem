@@ -113,6 +113,9 @@ func (O *OrcaHandle) SetDefaults() {
 //BuildInput builds an input for ORCA based int the data in atoms, coords and C.
 //returns only error.
 func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q *Calc) error {
+	if O.wrkdir != "" {
+		O.wrkdir = O.wrkdir + "/"
+	}
 	//Only error so far
 	if atoms == nil || coords == nil {
 		return Error{ErrMissingCharges, Orca, O.inputname, "", []string{"BuildInput"}, true}
@@ -265,7 +268,7 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 	if O.inputname == "" {
 		O.inputname = "gochem"
 	}
-	file, err := os.Create(fmt.Sprintf("%s.inp", O.inputname))
+	file, err := os.Create(fmt.Sprintf("%s.inp", O.wrkdir+O.inputname))
 	if err != nil {
 		return Error{ErrCantInput, Orca, O.inputname, err.Error(), []string{"os,Open", "BuildInput"}, true}
 
@@ -449,7 +452,7 @@ var orcaDisp = map[string]string{
   the error is "probable problem in calculation"*/
 func (O *OrcaHandle) OptimizedGeometry(atoms chem.Atomer) (*v3.Matrix, error) {
 	var err error
-	geofile := fmt.Sprintf("%s.xyz", O.inputname)
+	geofile := fmt.Sprintf("%s.xyz", O.wrkdir+O.inputname)
 	//Here any error of orcaNormal... or false means the same, so the error can be ignored.
 	if trust := O.orcaNormalTermination(); !trust {
 		err = Error{ErrProbableProblem, Orca, O.inputname, "", []string{"OptimizedGeometry"}, false}
@@ -469,7 +472,7 @@ func (O *OrcaHandle) OptimizedGeometry(atoms chem.Atomer) (*v3.Matrix, error) {
 func (O *OrcaHandle) Energy() (float64, error) {
 	var err error
 	err = Error{ErrProbableProblem, Orca, O.inputname, "", []string{"Energy"}, false}
-	f, err1 := os.Open(fmt.Sprintf("%s.out", O.inputname))
+	f, err1 := os.Open(fmt.Sprintf("%s.out", O.wrkdir+O.inputname))
 	if err1 != nil {
 		return 0, Error{ErrNoEnergy, Orca, O.inputname, err.Error(), []string{"os.Open", "qm.Energy"}, true}
 	}
@@ -537,7 +540,7 @@ func (O *OrcaHandle) orcaNormalTermination() bool {
 	var end int64 = 0
 	var first bool
 	buf := make([]byte, 1)
-	f, err := os.Open(fmt.Sprintf("%s.out", O.inputname))
+	f, err := os.Open(fmt.Sprintf("%s.out", O.wrkdir+O.inputname))
 	if err != nil {
 		return false
 	}
