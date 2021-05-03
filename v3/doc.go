@@ -17,11 +17,10 @@
  * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
- * Gochem is developed at the laboratory for instruction in Swedish, Department of Chemistry,
- * University of Helsinki, Finland.
  *
- */
-/***Dedicated to the long life of the Ven. Khenpo Phuntzok Tenzin Rinpoche***/
+ * Dedicated to the long life of the Ven. Khenpo Phuntzok Tenzin Rinpoche
+ * 
+ * */
 
 /*Package v3 implements a Matrix type representing a row-major 3D matrix (i.e. a Nx3 matrix).
 The v3.Matrix is used to represent the cartesian coordinates of sets of atoms in goChem.

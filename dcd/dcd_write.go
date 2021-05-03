@@ -1,8 +1,8 @@
 // +build !goyira
 /*
- * dcd.go, part of gochem
+ * dcd_write.go, part of gochem
  *
- * Copyright 2012 Raul Mera Adasme <rmera_changeforat_chem-dot-helsinki-dot-fi>
+ * Copyright 2021 Raul Mera Adasme <rmera_changeforat_chem-dot-helsinki-dot-fi>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License  as published by
@@ -18,15 +18,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA 02110-1301, USA.
- */
-/*
- *
- * Gochem is developed at the laboratory for instruction in Swedish, Department of Chemistry,
- * University of Helsinki, Finland.
- *
  *
  */
-/***Dedicated to the long life of the Ven. Khenpo Phuntzok Tenzin Rinpoche***/
+
 
 package dcd
 

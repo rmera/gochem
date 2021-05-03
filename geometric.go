@@ -21,7 +21,7 @@
  *
  *
 */
-/***Dedicated to the long life of the Ven. Khenpo Phuntzok Tenzin Rinpoche***/
+
 
 package chem
 

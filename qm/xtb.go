@@ -19,15 +19,12 @@
  * <http://www.gnu.org/licenses/>.
  *
  *
- * Gochem is developed at the laboratory for instruction in Swedish, Department of Chemistry,
- * University of Helsinki, Finland.
- *
  *
  */
 //In order to use this part of the library you need the xtb program, which must be obtained from Prof. Stefan Grimme's group.
 //Please cite the the xtb references if you used the program.
 
-/***Dedicated to the long life of the Ven. Khenpo Phuntzok Tenzin Rinpoche***/
+
 
 package qm
 
