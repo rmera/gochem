@@ -213,6 +213,7 @@ func FrameUMolCRDF(coord *v3.Matrix, mol Atomer, refindexes []int, residues []st
 	for i := 1; i <= totalsteps; i++ {
 		limit := float64(i) * step
 		n := 0
+		//This should be replaced with a binary search.
 		for _, v := range dists {
 			if v > limit {
 				break
