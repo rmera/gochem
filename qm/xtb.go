@@ -240,6 +240,7 @@ func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q
 
 	Q.Job.Do(jc)
 	xcontrol.Close()
+	O.options = append(O.options, Q.Others)
 	return nil
 }
 
@@ -414,6 +415,38 @@ func (O *XTBHandle) LargestImaginary() (float64, error) {
 	return largestimag, nil
 }
 
+func (O *XTBHandle) FixImaginary(wait bool) (error) {
+	var com string
+	if O.gfnff {
+		com = fmt.Sprintf(" --gfnff xtbhess.coord  --input %s.inp  %s > %s.out  2>&1" strings.Join(O.options[2:], " "), O.inputname)
+	} else {
+
+		com = fmt.Sprintf(" xtbhess.coord  --input %s.inp  %s > %s.out  2>&1", O.inputname, strings.Join(O.options[2:], " "), O.inputname)
+	}
+	if wait == true {
+		//log.Printf(com) //this is stderr, I suppose
+		command := exec.Command("sh", "-c", O.command+com)
+		command.Dir = O.wrkdir
+		err = command.Run()
+
+	} else {
+		command := exec.Command("sh", "-c", "nohup "+O.command+com)
+		command.Dir = O.wrkdir
+		err = command.Start()
+	}
+	if err != nil {
+		err = Error{ErrNotRunning, XTB, O.inputname, err.Error(), []string{"exec.Start", "Run"}, true}
+	}
+	if err != nil {
+		return err
+	}
+	os.Remove("xtbrestart")
+	return nil
+
+
+}
+
+
 //Gets the Gibbs free energy of a previous XTB calculations.
 //A frequencies/solvation calculation is needed for this to work. FreeEnergy does _not_ check that the structure was at a minimum. You can check that with
 //the LargestIm
@@ -508,6 +541,7 @@ var dielectric2Solvent = map[int]string{
 	37:   "acetonitrile",
 	33:   "methanol",
 	2:    "toluene",
+	1: "hexane" //not quite 1
 	7:    "thf",
 	47:   "dmso",
 	38:   "dmf",
