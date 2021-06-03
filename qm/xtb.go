@@ -415,10 +415,14 @@ func (O *XTBHandle) LargestImaginary() (float64, error) {
 	return largestimag, nil
 }
 
-func (O *XTBHandle) FixImaginary(wait bool) (error) {
+func (O *XTBHandle) FixImaginary(wait bool) error {
 	var com string
+	var err error
+	if _, err := os.Stat("xtbhess.coord"); os.IsNotExist(err) {
+		return fmt.Errorf("xtbhess.coord doesn't exist. There is likely no significant imaginary mode")
+	}
 	if O.gfnff {
-		com = fmt.Sprintf(" --gfnff xtbhess.coord  --input %s.inp  %s > %s.out  2>&1" strings.Join(O.options[2:], " "), O.inputname)
+		com = fmt.Sprintf(" --gfnff xtbhess.coord  --input %s.inp  %s > %s.out  2>&1", strings.Join(O.options[2:], " "), O.inputname)
 	} else {
 
 		com = fmt.Sprintf(" xtbhess.coord  --input %s.inp  %s > %s.out  2>&1", O.inputname, strings.Join(O.options[2:], " "), O.inputname)
@@ -443,9 +447,7 @@ func (O *XTBHandle) FixImaginary(wait bool) (error) {
 	os.Remove("xtbrestart")
 	return nil
 
-
 }
-
 
 //Gets the Gibbs free energy of a previous XTB calculations.
 //A frequencies/solvation calculation is needed for this to work. FreeEnergy does _not_ check that the structure was at a minimum. You can check that with
@@ -541,7 +543,7 @@ var dielectric2Solvent = map[int]string{
 	37:   "acetonitrile",
 	33:   "methanol",
 	2:    "toluene",
-	1: "hexane" //not quite 1
+	1:    "hexadecane", //not quite 1
 	7:    "thf",
 	47:   "dmso",
 	38:   "dmf",
