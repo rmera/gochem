@@ -25,7 +25,6 @@
  *
  */
 
-
 package chem
 
 import (
