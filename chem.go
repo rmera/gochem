@@ -22,7 +22,6 @@
  *
  */
 
-
 package chem
 
 import (
@@ -44,6 +43,7 @@ import (
 type Atom struct {
 	Name      string  //PDB name of the atom
 	ID        int     //The PDB index of the atom
+	Index     int     //The place of the atom in a set
 	Tag       int     //Just added this for something that someone might want to keep that is not a float.
 	Molname   string  //PDB name of the residue or molecule (3-letter code for residues)
 	Molname1  byte    //the one letter name for residues and nucleotids
@@ -55,7 +55,8 @@ type Atom struct {
 	Vdw       float64 //radius
 	Charge    float64 //Partial charge on an atom
 	Symbol    string
-	Het       bool // is the atom an hetatm in the pdb file? (if applicable)
+	Het       bool    // is the atom an hetatm in the pdb file? (if applicable)
+	Bonds     []*Bond //The bonds connecting the atom to others.
 }
 
 //Atom methods
@@ -138,7 +139,15 @@ func (T *Topology) FillMasses() {
 	}
 }
 
-//Sets the current order of atoms as Id and the order of molecules as
+//Fills the Index value of each atom with the cooresponding to its place in the molecule.
+func (T *Topology) FillIndexes() {
+	for key, val := range T.Atoms {
+		val.Index = key
+	}
+
+}
+
+//Sets the current order of atoms as ID and the order of molecules as
 //MolID for all atoms
 func (T *Topology) ResetIDs() {
 	currid := 1

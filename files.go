@@ -40,34 +40,6 @@ import (
 
 //PDB_read family
 
-//A map for assigning mass to elements.
-//Note that just common "bio-elements" are present
-var symbolMass = map[string]float64{
-	"H":  1.0,
-	"C":  12.01,
-	"O":  16.00,
-	"N":  14.01,
-	"P":  30.97,
-	"S":  32.06,
-	"Se": 78.96,
-	"K":  39.1,
-	"Ca": 40.08,
-	"Mg": 24.30,
-	"Cl": 35.45,
-	"Na": 22.99,
-	"Cu": 63.55,
-	"Zn": 65.38,
-	"Co": 58.93,
-	"Fe": 55.84,
-	"Mn": 54.94,
-	"Cr": 51.996,
-	"Si": 28.08,
-	"Be": 9.012,
-	"F":  18.998,
-	"Br": 79.904,
-	"I":  126.90,
-}
-
 //A map between 3-letters name for aminoacidic residues to the corresponding 1-letter names.
 var three2OneLetter = map[string]byte{
 	"SER": 'S',
