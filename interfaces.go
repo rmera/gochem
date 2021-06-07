@@ -73,11 +73,6 @@ type Atomer interface {
 	Len() int
 }
 
-type AtomIndexesFiller interface {
-	Atomer
-	FillIndexes()
-}
-
 //AtomChargerMultier is atomer but also gives a
 //charge and multiplicity
 type AtomMultiCharger interface {

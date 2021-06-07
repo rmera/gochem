@@ -58,7 +58,7 @@ var symbolMass = map[string]float64{
 //Values from Cordero et al., 2008 (DOI:10.1039/B801115J)
 //Note that just common "bio-elements" are present
 var symbolCovrad = map[string]float64{
-	"H":  0.31,
+	"H":  0.4,  // 0.31 I altered this one. Since H always has only one bond, it doesn't matter if I set a longer radius, the extra bonds will get eliminated later.
 	"C":  0.76, //the sp3 radius
 	"O":  0.66,
 	"N":  0.71,

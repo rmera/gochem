@@ -64,7 +64,7 @@ func TestXYZIO(Te *testing.T) {
 	XYZFileWrite("test/sampleFirst.xyz", mol.Coords[0], mol)
 }
 
-func TestPDBIO(Te *testing.T) {
+func TTestPDBIO(Te *testing.T) {
 	mol, err := PDBFileRead("test/2c9v.pdb", true)
 	if err != nil {
 		Te.Error(err)
@@ -408,7 +408,7 @@ func TTestShape(Te *testing.T) {
 }
 
 //Here PDBRead and PDBWrite are tested
-func TestSuper(Te *testing.T) {
+func TTestSuper(Te *testing.T) {
 	backbone := []string{"CA", "C", "N"} //The PDB name of the atoms in the backbone.
 	myhandle, _ := os.Open("test/2c9v.pdb")
 	mol1, err := PDBRead(myhandle, true) //true means that we try to read the symbol from the PDB file.
@@ -531,4 +531,38 @@ func TestProjectionAndAntiProjection(Te *testing.T) {
 	fmt.Println("Projection of B on A (D)", D)
 	fmt.Println("Anti-projection of A on B (C):", C)
 	fmt.Println("Norm of C: ", C.Norm(0), " Norm of A,B: ", A.Norm(0), B.Norm(0), "Norm of D:", D.Norm(0))
+}
+
+func TestBondsBz(Te *testing.T) {
+	runtime.GOMAXPROCS(2)
+	fmt.Println("Bonds a la carga!")
+	mol, err := XYZFileRead("test/BZBonds.xyz")
+	if err != nil {
+		panic(err.Error())
+	}
+	var C *Atom
+
+	for i := 0; i < mol.Len(); i++ {
+		C = mol.Atoms[i]
+		if C.Symbol == "C" {
+			break
+		}
+	}
+	mol.AssignBonds(mol.Coords[0])
+	for i, v := range mol.Atoms {
+		fmt.Printf("Atom %d index %d %s has %d bonds. It's bonded to atoms:\n", i, v.Index, v.Symbol, len(v.Bonds))
+		for _, w := range v.Bonds {
+			a := w.Cross(v)
+			fmt.Printf("Atom: %d %s\n", a.Index, a.Symbol)
+		}
+		fmt.Printf("\n")
+
+	}
+
+	path := ShortestOrLongestPath(C, C.Index, true)
+	if path == nil {
+		Te.Errorf("No path found!")
+	}
+	fmt.Printf("Path %v has %d nodes", path, len(path))
+
 }

@@ -26,6 +26,7 @@ package chem
 
 import (
 	"fmt"
+	"sort"
 
 	v3 "github.com/rmera/gochem/v3"
 )
@@ -269,6 +270,75 @@ func (T *Topology) Masses() ([]float64, error) {
 		mass[i] = thisatom.Mass
 	}
 	return mass, nil
+}
+
+//Assigns bonds to a molecule based on a simple distance
+//criterium, similar to that described in DOI:10.1186/1758-2946-3-33
+func (T *Topology) AssignBonds(coord *v3.Matrix) error {
+	// might get slow for
+	//large systems. It's really not thought
+	//for proteins or macromolecules.
+	var t1, t2 *v3.Matrix
+	var at1, at2 *Atom
+	T.FillIndexes()
+	t3 := v3.Zeros(1)
+	bonds := make([]*Bond, 0, 10)
+	tot := T.Len()
+	var nextIndex int
+	for i := 0; i < tot; i++ {
+		t1 = coord.VecView(i)
+		at1 = T.Atoms[i]
+		cov1 := symbolCovrad[at1.Symbol]
+		if cov1 == 0 {
+			err := new(CError)
+			err.msg = fmt.Sprintf("Couldn't find the covalent radii  for %s %d", at1.Symbol, i)
+			err.Decorate("AssignBonds")
+			return err
+		}
+		for j := i + 1; j < tot; j++ {
+			t2 = coord.VecView(j)
+			at2 = T.Atoms[j]
+			cov2 := symbolCovrad[at2.Symbol]
+			if cov2 == 0 {
+				err := new(CError)
+				err.msg = fmt.Sprintf("Couldn't find the covalent radii  for %s %d", at2.Symbol, j)
+				err.Decorate("AssignBonds")
+				return err
+			}
+
+			t3.Sub(t2, t1)
+			d := t3.Norm(2)
+			if d < cov1+cov2+bondtol && d > tooclose {
+				b := &Bond{Index: nextIndex, Dist: d, At1: at1, At2: at2}
+				at1.Bonds = append(at1.Bonds, b)
+				at2.Bonds = append(at2.Bonds, b)
+				bonds = append(bonds, b) //just to easily keep track of them.
+				nextIndex++
+			}
+
+		}
+	}
+
+	//Now we check that no atom has too many bonds.
+	for i := 0; i < tot; i++ {
+		at := T.Atoms[i]
+		max := symbolMaxBonds[at.Symbol]
+		if max == 0 { //means there is not a specified number of bonds for this atom.
+			continue
+		}
+		sort.Slice(at.Bonds, func(i, j int) bool { return at.Bonds[i].Dist < at.Bonds[j].Dist })
+		//I am hoping this will remove bonds until len(at.Bonds) is not
+		//greater than max.
+		for i := len(at.Bonds); i > max; i = len(at.Bonds) {
+			err := at.Bonds[len(at.Bonds)-1].Remove() //we remove the longest bond
+			if err != nil {
+				return errDecorate(err, "AssignBonds")
+			}
+		}
+
+	}
+
+	return nil
 }
 
 /**Type Molecule**/
