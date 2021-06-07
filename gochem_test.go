@@ -563,6 +563,37 @@ func TestBondsBz(Te *testing.T) {
 	if path == nil {
 		Te.Errorf("No path found!")
 	}
-	fmt.Printf("Path %v has %d nodes", path, len(path))
+	fmt.Printf("Path %v has %d nodes\n", path, len(path))
+
+}
+
+func TestBondsPorf(Te *testing.T) {
+	runtime.GOMAXPROCS(2)
+	fmt.Println("A por las tienoporfi!")
+	mol, err := XYZFileRead("test/sample_plane.xyz")
+	if err != nil {
+		panic(err.Error())
+	}
+	var S *Atom
+
+	for i := 0; i < mol.Len(); i++ {
+		S = mol.Atoms[i]
+		if S.Symbol == "S" {
+			break
+		}
+	}
+	mol.AssignBonds(mol.Coords[0])
+
+	path := ShortestOrLongestPath(S, S.Index, true)
+	if path == nil {
+		Te.Errorf("No short path found!")
+	}
+	fmt.Printf("Short path %v has %d nodes\n", path, len(path))
+
+	longpath := ShortestOrLongestPath(S, S.Index, false)
+	if longpath == nil {
+		Te.Errorf("No long path found!")
+	}
+	fmt.Printf("Long path %v has %d nodes\n", longpath, len(longpath))
 
 }

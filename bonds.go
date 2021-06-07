@@ -107,10 +107,10 @@ func takefromslice(bonds []*Bond, id int) []*Bond {
 //of len 0, the function will not return. This means that the function can be used to search for
 //a cyclic path back to the initial atom.
 func ShortestOrLongestPath(at *Atom, targetIndex int, shortest bool, path ...[]int) []int {
-	//	fmt.Println("yeeeey", at.Index, targetIndex, at.Bonds) /////////////
-
-	if len(path) > 0 && len(path[0]) > 1 && at.Index == path[0][len(path[0])-2] {
-		return nil //means we took the same bond back to the previous node, not a valid path.
+	//fmt.Println("yeeeey", at.Index, targetIndex, at.Bonds) /////////////
+	if len(path) > 0 && len(path[0]) > 1 && path[0][len(path[0])-2] == at.Index {
+		return nil //We are back to the atom we just had visited, not a valid path. We have to check this before checking if we completed the "quest"
+		//or, by just going back via the same bond, it would seem like we are at the finishing line.
 	}
 	if len(path) == 0 {
 		path = append(path, []int{at.Index})
@@ -120,11 +120,17 @@ func ShortestOrLongestPath(at *Atom, targetIndex int, shortest bool, path ...[]i
 	} else {
 		path[0] = append(path[0], at.Index)
 	}
-	fmt.Printf("last visited is %v\n", path[0])
+
+	//fmt.Printf("last visited is %v\n", path[0])
 	if at.Index == targetIndex && len(path[0]) > 1 {
 		return path[0] //We arrived! Note that if the starting node is the same as the target, we will
 		//only settle for a "cyclic" path that goes through at least another atom (really, at least 2 more atoms).
 		// We will not immediately return success on the first node. This is enforced by the len(path[0]>1 condition.
+	}
+	//Here we check that we are not back to an atom we previously visited. This checks for loops, and has to be performed
+	//after we check if we got to the goal, since the goal could be the same starting atom (if we look for a cyclic path).
+	if len(path[0]) > 1 && isInInt(path[0][:len(path[0])-1], at.Index) {
+		return nil //means we took the same bond back to the previous node, or got trapped in a loop. not a valid path.
 	}
 	if len(at.Bonds) <= 1 {
 		return nil //means that we hit an end of the road. There is only one bond in the atom (i.e. the one leading to the previous node)
@@ -148,6 +154,7 @@ func ShortestOrLongestPath(at *Atom, targetIndex int, shortest bool, path ...[]i
 	if shortest {
 		return rets2[0]
 	}
+	//	fmt.Println("returned longest", rets2, rets2[len(rets2)-1])
 	return rets2[len(rets2)-1]
 
 }
