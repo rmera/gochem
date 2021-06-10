@@ -29,12 +29,14 @@ package chem
 import (
 	"fmt"
 	"sort"
+
+	v3 "github.com/rmera/gochem/v3"
 )
 
 //constants from DOI:10.1186/1758-2946-3-33
 const (
 	tooclose = 0.63
-	bondtol  = 0.045
+	bondtol  = 0.045 //the reference actually says 0.45 A but I strongly suspect that is a typo.
 )
 
 type Bond struct {
@@ -48,10 +50,10 @@ type Bond struct {
 //Cross returs the atom bonded to the origin atom
 //by the received bond.
 func (B *Bond) Cross(origin *Atom) *Atom {
-	if origin.Index == B.At1.Index {
+	if origin.index == B.At1.index {
 		return B.At2
 	}
-	if origin.Index == B.At2.Index {
+	if origin.index == B.At2.index {
 		return B.At1
 	}
 	panic("Trying to cross a bond: The origin atom given is not present in the bond!") //I think this got to be a programming error, so a panic is warranted.
@@ -68,7 +70,7 @@ func (b *Bond) Remove() error {
 	errs := 0
 	err.msg = fmt.Sprintf("Failed to remove bond Index:%d", b.Index)
 	if len(b.At1.Bonds) == lenb1 {
-		err.msg = err.msg + fmt.Sprintf("from atom. Index:%d", b.At1.Index)
+		err.msg = err.msg + fmt.Sprintf("from atom. Index:%d", b.At1.index)
 		err.Decorate("RemoveBond")
 		errs++
 	}
@@ -77,7 +79,7 @@ func (b *Bond) Remove() error {
 		if errs > 0 {
 			err.msg = err.msg + " and"
 		}
-		err.msg = err.msg + fmt.Sprintf("from atom. Index:%d", b.At2.Index)
+		err.msg = err.msg + fmt.Sprintf("from atom. Index:%d", b.At2.index)
 		err.Decorate("RemoveBond")
 		errs++
 	}
@@ -98,38 +100,41 @@ func takefromslice(bonds []*Bond, id int) []*Bond {
 	return newb
 }
 
-//ShortestOrLongestPath determines the shortest or longest bonded path between at and the atom with
-//Index targetIndex. It returns a slice containing all the atoms in between at and the target (including
-//the Index of at) or nil, if there is no valid path between the atoms. "path" is the the path
+//BondedPaths determines the paths between at and the atom with
+//Index targetIndex. It returns a slice of slices of int, where each sub-slice contains all the atoms
+//in between at and the target (including the Index of at) or nil
+//If there is no valid path, it returns nil. "path" is the the path
 //already "walked", so, in a new search, it should not be given (although a nil value, or an empty slice
-//will also work. All atoms in the molecule need to have the "Index" field filled.
-//Even the targetIndex is the same as that of the current atom, and the path is not given, nil, or
+//will also work). All atoms in the molecule need to have the "Index" field filled.
+//If the targetIndex is the same as that of the current atom, and the path is not given, nil, or
 //of len 0, the function will not return. This means that the function can be used to search for
 //a cyclic path back to the initial atom.
-func ShortestOrLongestPath(at *Atom, targetIndex int, shortest bool, path ...[]int) []int {
+//if onlyshortest is true, only the shortest path will be returned (the other elements of the slice will be nil)
+//This can be useful if you want to save memory on a very intrincate molecule.  <--I'm  not sure if this should stay.
+func BondedPaths(at *Atom, targetIndex int, onlyshortest bool, path ...[]int) [][]int {
 	//fmt.Println("yeeeey", at.Index, targetIndex, at.Bonds) /////////////
-	if len(path) > 0 && len(path[0]) > 1 && path[0][len(path[0])-2] == at.Index {
+	if len(path) > 0 && len(path[0]) > 1 && path[0][len(path[0])-2] == at.index {
 		return nil //We are back to the atom we just had visited, not a valid path. We have to check this before checking if we completed the "quest"
 		//or, by just going back via the same bond, it would seem like we are at the finishing line.
 	}
 	if len(path) == 0 {
-		path = append(path, []int{at.Index})
+		path = append(path, []int{at.index})
 	} else if path[0] == nil {
-		path[0] = []int{at.Index}
+		path[0] = []int{at.index}
 
 	} else {
-		path[0] = append(path[0], at.Index)
+		path[0] = append(path[0], at.index)
 	}
 
 	//fmt.Printf("last visited is %v\n", path[0])
-	if at.Index == targetIndex && len(path[0]) > 1 {
-		return path[0] //We arrived! Note that if the starting node is the same as the target, we will
+	if at.index == targetIndex && len(path[0]) > 1 {
+		return [][]int{path[0]} //We arrived! Note that if the starting node is the same as the target, we will
 		//only settle for a "cyclic" path that goes through at least another atom (really, at least 2 more atoms).
 		// We will not immediately return success on the first node. This is enforced by the len(path[0]>1 condition.
 	}
 	//Here we check that we are not back to an atom we previously visited. This checks for loops, and has to be performed
 	//after we check if we got to the goal, since the goal could be the same starting atom (if we look for a cyclic path).
-	if len(path[0]) > 1 && isInInt(path[0][:len(path[0])-1], at.Index) {
+	if len(path[0]) > 1 && isInInt(path[0][:len(path[0])-1], at.index) {
 		return nil //means we took the same bond back to the previous node, or got trapped in a loop. not a valid path.
 	}
 	if len(at.Bonds) <= 1 {
@@ -139,7 +144,7 @@ func ShortestOrLongestPath(at *Atom, targetIndex int, shortest bool, path ...[]i
 	for _, v := range at.Bonds {
 		path2 := make([]int, len(path[0]))
 		copy(path2, path[0])
-		rets = append(rets, ShortestOrLongestPath(v.Cross(at), targetIndex, shortest, path2)) //scary stuff
+		rets = append(rets, BondedPaths(v.Cross(at), targetIndex, onlyshortest, path2)...) //scary stuff
 	}
 	rets2 := make([][]int, 0, len(at.Bonds))
 	for _, v := range rets {
@@ -151,10 +156,100 @@ func ShortestOrLongestPath(at *Atom, targetIndex int, shortest bool, path ...[]i
 		return nil
 	}
 	sort.Slice(rets2, func(i, j int) bool { return len(rets2[i]) < len(rets2[j]) })
-	if shortest {
-		return rets2[0]
+	if onlyshortest {
+		return [][]int{rets2[0]}
 	}
-	//	fmt.Println("returned longest", rets2, rets2[len(rets2)-1])
-	return rets2[len(rets2)-1]
+	return rets2
 
+}
+
+type Ring struct {
+	Atoms     []int
+	planarity float64
+}
+
+func (R *Ring) IsIn(index int) bool {
+	return isInInt(R.Atoms, index)
+}
+
+func (R *Ring) Size() int {
+	return len(R.Atoms)
+}
+
+//Returns the planarity of the ring
+//You must ensure that the coords indeed correspond to
+//the molecule for which the Ring object is defined
+//There is no way to check for that here.
+func (R *Ring) Planarity(coord *v3.Matrix) float64 {
+	if R.planarity != 0 {
+		return R.planarity
+	}
+	c := v3.Zeros(coord.NVecs())
+	c.SomeVecs(coord, R.Atoms)
+	_, plan, err := EasyShape(c, 0.01)
+	if err != nil {
+		R.planarity = -1
+		return -1
+	}
+	R.planarity = plan
+	return plan
+
+}
+
+//Adds to the ring the H atoms bonded to its members
+//It will panic if an atom of the ring is not
+//found in the molecule, or is not bonded to anything
+//So you need to ensure that the Atomer corresponds
+//to the molecule for which the Ring object is defined.
+func (R *Ring) AddHs(mol Atomer) {
+	newind := make([]int, 0, 6)
+	for _, v := range R.Atoms {
+		at := mol.Atom(v) //this can panic if you give the wrong mol object
+		for _, w := range at.Bonds {
+			at2 := w.Cross(at)
+			if at2.Symbol == "H" {
+				newind = append(newind, at2.index)
+			}
+
+		}
+	}
+	R.Atoms = append(R.Atoms, newind...)
+}
+
+//return the index of the first ring found to which the
+//at atom belongs, or -1 if the atom is not part of any ring.
+func InWhichRing(at *Atom, rings []*Ring) int {
+	if len(rings) == 0 {
+		return -1
+	}
+	for i, v := range rings {
+		if v.IsIn(at.index) {
+			return i
+		}
+	}
+	return -1
+
+}
+
+func FindRings(coords *v3.Matrix, mol Atomer) []*Ring {
+	L := mol.Len()
+	var rings []*Ring
+	minplanarity := 95.0
+	for i := 0; i < L; i++ {
+		at := mol.Atom(i)
+		if InWhichRing(at, rings) == -1 {
+			paths := BondedPaths(at, at.index, true)
+			if len(paths) == 0 || len(paths[0][1:]) > 6 {
+				continue
+			}
+			r := &Ring{Atoms: paths[0]}
+			p := r.Planarity(coords)
+			if p > minplanarity {
+				r.AddHs(mol)
+				rings = append(rings, r)
+			}
+		}
+
+	}
+	return rings
 }

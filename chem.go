@@ -44,7 +44,7 @@ import (
 type Atom struct {
 	Name      string  //PDB name of the atom
 	ID        int     //The PDB index of the atom
-	Index     int     //The place of the atom in a set
+	index     int     //The place of the atom in a set. I won't make it accessible to ensure that it does correspond to the ordering.
 	Tag       int     //Just added this for something that someone might want to keep that is not a float.
 	Molname   string  //PDB name of the residue or molecule (3-letter code for residues)
 	Molname1  byte    //the one letter name for residues and nucleotids
@@ -81,6 +81,10 @@ func (N *Atom) Copy(A *Atom) {
 	N.Charge = A.Charge
 	N.Symbol = A.Symbol
 	N.Het = A.Het
+}
+
+func (N *Atom) Index() int {
+	return N.index
 }
 
 /*****Topology type***/
@@ -143,7 +147,7 @@ func (T *Topology) FillMasses() {
 //Fills the Index value of each atom with the cooresponding to its place in the molecule.
 func (T *Topology) FillIndexes() {
 	for key, val := range T.Atoms {
-		val.Index = key
+		val.index = key
 	}
 
 }
@@ -278,6 +282,9 @@ func (T *Topology) AssignBonds(coord *v3.Matrix) error {
 	// might get slow for
 	//large systems. It's really not thought
 	//for proteins or macromolecules.
+	//For this reason, this method is not called automatically when building a new topology.
+	//Well, that and that it requires a Matrix object, which would mean changing the
+	//signature of the NewTopology function.
 	var t1, t2 *v3.Matrix
 	var at1, at2 *Atom
 	T.FillIndexes()
