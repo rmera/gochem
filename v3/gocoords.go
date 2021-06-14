@@ -22,7 +22,6 @@
  *
  */
 
-
 //Package chem provides atom and molecule structures, facilities for reading and writing some
 //files used in computational chemistry and some functions for geometric manipulations and shape
 //indicators.
@@ -31,9 +30,10 @@ package v3
 
 import (
 	"fmt"
-	"gonum.org/v1/gonum/mat"
 	"math"
 	"strings"
+
+	"gonum.org/v1/gonum/mat"
 )
 
 const appzero float64 = 0.000000000001 //used to correct floating point
@@ -303,7 +303,7 @@ func (F *Matrix) Unit(A *Matrix) {
 	if A.Dense != F.Dense {
 		F.Copy(A)
 	}
-	norm := 1.0 / F.Norm(0)
+	norm := 1.0 / F.Norm(2)
 	F.Scale(norm, F)
 }
 

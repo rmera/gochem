@@ -22,7 +22,6 @@
  *
 */
 
-
 package chem
 
 import (
@@ -40,7 +39,7 @@ import (
 //Angle takes 2 vectors and calculate the angle in radians between them
 //It does not check for correctness or return errors!
 func Angle(v1, v2 *v3.Matrix) float64 {
-	normproduct := v1.Norm(0) * v2.Norm(0)
+	normproduct := v1.Norm(2) * v2.Norm(2)
 	dotprod := v1.Dot(v2)
 	argument := dotprod / normproduct
 	//Take care of floating point math errors
@@ -323,7 +322,7 @@ func rMSD(test, template *v3.Matrix, testlst, templalst []int) (float64, error) 
 	var RMSD float64
 	for i := 0; i < ctempla.NVecs(); i++ {
 		temp := ctempla2.VecView(i)
-		RMSD += math.Pow(temp.Norm(0), 2)
+		RMSD += math.Pow(temp.Norm(2), 2)
 	}
 	RMSD = RMSD / float64(tr)
 	RMSD = math.Sqrt(RMSD)
@@ -449,7 +448,7 @@ func Dihedral(a, b, c, d *v3.Matrix) float64 {
 	bma.Sub(b, a)
 	cmb.Sub(c, b)
 	dmc.Sub(d, c)
-	bmascaled.Scale(cmb.Norm(0), bma)
+	bmascaled.Scale(cmb.Norm(2), bma)
 	first := bmascaled.Dot(cross(cmb, dmc))
 	v1 := cross(bma, cmb)
 	v2 := cross(cmb, dmc)
@@ -672,7 +671,7 @@ func Projection(test, ref *v3.Matrix) *v3.Matrix {
 //in the direction of test.
 func AntiProjection(test, ref *v3.Matrix) *v3.Matrix {
 	rr, _ := ref.Dims()
-	testnorm := test.Norm(0)
+	testnorm := test.Norm(2)
 	Uref := v3.Zeros(rr)
 	Uref.Unit(ref)
 	scalar := test.Dot(Uref)

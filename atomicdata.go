@@ -83,6 +83,36 @@ var symbolCovrad = map[string]float64{
 	"I":  1.39,
 }
 
+//A map for assigning van der Waals radii to elements
+//Values from 10.1021/j100785a001 and 10.1021/jp8111556
+//metal radii from 10.1023/A:1011625728803
+//Note that just common "bio-elements" are present
+var symbolVdwrad = map[string]float64{
+	"H":  1.10, // 0.31 I altered this one. Since H always has only one bond, it doesn't matter if I set a longer radius, the extra bonds will get eliminated later.
+	"C":  1.70, //the sp3 radius
+	"O":  1.52,
+	"N":  1.55,
+	"P":  1.80,
+	"S":  1.80,
+	"Se": 1.90,
+	"K":  2.75,
+	"Ca": 2.31,
+	"Mg": 1.73,
+	"Cl": 1.75,
+	"Na": 2.27,
+	"Cu": 2.00,
+	"Zn": 2.02,
+	"Co": 1.95,
+	"Fe": 1.96,
+	"Mn": 1.96,
+	"Cr": 1.97,
+	"Si": 2.10,
+	"Be": 1.53,
+	"F":  1.47,
+	"Br": 1.83,
+	"I":  1.98,
+}
+
 //A map for checking that atoms don't
 //have too many bonds. A value of 0 means
 //undefined, i.e. that this atom shouldn't

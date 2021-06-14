@@ -253,14 +253,18 @@ func (F *Matrix) Scale(v float64, A *Matrix) {
 }
 
 //Norm acts as a front-end for the mat64 function. Used for compatibility.
+//it always returns the Frobenius norm, no matter what you give as an argument.
+//The argument is there for compatibility (Gonum used to have "0" as the Froebius norm
+//and that is still used in some places in goChem. Until I fixe them all, I just ignore the
+//number. If you want some oher norm, just use the gonum mat.Norm function.
 func (F *Matrix) Norm(i float64) float64 {
 	//NOTE: This function should be removed from the API at some point, as it's probably not
 	//inlined because of the "if". At least the if should be taken away, but the A.Norm(0) is used
 	//in several places in the package so I have to deal with that first.
-	if i == 0 {
-		i = 2
-	}
-	return mat.Norm(F.Dense, i)
+	//	if i == 0 {
+	//		i = 2
+	//	}
+	return mat.Norm(F.Dense, 2)
 }
 
 /*
@@ -402,7 +406,7 @@ func EigenWrap(in *Matrix, epsilon float64) (*Matrix, []float64, error) {
 				return eig.evecs, evals[:], reterr
 			}
 		}
-		if math.Abs(eig.evecs.VecView(1).Norm(0)-1) > epsilon {
+		if math.Abs(eig.evecs.VecView(1).Norm(2)-1) > epsilon {
 			//Of course I could just normalize the vectors instead of complaining.
 			//err= fmt.Errorf("Vectors not normalized %s",err.Error())
 
