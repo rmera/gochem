@@ -144,12 +144,23 @@ func (T *Topology) FillMasses() {
 	}
 }
 
-//Fills the Index value of each atom with the cooresponding to its place in the molecule.
+//FillsIndexes sets the Index value of each atom to that cooresponding to its
+//place in the molecule.
 func (T *Topology) FillIndexes() {
 	for key, val := range T.Atoms {
 		val.index = key
 	}
 
+}
+
+//FillVdw tries to get fill the  van der Waals radii for the atoms in the molecule
+//from a symbol->radii map. Only a few common elements are supported
+func (T *Topology) FillVdw() {
+	for _, val := range T.Atoms {
+		if val.Symbol != "" && val.Vdw == 0 {
+			val.Vdw = symbolVdwrad[val.Symbol] //Not error checking
+		}
+	}
 }
 
 //Sets the current order of atoms as ID and the order of molecules as

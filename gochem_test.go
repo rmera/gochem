@@ -530,7 +530,7 @@ func TestProjectionAndAntiProjection(Te *testing.T) {
 	D := Projection(B, A)
 	fmt.Println("Projection of B on A (D)", D)
 	fmt.Println("Anti-projection of A on B (C):", C)
-	fmt.Println("Norm of C: ", C.Norm(0), " Norm of A,B: ", A.Norm(0), B.Norm(0), "Norm of D:", D.Norm(0))
+	fmt.Println("Norm of C: ", C.Norm(2), " Norm of A,B: ", A.Norm(2), B.Norm(2), "Norm of D:", D.Norm(2))
 }
 
 func TestBondsBz(Te *testing.T) {
@@ -550,16 +550,16 @@ func TestBondsBz(Te *testing.T) {
 	}
 	mol.AssignBonds(mol.Coords[0])
 	for i, v := range mol.Atoms {
-		fmt.Printf("Atom %d index %d %s has %d bonds. It's bonded to atoms:\n", i, v.Index, v.Symbol, len(v.Bonds))
+		fmt.Printf("Atom %d index %d %s has %d bonds. It's bonded to atoms:\n", i, v.index, v.Symbol, len(v.Bonds))
 		for _, w := range v.Bonds {
 			a := w.Cross(v)
-			fmt.Printf("Atom: %d %s\n", a.Index, a.Symbol)
+			fmt.Printf("Atom: %d %s\n", a.index, a.Symbol)
 		}
 		fmt.Printf("\n")
 
 	}
 
-	path := ShortestBondedPath(C, C.Index)
+	path := BondedPaths(C, C.index, true)
 	if path == nil {
 		Te.Errorf("No path found!")
 	}
@@ -584,12 +584,12 @@ func TestBondsPorf(Te *testing.T) {
 	}
 	mol.AssignBonds(mol.Coords[0])
 
-	spath := BondedPaths(S, S.Index, true)
+	spath := BondedPaths(S, S.index, true)
 	if spath == nil {
 		Te.Errorf("No short path found!")
 	}
 	fmt.Printf("Short path %v has %d nodes\n", spath[0], len(spath[0]))
-	paths := BondedPaths(S, S.Index, false)
+	paths := BondedPaths(S, S.index, false)
 	fmt.Printf("Long path %v has %d nodes\n", paths[len(paths)-1], len(paths[len(paths)-1]))
 
 }

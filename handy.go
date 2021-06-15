@@ -25,7 +25,6 @@
  *
  */
 
-
 package chem
 
 import (
@@ -327,7 +326,7 @@ func MakeWater(a1, a2 *v3.Matrix, distance, angle float64, oxygen bool) *v3.Matr
 	w.Unit(w)
 	dist := v3.Zeros(1)
 	dist.Sub(a1, a2)
-	a1a2dist := dist.Norm(0)
+	a1a2dist := dist.Norm(2)
 	//	fmt.Println("ala2dist", a1a2dist, distance) ////////////////7777
 	w.Scale(distance+a1a2dist, w)
 	w.Add(w, a1)
@@ -618,7 +617,7 @@ func ScaleBonds(coords *v3.Matrix, mol Atomer, n1, n2 string, finallenght float6
 func ScaleBond(C, H *v3.Matrix, bond float64) {
 	Odist := v3.Zeros(1)
 	Odist.Sub(H, C)
-	distance := Odist.Norm(0)
+	distance := Odist.Norm(2)
 	Odist.Scale((distance-bond)/distance, Odist)
 	H.Sub(H, Odist)
 }
@@ -677,7 +676,7 @@ func SelCone(B, selection *v3.Matrix, angle, distance, thickness, initial float6
 			}
 			atom := A.VecView(j)
 			proj := Projection(atom, plane)
-			norm := proj.Norm(0)
+			norm := proj.Norm(2)
 			//Now at what side of the plane is the atom?
 			angle := Angle(atom, plane)
 			if whatcone > 0 {
@@ -693,7 +692,7 @@ func SelCone(B, selection *v3.Matrix, angle, distance, thickness, initial float6
 				continue
 			}
 			proj.Sub(proj, atom)
-			projnorm := proj.Norm(0)
+			projnorm := proj.Norm(2)
 			if projnorm <= maxdist {
 				selected = append(selected, j)
 			}

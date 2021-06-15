@@ -35,9 +35,10 @@ package chem
 
 import (
 	"fmt"
-	"github.com/skelterjohn/go.matrix"
 	"math"
 	"sort"
+
+	matrix "github.com/skelterjohn/go.matrix"
 )
 
 /*Here I make a -very incomplete- implementation of the gonum api backed by go.matrix, which will enable me to port gochem to gonum.
@@ -207,7 +208,7 @@ func EigenWrap(in *VecMatrix, epsilon float64) (*VecMatrix, []float64, error) {
 			}
 		}
 		//	fmt.Println("VECTORS", eig.evecs) //////////////////////////
-		if math.Abs(vectori.Norm(0)-1) > epsilon {
+		if math.Abs(vectori.Norm(2)-1) > epsilon {
 			//Of course I could just normalize the vectors instead of complaining.
 			//err= fmt.Errorf("Vectors not normalized %s",err.Error())
 
@@ -479,10 +480,7 @@ func (F *Dense) MulElem(A, B Matrix) {
 }
 
 func (F *Dense) Norm(i float64) float64 {
-	//temporary hack
-	if i != 0 {
-		panic("only Euclidian norm is implemented")
-	}
+	//The parameters is for compatibility
 	return F.TwoNorm()
 }
 
@@ -672,7 +670,7 @@ func (F *Dense) TCopy(A Matrix) {
 //thus obtaining an unitary vector pointing in the same direction as
 //vector.
 func (F *Dense) Unit(A NormerMatrix) {
-	norm := 1.0 / A.Norm(0)
+	norm := 1.0 / A.Norm(2)
 	F.Scale(norm, A)
 }
 
