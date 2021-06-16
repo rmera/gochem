@@ -21,7 +21,6 @@
  *
  */
 
-
 package chem
 
 //This provides useful conversion factors and other constants

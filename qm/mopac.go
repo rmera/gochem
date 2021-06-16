@@ -21,7 +21,6 @@
  *
  */
 
-
 package qm
 
 import (
@@ -37,6 +36,7 @@ import (
 	v3 "github.com/rmera/gochem/v3"
 )
 
+//MopacHandle represents a MOPAC calculations
 type MopacHandle struct {
 	defmethod string
 	command   string
@@ -44,7 +44,7 @@ type MopacHandle struct {
 	wrkdir    string
 }
 
-//Creates and initialized a new instance of MopacRunner, with values set
+//NewMopacHandle creates and initializes a new MopacHandle, with values set
 //to its defaults.
 func NewMopacHandle() *MopacHandle {
 	run := new(MopacHandle)
@@ -54,13 +54,13 @@ func NewMopacHandle() *MopacHandle {
 
 //MopacHandle methods
 
-//Sets the name for the job, used for input
+//SetName sets the name for the job, used for input
 //and output files (ex. input will be name.inp).
 func (O *MopacHandle) SetName(name string) {
 	O.inputname = name
 }
 
-//Sets the command to run the MOPAC program.
+//SetCommand sets the command to run the MOPAC program.
 func (O *MopacHandle) SetCommand(name string) {
 	O.command = name
 }
@@ -183,10 +183,10 @@ func (O *MopacHandle) Run(wait bool) (err error) {
 	return
 }
 
-/*Energy gets the last energy for a MOPAC2009/2012 calculation by
-  parsing the mopac output file. Return error if fail. Also returns
-  Error ("Probable problem in calculation")
-  if there is a energy but the calculation didnt end properly*/
+//Energy gets the last energy for a MOPAC2009/2012 calculation by
+//parsing the mopac output file. Return error if fail. Also returns
+//Error ("Probable problem in calculation")
+//if there is a energy but the calculation didnt end properly
 func (O *MopacHandle) Energy() (float64, error) {
 	var err error
 	inp := O.wrkdir + O.inputname
@@ -233,9 +233,9 @@ func (O *MopacHandle) Energy() (float64, error) {
 	return energy, err
 }
 
-/*Get Geometry reads the optimized geometry from a MOPAC2009/2012 output.
-  Return error if fail. Returns Error ("Probable problem in calculation")
-  if there is a geometry but the calculation didnt end properly*/
+//OptimizeGeometry reads the optimized geometry from a MOPAC2009/2012 output.
+//Return error if fail. Returns Error ("Probable problem in calculation")
+//if there is a geometry but the calculation didnt end properly
 func (O *MopacHandle) OptimizedGeometry(atoms chem.Atomer) (*v3.Matrix, error) {
 	var err error
 	inp := O.wrkdir + O.inputname

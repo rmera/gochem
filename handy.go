@@ -35,8 +35,8 @@ import (
 	v3 "github.com/rmera/gochem/v3"
 )
 
-//Given a set of indexes and the length of a molecule, produces
-//a setof all the indexes _not_ in the original set.
+//NegateIndexes, given a set of indexes and the length of a molecule, produces
+//a set of all the indexes _not_ in the original set.
 func NegateIndexes(indexes []int, length int) []int {
 	ret := make([]int, 0, length-len(indexes))
 	for i := 0; i < length; i++ {
@@ -94,7 +94,7 @@ func Molecules2Atoms(mol Atomer, residues []int, chains []string) []int {
 
 }
 
-//Easy shape takes a matrix of coordinates, a value for epsilon (a number close to zero, the close, the more
+//EasyShape takes a matrix of coordinates, a value for epsilon (a number close to zero, the closer, the more
 //strict the orthogonality requriements are) and an (optative) masser and returns
 //two shape indicators based on the elipsoid of inertia (or it massless equivalent)
 //a linear and circular distortion indicators, and an error or nil (in that order).

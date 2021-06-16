@@ -747,6 +747,7 @@ func XYZWrite(out io.Writer, Coords *v3.Matrix, mol Atomer) error {
 	return nil
 }
 
+//GroFileRead reads a file in the Gromacs gro format, returning a molecule.
 func GroFileRead(groname string) (*Molecule, error) {
 	grofile, err := os.Open(groname)
 	if err != nil {
@@ -891,6 +892,8 @@ func read_gro_line(line string) (*Atom, []float64, error) {
 	return atom, coords, nil
 }
 
+//GoFileWrite writes the molecule described by mol and Coords into a file in the Gromacs
+//gro format. If Coords has more than one elements, it will write a multi-state file.
 func GroFileWrite(outname string, Coords []*v3.Matrix, mol Atomer) error {
 	out, err := os.Create(outname)
 	if err != nil {
@@ -906,6 +909,7 @@ func GroFileWrite(outname string, Coords []*v3.Matrix, mol Atomer) error {
 	return nil
 }
 
+//GroSnapWrite writes a single snapshot of a molecule to an io.Writer
 func GroSnapWrite(coords *v3.Matrix, mol Atomer, out io.Writer) error {
 	A2nm := 0.1
 	iowriterError := func(err error) error {

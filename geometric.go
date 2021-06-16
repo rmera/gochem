@@ -400,7 +400,14 @@ func Improper(a, b, c, d *v3.Matrix) float64 {
 
 //DihedralAlt calculates the dihedral between the points a, b, c, d, where the first plane
 //is defined by abc and the second by bcd.
+//It is exactly the same as Dihedral, only kept for API stability.
 func DihedralAlt(a, b, c, d *v3.Matrix) float64 {
+	return Dihedral(a, b, c, d)
+}
+
+//Dihedral calculates the dihedral between the points a, b, c, d, where the first plane
+//is defined by abc and the second by bcd.
+func Dihedral(a, b, c, d *v3.Matrix) float64 {
 	all := []*v3.Matrix{a, b, c, d}
 	for number, point := range all {
 		pr, pc := point.Dims()
@@ -427,9 +434,10 @@ func DihedralAlt(a, b, c, d *v3.Matrix) float64 {
 	return dihedral
 }
 
-//Dihedral calculates the dihedral between the points a, b, c, d, where the first plane
+//dihedral calculates the dihedral between the points a, b, c, d, where the first plane
 //is defined by abc and the second by bcd.
-func Dihedral(a, b, c, d *v3.Matrix) float64 {
+//This is an old implemntation which does not give correct results
+func dihedral(a, b, c, d *v3.Matrix) float64 {
 	all := []*v3.Matrix{a, b, c, d}
 	for number, point := range all {
 		pr, pc := point.Dims()

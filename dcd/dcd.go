@@ -33,10 +33,11 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/rmera/gochem"
-	"github.com/rmera/gochem/v3"
 	"os"
 	"runtime"
+
+	chem "github.com/rmera/gochem"
+	v3 "github.com/rmera/gochem/v3"
 )
 
 const mAXTITLE int32 = 80
@@ -60,6 +61,7 @@ type DCDObj struct {
 	endian     binary.ByteOrder
 }
 
+//New builds a new DCDObj object from a DCD trajectory file
 func New(filename string) (*DCDObj, error) {
 	traj := new(DCDObj)
 	if err := traj.initRead(filename); err != nil {
@@ -74,16 +76,14 @@ func New(filename string) (*DCDObj, error) {
 
 }
 
-//Returns true if the object is ready to be read from
+//Readable returns true if the object is ready to be read from
 //false otherwise. It doesnt guarantee that there is something
 //to read.
-//true or false depending on whether D is ready to read
-//snapshots from it.
 func (D *DCDObj) Readable() bool {
 	return D.readable
 }
 
-//InitRead initializes a XtcObj for reading.
+//initRead initializes a XtcObj for reading.
 //It requires only the filename, which must be valid.
 //It support big and little endianness, charmm or (namd>=2.1) and no
 //fixed atoms.
@@ -374,7 +374,7 @@ func (D *DCDObj) readByteBlock(blocksize int32) ([]byte, error) {
 	return block, nil
 }
 
-//Natoms returns the number of atoms per frame in the XtcObj.
+//Len returns the number of atoms per frame in the XtcObj.
 //XtcObj must be initialized. 0 means an uninitialized object.
 func (D *DCDObj) Len() int {
 	return int(D.natoms)
@@ -408,10 +408,10 @@ func (D *DCDObj) setConcBuffer(batchsize int) error {
 	return nil
 }
 
-/*NextConc takes a slice of bools and reads as many frames as elements the list has
-form the trajectory. The frames are discarted if the corresponding elemetn of the slice
-* is false. The function returns a slice of channels through each of each of which
-* a *matrix.DenseMatrix will be transmited*/
+//NextConc takes a slice of bools and reads as many frames as elements the list has
+//form the trajectory. The frames are discarted if the corresponding elemetn of the slice
+//is false. The function returns a slice of channels through each of each of which
+// a *matrix.DenseMatrix will be transmited
 func (D *DCDObj) NextConc(frames []*v3.Matrix) ([]chan *v3.Matrix, error) {
 	if !D.Readable() {
 		return nil, Error{TrajUnIni, D.filename, []string{"NextConc"}, true}
@@ -470,6 +470,7 @@ func (err Error) Error() string {
 	return fmt.Sprintf("dcd file %s error: %s", err.filename, err.message)
 }
 
+//Decorate Adds new information to the error
 func (E Error) Decorate(deco string) []string {
 	//Even thought this method does not use a pointer as a receiver, and tries to alter the received,
 	//it should work, since E.deco is a slice, and hence a pointer itself.
@@ -480,10 +481,13 @@ func (E Error) Decorate(deco string) []string {
 	return E.deco
 }
 
+//Filename returns the file to which the failing trajectory was associated
 func (err Error) FileName() string { return err.filename }
 
+//Format returns the format of the file (always "dcd") associated to the error
 func (err Error) Format() string { return "dcd" }
 
+//Critical returns true if the error is critical, false otherwise
 func (err Error) Critical() bool { return err.critical }
 
 const (

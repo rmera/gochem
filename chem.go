@@ -163,7 +163,7 @@ func (T *Topology) FillVdw() {
 	}
 }
 
-//Sets the current order of atoms as ID and the order of molecules as
+//ResetIDs sets the current order of atoms as ID and the order of molecules as
 //MolID for all atoms
 func (T *Topology) ResetIDs() {
 	currid := 1
@@ -191,7 +191,7 @@ func (T *Topology) ResetIDs() {
 	}
 }
 
-//Copy atoms into a topology. This is a deep copy, so T must have
+//CopyAtoms copies the atoms form A into the receiver topology. This is a deep copy, so the receiver must have
 //at least as many atoms as A.
 func (T *Topology) CopyAtoms(A Atomer) {
 	//T := new(Topology)
@@ -287,7 +287,7 @@ func (T *Topology) Masses() ([]float64, error) {
 	return mass, nil
 }
 
-//Assigns bonds to a molecule based on a simple distance
+//AssignBonds assigns bonds to a molecule based on a simple distance
 //criterium, similar to that described in DOI:10.1186/1758-2946-3-33
 func (T *Topology) AssignBonds(coord *v3.Matrix) error {
 	// might get slow for
@@ -410,7 +410,7 @@ func NewMolecule(coords []*v3.Matrix, ats Atomer, bfactors [][]float64) (*Molecu
 
 //The molecule methods:
 
-//Deletes the coodinate i from every frame of the molecule.
+//DelCoord the coodinate i from every frame of the molecule.
 func (M *Molecule) DelCoord(i int) error {
 	r, _ := M.Coords[0].Dims()
 	var err error
@@ -425,7 +425,7 @@ func (M *Molecule) DelCoord(i int) error {
 	return nil
 }
 
-//Deletes atom i and its coordinates from the molecule.
+//Del Deletes atom i and its coordinates from the molecule.
 func (M *Molecule) Del(i int) error {
 	if i >= M.Len() {
 		panic(ErrAtomOutOfRange)
@@ -437,7 +437,6 @@ func (M *Molecule) Del(i int) error {
 
 //Copy puts in the receiver a copy of the molecule  A including coordinates
 func (M *Molecule) Copy(A *Molecule) {
-	//	println("COMO LAS WEEEEEiiiiiiiiiiiiiiiiEEEEEAS") ////////////////////////////////////////
 	if err := A.Corrupted(); err != nil {
 		panic(err.Error())
 	}
@@ -624,7 +623,8 @@ func (M *Molecule) Swap(i, j int) {
 	}
 }
 
-//Less: Should the atom i be sorted before atom j?
+//Less returns true if the value in the Bfactors for
+//atom i are less than that for atom j, and false otherwise.
 func (M *Molecule) Less(i, j int) bool {
 	return M.Bfactors[0][i] < M.Bfactors[0][j]
 }
@@ -649,7 +649,7 @@ func (M *Molecule) Readable() bool {
 	return false
 }
 
-//Returns the  next frame and an error
+//Next returns the  next frame and an error
 func (M *Molecule) Next(V *v3.Matrix) error {
 	if M.current >= len(M.Coords) {
 		return newlastFrameError("", len(M.Coords)-1)
@@ -663,7 +663,7 @@ func (M *Molecule) Next(V *v3.Matrix) error {
 	return nil
 }
 
-//Initializes molecule to be read as a traj (not tested!)
+//InitRead initializes molecule to be read as a traj (not tested!)
 func (M *Molecule) InitRead() error {
 	if M == nil || len(M.Coords) == 0 {
 		return CError{"Bad molecule", []string{"InitRead"}}
@@ -672,10 +672,10 @@ func (M *Molecule) InitRead() error {
 	return nil
 }
 
-/*NextConc takes a slice of bools and reads as many frames as elements the list has
-form the trajectory. The frames are discarted if the corresponding elemetn of the slice
-* is false. The function returns a slice of channels through each of each of which
-* a *matrix.DenseMatrix will be transmited*/
+//NextConc takes a slice of bools and reads as many frames as elements the list has
+//form the trajectory. The frames are discarted if the corresponding elemetn of the slice
+//is false. The function returns a slice of channels through each of each of which
+// a *matrix.DenseMatrix will be transmited
 func (M *Molecule) NextConc(frames []bool) ([]chan *v3.Matrix, error) {
 	toreturn := make([]chan *v3.Matrix, 0, len(frames))
 	used := false

@@ -26,9 +26,10 @@
 package chem
 
 import (
-	"github.com/rmera/gochem/v3"
 	"math"
 	"runtime"
+
+	v3 "github.com/rmera/gochem/v3"
 )
 
 //import "fmt" //debug
@@ -216,6 +217,7 @@ func getChunk(cake *v3.Matrix, i, j, r, c int) *v3.Matrix {
 //Rotate takes the matrix Target and uses Clifford algebra to _concurrently_ rotate each
 //of its rows by angle radians around axis. Axis must be a 3D row vector.
 //Target must be an N,3 matrix. The result is put in Res, which is also returned.
+//This is a low-level function. Most commonly, you'll want to use RotateAbout instead.
 func Rotate(Target, Res, axis *v3.Matrix, angle float64) *v3.Matrix {
 	//	runtime.GOMAXPROCS(3)
 	gorut := runtime.GOMAXPROCS(-1)
@@ -238,7 +240,7 @@ func Rotate(Target, Res, axis *v3.Matrix, angle float64) *v3.Matrix {
 	return Res
 }
 
-//Rotate takes the matrix Target and uses Clifford algebra to _concurrently_ rotate each
+//RotateP takes the matrix Target and uses Clifford algebra to _concurrently_ rotate each
 //of its rows by angle radians around axis. Axis must be a 3D row vector.
 //Target must be an N,3 matrix.
 func RotateP(Target, Res, axis, Rv, Rvrev, tmp1, tmp2, tmp3, tmp4, itmp1, itmp2, itmp3 *v3.Matrix, angle float64, gorut int) {

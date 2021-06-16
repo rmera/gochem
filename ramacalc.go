@@ -28,11 +28,13 @@ package chem
 
 import (
 	"fmt"
-	"github.com/rmera/gochem/v3"
 	"math"
 	"strings"
+
+	v3 "github.com/rmera/gochem/v3"
 )
 
+//A structure with the data for obtaining one pair of Ramachandran angles.
 type RamaSet struct {
 	Cprev   int
 	N       int
@@ -69,7 +71,8 @@ func RamaCalc(M *v3.Matrix, dihedrals []RamaSet) ([][]float64, error) {
 	return Rama, nil
 }
 
-// Filter the set of dihedral angles of a ramachandran plot by residue.(ex. only GLY, everything but GLY)
+// RamaResidueFilter filters the set of a slice of RamaSet (i.e. a set of Ramachandran angles to be calculated)
+//by residue.(ex. only GLY, everything but GLY)
 // The 3 letter code of the residues to be filtered in or out is in filterdata, whether they are filter in
 // or out depends on shouldBePresent. It returns the filtered data and a slice containing the indexes in
 // the new data of the residues in the old data, when they are included, or -1 when they are not included.

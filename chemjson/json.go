@@ -39,12 +39,14 @@ import (
 	v3 "github.com/rmera/gochem/v3"
 )
 
+//A ready-to-serialize container for an atom.
 type Atom struct {
 	A      *chem.Atom
 	Coords []float64
 	Bfac   float64
 }
 
+//A ready-to-serialize container for coordinates
 type Coords struct {
 	Coords []float64
 }
@@ -64,7 +66,7 @@ type Error struct {
 	Message       string //the error itself
 }
 
-//implements the error interface
+//Error implements the error interface
 func (J *Error) Error() string {
 	return J.Message
 }
@@ -270,6 +272,7 @@ type jSONCoords struct {
 	Coords []float64
 }
 
+//Encodes a goChem Atomer into a JSON
 func EncodeAtoms(mol chem.Atomer, enc *json.Encoder) *Error {
 	const funcname = "EncodeAtoms"
 	if mol == nil {
@@ -283,6 +286,7 @@ func EncodeAtoms(mol chem.Atomer, enc *json.Encoder) *Error {
 	return nil
 }
 
+//Encodes a set of coordinates into JSON
 func EncodeCoords(coords *v3.Matrix, enc *json.Encoder) *Error {
 	c := new(Coords)
 	t := make([]float64, 3, 3)

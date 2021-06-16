@@ -21,7 +21,6 @@
  *
  */
 
-
 package dcd
 
 import (
@@ -37,9 +36,10 @@ import (
 //const mAXTITLE int32 = 80
 //const rSCAL32BITS int32 = 1
 
-//A writing buffer
+//A writing buffer for DCD format
 type WB []byte
 
+//Writes w to the buffer
 func (B WB) Write(w []byte) (int, error) {
 	if len(B) < len(w) {
 		return 0, fmt.Errorf("mismatched buffers")
@@ -51,6 +51,7 @@ func (B WB) Write(w []byte) (int, error) {
 }
 
 //Container for an Charmm/NAMD binary trajectory file.
+//opened for writing
 type DCDWObj struct {
 	natoms     int32
 	buffSize   int
@@ -69,8 +70,7 @@ type DCDWObj struct {
 	endian     binary.ByteOrder
 }
 
-//Initializes a trajectory for writing.
-// You need to provide _some_ estimate of the frames to be write here.
+//New writer initializes a DCD trajectory for writing.
 func NewWriter(filename string, natoms int) (*DCDWObj, error) {
 	traj := new(DCDWObj)
 	traj.natoms = int32(natoms)
@@ -199,7 +199,7 @@ func (D *DCDWObj) initWrite(name string) error {
 	return nil   //nothing else to do
 }
 
-//Writes the next frame to the trajectory.
+//WNext rites the next frame to the trajectory.
 func (D *DCDWObj) WNext(towrite *v3.Matrix) error {
 	if !D.writable {
 		return Error{TrajUnIni, D.filename, []string{"WNext"}, true}

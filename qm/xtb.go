@@ -41,9 +41,11 @@ import (
 	v3 "github.com/rmera/gochem/v3"
 )
 
-//Note that the default methods and basis vary with each program, and even
-//for a given program they are NOT considered part of the API, so they can always change.
+//XTBHandle represents an xtb calculation
 type XTBHandle struct {
+	//Note that the default methods and basis vary with each program, and even
+	//for a given program they are NOT considered part of the API, so they can always change.
+	//This is unavoidable, as methods change with time
 	command        string
 	inputname      string
 	nCPU           int
@@ -54,6 +56,9 @@ type XTBHandle struct {
 	wrkdir         string
 }
 
+//NewXTBHandle initializes and returns an xtb handle
+//with values set to their defaults. Defaults might change
+//as new methods appear, so they are not part of the API.
 func NewXTBHandle() *XTBHandle {
 	run := new(XTBHandle)
 	run.SetDefaults()
@@ -62,23 +67,28 @@ func NewXTBHandle() *XTBHandle {
 
 //XTBHandle methods
 
-//Sets the number of CPU to be used
+//SetnCPU sets the number of CPU to be used
 func (O *XTBHandle) SetnCPU(cpu int) {
 	O.nCPU = cpu
 }
 
+//Command returns the path and name for the xtb excecutable
 func (O *XTBHandle) Command() string {
 	return O.command
 }
 
+//SetName sets the name for the calculations
+//which is defines the input and output file names
 func (O *XTBHandle) SetName(name string) {
 	O.inputname = name
 }
 
+//SetCommand sets the path and name for the xtb excecutable
 func (O *XTBHandle) SetCommand(name string) {
 	O.command = name
 }
 
+//SetWorkDir sets the name of the working directory for the calculations
 func (O *XTBHandle) SetWorkDir(d string) {
 	O.wrkdir = d
 }
@@ -96,6 +106,9 @@ func (O *XTBHandle) RelConstraints(force float64) {
 
 }
 
+//SetDefaults sets calculations parameters to their defaults.
+//Defaults might change
+//as new methods appear, so they are not part of the API.
 func (O *XTBHandle) SetDefaults() {
 	O.command = os.ExpandEnv("xtb")
 	//	if O.command == "/xtb" { //if XTBHOME was not defined
@@ -277,7 +290,7 @@ func (O *XTBHandle) Run(wait bool) (err error) {
 	return nil
 }
 
-//Reads the latest geometry from an XTB optimization. It doesn't actually need the chem.Atomer
+//OptimizedGeometry returns the latest geometry from an XTB optimization. It doesn't actually need the chem.Atomer
 //but requires it so XTBHandle fits with the QM interface.
 func (O *XTBHandle) OptimizedGeometry(atoms chem.Atomer) (*v3.Matrix, error) {
 	inp := O.wrkdir + O.inputname
@@ -344,7 +357,7 @@ func searchBackwards(str, filename string) string {
 	}
 }
 
-//Gets the energy of a previous XTB calculations.
+//Energy returns the energy of a previous XTB calculations.
 //Returns error if problem, and also if the energy returned that is product of an
 //abnormally-terminated ORCA calculation. (in this case error is "Probable problem
 //in calculation")
@@ -415,6 +428,9 @@ func (O *XTBHandle) LargestImaginary() (float64, error) {
 	return largestimag, nil
 }
 
+//FixImaginary prepares and runs a calculation on a geometry, produced by xtb on a previous Hessian calculation, which
+//is distorted along the main imaginary mode found, if any. It such mode was not found, and thus the geometry was not
+//produced by xtb, FixImaginary returns an error.
 func (O *XTBHandle) FixImaginary(wait bool) error {
 	var com string
 	var err error
@@ -449,7 +465,7 @@ func (O *XTBHandle) FixImaginary(wait bool) error {
 
 }
 
-//Gets the Gibbs free energy of a previous XTB calculations.
+//FreeEnergy returns the Gibbs free energy of a previous XTB calculations.
 //A frequencies/solvation calculation is needed for this to work. FreeEnergy does _not_ check that the structure was at a minimum. You can check that with
 //the LargestIm
 func (O *XTBHandle) FreeEnergy() (float64, error) {

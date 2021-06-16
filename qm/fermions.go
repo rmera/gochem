@@ -20,6 +20,9 @@
  *
  *
  */
+//This functionality hasn't been tested for a while, so
+//I can not ensure that it will work with current FermiONs++
+//versions.
 
 package qm
 
@@ -35,6 +38,7 @@ import (
 	v3 "github.com/rmera/gochem/v3"
 )
 
+//A structure for handing FermiONs calculations
 //Note that the default methods and basis vary with each program, and even
 //for a given program they are NOT considered part of the API, so they can always change.
 type FermionsHandle struct {
@@ -51,6 +55,7 @@ type FermionsHandle struct {
 	wrkdir    string
 }
 
+//NewFermionsHandle initializes and returns a FermionsHandle
 func NewFermionsHandle() *FermionsHandle {
 	run := new(FermionsHandle)
 	run.SetDefaults()
@@ -59,7 +64,7 @@ func NewFermionsHandle() *FermionsHandle {
 
 //FermionsHandle methods
 
-//Sets GPU usage. Alternatives are "cuda" or "opencl" (alias "ocl"). Anything else is ignored. GPU is off by default.
+//SetGPU sets GPU usage. Alternatives are "cuda" or "opencl" (alias "ocl"). Anything else is ignored. GPU is off by default.
 func (O *FermionsHandle) SetGPU(rawname string) {
 	name := strings.ToLower(rawname)
 	if name == "cuda" {
@@ -69,14 +74,17 @@ func (O *FermionsHandle) SetGPU(rawname string) {
 	}
 }
 
+//SetName sets the name of the job, that will translate into the input and output files.
 func (O *FermionsHandle) SetName(name string) {
 	O.inputname = name
 }
 
+//SetCommand sets the name and/or path of the FermiONs++ excecutable
 func (O *FermionsHandle) SetCommand(name string) {
 	O.command = name
 }
 
+//SetWorkDir sets the name of the working directory for the Fermions calculations
 func (O *FermionsHandle) SetWorkDir(d string) {
 	O.wrkdir = d
 }
@@ -271,7 +279,7 @@ func (O *FermionsHandle) OptimizedGeometry(atoms chem.Ref) (*v3.Matrix, error) {
 
 */
 
-//Gets the energy of a previous Fermions++ calculation.
+//Energy the energy of a previously completed Fermions++ calculation.
 //Returns error if problem, and also if the energy returned that is product of an
 //abnormally-terminated Fermions++ calculation. (in this case error is "Probable problem
 //in calculation")
@@ -344,7 +352,8 @@ func searchFromEnd(templa, filename string) bool {
 	return ret
 }
 
-//I don't have this implemented so far, sorry.
+//OptimizedGeometry does nothing and returns nil for both values.
+// It is there for compatibility but it represents unimplemented functionality.
 func (O *FermionsHandle) OptimizedGeometry(atoms chem.Atomer) (*v3.Matrix, error) {
 	return nil, nil
 }

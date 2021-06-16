@@ -17,14 +17,11 @@
  * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
- * Gochem is developed at the laboratory for instruction in Swedish, Department of Chemistry,
- * University of Helsinki, Finland.
- *
  */
 /***Dedicated to the long life of the Ven. Khenpo Phuntzok Tenzin Rinpoche***/
 
 /*Package chem is the main package of the goChem library. It provides atom and molecule structures, facilities for reading and writing some
-files used in computational chemistry and some functions for geometric manipulations and shape
+files used in computational chemistry and functions for geometric manipulations and shape, among others
 indicators.
 
 See www.gochem.org for more information.

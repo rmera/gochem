@@ -36,6 +36,7 @@ import (
 	v3 "github.com/rmera/gochem/v3"
 )
 
+//OrcaHandle represents an Orca calculation.
 //Note that the default methods and basis vary with each program, and even
 //for a given program they are NOT considered part of the API, so they can always change.
 type OrcaHandle struct {
@@ -51,6 +52,7 @@ type OrcaHandle struct {
 	orca3       bool
 }
 
+//NewOrcaHandle initializes and returns a new OrcaHandle.
 func NewOrcaHandle() *OrcaHandle {
 	run := new(OrcaHandle)
 	run.SetDefaults()
@@ -59,36 +61,46 @@ func NewOrcaHandle() *OrcaHandle {
 
 //OrcaHandle methods
 
-//Sets the number of CPU to be used
+//SetnCPU sets the number of CPU to be used.
 func (O *OrcaHandle) SetnCPU(cpu int) {
 	O.nCPU = cpu
 }
 
+//SetName sets the name of the job, which will reflect in the
+//name fo the input and output files.
 func (O *OrcaHandle) SetName(name string) {
 	O.inputname = name
 }
 
+//SetCommand sets the name and path of the Orca excecutable
 func (O *OrcaHandle) SetCommand(name string) {
 	O.command = name
 }
 
+//SetMOName sets the name of the file containing molecular
+//orbitales (in the corresponding Orca format) to be
+//used as initial guess.
 func (O *OrcaHandle) SetMOName(name string) {
 	O.previousMO = name
 }
 
+//SetWorkDir sets the name of the working directory for the calculation
 func (O *OrcaHandle) SetWorkDir(d string) {
 	O.wrkdir = d
 }
 
-//As per the "zero value" of structures in Go, the default for goChem will be to use Orca 4
+//SetOrca3 sets the use of Orca3 to true or false. The default state
+//is false, meaning that Orca4 is used.
 func (O *OrcaHandle) SetOrca3(b bool) {
 	O.orca3 = b
 }
 
-/*Sets defaults for ORCA calculation. Default is a single-point at
-revPBE/def2-SVP with RI, and all the available CPU with a max of
-8. The ORCA command is set to $ORCA_PATH/orca, at least in
-unix.*/
+//SetDefaults Sets defaults for ORCA calculation. The default is
+//currently a single-point at
+//revPBE/def2-SVP with RI, and all the available CPU with a max of
+//8. The ORCA command is set to $ORCA_PATH/orca, at least in
+//unix.
+//The default is _not_ part of the API, it can change as new methods appear.
 func (O *OrcaHandle) SetDefaults() {
 	O.defmethod = "BLYP"
 	O.defbasis = "def2-SVP"
@@ -441,10 +453,10 @@ var orcaDisp = map[string]string{
 	"SCNL":   "SCNL",
 }
 
-/*Reads the latest geometry from an ORCA optimization. Returns the
-  geometry or error. Returns the geometry AND error if the geometry read
-  is not the product of a correctly ended ORCA calculation. In this case
-  the error is "probable problem in calculation"*/
+//OptimizedGeometry reads the latest geometry from an ORCA optimization. Returns the
+//  geometry or error. Returns the geometry AND error if the geometry read
+//  is not the product of a correctly ended ORCA calculation. In this case
+//  the error is "probable problem in calculation"
 func (O *OrcaHandle) OptimizedGeometry(atoms chem.Atomer) (*v3.Matrix, error) {
 	var err error
 	geofile := fmt.Sprintf("%s.xyz", O.wrkdir+O.inputname)
@@ -460,7 +472,7 @@ func (O *OrcaHandle) OptimizedGeometry(atoms chem.Atomer) (*v3.Matrix, error) {
 	return mol.Coords[0], err //returns the coords, the error indicates whether the structure is trusty (normal calculation) or not
 }
 
-//Gets the energy of a previous Orca calculations.
+//Energy returns the energy of a previous Orca calculations.
 //Returns error if problem, and also if the energy returned that is product of an
 //abnormally-terminated ORCA calculation. (in this case error is "Probable problem
 //in calculation")

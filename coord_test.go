@@ -25,9 +25,12 @@
 
 package chem
 
-import "testing"
-import "fmt"
-import "github.com/rmera/gochem/v3"
+import (
+	"fmt"
+	"testing"
+
+	v3 "github.com/rmera/gochem/v3"
+)
 
 func TestGeo(Te *testing.T) {
 	a := []float64{1.0, 2.0, 3, 4, 5, 6, 7, 8, 9}

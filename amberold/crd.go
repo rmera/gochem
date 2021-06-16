@@ -40,7 +40,7 @@ import (
 	v3 "github.com/rmera/gochem/v3"
 )
 
-//Container for an Charmm/NAMD binary trajectory file.
+//Container for an old-Amber/pDynamo trajectory file.
 type CrdObj struct {
 	natoms    int
 	readLast  bool //Have we read the last frame?
@@ -54,6 +54,7 @@ type CrdObj struct {
 	box       bool
 }
 
+//New creates a new Old Amber trajectory object from a file.
 func New(filename string, ats int, box bool) (*CrdObj, error) {
 	var err error
 	traj := new(CrdObj)
@@ -80,11 +81,9 @@ func New(filename string, ats int, box bool) (*CrdObj, error) {
 	return traj, nil
 }
 
-//Returns true if the object is ready to be read from
+//Readable returns true if the object is ready to be read from
 //false otherwise. It doesnt guarantee that there is something
 //to read.
-//true or false depending on whether D is ready to read
-//snapshots from it.
 func (C *CrdObj) Readable() bool {
 	return C.readable
 }
@@ -170,10 +169,6 @@ func (C *CrdObj) Next(keep *v3.Matrix) error {
 
 }
 
-//Next Reads the next frame in a DcDObj that has been initialized for read
-//With initread. If keep is true, returns a pointer to matrix.DenseMatrix
-//With the coordinates read, otherwiser, it discards the coordinates and
-//returns nil.
 func (C *CrdObj) nextVelBox() error {
 	var keep *v3.Matrix //nil
 	const ncoords = 3
@@ -253,10 +248,6 @@ func (C *CrdObj) nextVelBox() error {
 
 }
 
-//Next Reads the next frame in a DcDObj that has been initialized for read
-//With initread. If keep is true, returns a pointer to matrix.DenseMatrix
-//With the coordinates read, otherwiser, it discards the coordinates and
-//returns nil.
 func (C *CrdObj) nextBox() error {
 	var keep *v3.Matrix //nil
 	const ncoords = 3

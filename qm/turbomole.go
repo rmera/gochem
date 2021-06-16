@@ -47,6 +47,8 @@ import (
 	v3 "github.com/rmera/gochem/v3"
 )
 
+
+//TMHandle is the representation of a Turbomole (TM) calculation
 //This imlpementation supports only singlets and doublets.
 type TMHandle struct {
 	defmethod   string
@@ -60,7 +62,7 @@ type TMHandle struct {
 	dryrun      bool
 }
 
-//Creates and initialized a new instance of TMRuner, with values set
+//Creates and initializes a new instance of TMRuner, with values set
 //to its defaults.
 func NewTMHandle() *TMHandle {
 	run := new(TMHandle)
@@ -72,7 +74,7 @@ const noCosmoPrep = "goChem/QM: Unable to run cosmoprep"
 
 //TMHandle methods
 
-//This set the name of the subdirectory, in the current directory
+//SetName sets the name of the subdirectory, in the current directory
 //where the calculation will be ran
 func (O *TMHandle) SetName(name string) {
 	O.inputname = name
@@ -90,14 +92,15 @@ func (O *TMHandle) SetDryRun(dry bool) {
 	O.dryrun = dry
 }
 
-//In TM the command is set according to the method. I just assume a normal installation.
-//This method doesnt do anything.
+//SetCommand doesn't do anything, and it is here only for compatibility.
+//In TM the command is set according to the method. goChem assumes a normal TM installation.
 func (O *TMHandle) SetCommand(name string) {
 	//Does nothing again
 }
 
-//Sets some defaults for TMHandle. default is an optimization at
+//SetDefaults sets default values for TMHandle. default is an optimization at
 //  TPSS-D3 / def2-SVP
+//Defaults are not part of the API, they might change as new methods appear.
 func (O *TMHandle) SetDefaults() {
 	O.defmethod = "tpss"
 	O.defbasis = "def2-SVP"
@@ -249,6 +252,8 @@ func (O *TMHandle) addFrozen(frozen []int) error {
 	return nil
 }
 
+
+
 func copy2pipe(pipe io.ReadCloser, file *os.File, end chan bool) {
 	io.Copy(file, pipe)
 	end <- true
@@ -392,9 +397,6 @@ func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q 
 		O.command = "NumForce"
 		if Q.RI {
 			O.command = O.command + " -ri"
-		} else {
-			O.command = O.command
-		}
 	}
 	Q.Job.Do(jc)
 
@@ -420,6 +422,7 @@ func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q 
 	}
 	return nil
 }
+
 
 var tMMethods = map[string]string{
 	"HF":     "hf",
@@ -450,10 +453,11 @@ var tMDisp = map[string]string{
 	"D3BJ":   "$disp3 -bj",
 }
 
+
 //Run runs the command given by the string O.command
 //it waits or not for the result depending on wait.
 //This is a Unix-only function.
-func (O *TMHandle) Run(wait bool) (err error) {
+func (O *TMHandle) Run(wait bool) err error {
 	os.Chdir(O.inputname)
 	defer os.Chdir("..")
 	filename := strings.Fields(O.command)
@@ -470,6 +474,7 @@ func (O *TMHandle) Run(wait bool) (err error) {
 	}
 	return err
 }
+
 
 //Energy returns the energy from the corresponding calculation, in kcal/mol.
 func (O *TMHandle) Energy() (float64, error) {
@@ -534,3 +539,7 @@ func getSecondToLastLine(f *bufio.Reader) (string, error) {
 	}
 	return prevline, Error{err.Error(), Turbomole, "", "Unknown", []string{"getSecondToLastLine"}, true}
 }
+
+
+
+

@@ -35,7 +35,8 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
-//Calculates the RDF for a trajectory given the indexes of the solute atoms, the solvent molecule name, the step for the "layers" and the cutoff.
+//ConcMolRDF calculates the RDF for a trajectory given the indexes of the solute atoms, the solvent molecule name, the step for the "layers" and the cutoff.
+//It processes several frames of the trajectory concurrently, depending on the logical CPUs available.
 //The code includes some extra comments, so it can be used as a template for concurrent trajectory processing.
 func ConcMolRDF(traj ConcTraj, mol *Molecule, refindexes []int, residues []string, step, end float64, com ...bool) ([]float64, []float64, error) {
 	var ret []float64
@@ -106,6 +107,7 @@ func unitRDF(channelin chan *v3.Matrix, channelout chan []float64, mol Atomer, r
 	return
 }
 
+//MolRDF calculates the RDF for a trajectory given the indexes of the solute atoms, the solvent molecule name, the step for the "layers" and the cutoff.
 func MolRDF(traj Traj, mol Atomer, refindexes []int, residues []string, step, end float64, frameskip int, com ...bool) ([]float64, []float64, error) {
 	var ret []float64
 	coords := v3.Zeros(mol.Len())
@@ -193,7 +195,7 @@ func mdfFromcdf(ret []float64, framesread int, step float64) ([]float64, []float
 	return ret, ret2
 }
 
-//Obtains the Unnormalized "Cummulative Molecular RDF" for one solvated structure. The RDF would be these values averaged over several structures.
+//FrameUMolCRDF Obtains the Unnormalized "Cummulative Molecular RDF" for one solvated structure. The RDF would be these values averaged over several structures.
 func FrameUMolCRDF(coord *v3.Matrix, mol Atomer, refindexes []int, residues []string, step, end float64, com ...bool) []float64 {
 	if step <= 0 {
 		step = 0.1
@@ -336,6 +338,7 @@ func DistRank(coord *v3.Matrix, mol Atomer, refindexes []int, residues []string,
 
 }
 
+//A structure for the distance from a residue to a particular point
 type molDist struct {
 	Distance float64
 	MolID    int
@@ -345,11 +348,16 @@ func (M *molDist) str() string {
 	return fmt.Sprintf("D: %4.3f ID: %d", M.Distance, M.MolID)
 }
 
+//A set of distances for different molecules to the same point
 type MolDistList []*molDist
 
 func (M MolDistList) Swap(i, j int) {
 	M[i], M[j] = M[j], M[i]
 }
+
+//Less returns true if the distance of the element i
+//to the pre-defined point is smallert than that of the element j,
+//or false otherwise
 func (M MolDistList) Less(i, j int) bool {
 	return M[i].Distance < M[j].Distance
 }
@@ -357,14 +365,19 @@ func (M MolDistList) Len() int {
 	return len(M)
 }
 
+//Distance returns the distance from the element i of
+//the slice to the pre-defined point
 func (M MolDistList) Distance(i int) float64 {
 	return M[i].Distance
 }
 
+//MolID resturns the MolID (the residue number, for a protein)
+//of the i element of the slice
 func (M MolDistList) MolID(i int) int {
 	return M[i].MolID
 }
 
+//String produces a string representation of a set of distances
 func (M MolDistList) String() string {
 	retslice := make([]string, len(M))
 	for i := range M {
@@ -373,7 +386,7 @@ func (M MolDistList) String() string {
 	return strings.Join(retslice, "\n")
 }
 
-//Returns a list of the molIDs in al the lists
+//Distances returns a slice with all the distances in the set
 func (M MolDistList) Distances() []float64 {
 	ret := make([]float64, len(M))
 	for i := range M {
@@ -382,7 +395,7 @@ func (M MolDistList) Distances() []float64 {
 	return ret
 }
 
-//Returns a list of the molIDs in al the lists
+//MolIDs returns a slice with the molIDs in al the lists
 func (M MolDistList) MolIDs() []int {
 	ret := make([]int, len(M))
 	for i := range M {
@@ -391,7 +404,8 @@ func (M MolDistList) MolIDs() []int {
 	return ret
 }
 
-//Returns a list with all the MolIDs and a list with all the distances
+//Data returns a list with all the MolIDs and a list with all the distances
+//in the set
 func (M MolDistList) Data() ([]int, []float64) {
 	ret := make([]int, len(M))
 	ret2 := make([]float64, len(M))
@@ -402,14 +416,14 @@ func (M MolDistList) Data() ([]int, []float64) {
 	return ret, ret2
 }
 
-//Returns a list of all the atom IDs for all the residues in the list.
+//AtomIDs returns a list of all the atom IDs for all the residues in the list.
 //Only a convenience function.
 func (M MolDistList) AtomIDs(mol Atomer) []int {
 	molids := M.MolIDs()
 	return Molecules2Atoms(mol, molids, []string{})
 }
 
-//Aggregates the receiver and the arguments in the receiver
+//Merge aggregates the receiver and the arguments in the receiver
 //it removes entries with repeated MolIDs
 func (M MolDistList) Merge(list ...MolDistList) {
 	for _, v := range list {

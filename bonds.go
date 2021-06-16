@@ -39,6 +39,7 @@ const (
 	bondtol  = 0.045 //the reference actually says 0.45 A but I strongly suspect that is a typo.
 )
 
+//Bond represents a chemical, covalent bond.
 type Bond struct {
 	Index int
 	At1   *Atom
@@ -48,7 +49,7 @@ type Bond struct {
 }
 
 //Cross returs the atom bonded to the origin atom
-//by the received bond.
+//bond in the receiver.
 func (B *Bond) Cross(origin *Atom) *Atom {
 	if origin.index == B.At1.index {
 		return B.At2
@@ -60,7 +61,7 @@ func (B *Bond) Cross(origin *Atom) *Atom {
 
 }
 
-//Removes the receiver bond from the the Bond slices in the corresponding atoms
+//Remove removes the receiver bond from the the Bond slices in the corresponding atoms
 func (b *Bond) Remove() error {
 	lenb1 := len(b.At1.Bonds)
 	lenb2 := len(b.At2.Bonds)
@@ -89,7 +90,7 @@ func (b *Bond) Remove() error {
 	return nil
 }
 
-//return a new *Bond slice with the element id removed
+//returns a new *Bond slice with the element id removed
 func takefromslice(bonds []*Bond, id int) []*Bond {
 	newb := make([]*Bond, len(bonds)-1)
 	for _, v := range bonds {
@@ -102,17 +103,16 @@ func takefromslice(bonds []*Bond, id int) []*Bond {
 
 //BondedPaths determines the paths between at and the atom with
 //Index targetIndex. It returns a slice of slices of int, where each sub-slice contains all the atoms
-//in between at and the target (including the Index of at) or nil
-//If there is no valid path, it returns nil. "path" is the the path
+//in between at and the target (including the index of at)
+//If there is no valid path, it returns nil. The parameter "path" is the the path
 //already "walked", so, in a new search, it should not be given (although a nil value, or an empty slice
-//will also work). All atoms in the molecule need to have the "Index" field filled.
+//will also work). All atoms in the molecule need to have the "index" field filled.
 //If the targetIndex is the same as that of the current atom, and the path is not given, nil, or
-//of len 0, the function will not return. This means that the function can be used to search for
-//a cyclic path back to the initial atom.
+//of len 0, the function will search for a cyclic path back to the initial atom.
 //if onlyshortest is true, only the shortest path will be returned (the other elements of the slice will be nil)
-//This can be useful if you want to save memory on a very intrincate molecule.  <--I'm  not sure if this should stay.
+//This can be useful if you want to save memory on a very intrincate molecule.
 func BondedPaths(at *Atom, targetIndex int, onlyshortest bool, path ...[]int) [][]int {
-	//fmt.Println("yeeeey", at.Index, targetIndex, at.Bonds) /////////////
+	//I am not completely sure about this function signature. It is a candidate for API change.
 	if len(path) > 0 && len(path[0]) > 1 && path[0][len(path[0])-2] == at.index {
 		return nil //We are back to the atom we just had visited, not a valid path. We have to check this before checking if we completed the "quest"
 		//or, by just going back via the same bond, it would seem like we are at the finishing line.
@@ -126,7 +126,6 @@ func BondedPaths(at *Atom, targetIndex int, onlyshortest bool, path ...[]int) []
 		path[0] = append(path[0], at.index)
 	}
 
-	//fmt.Printf("last visited is %v\n", path[0])
 	if at.index == targetIndex && len(path[0]) > 1 {
 		return [][]int{path[0]} //We arrived! Note that if the starting node is the same as the target, we will
 		//only settle for a "cyclic" path that goes through at least another atom (really, at least 2 more atoms).
@@ -163,20 +162,24 @@ func BondedPaths(at *Atom, targetIndex int, onlyshortest bool, path ...[]int) []
 
 }
 
+//Ring represents a molecular cycle.
 type Ring struct {
 	Atoms     []int
 	planarity float64
 }
 
+//IsIn returns true or false depending on whether
+//the atom with the given index is part of the ring
 func (R *Ring) IsIn(index int) bool {
 	return isInInt(R.Atoms, index)
 }
 
+//Size returns the number of atoms in the cycle
 func (R *Ring) Size() int {
 	return len(R.Atoms)
 }
 
-//Returns the planarity of the ring
+//Planarity returns the planarity percentage of the receiver ring
 //You must ensure that the coords indeed correspond to
 //the molecule for which the Ring object is defined
 //There is no way to check for that here.
@@ -216,7 +219,7 @@ func (R *Ring) AddHs(mol Atomer) {
 	R.Atoms = append(R.Atoms, newind...)
 }
 
-//return the index of the first ring found to which the
+//InWhichRing returns the index of the first ring found to which the
 //at atom belongs, or -1 if the atom is not part of any ring.
 func InWhichRing(at *Atom, rings []*Ring) int {
 	if len(rings) == 0 {
@@ -231,6 +234,8 @@ func InWhichRing(at *Atom, rings []*Ring) int {
 
 }
 
+//Identifies and returns all rings in mol, by
+//searching for cyclic paths.
 func FindRings(coords *v3.Matrix, mol Atomer) []*Ring {
 	L := mol.Len()
 	var rings []*Ring

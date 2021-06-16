@@ -116,9 +116,9 @@ var symbolVdwrad = map[string]float64{
 //A map for checking that atoms don't
 //have too many bonds. A value of 0 means
 //undefined, i.e. that this atom shouldn't
-//be checked for max bonds.
+//be checked for max bonds. I decided not to define it
 var symbolMaxBonds = map[string]int{
-	"H":  1,
+	"H":  1, //this is the only one truly important.
 	"C":  4, //the sp3 radius
 	"O":  2,
 	"N":  0, //undefined

@@ -37,6 +37,7 @@ import (
 	v3 "github.com/rmera/gochem/v3"
 )
 
+//NWChemHandle represents an NWChem calculation.
 //Note that the default methods and basis vary with each program, and even
 //for a given program they are NOT considered part of the API, so they can always change.
 type NWChemHandle struct {
@@ -52,6 +53,7 @@ type NWChemHandle struct {
 	wrkdir      string
 }
 
+//Initializes and returns a NWChem handle
 func NewNWChemHandle() *NWChemHandle {
 	run := new(NWChemHandle)
 	run.SetDefaults()
@@ -60,45 +62,51 @@ func NewNWChemHandle() *NWChemHandle {
 
 //NWChemHandle methods
 
-//Sets the number of CPU to be used
+//SetnCPU sets the number of CPU to be used
 func (O *NWChemHandle) SetnCPU(cpu int) {
 	O.nCPU = cpu
 }
 
+//SetRestart sets whether the calculation is a restart
+//of a previous one.
 func (O *NWChemHandle) SetRestart(r bool) {
 	O.restart = r
 }
 
+//SetName sets the name for the job, reflected in the input and
+//output files.
 func (O *NWChemHandle) SetName(name string) {
 	O.inputname = name
 }
 
+//SetCommand sets the name/path of the MOPAC excecutable
 func (O *NWChemHandle) SetCommand(name string) {
 	O.command = name
 }
 
+//SetWorkDir sets the working directory for the calculation
 func (O *NWChemHandle) SetWorkDir(d string) {
 	O.wrkdir = d
 }
 
-//Sets the name of a file containing orbitals which will be used as a guess for this calculations
+//SetMOName sets the name of a file containing orbitals which will be used as a guess for this calculations
 func (O *NWChemHandle) SetMOName(name string) {
 	O.previousMO = name
 }
 
-//For an optimization, first calculate an SCF with do_gasphase True and use THAT density guess
+//SetsSmartCosmo sets the behaviour of NWChem regarding COSMO.
+//For an optimization, a true value causes NBWChem to first calculate an SCF with do_gasphase True and use THAT density guess
 //for the first optimization step. The optimization is done with do_gasphase False.
 //for a SP, smartCosmo simply means do_gasphase False.
 //Notice that SmartCosmo is not reallty too smart, for optimizations. In my tests, it doesn't really
-//make things better. I keep it for further testing, and may never make it to the master branch.
-//My tests indicate that just using do_gasphase False is good enough for optimizations.
+//make things better. I keep it mostly just in case.
 func (O *NWChemHandle) SetSmartCosmo(set bool) {
 	O.smartCosmo = set
 }
 
-//Sets defaults for NWChem calculation. Default is a single-point at
-//TPSS/def2-SVP with RI, and all the available CPU with a max of
-//unix.
+//SetDefaults sets the NWChem calculation to goChem's default values (_not_ considered part of the API!)
+//As of now, default is a single-point at
+//TPSS/def2-SVP with RI, and half the logical CPUs available (to account for the multithreading common on Intel CPUs)
 func (O *NWChemHandle) SetDefaults() {
 	O.defmethod = "tpss"
 	O.defbasis = "def2-svp"
@@ -457,7 +465,7 @@ var nwchemMethods = map[string]string{
 	"blyp":    "becke88 lyp",
 }
 
-//Reads the latest geometry from an NWChem optimization. Returns the
+//OptimizedGeometry returns the latest geometry from an NWChem optimization. Returns the
 //geometry or error. Returns the geometry AND error if the geometry read
 //is not the product of a correctly ended NWChem calculation. In this case
 //the error is "probable problem in calculation".
@@ -505,7 +513,7 @@ func (O *NWChemHandle) OptimizedGeometry(atoms chem.Atomer) (*v3.Matrix, error) 
 	return mol.Coords[0], err2
 }
 
-//Gets the energy of a previous NWChem calculation.
+//Energy returns the energy of a previous NWChem calculation.
 //Returns error if problem, and also if the energy returned that is product of an
 //abnormally-terminated NWChem calculation. (in this case error is "Probable problem
 //in calculation")
@@ -558,10 +566,7 @@ func (O *NWChemHandle) move2lines(fin *bufio.Reader) error {
 	return nil
 }
 
-//Gets the energy of a previous NWChem calculation.
-//Returns error if problem, and also if the energy returned that is product of an
-//abnormally-terminated NWChem calculation. (in this case error is "Probable problem
-//in calculation")
+//Charges returns the RESP charges from a previous NWChem calculation.
 func (O *NWChemHandle) Charges() ([]float64, error) {
 	f, err1 := os.Open(fmt.Sprintf("%s.out", O.wrkdir+O.inputname))
 	if err1 != nil {
