@@ -50,6 +50,8 @@ import (
 
 //INTERFACES  This part is from GONUM, copyright, the gonum authors.
 
+//This part of the package is deprecated. Gonum is the only implemantation used in goChem now.
+
 type Normer interface {
 	Norm(o float64) float64
 }
@@ -66,8 +68,6 @@ type BlasMatrix struct {
 	Data       []float64
 }
 
-//The main container, must be able to implement any
-//gonum interface.
 //VecMatrix is a set of vectors in 3D space. The underlying implementation varies.
 type VecMatrix struct {
 	*Dense
@@ -106,7 +106,7 @@ func newchemDense(data []float64, rows, cols int) (*chemDense, error) {
 
 }
 
-//Generate and returns a VecMatrix with 3 columns from data.
+//NewVecs enerates and returns a VecMatrix with 3 columns from data.
 func NewVecs(data []float64) (*VecMatrix, error) {
 	///fmt.Println("JAJAJA BIENVENIDO AL INFIERNO!!!!") //Surely a debugging msg I had forgotten about. It would have rather surprised any Spanish-speaking user :-)
 	const cols int = 3

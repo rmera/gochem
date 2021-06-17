@@ -24,7 +24,6 @@
  *
  */
 
-
 //The point of this is that the user can use compile tags to get their programs compiled with goblas or cblas.
 //goblas is the default, the cblas tag being required to use, well, cblas.
 

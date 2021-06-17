@@ -39,7 +39,7 @@ import (
 const appzero float64 = 0.000000000001 //used to correct floating point
 //errors. Everything equal or less than this is considered zero. This probably sucks.
 
-//Returns a zero-filled Matrix with vecs vectors and 3 in the other dimension.
+//Zeros returns a zero-filled Matrix with vecs vectors and 3 in the other dimension.
 func Zeros(vecs int) *Matrix {
 	const cols int = 3
 	f := make([]float64, cols*vecs, cols*vecs)
@@ -48,6 +48,7 @@ func Zeros(vecs int) *Matrix {
 
 //METHODS
 
+//SwapVecs swaps the vectors i and j in the receiver
 func (F *Matrix) SwapVecs(i, j int) {
 	if i >= F.NVecs() || j >= F.NVecs() {
 		panic(ErrIndexOutOfRange)
@@ -60,7 +61,7 @@ func (F *Matrix) SwapVecs(i, j int) {
 	}
 }
 
-//Adds a vector to the  coordmatrix A putting the result on the received.
+//AddVec adds a vector to the  coordmatrix A putting the result on the received.
 //depending on whether the underlying matrix to coordmatrix
 //is col or row major, it could add a col or a row vector.
 func (F *Matrix) AddVec(A, vec *Matrix) {
@@ -84,10 +85,14 @@ func (F *Matrix) AddVec(A, vec *Matrix) {
 	}
 }
 
+//DelRow deletes a row in matrix A, placing the results
+//in the receiver. Equivalent to DelVec for compatibility.
 func (F *Matrix) DelRow(A *Matrix, i int) {
 	F.DelVec(A, i)
 }
 
+//DelVec deletes a (row) vector in matrix A, placing the results
+//in the receiver.
 func (F *Matrix) DelVec(A *Matrix, i int) {
 	ar, ac := A.Dims()
 	fr, fc := F.Dims()
@@ -107,7 +112,7 @@ func (F *Matrix) DelVec(A *Matrix, i int) {
 	}
 }
 
-//return the number of vecs in F.
+//NVecs return the number of (row) vectors in F.
 func (F *Matrix) NVecs() int { //NOTE Probably just "Vecs" is a better name
 	r, c := F.Dims()
 	if c != 3 {
@@ -117,14 +122,20 @@ func (F *Matrix) NVecs() int { //NOTE Probably just "Vecs" is a better name
 
 }
 
-//Scale each coordinates in A by the coordinate in coord.
+//Len return the number of (row) vectors in F.
+//Equivalent to NVecs, but more in line with Go APIS.
+func (F *Matrix) Len() int { //NOTE Probably just "Vecs" is a better name
+	return F.NVecs()
+}
+
+//ScaleByVec scales each coordinates in the  A by the coordinate in the row-vector coord.
 //The result is put in F.
 func (F *Matrix) ScaleByVec(A, coord *Matrix) {
 	F.ScaleByRow(A, coord) //NOTE: here I try to fix what I coment in the previous line by caling ScaleByRow instead of ScaleByVec as it was before
 }
 
-//Set the vectors whith index n = each value on clist, in the received to the
-//n vector of A.
+//SetVecs sets the vector F[clist[i]] to the vector A[i], for all indexes i in clist.
+//nth vector of A. Indexes i must be positive or 0
 func (F *Matrix) SetVecs(A *Matrix, clist []int) {
 	ar, ac := A.Dims()
 	fr, fc := F.Dims()
@@ -133,14 +144,14 @@ func (F *Matrix) SetVecs(A *Matrix, clist []int) {
 	}
 	for key, val := range clist {
 		for j := 0; j < ac; j++ {
-			F.Set(val, j, A.At(key, j))
+			F.Set(val, j, A.At(key, j)) //This will panic if an index is less than zero, which is fine.
 		}
 	}
 }
 
-//SomeVecs Returns a matrix contaning all the ith rows of matrix A,
+//SomeVecs Returns a matrix contaning a copy of the ith rows of matrix A,
 //where i are the numbers in clist. The rows are in the same order
-//than the clist.
+//than the clist. The numbers in clist must be positive or zero.
 func (F *Matrix) SomeVecs(A *Matrix, clist []int) {
 	ar, ac := A.Dims()
 	fr, fc := F.Dims()
@@ -287,7 +298,8 @@ func (F *Matrix) ScaleByRow(A, Row *Matrix) { //NOTE it should be called ScaleBy
 	}
 }
 
-//Puts a view of the given row of the matrix in the receiver
+//RowView puts a view of the given row of the matrix in the receiver
+//Equivalent to VecView
 func (F *Matrix) RowView(i int) *Matrix {
 	return F.VecView(i)
 }
@@ -299,6 +311,8 @@ func (F *Matrix) SubRow(A, row *Matrix) {
 	F.SubVec(A, row)
 }
 
+//Unit puts in the receiver the unit vector pointing in the same
+//direction as the vector A (A divided by its norm).
 func (F *Matrix) Unit(A *Matrix) {
 	if A.Dense != F.Dense {
 		F.Copy(A)

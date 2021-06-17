@@ -1,7 +1,7 @@
 /*
  * doc.go, part of gochem.
  *
- * Copyright 2015 Raul Mera <rmera{at}chemDOThelsinkiDOTfi>
+ * Copyright 2021 Raul Mera <rmeraatusachdotcl>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -20,10 +20,9 @@
  *
  * */
 
-// Package v3 implements a Matrix type representing a row-major 3D matrix (i.e. a Nx3 matrix).
-// The v3.Matrix is used to represent the cartesian coordinates of sets of atoms in goChem.
-// It is based int gonum's (github.com/gonum) Dense type, with some additional restrictions
-// because of the fixed number of columns and with some additional functions that were found
-// useful for the purposes of goChem.
+//Package qm implements communication with several QM programs
+//In such a way that the calculation settings are as separated
+//as possible from the choice of QM program to perform that
+//calculation.
 
-package v3
+package qm

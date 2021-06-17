@@ -19,7 +19,7 @@
  * <http://www.gnu.org/licenses/>.
  *
  * Dedicated to the long life of the Ven. Khenpo Phuntzok Tenzin Rinpoche
- * 
+ *
  */
 
 package qm
@@ -50,6 +50,7 @@ type Runner interface {
 	Run(wait bool) (err error)
 }
 
+//Builds inputs and runs a QM calculations
 type BuilderRunner interface {
 	InputBuilder
 	Runner
@@ -71,7 +72,8 @@ type EnergyGeo interface {
 	OptimizedGeometry(atoms chem.Atomer) (*v3.Matrix, error)
 }
 
-//This allows to set QM calculations using different programs.
+//Handle is an interface for a mostly-full functionality QM program
+//where "functionality" reflects it's degree of support in goChem
 type Handle interface {
 	BuilderRunner
 	EnergyGeo
@@ -100,6 +102,7 @@ const (
 
 //errors
 
+//Error represents a decorable QM error.
 type Error struct {
 	message    string
 	code       string //the name of the QM program giving the problem, or empty string if none
@@ -151,9 +154,10 @@ type jobChoose struct {
 	charges func()
 }
 
-//This is what the user actually deasl with. The user should set one of these to true,
+//Job is a structure that define a type of calculations.
+//The user should set one of these to true,
 //and goChem will see that the proper actions are taken. If the user sets more than one of the
-//fields to true, the priority will be Opti>Forces>SP (i.e. if you set Forces and SP to true,
+//fields to true, the priority will be Opti>Forces>SP (i.e. if Forces and SP are true,
 //only the function handling forces will be called).
 type Job struct {
 	Opti    bool
@@ -194,16 +198,20 @@ func (J *Job) Do(plan jobChoose) {
 
 }
 
-type IntConstraint struct {
-	Kind  byte
-	Atoms []int
-}
+//Container for constraints to internal coordinates
+//type IntConstraint struct {
+//	Kind  byte
+//	Atoms []int
+//}
 
+//PointCharge is a container for a point charge, such as those used in QM/MM
+//calculations
 type PointCharge struct {
 	Charge float64
 	Coords *v3.Matrix
 }
 
+//IConstraint is a container for a constraint to internal coordinates
 type IConstraint struct {
 	CAtoms []int
 	Val    float64
@@ -211,6 +219,8 @@ type IConstraint struct {
 	UseVal bool //if false, don't add any value to the constraint (which should leave it at the value in the starting structure. This migth not work on every program, but it works in ORCA.
 }
 
+//Calc is a structure for the general representation of a calculation
+//mostly independent of the QM program (although, of course, some methods will not work in some programs)
 type Calc struct {
 	Method       string
 	Basis        string

@@ -22,7 +22,7 @@
  *
  *
  * Dedicated to the long life of the Ven. Khenpo Phuntzok Tenzin Rinpoche
- * 
+ *
  * ***/
 
 package xtc
@@ -36,11 +36,14 @@ package xtc
 //#include <xdrfile_trr.h>
 //#include <xdrfile.h>
 import "C"
-import "fmt"
-import "runtime"
-import "github.com/rmera/gochem/v3"
+import (
+	"fmt"
+	"runtime"
 
-//Container for an GROMACS XTC binary trajectory file.
+	v3 "github.com/rmera/gochem/v3"
+)
+
+//XTCObj is a container for an GROMACS XTC binary trajectory file.
 type XTCObj struct {
 	readable   bool
 	natoms     int
@@ -52,6 +55,7 @@ type XTCObj struct {
 	buffSize   int
 }
 
+//New returns an xtb object from a xtb-formated trajectory file
 func New(filename string) (*XTCObj, error) {
 	traj := new(XTCObj)
 	if err := traj.initRead(filename); err != nil {
@@ -63,7 +67,7 @@ func New(filename string) (*XTCObj, error) {
 
 }
 
-//Returns true if the object is ready to be read from
+//Readable returns true if the object is ready to be read from
 //false otherwise. IT doesnt guarantee that there is something
 //to read.
 func (X *XTCObj) Readable() bool {
@@ -152,10 +156,10 @@ func (X *XTCObj) setConcBuffer(batchsize int) error {
 	return nil
 }
 
-/*NextConc takes a slice of bools and reads as many frames as elements the list has
-form the trajectory. The frames are discarted if the corresponding elemetn of the slice
-* is false. The function returns a slice of channels through each of each of which
-* a *matrix.DenseMatrix will be transmited*/
+//NextConc takes a slice of bools and reads as many frames as elements the list has
+//form the trajectory. The frames are discarted if the corresponding elemetn of the slice
+//is false. The function returns a slice of channels through each of each of which
+// a *matrix.DenseMatrix will be transmited
 func (X *XTCObj) NextConc(frames []*v3.Matrix) ([]chan *v3.Matrix, error) {
 	if X.buffSize < len(frames) {
 		X.setConcBuffer(len(frames))
@@ -204,7 +208,7 @@ func (X *XTCObj) NextConc(frames []*v3.Matrix) ([]chan *v3.Matrix, error) {
 	return framechans, nil
 }
 
-//Natoms returns the number of atoms per frame in the XTCObj.
+//Len returns the number of atoms per frame in the XTCObj.
 //XTCObj must be initialized. 0 means an uninitialized object.
 func (X *XTCObj) Len() int {
 	return X.natoms
@@ -212,6 +216,7 @@ func (X *XTCObj) Len() int {
 
 //Errors
 
+//Error is an error with xtb trajectories, compatible with goChem
 type Error struct {
 	message  string
 	filename string //the input file that has problems, or empty string if none.

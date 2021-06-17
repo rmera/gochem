@@ -47,20 +47,26 @@ import (
 	"sort"
 )
 
-//The main container, must be able to implement any
-//gonum interface.
 //Matrix is a set of vectors in 3D space. The underlying implementation varies.
 //Within the package it is understood that a "vector" is a row vector, i.e. the
-//cartesian coordinates of a point in 3D space. The name of some funcitions in
+//cartesian coordinates of a point in 3D space. The name of some functions in
 //the library reflect this.
 type Matrix struct {
+	//The main container, must be able to implement most
+	//gonum interfaces
 	*mat.Dense
 }
 
+//Matrix2Dense returns the A Gonum Dense matrix
+//associated with A. Changes in one will
+//be reflected in t he other
 func Matrix2Dense(A *Matrix) *mat.Dense {
 	return A.Dense
 }
 
+//Dense2Matrix returns a *v3.Matrix
+//from a Gonum dense matrix, which has to be
+//Nx3
 func Dense2Matrix(A *mat.Dense) *Matrix {
 	r, c := A.Dims()
 	if c != 3 {
@@ -69,7 +75,7 @@ func Dense2Matrix(A *mat.Dense) *Matrix {
 	return &Matrix{A}
 }
 
-//Generate and returns a Matrix with 3 columns from data.
+//NewMatrix creates and returns a Matrix with 3 columns from data.
 func NewMatrix(data []float64) (*Matrix, error) {
 	const cols int = 3
 	l := len(data)
@@ -102,7 +108,7 @@ func (F *Matrix) Col(dst []float64, i int) []float64 {
 	return mat.Col(dst, i, F.Dense)
 }
 
-//Puts a view of the given col of the matrix on the receiver
+//ColSlice puts a view of the given col of the matrix on the receiver
 func (F *Matrix) ColSlice(i int) *Matrix {
 	//	r := new(mat64.Dense)
 	Fr, _ := F.Dims()
@@ -110,7 +116,7 @@ func (F *Matrix) ColSlice(i int) *Matrix {
 	return &Matrix{r}
 }
 
-//Puts a view of the given col of the matrix on the receiver.
+//ColView a view of the given col of the matrix on the receiver.
 //This function is for compatibility with the gonum v1 API
 //The older one might be deleted in the future, but, if at all,
 //it will take time.
@@ -121,7 +127,7 @@ func (F *Matrix) ColView(i int) *Matrix {
 	return &Matrix{r}
 }
 
-//Returns view of the given vector of the matrix in the receiver
+//VecView eturns view of the ith vector of the matrix in the receiver
 func (F *Matrix) VecView(i int) *Matrix {
 	//r := new(mat64.Dense)
 	/*	mr,mc:=F.Caps() /////////////////////////
@@ -178,15 +184,19 @@ func (F *Matrix) Slice(i, r, j, c int) *Matrix {
 	return &Matrix{ret}
 }
 
+//Sub puts the element-wise subtraction
+//of matrices A and B into the receiver
 func (F *Matrix) Sub(A, B *Matrix) {
 	F.Dense.Sub(A.Dense, B.Dense)
 }
 
+//Add puts the element-wise addition
+//of matrices A and B into the receiver
 func (F *Matrix) Add(A, B *Matrix) {
 	F.Dense.Add(A.Dense, B.Dense)
 }
 
-//Puts the matrix A in the received starting from the ith row and jth col
+//SetMatrix the matrix A in the received starting from the ith row and jth col
 //of the receiver.
 func (F *Matrix) SetMatrix(i, j int, A *Matrix) {
 	b := F.RawMatrix()
@@ -203,7 +213,7 @@ func (F *Matrix) SetMatrix(i, j int, A *Matrix) {
 	}
 }
 
-//Mul Wrapps mat.Mul to take care of the case when one of the
+//Mul Wraps mat.Mul to take care of the case when one of the
 //arguments is also the received. Since the received is a Matrix,
 //the mat64 function could check A (mat64.Dense) vs F (Matrix) and
 //it would not know that internally F.Dense==A, hence the need for this function.
@@ -248,23 +258,20 @@ func (F *Matrix) Dot(A *Matrix) float64 {
 	return mat.Inner(F.Dense.RowView(0), id, A.Dense.RowView(0))
 }
 
+//Scale multiplies each element in the matrix A by
+//v
 func (F *Matrix) Scale(v float64, A *Matrix) {
 	F.Dense.Scale(v, A.Dense)
 }
 
-//Norm acts as a front-end for the mat64 function. Used for compatibility.
-//it always returns the Frobenius norm, no matter what you give as an argument.
-//The argument is there for compatibility (Gonum used to have "0" as the Froebius norm
-//and that is still used in some places in goChem. Until I fixe them all, I just ignore the
-//number. If you want some oher norm, just use the gonum mat.Norm function.
+//Norm acts as a front-end for the mat64 function.
 func (F *Matrix) Norm(i float64) float64 {
-	//NOTE: This function should be removed from the API at some point, as it's probably not
-	//inlined because of the "if". At least the if should be taken away, but the A.Norm(0) is used
-	//in several places in the package so I have to deal with that first.
-	//	if i == 0 {
-	//		i = 2
-	//	}
-	return mat.Norm(F.Dense, 2)
+	//This used to always return Frobenius norm, no matter what you give as an argument.
+	//The argument is there for compatibility (Gonum used to have "0" as the Froebius norm
+	//and that was, until recently, still used in goChem. I think I have fixes all these
+	//use cases but be mindful of possible bugs.
+
+	return mat.Norm(F.Dense, i)
 }
 
 /*
@@ -276,7 +283,7 @@ func (F *Matrix) Sum() float64{
 }
 */
 
-//puts A stacked over B in F
+//Stack puts A stacked over B in the receiver
 func (F *Matrix) Stack(A, B *Matrix) {
 	f := F.RawMatrix()
 	ar, _ := A.Dims()
@@ -459,7 +466,7 @@ func (F *Matrix) Tr () *Matrix{
 //I know, premature optimization and so on. It's an internal thing, sue me.
 var transposetmp float64
 
-//Tr() performs an explicit, in-place tranpose of the receiver.
+//Tr performs an explicit, in-place tranpose of the receiver.
 //it relies in the fact that v3 matrix are all 3D. If the receiver has more than
 //3 rows, the square submatrix of the first 3 rows will be transposed (i.e. no panic or returned error).
 //it panics if the receiver has less than 3 rows.
@@ -491,6 +498,7 @@ type errorInt interface {
 	Decorate(string) []string
 }
 
+//Error is an error on the v3 package. Compatible with goChem
 type Error struct {
 	message  string
 	deco     []string
