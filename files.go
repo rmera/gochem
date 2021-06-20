@@ -135,10 +135,15 @@ func read_full_pdb_line(line string, read_additional bool, contlines int) (*Atom
 	coords[0], err[2] = strconv.ParseFloat(strings.TrimSpace(line[30:38]), 64)
 	coords[1], err[3] = strconv.ParseFloat(strings.TrimSpace(line[38:46]), 64)
 	coords[2], err[4] = strconv.ParseFloat(strings.TrimSpace(line[46:54]), 64)
-	atom.Occupancy, err[5] = strconv.ParseFloat(strings.TrimSpace(line[54:60]), 64)
-	//If I try not to declare this and just use :=, I get an "expected identifier" error
 	var bfactor float64
-	bfactor, err[6] = strconv.ParseFloat(strings.TrimSpace(line[60:66]), 64)
+	//Every correct PDB should include occupancy and b-factor, but _of course_ writing
+	//correct PDBs is too hard for some programs (and by "some programs" I mean OPLS LigParGen. Get it together, guys).
+	//so I add this conditional to allow goChem to still read these wrong PDB files.
+	if len(line) >= 60 {
+		atom.Occupancy, err[5] = strconv.ParseFloat(strings.TrimSpace(line[54:60]), 64)
+		//If I try not to declare this and just use :=, I get an "expected identifier" error
+		bfactor, err[6] = strconv.ParseFloat(strings.TrimSpace(line[60:66]), 64)
+	}
 	//we try to read the additional only if indicated and if it is there
 	// In this part we don't catch errors. If something is missing we
 	// just ommit it
