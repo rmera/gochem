@@ -438,7 +438,7 @@ func (O *XTBHandle) FixImaginary(wait bool) error {
 		return fmt.Errorf("xtbhess.coord doesn't exist. There is likely no significant imaginary mode")
 	}
 	if O.gfnff {
-		com = fmt.Sprintf(" --gfnff xtbhess.coord  --input %s.inp  %s > %s.out  2>&1", strings.Join(O.options[2:], " "), O.inputname)
+		com = fmt.Sprintf(" --gfnff xtbhess.coord  --input %s.inp  %s > %s.out  2>&1", O.inputname, strings.Join(O.options[2:], " "), O.inputname)
 	} else {
 
 		com = fmt.Sprintf(" xtbhess.coord  --input %s.inp  %s > %s.out  2>&1", O.inputname, strings.Join(O.options[2:], " "), O.inputname)
