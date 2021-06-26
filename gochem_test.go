@@ -559,7 +559,7 @@ func TestBondsBz(Te *testing.T) {
 
 	}
 
-	path := BondedPaths(C, C.index, true)
+	path := BondedPaths(C, C.index, &BondedOptions{OnlyShortest: true})
 	if path == nil {
 		Te.Errorf("No path found!")
 	}
@@ -584,12 +584,12 @@ func TestBondsPorf(Te *testing.T) {
 	}
 	mol.AssignBonds(mol.Coords[0])
 
-	spath := BondedPaths(S, S.index, true)
+	spath := BondedPaths(S, S.index)
 	if spath == nil {
 		Te.Errorf("No short path found!")
 	}
 	fmt.Printf("Short path %v has %d nodes\n", spath[0], len(spath[0]))
-	paths := BondedPaths(S, S.index, false)
+	paths := BondedPaths(S, S.index)
 	fmt.Printf("Long path %v has %d nodes\n", paths[len(paths)-1], len(paths[len(paths)-1]))
 
 }

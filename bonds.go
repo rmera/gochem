@@ -101,6 +101,12 @@ func takefromslice(bonds []*Bond, id int) []*Bond {
 	return newb
 }
 
+type doNotCompare [0]func()
+type BondedOptions struct {
+	OnlyShortest bool
+	Path         []int
+}
+
 //BondedPaths determines the paths between at and the atom with
 //Index targetIndex. It returns a slice of slices of int, where each sub-slice contains all the atoms
 //in between at and the target (including the index of at)
@@ -111,7 +117,12 @@ func takefromslice(bonds []*Bond, id int) []*Bond {
 //of len 0, the function will search for a cyclic path back to the initial atom.
 //if onlyshortest is true, only the shortest path will be returned (the other elements of the slice will be nil)
 //This can be useful if you want to save memory on a very intrincate molecule.
-func BondedPaths(at *Atom, targetIndex int, onlyshortest bool, path ...[]int) [][]int {
+func BondedPaths(at *Atom, targetIndex int, options ...*BondedOptions) [][]int {
+	if len(options) == 0 {
+		options = []*BondedOptions{&BondedOptions{OnlyShortest: false, Path: nil}}
+	}
+	onlyshortest := options[0].OnlyShortest
+	path := [][]int{options[0].Path}
 	//I am not completely sure about this function signature. It is a candidate for API change.
 	if len(path) > 0 && len(path[0]) > 1 && path[0][len(path[0])-2] == at.index {
 		return nil //We are back to the atom we just had visited, not a valid path. We have to check this before checking if we completed the "quest"
@@ -143,7 +154,7 @@ func BondedPaths(at *Atom, targetIndex int, onlyshortest bool, path ...[]int) []
 	for _, v := range at.Bonds {
 		path2 := make([]int, len(path[0]))
 		copy(path2, path[0])
-		rets = append(rets, BondedPaths(v.Cross(at), targetIndex, onlyshortest, path2)...) //scary stuff
+		rets = append(rets, BondedPaths(v.Cross(at), targetIndex, &BondedOptions{OnlyShortest: onlyshortest, Path: path2})...) //scary stuff
 	}
 	rets2 := make([][]int, 0, len(at.Bonds))
 	for _, v := range rets {
@@ -243,7 +254,7 @@ func FindRings(coords *v3.Matrix, mol Atomer) []*Ring {
 	for i := 0; i < L; i++ {
 		at := mol.Atom(i)
 		if InWhichRing(at, rings) == -1 {
-			paths := BondedPaths(at, at.index, true)
+			paths := BondedPaths(at, at.index, &BondedOptions{OnlyShortest: true})
 			if len(paths) == 0 || len(paths[0][1:]) > 6 {
 				continue
 			}
