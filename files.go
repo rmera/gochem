@@ -784,18 +784,21 @@ func GroFileRead(groname string) (*Molecule, error) {
 		//fmt.Println("how manytimes?") /////////////////////
 		tmpcoords, _, err := groReadSnap(gro, false)
 		if err != nil {
-			//An error here may just mean that there are no more snapshots
-			errm := err.Error()
-			if strings.Contains(errm, "Empty") || strings.Contains(errm, "EOF") {
-				err = nil
-				break
-			}
-			return nil, errDecorate(err, "GroRead")
+			break //We just ignore errors after the first snapshot, and simply read as many snapshots as we can.
+			/*
+				//An error here may just mean that there are no more snapshots
+				errm := err.Error()
+				if strings.Contains(errm, "Empty") || strings.Contains(errm, "EOF") {
+					err = nil
+					break
+				}
+				return nil, errDecorate(err, "GroRead")
+			*/
 		}
 		Coords = append(Coords, tmpcoords)
 	}
 	returned, err := NewMolecule(Coords, top, nil)
-	fmt.Println("2 return!", top.Atom(1), returned.Coords[0].VecView(2)) ///////////////////////
+	//	fmt.Println("2 return!", top.Atom(1), returned.Coords[0].VecView(2)) ///////////////////////
 	return returned, errDecorate(err, "GroRead")
 }
 
@@ -882,6 +885,7 @@ func read_gro_line(line string) (*Atom, []float64, error) {
 	atom.Molname1 = three2OneLetter[atom.Molname]
 	atom.Name = strings.TrimSpace(line[10:15])
 	atom.ID, err = strconv.Atoi(strings.TrimSpace(line[15:20]))
+	//	fmt.Printf("%s|%s|%s|%s|\n", line[0:5], line[5:10], line[10:15], line[15:20]) ////////////
 	if err != nil {
 		return nil, nil, err
 	}
