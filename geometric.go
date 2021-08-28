@@ -123,7 +123,7 @@ func RotatorToNewZ(newz *v3.Matrix) *v3.Matrix {
 //the first translation vector has to be added first to the moving matrix, then the rotation must be performed
 //and finally the second translation has to be added.
 //This is a low level function, although one can use it directly since it returns the transformed matrix.
-//The math for this function is by Prof. Veronica Jimenez-Curihual, University of Concepcion, Chile.
+//The math for this function is by Prof. Veronica Jimenez-Curihual, UNAB, Chile.
 func RotatorTranslatorToSuper(test, templa *v3.Matrix) (*v3.Matrix, *v3.Matrix, *v3.Matrix, *v3.Matrix, error) {
 	tmr, tmc := templa.Dims()
 	tsr, tsc := test.Dims()
@@ -380,7 +380,7 @@ func Improper(a, b, c, d *v3.Matrix) float64 {
 	cmb := v3.Zeros(1)
 	dmc := v3.Zeros(1)
 	bmc := v3.Zeros(1)
-	amb.Sub(b, a)
+	amb.Sub(a, b) //canged from Sub(b,a)
 	cmb.Sub(c, b)
 	bmc.Sub(b, c)
 	dmc.Sub(d, c)
