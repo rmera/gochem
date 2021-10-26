@@ -666,7 +666,7 @@ func xyzReadSnap(xyz *bufio.Reader, toplace *v3.Matrix, ReadTopol bool) (*v3.Mat
 		}
 		fields := strings.Fields(line)
 		if len(fields) < 4 {
-			errs[0] = fmt.Errorf("Line number %d ill formed", i)
+			errs[0] = fmt.Errorf("Line number %d ill formed: %s", i, line)
 			break
 		}
 		if ReadTopol {
