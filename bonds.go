@@ -101,8 +101,6 @@ func takefromslice(bonds []*Bond, id int) []*Bond {
 	return newb
 }
 
-type doNotCompare [0]func()
-
 //BondedOptions contains options for the BondePaths function
 type BondedOptions struct {
 	OnlyShortest bool  //Only return the shortest path between the atoms
