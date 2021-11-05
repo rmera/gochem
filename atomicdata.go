@@ -119,7 +119,7 @@ var symbolVdwrad = map[string]float64{
 //be checked for max bonds. I decided not to define it
 var symbolMaxBonds = map[string]int{
 	"H":  1, //this is the only one truly important.
-	"C":  4, //the sp3 radius
+	"C":  4,
 	"O":  2,
 	"N":  0, //undefined
 	"P":  0,

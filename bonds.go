@@ -101,28 +101,43 @@ func takefromslice(bonds []*Bond, id int) []*Bond {
 	return newb
 }
 
-type doNotCompare [0]func()
+//BondedOptions contains options for the BondePaths function
 type BondedOptions struct {
-	OnlyShortest bool
-	Path         []int
+	OnlyShortest bool  //Only return the shortest path between the atoms
+	path         []int //
 }
+
+/******
+**** The following is commented out and excluded from the API, as I don't think it is needed.
+**** In any case, adding this function, or any other, wouldn't break the API, so it's best
+**** to exclude when in doubt. Of course this is in itself an API break, but the bond functionality
+**** is still very new, so the break is very unlikely to affect anyone.
+//SetAlreadyWalkedPath set the unexported field "path" in BondedOptions to p.
+//the path field represents the already-walked path, so you almost never
+//want to set it. The exception is definidng your own function that calls
+//BondedPath recursively, as I do here. This method was added to allow
+//for such use.
+func (B *BondedOptions)SetAlreadyWalkedPath(p []int){
+    B.path=p
+}
+******/
 
 //BondedPaths determines the paths between at and the atom with
 //Index targetIndex. It returns a slice of slices of int, where each sub-slice contains all the atoms
 //in between at and the target (including the index of at)
-//If there is no valid path, it returns nil. The parameter "path" is the the path
-//already "walked", so, in a new search, it should not be given (although a nil value, or an empty slice
-//will also work). All atoms in the molecule need to have the "index" field filled.
+//If there is no valid path, it returns nil.
+//In the options structure BondeOption, OnlyShortest set to true causes only the shortest of the found paths to
+//be returned.  All atoms in the molecule need to have the "index" field filled.
 //If the targetIndex is the same as that of the current atom, and the path is not given, nil, or
 //of len 0, the function will search for a cyclic path back to the initial atom.
 //if onlyshortest is true, only the shortest path will be returned (the other elements of the slice will be nil)
 //This can be useful if you want to save memory on a very intrincate molecule.
 func BondedPaths(at *Atom, targetIndex int, options ...*BondedOptions) [][]int {
 	if len(options) == 0 {
-		options = []*BondedOptions{&BondedOptions{OnlyShortest: false, Path: nil}}
+		options = []*BondedOptions{&BondedOptions{OnlyShortest: false, path: nil}}
 	}
 	onlyshortest := options[0].OnlyShortest
-	path := [][]int{options[0].Path}
+	path := [][]int{options[0].path}
 	//I am not completely sure about this function signature. It is a candidate for API change.
 	if len(path) > 0 && len(path[0]) > 1 && path[0][len(path[0])-2] == at.index {
 		return nil //We are back to the atom we just had visited, not a valid path. We have to check this before checking if we completed the "quest"
@@ -154,7 +169,7 @@ func BondedPaths(at *Atom, targetIndex int, options ...*BondedOptions) [][]int {
 	for _, v := range at.Bonds {
 		path2 := make([]int, len(path[0]))
 		copy(path2, path[0])
-		rets = append(rets, BondedPaths(v.Cross(at), targetIndex, &BondedOptions{OnlyShortest: onlyshortest, Path: path2})...) //scary stuff
+		rets = append(rets, BondedPaths(v.Cross(at), targetIndex, &BondedOptions{OnlyShortest: onlyshortest, path: path2})...) //scary stuff
 	}
 	rets2 := make([][]int, 0, len(at.Bonds))
 	for _, v := range rets {
