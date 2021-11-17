@@ -1,7 +1,12 @@
 /*
- * dcd.go, part of gochem
+ * ddc.go, part of gochem
  *
- * Copyright 2012 Raul Mera Adasme <rmera_changeforat_chem-dot-helsinki-dot-fi>
+ *
+ * Copyright (c) 2021 Raul Mera Adasme <raul_dot_mera_changeforat_usach_dot_cl>
+ *
+ * Partially based on the implementation at:
+ * https://github.com/XiaohuaZhangLLNL/mdanalysis
+ * Which is (c) of the ddcMD MDAnalysis fork authors.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License  as published by
@@ -20,7 +25,9 @@
  */
 
 /**********
-The DDCMD trajectory format has 2 parts.
+This reads ddcMD trajectory files
+
+The ddcMD trajectory format has 2 parts.
 
 The first one, or "header" contains utf-8 text.
 The header itself is surrounded by {} and contains a set of key=value pairs separated by ";"
@@ -38,11 +45,11 @@ goChem, as of now, only support binary trajectories.
 The coordinates are in sets of numbers. All sets in a trajectory have the same
 number/type of elements.
 How many, what are, and what "format" (i.e. float64, uint32, etc.)
-are each element in a set is given by the fieldXXXX data from
+each element in a set is, is given by the fieldXXXX data from
 the header. We should have at least these fields in a set: id, rx, ry and rz. We only
 care about the 3 last ones, and discard id, and any other additional field.
 
-We just read sets one after the other, until the file is over.
+We read sets one after the other, until the file is over.
 
 ***********/
 
@@ -78,6 +85,8 @@ type header struct {
 	fieldFormat []string
 }
 
+//parseObj takes a map parsed from a ddcMD formatted header, and casts the values from strings to
+//whatever type is needed, putting it into the receiver's respective fields.
 func (H *header) parseObj(obj map[string]string) error {
 	//This is tricky, and, maybe, not the best way to do it, but it will have to do, at least for now.
 	//At least, the ugliness is hidden here.
@@ -146,6 +155,7 @@ type DDCObj struct {
 	endian       binary.ByteOrder
 }
 
+//Obtains the len unit conversion from the units in the DDC object to A
 func (H *header) lenunits(D *DDCObj) error {
 	//Maps the unit name with it's conversion factor to A (goChem's units for lenght)
 	unitmap := map[string]float64{
@@ -341,9 +351,12 @@ func (D *DDCObj) nextbin(coord *v3.Matrix) error {
 		//multiplying for the atoms plus the previous offset should give me the
 		//right value to use f.Seek() later.
 		//
-		D.offset = 0
 		D.framecounter++
 		return nil
+	}
+	if D.framecounter > 0 {
+		D.initRead(D.filename[D.framecounter]) //All I actually need is to generate the offset value!
+		//I could do something more efficient, i.e., that doesn't read all the header info again
 	}
 	filenames := make([]string, 0, 3)
 	basename := strings.Split(D.filename[D.framecounter], "#")[0]
