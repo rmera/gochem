@@ -35,6 +35,14 @@ int or []int or as float (in goChem's case, float64).
 The second part contains the coordinates and other data. Of these, goChem only recovers
 coordinates. This second part may be in several formats, including text and binary.
 goChem, as of now, only support binary trajectories.
+The coordinates are in sets of numbers. All sets in a trajectory have the same
+number/type of elements.
+How many, what are, and what "format" (i.e. float64, uint32, etc.)
+are each element in a set is given by the fieldXXXX data from
+the header. We should have at least these fields in a set: id, rx, ry and rz. We only
+care about the 3 last ones, and discard id, and any other additional field.
+
+We just read sets one after the other, until the file is over.
 
 ***********/
 
@@ -56,7 +64,7 @@ import (
 )
 
 type header struct {
-	offset      int
+	//	offset      int
 	datatype    string
 	l           [3]float64
 	nfields     int
@@ -121,19 +129,21 @@ func (H *header) parseObj(obj map[string]string) error {
 	return nil
 }
 
-//Container for an Charmm/NAMD binary trajectory file.
+//Container for a ddcMD trajectory file.
 type DDCObj struct {
-	h        *header
-	binary   bool
-	readable bool
-	filename string
-	ddc      *os.File
-	lunit    float64 //lenght unit conversion factor
-	natoms   int
-	nfiles   int
-	fieldFmt []string
-	fieldBit []int
-	endian   binary.ByteOrder
+	h            *header
+	offset       int64
+	binary       bool
+	readable     bool
+	filename     []string //The filename for each frame (not working right now, and could change, but that's my plan right now).
+	framecounter int
+	ddc          *os.File // I think I should set this to point to the file and point to wherever we should start reading next.It would not be attached to one particular file as in my other trajectory formats.
+	lunit        float64  //lenght unit conversion factor
+	natoms       int
+	nfiles       []int //how many files on each frame
+	fieldFmt     []string
+	fieldBit     []int
+	endian       binary.ByteOrder
 }
 
 func (H *header) lenunits(D *DDCObj) error {
@@ -145,7 +155,7 @@ func (H *header) lenunits(D *DDCObj) error {
 		"a0":   chem.Bohr2A,
 		"nm":   0.1,
 		"um":   0.1 * 10E-3,
-		"mm":   0.1 * 10E-6, //I wonder why are these units even supported.
+		"mm":   0.1 * 10E-6,
 	}
 	found := false
 	for i, v := range H.fieldName {
@@ -153,9 +163,9 @@ func (H *header) lenunits(D *DDCObj) error {
 			continue
 		}
 		var ok bool
-		unittext := H.fieldName[i]
+		unittext := H.fieldUnit[i]
 		if D.lunit, ok = unitmap[unittext]; !ok {
-			return Error{"Can't find unit: " + unittext, D.filename, []string{"lenunit"}, true}
+			return Error{"Can't find unit: " + unittext, D.filename[D.framecounter], []string{"lenunit"}, true}
 		}
 		found = true
 		break
@@ -198,12 +208,15 @@ func (D *DDCObj) parseObj(obj string) (map[string]string, error) {
 	}
 	obj2 := strings.FieldsFunc(obj, f)[1]
 	if obj2 == obj {
-		return nil, Error{"Object not delimited by {}", D.filename, []string{}, true}
+		return nil, Error{"Object not delimited by {}", D.filename[D.framecounter], []string{}, true}
 	}
-	mapaq := map[string]string{} //So, I have to parse the items into numbers or whatever, later.
+	mapaq := map[string]string{} //I still have to parse the values into numbers or whatever.
 	listaq := strings.Split(obj2, ";")
 	trim := strings.TrimSpace //just convenience
 	for _, v := range listaq {
+		if isallspaces(v) {
+			continue //it should be the same as "break" really, we should be done here.
+		}
 		kv := strings.Split(v, "=")
 		mapaq[trim(kv[0])] = trim(kv[1])
 	}
@@ -216,12 +229,12 @@ func (D *DDCObj) bitFormat() error {
 	fform := make([]string, 0, len(ft))
 	fbits := make([]int, 0, len(ft))
 	for _, v := range ft {
-		bit, err := strconv.Atoi(string(v[1])) //This will not work with non-ascii values! which shouldn't happen, anyway.
+		bit, err := strconv.Atoi(string(v[1]))
 		if err != nil {
-			return Error{"Wrong bit format: " + v, D.filename, []string{"bitFormat"}, true}
+			return Error{"Wrong bit format: " + v, D.filename[D.framecounter], []string{"bitFormat"}, true}
 		}
 		if v[0] == 'u' && bit == 4 {
-			fform = append(fform, "unit32") // L
+			fform = append(fform, "uint32") // L
 		} else if v[0] == 'u' && bit == 8 {
 			fform = append(fform, "uint64") //Q
 		} else if v[0] == 'f' && bit == 4 {
@@ -229,9 +242,9 @@ func (D *DDCObj) bitFormat() error {
 		} else if v[0] == 'f' && bit == 8 {
 			fform = append(fform, "float64") //d
 		} else {
-			return Error{"Bit format not supported: " + v, D.filename, []string{"bitFormat"}, true}
+			return Error{"Bit format not supported: " + v, D.filename[D.framecounter], []string{"bitFormat"}, true}
 		}
-		D.endian = binary.LittleEndian //They are all little endian!
+		D.endian = binary.LittleEndian //They are all little endian
 		fbits = append(fbits, bit)
 	}
 	D.fieldFmt = fform
@@ -246,12 +259,16 @@ func (D *DDCObj) bitFormat() error {
 //fixed atoms.
 func (D *DDCObj) initRead(name string) error {
 	headerstr := ""
-	offset := 0
+	var offset int64
+	D.filename = append(D.filename, name)
 	//The file starts with an utf-8 header, then continues with the binary part.
 	//we'll read the header now.
 	var doneheader bool
-
-	headerf := bufio.NewReader(D.ddc)
+	ddc, err := os.Open(name)
+	if err != nil {
+		return Error{"Couldn't open first frame/header file ", name, []string{"initRead"}, true}
+	}
+	headerf := bufio.NewReader(ddc)
 	for {
 		lineb, err := headerf.ReadBytes('\n')
 		if err != nil {
@@ -268,11 +285,11 @@ func (D *DDCObj) initRead(name string) error {
 			doneheader = true
 		}
 		headerstr += line
-		offset += len([]byte(line)) //I am not even sure about this!
+		offset += int64(len([]byte(line))) //This is for file.Seek() use later, so we skip all the header.
 	}
 
 	hstruct := new(header)
-	hstruct.offset = offset
+	D.offset = offset
 	obj, err := D.parseObj(headerstr)
 	if err != nil {
 		return errDecorate(err, "initRead: Trying to parse the header string")
@@ -281,15 +298,12 @@ func (D *DDCObj) initRead(name string) error {
 	if err != nil {
 		return errDecorate(err, "initRead: Trying to parse the header dictionary")
 	}
-	err = hstruct.parseObj(obj)
-	if err != nil {
-		return errDecorate(err, "initRead: Trying to parse the header dictionary")
-	}
-	err = hstruct.lenunits(D)
+	D.h = hstruct
+	err = D.h.lenunits(D)
 	if err != nil {
 		return errDecorate(err, "initRead: Trying to find units")
 	}
-	if hstruct.datatype == "FIXRECORDBINARY" {
+	if D.h.datatype == "FIXRECORDBINARY" {
 		D.binary = true
 		err = D.bitFormat()
 		if err != nil {
@@ -298,193 +312,117 @@ func (D *DDCObj) initRead(name string) error {
 
 	} else {
 		D.binary = false
-		//At least for now. I really don't have the energy to implement every possible sub-format.
-		return Error{"goChem only support binary DDCMD trajectories", D.filename, []string{"initRead"}, true}
+		//At least for now.
+		return Error{"goChem only support binary DDCMD trajectories", D.filename[D.framecounter], []string{"initRead"}, true}
 
 	}
 	D.readable = true
-	D.h = hstruct
 	//We now check that all fields needed to read the trajectory are present
+	//I actually don't need the "id" field. For now, I'll stick to the reference implementation and require it.
 	tf := []string{"id", "rx", "ry", "rz"}
 	for _, v := range tf {
-		if !isInString(D.h.fieldName, v) {
-			return Error{"File lacks at least one required term: " + v, D.filename, []string{"initRead"}, true}
+		if !isInString(v, D.h.fieldName) {
+			return Error{"File lacks at least one required term: " + v, D.filename[D.framecounter], []string{"initRead"}, true}
 		}
 	}
-	D.nfiles = D.h.nfiles
+	D.nfiles = append(D.nfiles, D.h.nfiles)
+	D.natoms = D.h.nrecord
 	return nil
 
 }
 
-func (D *DDCObj) nextbin(coord *v3.Matrix) {
+func (D *DDCObj) nextbin(coord *v3.Matrix) error {
+	if coord == nil {
+		//This will only work if each frame is in its own file!
+		//otherwise I have to actually read the frame, and ignore it.
+		//well, I could calculate the offset with the data
+		//present per atom, and the number of atoms, all info I have.
+		//Just adding all the fieldbit (which are actualy bytes) and
+		//multiplying for the atoms plus the previous offset should give me the
+		//right value to use f.Seek() later.
+		//
+		D.offset = 0
+		D.framecounter++
+		return nil
+	}
 	filenames := make([]string, 0, 3)
-	basename := strings.Split(D.filename, "#")[0]
-	for i := 0; i < D.nfiles; i++ {
-		numbering := fmt.Sprintf("%06d", strconv.Itoa(i))
+	basename := strings.Split(D.filename[D.framecounter], "#")[0]
+	//I should change this for a system where I just look for all files
+	//named basename#SOMENUMBER and add it, ordered by the number.
+	//I am kinda assuming that snapshots other than the first don't have a header,
+	//because that would be crazy.
+	for i := 0; i < D.nfiles[D.framecounter]; i++ {
+		numbering := fmt.Sprintf("%06d", i)
 		newname := basename + "#" + numbering
 		filenames = append(filenames, newname)
 	}
+	atomsread := 0
+	for i, file := range filenames {
+		f, err := os.Open(file)
+		if err != nil {
+			return Error{fmt.Sprintf("Couldn't open frame's %d file", i), file, []string{"nextbin"}, true}
 
+		}
+		if i == 0 {
+			f.Seek(D.offset, 0) //skip the header
+		}
+	ATOM: //This is the loop that reads coordinates for every atom, the loop inside it reads the x, y and z
+		for err == nil {
+			if atomsread >= D.natoms {
+				break
+			}
+			coordtmp := [3]float64{}
+			c := 0
+			for i, format := range D.fieldFmt {
+				var val float64
+				name := D.h.fieldName[i]
+				if !isInString(name, []string{"rx", "ry", "rz"}) {
+					err = readrejected(f, D.endian, format)
+					if err != nil {
+						break ATOM
+					}
+				} else {
+					val, err = readfloat(f, D.endian, format)
+					if err != nil {
+						break ATOM
+					}
+					coordtmp[c] = val * D.lunit
+					c++ //ok this is kinda funny
+				}
+			}
+			coord.Set(atomsread, 0, coordtmp[0])
+			coord.Set(atomsread, 1, coordtmp[1])
+			coord.Set(atomsread, 2, coordtmp[2])
+			atomsread++
+
+		}
+		if err != nil {
+			if atomsread == D.natoms && err.Error() == "EOF" {
+				return newlastFrameError(file, "nextbin")
+			} else {
+				return Error{fmt.Sprintf("Unexpected error while reading coordinates: %s", err.Error()), file, []string{"nextbin"}, true}
+			}
+		}
+
+	}
+
+	D.offset = 0
+	D.framecounter++
+	return nil
 }
 
-//Next Reads the next frame in a DcDObj that has been initialized for read
-//With initread. If keep is true, returns a pointer to matrix.DenseMatrix
-//With the coordinates read, otherwiser, it discards the coordinates and
-//returns nil.
+//Next Reads the next frame in a DDcObj that has been initialized for read
+//With initread. If keep is a v3.Matrix pointer, it will fill it with the values
+//for the coordinates in the frame. If keep is nil, it will discard the frame.
 func (D *DDCObj) Next(keep *v3.Matrix) error {
 	if !D.readable {
-		return Error{TrajUnIni, D.filename, []string{"Next"}, true}
+		return Error{"Trajectory not ready to read", "", []string{"Next"}, true}
 	}
-	if D.dcdFields == nil {
-		D.dcdFields = make([][]float32, 3, 3)
-		D.dcdFields[0] = make([]float32, int(D.natoms), int(D.natoms))
-		D.dcdFields[1] = make([]float32, int(D.natoms), int(D.natoms))
-		D.dcdFields[2] = make([]float32, int(D.natoms), int(D.natoms))
+	err := D.nextbin(keep)
+	if err != nil && err.Error() != "EOF" {
+		errDecorate(err, "Next")
 	}
-	if err := D.nextRaw(D.dcdFields); err != nil {
-		return errDecorate(err, "Next")
-	}
-	if keep == nil {
-		return nil
-	}
-	if r, _ := keep.Dims(); int32(r) < D.natoms {
-		panic("Not enough space in matrix")
-	}
-	//outBlock := make([]float64, int(D.natoms)*3, int(D.natoms)*3)
-	for i := 0; i < int(D.natoms); i++ {
-		k := i - i*(i/int(D.natoms))
-		keep.Set(k, 0, float64(D.dcdFields[0][k]))
-		keep.Set(k, 1, float64(D.dcdFields[1][k]))
-		keep.Set(k, 2, float64(D.dcdFields[2][k]))
-	}
-	//	final := NewVecs(outBlock, int(D.natoms), 3)
-	//	fmt.Print(final)/////////7
-	return nil
-}
-
-//Next Reads the next frame in a XtcObj that has been initialized for read
-//With initread. If keep is true, returns a pointer to matrix.DenseMatrix
-//With the coordinates read, otherwiser, it discards the coordinates and
-//returns nil.
-func (D *DCDObj) nextRaw(blocks [][]float32) error {
-	if len(blocks[0]) != int(D.natoms) || len(blocks[1]) != int(D.natoms) || len(blocks[2]) != int(D.natoms) {
-		return Error{NotEnoughSpace, D.filename, []string{"nextRaw"}, true}
-	}
-	D.new = false
-	if D.readLast {
-		D.readable = false
-		return newlastFrameError(D.filename, "nextRaw")
-	}
-	//if there is an extra block we just skip it.
-	//Sadly, even when there is an extra block, it is not present in all
-	//snapshots for some trajectories, so we must use the block size to see if
-	//there is an extra block or if the X block starts inmediately
-	var blocksize int32
-	if D.extrablock {
-		if err := binary.Read(D.dcd, D.endian, &blocksize); err != nil {
-			return Error{err.Error(), D.filename, []string{"binary.Read", "nextRaw"}, true}
-		}
-		//If the blocksize is 4*natoms it means that the block is not an
-		//extra block, but the X coordinates, and thus we must skip the following
-		if blocksize != D.natoms*4 {
-			if _, err := D.readByteBlock(blocksize); err != nil {
-				return err
-			}
-			blocksize = 0
-		}
-	}
-	//now get the coords, each as a slice of float32
-	//X
-	//we collect the X block size again only if it has not been collected before
-	if blocksize == 0 {
-		if err := binary.Read(D.dcd, D.endian, &blocksize); err != nil {
-			return Error{err.Error(), D.filename, []string{"binary.Read", "nextRaw"}, true}
-
-		}
-	}
-	err := D.readFloat32Block(blocksize, blocks[0])
-	if err != nil {
-		return errDecorate(err, "nextRaw")
-	}
-	//	fmt.Println("X", len(xblock)) //, xblock)
-	//	fmt.Println("X", blocks[0])  ///////////////////////////////
-	//Y
-	//Collect the size first, then the rest
-	if err := binary.Read(D.dcd, D.endian, &blocksize); err != nil {
-		return err
-	}
-	err = D.readFloat32Block(blocksize, blocks[1])
-	if err != nil {
-		return errDecorate(err, "nextRaw")
-	}
-	//	fmt.Println("Y", blocks[1])
-	//Z
-	if err := binary.Read(D.dcd, D.endian, &blocksize); err != nil {
-		return Error{err.Error(), D.filename, []string{"binary.Read", "nextRaw"}, true}
-	}
-	err = D.readFloat32Block(blocksize, blocks[2])
-	if err != nil {
-		return errDecorate(err, "nextRaw")
-	}
-	//	fmt.Println("Z", blocks[2])
-	//we skip the 4-D values if they exist. Apparently this is not present in the
-	//last snapshot, so we use an EOF here to signal that we have read the last snapshot.
-	if D.charmm && D.fourdim {
-		if err := binary.Read(D.dcd, D.endian, &blocksize); err != nil {
-			if err.Error() == "EOF" {
-				D.readLast = true
-				//	fmt.Println("LAST!")
-			} else {
-				return Error{err.Error(), D.filename, []string{"binary.Read", "nextRaw"}, true}
-			}
-		}
-		if !D.readLast {
-			if _, err := D.readByteBlock(blocksize); err != nil {
-				return errDecorate(err, "nextRaw")
-			}
-		}
-	}
-	return nil
-
-}
-
-//Queries the size of a block, and reads its contents into block, which must have the
-//appropiate size.
-func (D *DCDObj) readFloat32Block(blocksize int32, block []float32) error {
-	var check int32
-	//	fmt.Println("blockf",blocksize)
-	if err := binary.Read(D.dcd, D.endian, block); err != nil {
-		return Error{err.Error(), D.filename, []string{"binary.Read", "readFloat32Block"}, true}
-
-	}
-	if err := binary.Read(D.dcd, D.endian, &check); err != nil {
-		return Error{err.Error(), D.filename, []string{"binary.Read", "readFloat32Block"}, true}
-	}
-	if check != blocksize {
-		return Error{WrongFormat, D.filename, []string{"readFloat32Block"}, true}
-	}
-	return nil
-}
-
-//Queries the size of a block, make a slice of a quarter of that size
-//and reads that amount of float32. This function is used for the
-//
-func (D *DCDObj) readByteBlock(blocksize int32) ([]byte, error) {
-	var check int32
-	//	fmt.Println("blockb",blocksize)
-	block := make([]byte, blocksize, blocksize)
-	if err := binary.Read(D.dcd, D.endian, block); err != nil {
-		return nil, Error{err.Error(), D.filename, []string{"binary.Read", "readByteBlock"}, true}
-
-	}
-	if err := binary.Read(D.dcd, D.endian, &check); err != nil {
-		return nil, Error{err.Error(), D.filename, []string{"binary.Read", "readByteBlock"}, true}
-
-	}
-	if check != blocksize {
-		return nil, Error{SecurityCheckFailed, D.filename, []string{"readByteBlock"}, true}
-	}
-	return block, nil
+	return err
 }
 
 //Len returns the number of atoms per frame in the XtcObj.
@@ -495,15 +433,54 @@ func (D *DDCObj) Len() int {
 
 //Helper functions
 
-//adds as many "0" as needed for an ASCII string to be of length target
-func zfill(target int, tofill string) string {
-	l := len([]byte(tofill))
-	for ; l <= target; l++ {
-		tofill = "0" + tofill //yeah, not efficient. I suppose "target" will never be greater than ~10 so this is fine.
-		//if we find out it's not, well, changing the internal working of this function is easy.
-	}
-	return tofill
+func readrejected(f *os.File, endian binary.ByteOrder, format string) error {
+	var err error
+	if strings.Contains(format, "uint") {
+		err = readint(f, endian, format) //the value itself is discarded
+	} else {
+		_, err = readfloat(f, endian, format) //the value itself is discarded
 
+	}
+	return err
+
+}
+
+func readint(f *os.File, endian binary.ByteOrder, format string) error {
+	var ret uint64
+	var t uint32
+	var err error
+	if format == "uint32" {
+		err = binary.Read(f, endian, &t)
+	} else if format == "uint64" {
+		err = binary.Read(f, endian, &ret)
+	} else {
+		return Error{fmt.Sprintf("Wrong format, should be uint64 or uint32, is %s", format), "", []string{"readint"}, true}
+	}
+	return err
+}
+
+func readfloat(f *os.File, endian binary.ByteOrder, format string) (float64, error) {
+	var ret float64
+	var t float32
+	var err error
+	if format == "float32" {
+		err = binary.Read(f, endian, &t)
+		ret = float64(t)
+	} else if format == "float64" {
+		err = binary.Read(f, endian, &ret)
+	} else {
+		return 0, Error{fmt.Sprintf("Wrong format, should be float64 or float32, is %s", format), "", []string{"readfloat"}, true}
+	}
+	return ret, err
+}
+
+func index(test string, where []string) int {
+	for i, v := range where {
+		if test == v {
+			return i
+		}
+	}
+	return -1
 }
 
 func isallspaces(test string) bool {
@@ -521,7 +498,7 @@ func parseNFloats(s ...string) ([]float64, error) {
 	for _, v := range s {
 		f, err := strconv.ParseFloat(v, 64)
 		if err != nil {
-			return nil, Error{"Couldn't parse a float", "", []string{"parseNFloats"}, true}
+			return nil, Error{"Couldn't parse a float: " + v, "", []string{"parseNFloats"}, true}
 		}
 		ret = append(ret, f)
 	}
@@ -532,7 +509,7 @@ func parseNInts(s ...string) ([]int, error) {
 	for _, v := range s {
 		f, err := strconv.Atoi(v)
 		if err != nil {
-			return nil, Error{"Couldn't parse an int", "", []string{"parseNints"}, true}
+			return nil, Error{"Couldn't parse an int: " + v, "", []string{"parseNints"}, true}
 		}
 		ret = append(ret, f)
 	}
@@ -540,7 +517,7 @@ func parseNInts(s ...string) ([]int, error) {
 }
 
 //I guess this will all go after Go 1.18
-func isInString(container []string, test string) bool {
+func isInString(test string, container []string) bool {
 	if container == nil {
 		return false
 	}
@@ -593,7 +570,7 @@ func (E Error) Decorate(deco string) []string {
 func (err Error) FileName() string { return err.filename }
 
 //Format returns the format of the file (always "dcd") associated to the error
-func (err Error) Format() string { return "dcd" }
+func (err Error) Format() string { return "ddc" }
 
 //Critical returns true if the error is critical, false otherwise
 func (err Error) Critical() bool { return err.critical }
@@ -623,7 +600,7 @@ func (E lastFrameError) Error() string { return "EOF" }
 
 func (E lastFrameError) Critical() bool { return false }
 
-func (E lastFrameError) Format() string { return "dcd" }
+func (E lastFrameError) Format() string { return "ddc" }
 
 func (E lastFrameError) Decorate(deco string) []string {
 	//Even thought this method does not use a pointer as a receiver, and tries to alter the received,
