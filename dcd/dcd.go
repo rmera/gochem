@@ -33,6 +33,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"io"
 	"os"
 	"runtime"
 
@@ -53,9 +54,10 @@ type DCDObj struct {
 	charmm     bool //Charmm traj?
 	extrablock bool
 	fourdim    bool
-	new        bool     //Still no frame read from it?
-	fixed      int32    //Fixed atoms (not supported)
-	dcd        *os.File //The DCD file
+	new        bool  //Still no frame read from it?
+	fixed      int32 //Fixed atoms (not supported)
+	fhandle    *os.File
+	dcd        io.ReadCloser //The DCD file
 	dcdFields  [][]float32
 	concBuffer [][][]float32
 	endian     binary.ByteOrder
@@ -81,6 +83,15 @@ func New(filename string) (*DCDObj, error) {
 //to read.
 func (D *DCDObj) Readable() bool {
 	return D.readable
+}
+
+//Close Closes the trajectory, including the underlying file
+func (D *DCDObj) Close() {
+	if !D.readable {
+		return
+	}
+	D.dcd.Close()
+	D.readable = false
 }
 
 //initRead initializes a XtcObj for reading.
@@ -259,7 +270,7 @@ func (D *DCDObj) nextRaw(blocks [][]float32) error {
 	}
 	D.new = false
 	if D.readLast {
-		D.readable = false
+		D.Close()
 		return newlastFrameError(D.filename, "nextRaw")
 	}
 	//if there is an extra block we just skip it.
