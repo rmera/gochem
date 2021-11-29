@@ -290,7 +290,7 @@ func MemRMSD(test, templa, tmp *v3.Matrix, indexes ...[]int) (float64, error) {
 //present in the slices of int slices indexes. If given. If only one set of indexes
 //is given, it will be assumed to beling to test, if it has less elements than that
 //system, or to templa,otherwise.
-func MemMSD(test, templa, ctest, ctempla, tmp *v3.Matrix, indexes ...[]int) ([]float64, error) {
+func MemPerAtomRMSD(test, templa, ctest, ctempla, tmp *v3.Matrix, indexes ...[]int) ([]float64, error) {
 	if len(indexes) == 0 || indexes[0] == nil || len(indexes[0]) == 0 {
 		ctest = test
 		ctempla = templa
