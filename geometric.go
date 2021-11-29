@@ -150,7 +150,7 @@ func RotatorTranslatorToSuper(test, templa *v3.Matrix) (*v3.Matrix, *v3.Matrix, 
 	r, _ := aux2.Dims()
 	Maux := v3.Zeros(r)
 	Maux.Mul(aux2, ctest)
-	Maux.Tr() //Dont understand why this is needed
+	Maux = Maux.TrRet() //Dont understand why this is needed
 	svd := new(mat.SVD)
 	if ok := svd.Factorize(v3.Matrix2Dense(Maux), mat.SVDFull); !ok {
 		return nil, nil, nil, nil, errDecorate(fmt.Errorf("mat.SVD failed"), "RotatorTranslatorToSuper")
@@ -179,7 +179,7 @@ func RotatorTranslatorToSuper(test, templa *v3.Matrix) (*v3.Matrix, *v3.Matrix, 
 	vtr, _ := V.Dims()
 	Rotation := v3.Zeros(vtr)
 	Rotation.Mul(V, gnT(U))
-	Rotation.Tr() //Don't know why does this work :(
+	Rotation = Rotation.TrRet() //Don't know why does this work :(
 	RightHand := gnEye(3)
 	if det(Rotation) < 0 {
 		RightHand.Set(2, 2, -1)
@@ -284,6 +284,39 @@ func MemRMSD(test, templa, tmp *v3.Matrix, indexes ...[]int) (float64, error) {
 	rmsd := tmp.Norm(2)
 	return rmsd / math.Sqrt(float64(ctest.NVecs())), nil
 
+}
+
+//MemMSD calculates the MSDs between test and templa, considering only the atoms
+//present in the slices of int slices indexes. If given. If only one set of indexes
+//is given, it will be assumed to beling to test, if it has less elements than that
+//system, or to templa,otherwise.
+func MemMSD(test, templa, ctest, ctempla, tmp *v3.Matrix, indexes ...[]int) ([]float64, error) {
+	if len(indexes) == 0 || indexes[0] == nil || len(indexes[0]) == 0 {
+		ctest = test
+		ctempla = templa
+	} else if len(indexes) == 1 {
+		if test.NVecs() > len(indexes[0]) {
+			ctest.SomeVecs(test, indexes[0])
+			ctempla = templa
+		} else if templa.NVecs() > len(indexes[0]) {
+			ctempla.SomeVecs(templa, indexes[0])
+		} else {
+			return nil, fmt.Errorf("chem.memMSD: Indexes don't match molecules")
+		}
+	} else {
+		ctest.SomeVecs(test, indexes[0])
+		ctempla.SomeVecs(templa, indexes[1])
+	}
+	if ctest.NVecs() != ctempla.NVecs() || tmp.NVecs() != ctest.NVecs() {
+		return nil, fmt.Errorf("chem.memMSD: Ill formed matrices for memMSD calculation: cest: %d  ctempla: %d tmp: %d", ctest.NVecs(), ctempla.NVecs(), tmp.NVecs())
+	}
+	tmp.Sub(ctest, ctempla)
+	msds := make([]float64, ctest.NVecs())
+	for i := 0; i < tmp.NVecs(); i++ {
+		v := tmp.VecView(i)
+		msds[i] = v.Norm(2)
+	}
+	return msds, nil
 }
 
 //RMSD returns the RSMD (root of the mean square deviation) for the sets of cartesian
