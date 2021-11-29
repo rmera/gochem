@@ -167,14 +167,10 @@ func OnesMass(lenght int) *v3.Matrix {
 //Super determines the best rotation and translations to superimpose the coords in test
 //considering only the atoms present in the slices of int slices indexes.
 //The first indexes slices will be assumed to contain test indexes and the second, template indexes.
-//If you give only one (it must be the first one), it will be assumed to correspondo to whatever molecule
-//that has more atoms than the elements in the slice.
-//Giving a nil or 0-lenght first slice and a non-nil second
-//slice will cause MemRMSD to not consider neither of them.
-//The same number of atoms
-//has to be considered for superposition in both systems.
-//It applies those rotation and translations to the whole molecule test, in palce.
-//testlst and templalst must have the same number of elements.
+//If you give only one, it will be assumed to correspond to test, if test has more atoms than
+//elements on the indexes set, or templa, otherwise. If no indexes are given, all atoms on each system
+//will be superimposed. The number of atoms superimposed on both systems must be equal.
+//Super modifies the test matrix, but template and indexes are not touched.
 func Super(test, templa *v3.Matrix, indexes ...[]int) (*v3.Matrix, error) {
 	var ctest *v3.Matrix
 	var ctempla *v3.Matrix
