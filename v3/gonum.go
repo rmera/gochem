@@ -474,12 +474,26 @@ func (F *Matrix) Tr() {
 	//This function exists because I can't use the implicit tranpose provided by mat64.Dense.T()
 	//which returns a matrix that is not possible to cast into a mat64.Dense
 	if F.NVecs() < 3 {
-		panic("goChem/v3/ExplicitT: Only 3x3 matrices are allowed for both the argument of ExplicitT(), while the receiver must have 3 rows or more")
+		panic("goChem/v3/Tr: Only 3x3 matrices are allowed for both the argument of Tr(), while the receiver must have 3 rows or more")
 	}
 	R := F.RawMatrix()
 	dataSwitch(R, 0, 1)
 	dataSwitch(R, 0, 2)
 	dataSwitch(R, 1, 2)
+}
+
+//Returns the transpose of F. Does not modify F.
+func (F *Matrix) TrRet() *Matrix {
+	if F.NVecs() < 3 {
+		panic("goChem/v3/TrRet: The receiver must have 3 rows or more")
+	}
+	r := Zeros(3)
+	for i := 0; i < 3; i++ {
+		for j := 0; j < 3; j++ {
+			r.Set(i, j, F.At(j, i))
+		}
+	}
+	return r
 }
 
 //I can only hope this gets inlined
