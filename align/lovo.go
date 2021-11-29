@@ -62,6 +62,8 @@ type Options struct {
 }
 
 //DefaultOptions return reasonable options for atomistic trajectories.
+//It prepares a superposition of alpha carbons (CA) with all logical CPUs,
+//trying to use for the superposition all CAs with RMSD lower than 1.0 A.
 func DefaultOptions() *Options {
 	r := new(Options)
 	r.Begin = 0
@@ -71,6 +73,7 @@ func DefaultOptions() *Options {
 	r.AtomNames = []string{"CA"}
 	r.Chains = nil
 	r.NMostRigid = -1
+	r.LessThanRMSD = 1.0
 	r.MinimumN = 10 //just a reasonable value.
 	return r
 }
@@ -134,18 +137,20 @@ func opentraj(name string) (ConcTrajCloser, error) {
 		ret, err = xtc.New(name)
 	case "dcd":
 		ret, err = dcd.New(name)
+	default:
+		ret = nil
+		err = fmt.Errorf("Trajectory fromat not supported. Must have concurrent read support in goChem")
 	}
 	return ret, err
 
 }
 
 //tolerance is the minimum amount of residues we are willing to use in the superposition.
-func mobileLimit(limit float64, tolerance int, RMSD *mSD) (int, float64) {
+func mobileLimit(limit float64, tolerance int, RMSD *rMSD) (int, float64) {
 	var n = 0
 	for n < tolerance {
 		n = 0
 		for ; n < RMSD.Len(); n++ {
-			//	println(math.Sqrt(RMSD.RMSD(n))) /////////////
 			if RMSD.RMSD(n) >= limit {
 				n--
 				break
@@ -163,35 +168,23 @@ func mobileLimit(limit float64, tolerance int, RMSD *mSD) (int, float64) {
 //If you use this function in your research, please cite the reference for the LOVO alignment method:
 //10.1371/journal.pone.0119264.
 //If you use this function in a to-consumer program, please print a message asking to cite the reference when the function is used.
-func LOVOnMostRigid(mol chem.Atomer, ref *v3.Matrix, trajname string, o *Options) (*LOVOReturn, error) {
+func LOVO(mol chem.Atomer, ref *v3.Matrix, trajname string, o *Options) (*LOVOReturn, error) {
 	//we first do one iteration aligning the whole thing.
 	//these are atom, not residue indexes!
 	const defaultTopRigid int = 10 //by default we obtain the 1/topdefaultTopRigid top rigid
-	var fullindexes []int = res2atoms(mol, nil, o.AtomNames, o.Chains)
+	var fullindexes []int = res2atoms(mol, o.AtomNames, o.Chains, nil)
 	var printtraj string
 	printtraj = o.WriteTraj
 	o.WriteTraj = ""
-	traj, err := opentraj(trajname)
-	if err != nil {
-		return nil, err
-	}
-	rmsd, _, err := RMSDTraj(mol, ref, traj, fullindexes, o)
-	if err != nil {
-		return nil, err
-	}
-	RMSD := newRMSD(fullindexes, rmsdFilter(rmsd, fullindexes))
-	RMSD.SortBy("rmsd")
-
-	indexesold := RMSD.MolIDsCopy()
-	n := o.NMostRigid
-	seqlen := mol.Atom(mol.Len() - 1).MolID //this is just a crude approximation for lack of something better. It will fail if the sequence is divided in different chains.
-	if n <= 0 {
-		n = seqlen / defaultTopRigid
-	}
+	indexesold := make([]int, len(fullindexes))
+	copy(indexesold, fullindexes)
+	var RMSD *rMSD
+	var n int = len(fullindexes)
 	var totalframes int
 	var itercount int
 	var disagreement int
 	var prevlim float64
+	var rmsd []float64
 	for {
 		traj, err := opentraj(trajname)
 		if err != nil {
@@ -204,15 +197,14 @@ func LOVOnMostRigid(mol chem.Atomer, ref *v3.Matrix, trajname string, o *Options
 		if err != nil {
 			return nil, err
 		}
+		traj.Close()
 		itercount++
-		RMSD := newRMSD(fullindexes, rmsdFilter(rmsd, fullindexes))
+		RMSD = newRMSD(fullindexes, rmsdFilter(rmsd, fullindexes))
 		RMSD.SortBy("rmsd")
 		var newlim float64
 		if o.LessThanRMSD > 0 {
 			n, newlim = mobileLimit(o.LessThanRMSD, o.MinimumN, RMSD)
-			println("Newlim", newlim, prevlim) ////////////////////////////////
 		}
-		println("N:", n) ////////////////
 		indexes := RMSD.MolIDsCopy()
 		if sameElementsInt(indexes[0:n], indexesold[0:n]) && (newlim == o.LessThanRMSD || approxEq(newlim, prevlim, 0.01)) {
 			break //converged
@@ -223,7 +215,7 @@ func LOVOnMostRigid(mol chem.Atomer, ref *v3.Matrix, trajname string, o *Options
 	}
 	//Now indexes old should countain what we want
 	RMSD.SortBy("molid")
-	r := &LOVOReturn{N: n, Natoms: indexesold[0:n], Nmols: iDs2MolIDs(mol, indexesold[0:n]), RMSD: RMSD.mSDs, FramesRead: totalframes, Iterations: itercount}
+	r := &LOVOReturn{N: n, Natoms: indexesold[0:n], Nmols: iDs2MolIDs(mol, indexesold[0:n]), RMSD: RMSD.rMSDs, FramesRead: totalframes, Iterations: itercount}
 	return r, nil
 
 }
@@ -323,20 +315,20 @@ func RMSDTraj(mol chem.Atomer, ref *v3.Matrix, traj chem.ConcTraj, indexes []int
 	return RMSD, int(totalframes), nil
 }
 
-type mSD struct {
+type rMSD struct {
 	//Note that the default methods and basis vary with each program, and even
 	//for a given program they are NOT considered part of the API, so they can always change.
 	//This is unavoidable, as methods change with time
 	molIDs       []int
-	mSDs         []float64
+	rMSDs        []float64
 	residues     int
 	lessbyMolIDs func(i, j int) bool
 	lessbyRMSDs  func(i, j int) bool
 	sorting      string
 }
 
-func newRMSD(residues []int, iniRMSD ...[]float64) *mSD {
-	ret := new(mSD)
+func newRMSD(residues []int, iniRMSD ...[]float64) *rMSD {
+	ret := new(rMSD)
 	ret.residues = len(residues)
 	ret.molIDs = make([]int, len(residues))
 	copy(ret.molIDs, residues)
@@ -345,16 +337,17 @@ func newRMSD(residues []int, iniRMSD ...[]float64) *mSD {
 		if len(M) != ret.residues {
 			panic("Inconsistent data, if given, the number of initial RMSD values must match the number of residues")
 		}
-		ret.mSDs = M
+		ret.rMSDs = make([]float64, len(M))
+		copy(ret.rMSDs, M)
 
 	}
 	ret.lessbyMolIDs = func(i, j int) bool { return ret.molIDs[i] < ret.molIDs[j] }
-	ret.lessbyRMSDs = func(i, j int) bool { return ret.mSDs[i] < ret.mSDs[j] }
+	ret.lessbyRMSDs = func(i, j int) bool { return ret.rMSDs[i] < ret.rMSDs[j] }
 	return ret
 }
 
 //MolID returns the molecule identifier of the nth residue of the structure.
-func (m *mSD) MolIDsCopy(rets ...[]int) []int {
+func (m *rMSD) MolIDsCopy(rets ...[]int) []int {
 	var ret []int
 	if len(rets) != 0 {
 		ret = rets[0]
@@ -371,21 +364,21 @@ func (m *mSD) MolIDsCopy(rets ...[]int) []int {
 	return ret //I'll just let it panic if the number given is too large.
 }
 
-func (m *mSD) Swap(i, j int) {
+func (m *rMSD) Swap(i, j int) {
 	m.molIDs[i], m.molIDs[j] = m.molIDs[j], m.molIDs[i]
-	m.mSDs[i], m.mSDs[j] = m.mSDs[j], m.mSDs[i]
+	m.rMSDs[i], m.rMSDs[j] = m.rMSDs[j], m.rMSDs[i]
 }
 
 //returns the ith RMSD in the current order
-func (m *mSD) RMSD(i int) float64 {
-	return m.mSDs[i]
+func (m *rMSD) RMSD(i int) float64 {
+	return m.rMSDs[i]
 }
 
-func (m *mSD) Len() int {
+func (m *rMSD) Len() int {
 	return m.residues
 }
 
-func (m *mSD) Less(i, j int) bool {
+func (m *rMSD) Less(i, j int) bool {
 	switch m.sorting {
 	case "rmsd":
 		return m.lessbyRMSDs(i, j)
@@ -396,7 +389,7 @@ func (m *mSD) Less(i, j int) bool {
 
 }
 
-func (m *mSD) SortBy(sorting string) {
+func (m *rMSD) SortBy(sorting string) {
 	m.sorting = strings.ToLower(sorting)
 	sort.Stable(m)
 }
@@ -471,13 +464,12 @@ func isInString(test string, container []string) bool {
 
 //retuns the indexes in mol of the atoms with name in names and residue id (MolID) in res.
 //if res is empty returns all atoms with name in names.
-func res2atoms(mol chem.Atomer, res []int, names []string, chains []string) []int {
+func res2atoms(mol chem.Atomer, names, chains []string, res []int) []int {
 	ret := make([]int, 0, len(res))
 	for i := 0; i < mol.Len(); i++ {
 		a := mol.Atom(i)
-
 		if (res == nil || isInInt(a.MolID, res)) && isInString(a.Name, names) {
-			if chains == nil || isInString(a.Chain, chains) {
+			if len(chains) == 0 || isInString(a.Chain, chains) {
 				ret = append(ret, i)
 			}
 		}

@@ -48,7 +48,7 @@ func TestLovo(Te *testing.T) {
 	o.Skip = 0
 	o.Cpus = 2
 	o.WriteTraj = path + "/aligned.dcd"
-	ret, err := LOVOnMostRigid(mol, mol.Coords[0], trajname, o)
+	ret, err := LOVO(mol, mol.Coords[0], trajname, o)
 	if err != nil {
 		Te.Error(err)
 	}
