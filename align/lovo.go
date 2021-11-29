@@ -29,6 +29,7 @@ import (
 
 	"fmt"
 	"log"
+	"math"
 	"runtime"
 	"sort"
 	"strings"
@@ -46,16 +47,18 @@ type ConcTrajCloser interface {
 	Close()
 }
 
-//Options contains various options for the LOVOnMostRigid and MSDTraj functions
+//Options contains various options for the LOVOnMostRigid and RMSDTraj functions
 type Options struct {
 	Begin int
 	Skip  int
 	Cpus  int
-	//The following are ignored by the MSDTraj function
-	AtomNames  []string
-	Chains     []string
-	NMostRigid int
-	WriteTraj  string //the name of a file to where the aligned trajectory will be written. Nothing will be written if empty.
+	//The following are ignored by the RMSDTraj function
+	AtomNames    []string
+	Chains       []string
+	NMostRigid   int
+	WriteTraj    string  //the name of a file to where the aligned trajectory will be written. Nothing will be written if empty.
+	LessThanRMSD float64 //instead of using a N for the most rigid, selects all residues with RMSD (the square root of the RMSD) < LessThanRMSD, in A. If >0, this overrrides NMostRigid
+	MinimumN     int     //The smallest N we are willing to have. Only valid if LessThanRMSD is in use.
 }
 
 //DefaultOptions return reasonable options for atomistic trajectories.
@@ -68,6 +71,7 @@ func DefaultOptions() *Options {
 	r.AtomNames = []string{"CA"}
 	r.Chains = nil
 	r.NMostRigid = -1
+	r.MinimumN = 10 //just a reasonable value.
 	return r
 }
 
@@ -95,14 +99,14 @@ type LOVOReturn struct {
 	FramesRead int       //how many frames where actually read from the trajectory
 	Natoms     []int     //IDs of the N most rigid atoms
 	Nmols      []int     //IDs for the N most rigid residues/molecules
-	MSD        []float64 //the MSD for all residues, not only the N most rigid.
+	RMSD       []float64 //the RMSD for all residues, not only the N most rigid.
 	Iterations int       //The iterations that were needed for convergency.
 
 }
 
 //String returns a string representation of the LOVOReturn object.
 func (L *LOVOReturn) String() string {
-	return fmt.Sprintf("N: %d, Natoms: %v, Nmols: %v, MSD: %v, Frames read: %d, Iterations needed: %d", L.N, L.Natoms, L.Nmols, L.MSD, L.FramesRead, L.Iterations)
+	return fmt.Sprintf("N: %d, Natoms: %v, Nmols: %v, RMSD: %v, Frames read: %d, Iterations needed: %d", L.N, L.Natoms, L.Nmols, L.RMSD, L.FramesRead, L.Iterations)
 }
 
 //PyMOLSel returns a string of text to create a PyMOL
@@ -135,6 +139,23 @@ func opentraj(name string) (ConcTrajCloser, error) {
 
 }
 
+//tolerance is the minimum amount of residues we are willing to use in the superposition.
+func mobileLimit(limit float64, tolerance int, RMSD *mSD) (int, float64) {
+	var n = 0
+	for n < tolerance {
+		n = 0
+		for ; n < RMSD.Len(); n++ {
+			//	println(math.Sqrt(RMSD.RMSD(n))) /////////////
+			if RMSD.RMSD(n) >= limit {
+				n--
+				break
+			}
+		}
+		limit *= 1.1
+	}
+	return n, limit
+}
+
 //LOVOnMostRigid returns slices with the indexes of the n atoms and residues
 //most rigid from mol, along the traj trajectory, considering only atoms with names in atomnames (normally, PDB names are used)
 //and belonging to one of the chains in chains (only the first slice given in chains will be considered, if nothing is given,
@@ -154,14 +175,14 @@ func LOVOnMostRigid(mol chem.Atomer, ref *v3.Matrix, trajname string, o *Options
 	if err != nil {
 		return nil, err
 	}
-	msd, _, err := MSDTraj(mol, ref, traj, fullindexes, o)
+	rmsd, _, err := RMSDTraj(mol, ref, traj, fullindexes, o)
 	if err != nil {
 		return nil, err
 	}
-	MSD := newMSD(fullindexes, msdFilter(msd, fullindexes))
-	MSD.SortBy("msd")
+	RMSD := newRMSD(fullindexes, rmsdFilter(rmsd, fullindexes))
+	RMSD.SortBy("rmsd")
 
-	indexesold := MSD.MolIDsCopy()
+	indexesold := RMSD.MolIDsCopy()
 	n := o.NMostRigid
 	seqlen := mol.Atom(mol.Len() - 1).MolID //this is just a crude approximation for lack of something better. It will fail if the sequence is divided in different chains.
 	if n <= 0 {
@@ -170,6 +191,7 @@ func LOVOnMostRigid(mol chem.Atomer, ref *v3.Matrix, trajname string, o *Options
 	var totalframes int
 	var itercount int
 	var disagreement int
+	var prevlim float64
 	for {
 		traj, err := opentraj(trajname)
 		if err != nil {
@@ -178,34 +200,41 @@ func LOVOnMostRigid(mol chem.Atomer, ref *v3.Matrix, trajname string, o *Options
 		if disagreement == 1 && printtraj != "" {
 			o.WriteTraj = printtraj
 		}
-		msd, totalframes, err = MSDTraj(mol, ref, traj, indexesold[0:n], o)
+		rmsd, totalframes, err = RMSDTraj(mol, ref, traj, indexesold[0:n], o)
 		if err != nil {
 			return nil, err
 		}
 		itercount++
-		MSD := newMSD(fullindexes, msdFilter(msd, fullindexes))
-		MSD.SortBy("msd")
-		indexes := MSD.MolIDsCopy()
-		if sameElementsInt(indexes[0:n], indexesold[0:n]) {
+		RMSD := newRMSD(fullindexes, rmsdFilter(rmsd, fullindexes))
+		RMSD.SortBy("rmsd")
+		var newlim float64
+		if o.LessThanRMSD > 0 {
+			n, newlim = mobileLimit(o.LessThanRMSD, o.MinimumN, RMSD)
+			println("Newlim", newlim, prevlim) ////////////////////////////////
+		}
+		println("N:", n) ////////////////
+		indexes := RMSD.MolIDsCopy()
+		if sameElementsInt(indexes[0:n], indexesold[0:n]) && (newlim == o.LessThanRMSD || approxEq(newlim, prevlim, 0.01)) {
 			break //converged
 		}
+		prevlim = newlim
 		disagreement = disagreementInt(indexes[0:n], indexesold[0:n])
 		indexesold = indexes
 	}
 	//Now indexes old should countain what we want
-	MSD.SortBy("molid")
-	r := &LOVOReturn{N: n, Natoms: indexesold[0:n], Nmols: iDs2MolIDs(mol, indexesold[0:n]), MSD: MSD.mSDs, FramesRead: totalframes, Iterations: itercount}
+	RMSD.SortBy("molid")
+	r := &LOVOReturn{N: n, Natoms: indexesold[0:n], Nmols: iDs2MolIDs(mol, indexesold[0:n]), RMSD: RMSD.mSDs, FramesRead: totalframes, Iterations: itercount}
 	return r, nil
 
 }
 
-type msdandcoords struct {
-	msd    []float64
+type rmsdandcoords struct {
+	rmsd   []float64
 	coords *v3.Matrix
 }
 
-func concproc(v chan *v3.Matrix, ref, t *v3.Matrix, r chan *msdandcoords, indexes []int) {
-	//the errors that Super and MemMSD can return all
+func concproc(v chan *v3.Matrix, ref, t *v3.Matrix, r chan *rmsdandcoords, indexes []int) {
+	//the errors that Super and MemRMSD can return all
 	//would be programming erros in this case, so I'll just turn them into panics.
 	var err2 error
 	c := <-v
@@ -213,20 +242,20 @@ func concproc(v chan *v3.Matrix, ref, t *v3.Matrix, r chan *msdandcoords, indexe
 	if err2 != nil {
 		panic(err2.Error())
 	}
-	msd, err2 := chem.MemMSD(cr, ref, nil, nil, t)
+	rmsd, err2 := chem.MemPerAtomRMSD(cr, ref, nil, nil, t)
 	if err2 != nil {
 		panic(err2.Error() + fmt.Sprintf("Lengths: %d", t.NVecs()))
 	}
-	ret := &msdandcoords{msd: msd, coords: cr}
+	ret := &rmsdandcoords{rmsd: rmsd, coords: cr}
 	r <- ret
 
 }
 
-//MSDTraj returns the MSD for all atoms in a structure, averaged over the trajectory traj.
+//RMSDTraj returns the RMSD for all atoms in a structure, averaged over the trajectory traj.
 //Frames are read in sets of cpus at the time: The read starts at the set begin/cpus and we skip a set every skip/cpu
-//(the numbers are, of course, rounded). The MSDs and the total number of frames read are returned, together with an error or nil.
-func MSDTraj(mol chem.Atomer, ref *v3.Matrix, traj chem.ConcTraj, indexes []int, o *Options) ([]float64, int, error) {
-	MSD := make([]float64, mol.Len())
+//(the numbers are, of course, rounded). The RMSDs and the total number of frames read are returned, together with an error or nil.
+func RMSDTraj(mol chem.Atomer, ref *v3.Matrix, traj chem.ConcTraj, indexes []int, o *Options) ([]float64, int, error) {
+	RMSD := make([]float64, mol.Len())
 	var err error
 	chunksize := o.Cpus
 	chunk := make([]*v3.Matrix, chunksize)
@@ -248,9 +277,9 @@ func MSDTraj(mol chem.Atomer, ref *v3.Matrix, traj chem.ConcTraj, indexes []int,
 	}
 	begin := o.Begin / chunksize //how many chunks to skip before begining.
 	skip := o.Skip / chunksize   //how many chunks to skip
-	results := make([]chan *msdandcoords, chunksize)
+	results := make([]chan *rmsdandcoords, chunksize)
 	for i, _ := range results {
-		results[i] = make(chan *msdandcoords)
+		results[i] = make(chan *rmsdandcoords)
 	}
 	var chans []chan *v3.Matrix
 	var chunksread int = 0
@@ -272,12 +301,12 @@ func MSDTraj(mol chem.Atomer, ref *v3.Matrix, traj chem.ConcTraj, indexes []int,
 
 		}
 		for _, res := range results {
-			tmsd := <-res
-			for i, _ := range MSD {
-				MSD[i] += tmsd.msd[i]
+			trmsd := <-res
+			for i, _ := range RMSD {
+				RMSD[i] += trmsd.rmsd[i]
 			}
 			if wtraj != nil {
-				wtraj.WNext(tmsd.coords)
+				wtraj.WNext(trmsd.coords)
 			}
 		}
 
@@ -288,10 +317,10 @@ func MSDTraj(mol chem.Atomer, ref *v3.Matrix, traj chem.ConcTraj, indexes []int,
 		return nil, -1, fmt.Errorf("Error while reading trajectory, read %d sets of frames. Error: %s", chunksread, err.Error())
 	}
 	totalframes := float64(chunksread * chunksize)
-	for i, v := range MSD {
-		MSD[i] += v / totalframes
+	for i, v := range RMSD {
+		RMSD[i] = v / totalframes
 	}
-	return MSD, int(totalframes), nil
+	return RMSD, int(totalframes), nil
 }
 
 type mSD struct {
@@ -302,25 +331,25 @@ type mSD struct {
 	mSDs         []float64
 	residues     int
 	lessbyMolIDs func(i, j int) bool
-	lessbyMSDs   func(i, j int) bool
+	lessbyRMSDs  func(i, j int) bool
 	sorting      string
 }
 
-func newMSD(residues []int, iniMSD ...[]float64) *mSD {
+func newRMSD(residues []int, iniRMSD ...[]float64) *mSD {
 	ret := new(mSD)
 	ret.residues = len(residues)
 	ret.molIDs = make([]int, len(residues))
 	copy(ret.molIDs, residues)
-	if len(iniMSD) > 0 {
-		M := iniMSD[0]
+	if len(iniRMSD) > 0 {
+		M := iniRMSD[0]
 		if len(M) != ret.residues {
-			panic("Inconsistent data, if given, the number of initial MSD values must match the number of residues")
+			panic("Inconsistent data, if given, the number of initial RMSD values must match the number of residues")
 		}
 		ret.mSDs = M
 
 	}
 	ret.lessbyMolIDs = func(i, j int) bool { return ret.molIDs[i] < ret.molIDs[j] }
-	ret.lessbyMSDs = func(i, j int) bool { return ret.mSDs[i] < ret.mSDs[j] }
+	ret.lessbyRMSDs = func(i, j int) bool { return ret.mSDs[i] < ret.mSDs[j] }
 	return ret
 }
 
@@ -347,14 +376,19 @@ func (m *mSD) Swap(i, j int) {
 	m.mSDs[i], m.mSDs[j] = m.mSDs[j], m.mSDs[i]
 }
 
+//returns the ith RMSD in the current order
+func (m *mSD) RMSD(i int) float64 {
+	return m.mSDs[i]
+}
+
 func (m *mSD) Len() int {
 	return m.residues
 }
 
 func (m *mSD) Less(i, j int) bool {
 	switch m.sorting {
-	case "msd":
-		return m.lessbyMSDs(i, j)
+	case "rmsd":
+		return m.lessbyRMSDs(i, j)
 	default:
 		return m.lessbyMolIDs(i, j)
 
@@ -368,6 +402,14 @@ func (m *mSD) SortBy(sorting string) {
 }
 
 //helper functions
+
+func approxEq(i, j, epsilon float64) bool {
+	if math.Abs(i)-math.Abs(j) <= epsilon {
+		return true
+	}
+	return false
+
+}
 
 //returns true if t1 and t2 have the same elements
 //(whether or not in the same order) and false otherwise.
@@ -444,10 +486,10 @@ func res2atoms(mol chem.Atomer, res []int, names []string, chains []string) []in
 
 }
 
-//returns a slice of MSDs where the values with an index not in indexes have been removed.
-func msdFilter(msd []float64, indexes []int) []float64 {
+//returns a slice of RMSDs where the values with an index not in indexes have been removed.
+func rmsdFilter(rmsd []float64, indexes []int) []float64 {
 	ret := make([]float64, 0, len(indexes))
-	for i, v := range msd {
+	for i, v := range rmsd {
 		if isInInt(i, indexes) {
 			ret = append(ret, v)
 		}

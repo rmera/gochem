@@ -44,7 +44,7 @@ func TestLovo(Te *testing.T) {
 	trajname := path + trajfilename
 	o := DefaultOptions()
 	o.NMostRigid = 10
-	o.SetRigidPercent(90, 306)
+	o.LessThanRMSD = 1.0
 	o.Skip = 0
 	o.Cpus = 2
 	o.WriteTraj = path + "/aligned.dcd"
