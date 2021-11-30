@@ -26,6 +26,8 @@
 
 /******************** Format Specification   ***************************************************
 
+The substrings "*" and "**" can't appear anywhere in the file except in the parts indicated.
+
 An STF file might have 3 file extension, which indicate
 how they are compressed:
 	stf: Compressed with deflate, at any level of compression.
@@ -37,8 +39,8 @@ attempts to open anyway, and assumes it to be compressed with deflate. I repeat,
 
 A STF file may only contain ASCII symbols.
 
-A STF file has a "header" starting in the first line, and ending with a line that contains only "**".
-Each line of the header must be a pair key=value
+A STF file has a "header" starting in the first line, and ending with a line that contains "**" followed by one or more spaces, and the number of atoms per frame.
+Each line of the header must be a pair key=value.
 
 After that, the file has one line per atom, per frame. Each line 3 numbers (x y z coordinates, in A). The precision is not specified.
 each frame ends with a line containing only "*".

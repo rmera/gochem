@@ -82,7 +82,7 @@ func (S *StfW) WNext(coord *v3.Matrix) error {
 
 //Only the first map will be read!
 func NewWriter(name string, natoms int, header map[string]string, compressionLevel ...int) (*StfW, error) {
-	var level int = -2
+	var level int = 5 //For python compatibility :-/
 	if len(compressionLevel) > 0 {
 		level = compressionLevel[0]
 	}
@@ -98,6 +98,7 @@ func NewWriter(name string, natoms int, header map[string]string, compressionLev
 		r, err := flate.NewWriter(a, level)
 		return r, err
 	}
+	gzipwriter := func(a io.Writer) (io.WriteCloser, error) { return gzip.NewWriterLevel(a, level) }
 
 	var AnyNewWriter func(io.Writer) (io.WriteCloser, error)
 	switch format {
@@ -106,9 +107,9 @@ func NewWriter(name string, natoms int, header map[string]string, compressionLev
 	case 'f':
 		AnyNewWriter = zwriter
 	case 'z':
-		AnyNewWriter = func(a io.Writer) (io.WriteCloser, error) { return gzip.NewWriter(a), nil }
+		AnyNewWriter = gzipwriter
 	default:
-		AnyNewWriter = zwriter
+		AnyNewWriter = gzipwriter
 
 	}
 

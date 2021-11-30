@@ -38,6 +38,7 @@ import (
 
 //Tests the writing capabilities.
 func TestSTFWrite(Te *testing.T) {
+	var err error
 	fmt.Println("STF write test!")
 	mol, err := chem.PDBFileRead("../test/test_stf.pdb", false)
 	if err != nil {
@@ -55,7 +56,11 @@ func TestSTFWrite(Te *testing.T) {
 	i := 0
 	mat := v3.Zeros(mol.Len())
 	for ; ; i++ {
-		err := rtraj.Next(mat)
+		if i%101 == 0 {
+			err = rtraj.Next(mat)
+		} else {
+			err = rtraj.Next(nil)
+		}
 		if err != nil {
 			if _, ok := err.(chem.LastFrameError); ok {
 				break
@@ -63,7 +68,9 @@ func TestSTFWrite(Te *testing.T) {
 			Te.Error(err)
 			break
 		}
-		wtraj.WNext(mat)
+		if i%101 == 0 {
+			wtraj.WNext(mat)
+		}
 	}
 	fmt.Println("Over! frames read and written:", i)
 }
