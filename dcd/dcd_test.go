@@ -67,7 +67,7 @@ func TestDCDWrite(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
-	traj, err := NewWriter("../test/testW.dcd", mol.Len())
+	traj, err := NewWriter("../test/testW2.dcd", mol.Len())
 	if err != nil {
 		Te.Error(err)
 	}
@@ -93,7 +93,7 @@ func TestDCDWrite(Te *testing.T) {
  * read frames at the end.*/
 func TestDCD(Te *testing.T) {
 	fmt.Println("Fist test!")
-	traj, err := New("../test/test.dcd")
+	traj, err := New("../test/test_align.dcd")
 	if err != nil {
 		Te.Error(err)
 	}
@@ -108,13 +108,14 @@ func TestDCD(Te *testing.T) {
 			Te.Error(err)
 			break
 		}
-		fmt.Println(mat.VecView(2))
+		fmt.Println(mat)
+		mat.Zero()
 	}
 	fmt.Println("Over! frames read:", i)
 }
 
-func TestFrameDCDConc(Te *testing.T) {
-	traj, err := New("../test/test.dcd")
+func TeeeestFrameDCDConc(Te *testing.T) {
+	traj, err := New("../test/test_align.dcd")
 	if err != nil {
 		Te.Error(err)
 	}
@@ -127,7 +128,7 @@ func TestFrameDCDConc(Te *testing.T) {
 		results = append(results, make([]chan *v3.Matrix, 0, len(frames)))
 		coordchans, err := traj.NextConc(frames)
 		if err != nil {
-			if _, ok := err.(chem.LastFrameError); ok && coordchans == nil {
+			if _, ok := err.(chem.LastFrameError); ok {
 				break
 			}
 			Te.Error(err)
