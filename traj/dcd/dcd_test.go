@@ -114,7 +114,7 @@ func TestDCD(Te *testing.T) {
 	fmt.Println("Over! frames read:", i)
 }
 
-func TeeeestFrameDCDConc(Te *testing.T) {
+func TestFrameDCDConc(Te *testing.T) {
 	traj, err := New("../../test/test_align.dcd")
 	if err != nil {
 		Te.Error(err)

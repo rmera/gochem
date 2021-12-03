@@ -27,14 +27,14 @@ func TestAmberold(Te *testing.T) {
 
 	flag.Parse()
 	//	println("SKIP", *skip, *begin, args) ///////////////////////////
-	mol, err := chem.PDBFileRead("../test/310K.pdb", false)
+	mol, err := chem.PDBFileRead("../../test/310K.pdb", false)
 	if err != nil {
 		Te.Error(err)
 
 	}
 	var traj chem.Traj
 	fmt.Println("atoms:", mol.Len())
-	trajname := "../test/MDCuII_1_7000.crd"
+	trajname := "../../test/MDCuII_1_7000.crd"
 	traj, err = New(trajname, mol.Len(), true) //false)
 	if err != nil {
 		Te.Error(err)
@@ -63,7 +63,7 @@ func TestAmberold(Te *testing.T) {
 		Coords = append(Coords, coords)
 		coords = nil // Not sure this works
 	}
-	pdbname := "../test/MDCuII_1_7000.pdb"
+	pdbname := "../../test/MDCuII_1_7000.pdb"
 	fout, err := os.Create(pdbname)
 	if err != nil {
 		Te.Error(err)

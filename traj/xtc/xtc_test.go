@@ -23,13 +23,16 @@
  *
  */
 
-
 package xtc
 
-import "fmt"
-import "testing"
-import "github.com/rmera/gochem"
-import "github.com/rmera/gochem/v3"
+import (
+	"fmt"
+	"testing"
+
+	chem "github.com/rmera/gochem"
+
+	v3 "github.com/rmera/gochem/v3"
+)
 
 /*TestXTC reads the frames of the test xtc file using the
  * "interactive" or "low level" functions, i.e. one frame at a time
@@ -37,7 +40,7 @@ import "github.com/rmera/gochem/v3"
  * read frames at the end.*/
 func TestXTC(Te *testing.T) {
 	fmt.Println("First test")
-	traj, err := New("../test/test.xtc")
+	traj, err := New("../../test/test.xtc")
 	if err != nil {
 		Te.Error(err)
 	}
@@ -82,7 +85,7 @@ func TestFrameXTC(Te *testing.T) {
 }
 */
 func TestFrameXTCConc(Te *testing.T) {
-	traj, err := New("../test/test.xtc")
+	traj, err := New("../../test/test.xtc")
 	if err != nil {
 		Te.Error(err)
 	}
