@@ -35,9 +35,9 @@ import (
 	"strings"
 
 	chem "github.com/rmera/gochem"
-	"github.com/rmera/gochem/dcd"
+	"github.com/rmera/gochem/traj/dcd"
+	"github.com/rmera/gochem/traj/xtc"
 	v3 "github.com/rmera/gochem/v3"
-	"github.com/rmera/gochem/xtc"
 )
 
 //ConcTraje is an interface for a trajectory that can be read concurrently.
