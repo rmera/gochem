@@ -7,3 +7,4 @@
 *.in
 *.mop
 test/
+*.so.*
