@@ -33,6 +33,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"io"
 	"os"
 	"runtime"
 
@@ -53,9 +54,10 @@ type DCDObj struct {
 	charmm     bool //Charmm traj?
 	extrablock bool
 	fourdim    bool
-	new        bool     //Still no frame read from it?
-	fixed      int32    //Fixed atoms (not supported)
-	dcd        *os.File //The DCD file
+	new        bool  //Still no frame read from it?
+	fixed      int32 //Fixed atoms (not supported)
+	fhandle    *os.File
+	dcd        io.ReadCloser //The DCD file
 	dcdFields  [][]float32
 	concBuffer [][][]float32
 	endian     binary.ByteOrder
@@ -83,9 +85,7 @@ func (D *DCDObj) Readable() bool {
 	return D.readable
 }
 
-//Readable returns true if the object is ready to be read from
-//false otherwise. It doesnt guarantee that there is something
-//to read.
+//Close Closes the trajectory, including the underlying file
 func (D *DCDObj) Close() {
 	if !D.readable {
 		return
@@ -230,7 +230,7 @@ func (D *DCDObj) initRead(name string) error {
 //With the coordinates read, otherwiser, it discards the coordinates and
 //returns nil.
 func (D *DCDObj) Next(keep *v3.Matrix) error {
-	if !D.Readable() {
+	if !D.readable {
 		return Error{TrajUnIni, D.filename, []string{"Next"}, true}
 	}
 	if D.dcdFields == nil {
@@ -280,8 +280,7 @@ func (D *DCDObj) nextRaw(blocks [][]float32) error {
 	var blocksize int32
 	if D.extrablock {
 		if err := binary.Read(D.dcd, D.endian, &blocksize); err != nil {
-			return newlastFrameError(D.filename, "nextRaw")
-
+			return Error{err.Error(), D.filename, []string{"binary.Read", "nextRaw"}, true}
 		}
 		//If the blocksize is 4*natoms it means that the block is not an
 		//extra block, but the X coordinates, and thus we must skip the following
@@ -297,16 +296,12 @@ func (D *DCDObj) nextRaw(blocks [][]float32) error {
 	//we collect the X block size again only if it has not been collected before
 	if blocksize == 0 {
 		if err := binary.Read(D.dcd, D.endian, &blocksize); err != nil {
-
-			println(3) ////
-			return newlastFrameError(D.filename, "nextRaw")
+			return Error{err.Error(), D.filename, []string{"binary.Read", "nextRaw"}, true}
 
 		}
 	}
 	err := D.readFloat32Block(blocksize, blocks[0])
 	if err != nil {
-
-		println(4) ////
 		return errDecorate(err, "nextRaw")
 	}
 	//	fmt.Println("X", len(xblock)) //, xblock)
@@ -314,18 +309,15 @@ func (D *DCDObj) nextRaw(blocks [][]float32) error {
 	//Y
 	//Collect the size first, then the rest
 	if err := binary.Read(D.dcd, D.endian, &blocksize); err != nil {
-
 		return err
 	}
 	err = D.readFloat32Block(blocksize, blocks[1])
 	if err != nil {
-
 		return errDecorate(err, "nextRaw")
 	}
 	//	fmt.Println("Y", blocks[1])
 	//Z
 	if err := binary.Read(D.dcd, D.endian, &blocksize); err != nil {
-
 		return Error{err.Error(), D.filename, []string{"binary.Read", "nextRaw"}, true}
 	}
 	err = D.readFloat32Block(blocksize, blocks[2])
@@ -335,23 +327,17 @@ func (D *DCDObj) nextRaw(blocks [][]float32) error {
 	//	fmt.Println("Z", blocks[2])
 	//we skip the 4-D values if they exist. Apparently this is not present in the
 	//last snapshot, so we use an EOF here to signal that we have read the last snapshot.
-	//We already read the coordinates here, so we don't return a lastFrameError, we just makr
-	//the object to return lastFrameError on the next read.
 	if D.charmm && D.fourdim {
 		if err := binary.Read(D.dcd, D.endian, &blocksize); err != nil {
 			if err.Error() == "EOF" {
 				D.readLast = true
 				//	fmt.Println("LAST!")
 			} else {
-
-				println(9) ////
 				return Error{err.Error(), D.filename, []string{"binary.Read", "nextRaw"}, true}
 			}
 		}
 		if !D.readLast {
 			if _, err := D.readByteBlock(blocksize); err != nil {
-
-				println(10) ////
 				return errDecorate(err, "nextRaw")
 			}
 		}

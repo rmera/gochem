@@ -88,6 +88,14 @@ func (C *CrdObj) Readable() bool {
 	return C.readable
 }
 
+func (C *CrdObj) Close() {
+	if !C.readable {
+		return
+	}
+	C.ioread.Close()
+	C.readable = false
+}
+
 //Next Reads the next frame in a DcDObj that has been initialized for read
 //With initread. If keep is true, returns a pointer to matrix.DenseMatrix
 //With the coordinates read, otherwiser, it discards the coordinates and
@@ -133,7 +141,7 @@ func (C *CrdObj) Next(keep *v3.Matrix) error {
 		i, err := C.crd.ReadString('\n')
 		//here we assume the error is an EOF. I need to change this to actually check.
 		if err != nil {
-			C.readable = false
+			C.Close()
 			//			println(err.Error()) //////
 			return newlastFrameError(C.filename, "Next")
 		}
@@ -209,7 +217,7 @@ func (C *CrdObj) nextVelBox() error {
 		i, err := C.crd.ReadString('\n')
 		//here we assume the error is an EOF. I need to change this to actually check.
 		if err != nil {
-			C.readable = false
+			C.Close()
 			//			println(err.Error()) //////
 			return newlastFrameError(C.filename, "Next")
 		}
@@ -288,7 +296,7 @@ func (C *CrdObj) nextBox() error {
 		i, err := C.crd.ReadString('\n')
 		//here we assume the error is an EOF. I need to change this to actually check.
 		if err != nil {
-			C.readable = false
+			C.Close()
 			//			println(err.Error()) //////
 			return newlastFrameError(C.filename, "Next")
 		}

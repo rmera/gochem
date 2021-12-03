@@ -86,6 +86,15 @@ func NewWriter(filename string, natoms int) (*DCDWObj, error) {
 
 }
 
+func (D *DCDWObj) Close() {
+	if !D.writable {
+		return
+	}
+	D.dcd.Close()
+	D.writable = false
+
+}
+
 //InitRead initializes a XtcObj for reading.
 //It requires only the filename, which must be valid.
 //It support big and little endianness, charmm or (namd>=2.1) and no

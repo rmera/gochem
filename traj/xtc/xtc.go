@@ -38,7 +38,6 @@ package xtc
 import "C"
 import (
 	"fmt"
-	"runtime"
 
 	v3 "github.com/rmera/gochem/v3"
 )
@@ -93,12 +92,16 @@ func (X *XTCObj) initRead(name string) error {
 	X.cCoords = make([]C.float, totalcoords, totalcoords)
 	X.concBuffer = append(X.concBuffer, X.cCoords)
 	X.buffSize = 1
-	//This should close the file.
-	runtime.SetFinalizer(X, func(X *XTCObj) {
-		C.xtc_close(X.fp)
-	})
 	X.readable = true
 	return nil
+}
+
+func (X *XTCObj) Close() {
+	if !X.readable {
+		return //already closed
+	}
+	C.xtc_close(X.fp)
+	X.readable = false
 }
 
 //Next Reads the next frame in a XTCObj that has been initialized for read
@@ -112,11 +115,11 @@ func (X *XTCObj) Next(output *v3.Matrix) error {
 	cnatoms := C.int(X.natoms)
 	worked := C.get_coords(X.fp, &X.cCoords[0], cnatoms)
 	if worked == 11 {
-		X.readable = false
+		X.Close()
 		return newlastFrameError(X.filename, "Next") //This is not really an error and should be catched in the calling function
 	}
 	if worked != 0 {
-		X.readable = false
+		X.Close()
 		return Error{ReadError, X.filename, []string{"Next"}, true}
 	}
 	if output != nil { //col the frame
@@ -176,15 +179,15 @@ func (X *XTCObj) NextConc(frames []*v3.Matrix) ([]chan *v3.Matrix, error) {
 		//Error handling
 		if worked == 11 {
 			if used == false {
-				X.readable = false
+				X.Close()
 				return nil, newlastFrameError(X.filename, "NextConc") //This is not really an error and
 			} else { //should be catched in the calling function
-				X.readable = false
+				X.Close()
 				return framechans, newlastFrameError(X.filename, "NextConc") //same
 			}
 		}
 		if worked != 0 {
-			X.readable = false
+			X.Close()
 			return nil, Error{ReadError, X.filename, []string{"NextConc"}, true}
 		}
 		if val == nil {
