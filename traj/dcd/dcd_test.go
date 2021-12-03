@@ -129,6 +129,7 @@ func TestFrameDCDConc(Te *testing.T) {
 		coordchans, err := traj.NextConc(frames)
 		if err != nil {
 			if _, ok := err.(chem.LastFrameError); ok {
+				fmt.Printf("Frames read: %d\n", i*len(frames))
 				break
 			}
 			Te.Error(err)

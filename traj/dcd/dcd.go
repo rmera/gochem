@@ -280,7 +280,8 @@ func (D *DCDObj) nextRaw(blocks [][]float32) error {
 	var blocksize int32
 	if D.extrablock {
 		if err := binary.Read(D.dcd, D.endian, &blocksize); err != nil {
-			return Error{err.Error(), D.filename, []string{"binary.Read", "nextRaw"}, true}
+			D.Close()
+			return newlastFrameError(D.filename, "nextRaw")
 		}
 		//If the blocksize is 4*natoms it means that the block is not an
 		//extra block, but the X coordinates, and thus we must skip the following
@@ -296,7 +297,8 @@ func (D *DCDObj) nextRaw(blocks [][]float32) error {
 	//we collect the X block size again only if it has not been collected before
 	if blocksize == 0 {
 		if err := binary.Read(D.dcd, D.endian, &blocksize); err != nil {
-			return Error{err.Error(), D.filename, []string{"binary.Read", "nextRaw"}, true}
+			D.Close()
+			return newlastFrameError(D.filename, "nextRaw")
 
 		}
 	}
