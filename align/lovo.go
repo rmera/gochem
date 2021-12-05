@@ -161,7 +161,7 @@ func mobileLimit(limit float64, tolerance int, RMSD *rMSD) (int, float64) {
 	return n, limit
 }
 
-//LOVOnMostRigid returns slices with the indexes of the n atoms and residues
+//LOVO returns slices with the indexes of the n atoms and residues
 //most rigid from mol, along the traj trajectory, considering only atoms with names in atomnames (normally, PDB names are used)
 //and belonging to one of the chains in chains (only the first slice given in chains will be considered, if nothing is given,
 //atoms from any chain will be considred.
