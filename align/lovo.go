@@ -96,20 +96,42 @@ func (O *Options) SetRigidPercent(perc int, seqlen int) {
 
 }
 
+type MolIDandChain struct {
+	molid int
+	chain string
+}
+
+func (M *MolIDandChain) String() string {
+	return fmt.Sprintf("molid:%04d-chain:%s", M.molid, M.chain)
+}
+
+func (M *MolIDandChain) MolID() int {
+	return M.molid
+}
+
+func (M *MolIDandChain) Chain() string {
+	return M.chain
+}
+
 //LOVOReturn contains the information returned by LOVOnMostRigid
 type LOVOReturn struct {
 	N          int
-	FramesRead int       //how many frames where actually read from the trajectory
-	Natoms     []int     //IDs of the N most rigid atoms
-	Nmols      []int     //IDs for the N most rigid residues/molecules
-	RMSD       []float64 //the RMSD for all residues, not only the N most rigid.
-	Iterations int       //The iterations that were needed for convergency.
+	FramesRead int              //how many frames where actually read from the trajectory
+	Natoms     []int            //IDs of the N most rigid atoms
+	Nmols      []*MolIDandChain //IDs for the N most rigid residues/molecules
+	RMSD       []float64        //the RMSD for all residues, not only the N most rigid.
+	Iterations int              //The iterations that were needed for convergency.
 
 }
 
 //String returns a string representation of the LOVOReturn object.
 func (L *LOVOReturn) String() string {
-	return fmt.Sprintf("N: %d, Natoms: %v, Nmols: %v, RMSD: %v, Frames read: %d, Iterations needed: %d", L.N, L.Natoms, L.Nmols, L.RMSD, L.FramesRead, L.Iterations)
+	retsl := make([]string, 0, len(L.Nmols)+2)
+	retsl = append(retsl, fmt.Sprintf("N: %d,  Frames read: %d, Iterations needed: %d, RMSD: %v, Natoms: %v, Nmols:", L.N, L.FramesRead, L.Iterations, L.RMSD, L.Natoms))
+	for _, v := range L.Nmols {
+		retsl = append(retsl, v.String())
+	}
+	return strings.Join(retsl, " ")
 }
 
 //PyMOLSel returns a string of text to create a PyMOL
@@ -118,7 +140,12 @@ func (L *LOVOReturn) String() string {
 func (L *LOVOReturn) PyMOLSel() string {
 	pymolsele := "select rigid,"
 	for i, v := range L.Nmols {
-		pymolsele += fmt.Sprintf(" resi %d ", v)
+		if v.chain == "" {
+			pymolsele += fmt.Sprintf(" (resi %d) ", v.molid)
+
+		} else {
+			pymolsele += fmt.Sprintf(" (resi %d and chain %s) ", v.molid, v.chain)
+		}
 		if i < len(L.Nmols)-1 {
 			pymolsele += "or"
 		}
@@ -165,9 +192,10 @@ func mobileLimit(limit float64, tolerance int, RMSD *rMSD) (int, float64) {
 //most rigid from mol, along the traj trajectory, considering only atoms with names in atomnames (normally, PDB names are used)
 //and belonging to one of the chains in chains (only the first slice given in chains will be considered, if nothing is given,
 //atoms from any chain will be considred.
-//If you use this function in your research, please cite the reference for the LOVO alignment method:
+//If you use this function in your research, please cite the references for the LOVO alignment method:
 //10.1371/journal.pone.0119264.
-//If you use this function in a to-consumer program, please print a message asking to cite the reference when the function is used.
+//10.1186/1471-2105-8-306
+//If you use this function in a to-consumer program, please print a message asking to cite the references when the function is used.
 func LOVO(mol chem.Atomer, ref *v3.Matrix, trajname string, o *Options) (*LOVOReturn, error) {
 	//we first do one iteration aligning the whole thing.
 	//these are atom, not residue indexes!
@@ -206,6 +234,10 @@ func LOVO(mol chem.Atomer, ref *v3.Matrix, trajname string, o *Options) (*LOVORe
 			n, newlim = mobileLimit(o.LessThanRMSD, o.MinimumN, RMSD)
 		}
 		indexes := RMSD.MolIDsCopy()
+		//There is a difference between the original paper and this implementation.
+		//In the original paper, the criterion for convergency is the sum of MSD of the phi*N most rigid atoms
+		//Here I simply check that the identity of those phi*N atoms has converged.
+		//I think it is completely equivalent.
 		if sameElementsInt(indexes[0:n], indexesold[0:n]) && (newlim == o.LessThanRMSD || approxEq(newlim, prevlim, 0.01)) {
 			break //converged
 		}
@@ -215,7 +247,7 @@ func LOVO(mol chem.Atomer, ref *v3.Matrix, trajname string, o *Options) (*LOVORe
 	}
 	//Now indexes old should countain what we want
 	RMSD.SortBy("molid")
-	r := &LOVOReturn{N: n, Natoms: indexesold[0:n], Nmols: iDs2MolIDs(mol, indexesold[0:n]), RMSD: RMSD.rMSDs, FramesRead: totalframes, Iterations: itercount}
+	r := &LOVOReturn{N: n, Natoms: indexesold[0:n], Nmols: iDs2MolIDandChains(mol, indexesold[0:n]), RMSD: RMSD.rMSDs, FramesRead: totalframes, Iterations: itercount}
 	return r, nil
 
 }
@@ -490,12 +522,23 @@ func rmsdFilter(rmsd []float64, indexes []int) []float64 {
 
 }
 
-func iDs2MolIDs(mol chem.Atomer, indexes []int) []int {
-	ret := make([]int, 0, len(indexes))
+func isInMIDaC(s *MolIDandChain, c []*MolIDandChain) bool {
+	for _, v := range c {
+		if v.molid == s.molid && v.chain == s.chain {
+			return true
+		}
+	}
+	return false
+
+}
+
+func iDs2MolIDandChains(mol chem.Atomer, indexes []int) []*MolIDandChain {
+	ret := make([]*MolIDandChain, 0, len(indexes))
 	for _, v := range indexes {
 		at := mol.Atom(v)
-		if !isInInt(at.MolID, ret) {
-			ret = append(ret, at.MolID)
+		s := &MolIDandChain{molid: at.MolID, chain: at.Chain}
+		if !isInMIDaC(s, ret) {
+			ret = append(ret, s)
 		}
 	}
 	return ret
