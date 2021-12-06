@@ -82,7 +82,7 @@ func (S *StfW) WNext(coord *v3.Matrix) error {
 
 //Only the first map will be read!
 func NewWriter(name string, natoms int, header map[string]string, compressionLevel ...int) (*StfW, error) {
-	var level int = 5 //For python compatibility :-/
+	var level int = 5 //For python compatibility
 	if len(compressionLevel) > 0 {
 		level = compressionLevel[0]
 	}
@@ -162,15 +162,16 @@ func New(name string) (*StfR, map[string]string, error) {
 		return r, nil
 	}
 
+	gzreader := func(a io.Reader) (io.ReadCloser, error) { return gzip.NewReader(a) }
 	switch strings.ToLower(name)[len(name)-1] {
 	case 'l':
 		AnyNewReader = func(a io.Reader) (io.ReadCloser, error) { return lzw.NewReader(a, lzw.MSB, 8), nil }
 	case 'f':
 		AnyNewReader = zreader
 	case 'z':
-		AnyNewReader = func(a io.Reader) (io.ReadCloser, error) { return gzip.NewReader(a) }
+		AnyNewReader = gzreader
 	default:
-		AnyNewReader = zreader
+		AnyNewReader = gzreader
 	}
 
 	S.intermediate = bufio.NewReader(S.f)
