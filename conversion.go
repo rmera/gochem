@@ -23,28 +23,28 @@
 
 package chem
 
-//This provides useful conversion factors and other constants
+//Useful conversion factors and other constants
 
 //Conversions
 const (
 	Deg2Rad = 0.0174533
-	Rad2Deg = 1 / 0.0174533
+	Rad2Deg = 1 / Deg2Rad
 	H2Kcal  = 627.509 //HArtree 2 Kcal/mol
-	Kcal2H  = 1 / 627.509
-	KJ2Kcal = 1 / 4.184
+	Kcal2H  = 1 / H2Kcal
 	Kcal2KJ = 4.184
+	KJ2Kcal = 1 / Kcal2KJ
 	A2Bohr  = 1.889725989
-	Bohr2A  = 1 / 1.889725989
+	Bohr2A  = 1 / A2Bohr
 	EV2Kcal = 23.061
-	Kcal2EV = 1 / 23.061
+	Kcal2EV = 1 / EV2Kcal
 )
 
 //Others
 const (
 	CHDist = 1.098        //C(sp3)--H distance in A
 	KBkJ   = 1.380649e-26 // Boltzmann constant kJ/K
-	KB     = KBkJ * Kcal2KJ
+	KB     = KBkJ * KJ2Kcal
 	RkJ    = 8.31446261815324e-3 // kJ/(K*mol)
 	NA     = 6.02214076e+23
-	R      = 1.9872042586408e-3 //kcal/mol
+	R      = RkJ * KJ2Kcal //.9872042586408e-3 //kcal/mol
 )

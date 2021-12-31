@@ -56,7 +56,7 @@ func Angle(v1, v2 *v3.Matrix) float64 {
 	return angle
 }
 
-//RotatorToNewY takes a set of coordinates (mol) and a vector (y). It returns
+//RotatorAroundZToNewY takes a set of coordinates (mol) and a vector (y). It returns
 //a rotation matrix that, when applied to mol, will rotate it around the Z axis
 //in such a way that the projection of newy in the XY plane will be aligned with
 //the Y axis.
@@ -319,7 +319,7 @@ func MemPerAtomRMSD(test, templa, ctest, ctempla, tmp *v3.Matrix, indexes ...[]i
 	return msds, nil
 }
 
-//RMSD returns the RSMD (root of the mean square deviation) for the sets of cartesian
+//rMSD returns the RSMD (root of the mean square deviation) for the sets of cartesian
 //coordinates in test and template, only considering the template and test atoms in
 //the lists testlst and templalst, respectively. Since it is very explicit I leave it here for testing.
 func rMSD(test, template *v3.Matrix, testlst, templalst []int) (float64, error) {
@@ -596,7 +596,7 @@ func BestPlane(coords *v3.Matrix, mol ...Masser) (*v3.Matrix, error) {
 	return normal, err
 }
 
-//returns a flat64 slice of the size requested filed with ones
+//returns a float64 slice of the size requested filed with ones
 func ones(size int) []float64 {
 	slice := make([]float64, size, size)
 	for k, _ := range slice {

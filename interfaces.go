@@ -46,7 +46,7 @@ type Traj interface {
 	Len() int
 }
 
-//ConcTraje is an interface for a trajectory that can be read concurrently.
+//ConcTraj is an interface for a trajectory that can be read concurrently.
 type ConcTraj interface {
 
 	//Is the trajectory ready to be read?
