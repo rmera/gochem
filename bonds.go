@@ -48,7 +48,7 @@ type Bond struct {
 	Order float64 //Order 0 means undetermined
 }
 
-//Cross returs the atom bonded to the origin atom
+//Cross returns the atom bonded to the origin atom
 //bond in the receiver.
 func (B *Bond) Cross(origin *Atom) *Atom {
 	if origin.index == B.At1.index {
@@ -200,15 +200,15 @@ func (R *Ring) IsIn(index int) bool {
 	return isInInt(R.Atoms, index)
 }
 
-//Size returns the number of atoms in the cycle
+//Size returns the number of atoms in the ring
 func (R *Ring) Size() int {
 	return len(R.Atoms)
 }
 
 //Planarity returns the planarity percentage of the receiver ring
-//You must ensure that the coords indeed correspond to
-//the molecule for which the Ring object is defined
-//There is no way to check for that here.
+//coords is the set of coordinates for the _entire_ molecule of which
+//the ring is part. Planarity does not check that coords indeed corresponds
+//to the correct molecule, so, doing so is the user's responsibility.
 func (R *Ring) Planarity(coord *v3.Matrix) float64 {
 	if R.planarity != 0 {
 		return R.planarity
@@ -225,11 +225,10 @@ func (R *Ring) Planarity(coord *v3.Matrix) float64 {
 
 }
 
-//Adds to the ring the H atoms bonded to its members
+//AddHs Adds to the ring the H atoms bonded to its members
+//mol is the _entire_ molecule of which the receiver ring is part.
 //It will panic if an atom of the ring is not
-//found in the molecule, or is not bonded to anything
-//So you need to ensure that the Atomer corresponds
-//to the molecule for which the Ring object is defined.
+//found in mol, or is not bonded to anything
 func (R *Ring) AddHs(mol Atomer) {
 	newind := make([]int, 0, 6)
 	for _, v := range R.Atoms {

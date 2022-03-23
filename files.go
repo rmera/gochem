@@ -2,7 +2,7 @@
  * files.go, part of gochem.
  *
  *
- * Copyright 2012 Raul Mera <rmera{at}chemDOThelsinkiDOTfi>
+ * Copyright 2012 Raul Mera rauldotmeraatusachdotcl
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as
@@ -18,9 +18,7 @@
  * Public License along with this program.  If not, see
  * <http://www.gnu.org/licenses/>.
  *
- *
- * Gochem is developed at the laboratory for instruction in Swedish, Department of Chemistry,
- * University of Helsinki, Finland.
+ * goChem is developed at Universidad de Santiago de Chile (USACH)
  *
  *
  */
@@ -113,7 +111,7 @@ func symbolFromName(name string) (string, error) {
 	return symbol, nil
 }
 
-//Parses a valid ATOM or HETATM line of a PDB file, returns an Atom
+// read_full_pdb_line parses a valid ATOM or HETATM line of a PDB file, returns an Atom
 // object with the info except for the coordinates and b-factors, which  are returned
 // separately as an array of 3 float64 and a float64, respectively
 func read_full_pdb_line(line string, read_additional bool, contlines int) (*Atom, []float64, float64, error) {
@@ -141,7 +139,6 @@ func read_full_pdb_line(line string, read_additional bool, contlines int) (*Atom
 	//so I add this conditional to allow goChem to still read these wrong PDB files.
 	if len(line) >= 60 {
 		atom.Occupancy, err[5] = strconv.ParseFloat(strings.TrimSpace(line[54:60]), 64)
-		//If I try not to declare this and just use :=, I get an "expected identifier" error
 		bfactor, err[6] = strconv.ParseFloat(strings.TrimSpace(line[60:66]), 64)
 	}
 	//we try to read the additional only if indicated and if it is there
@@ -174,17 +171,15 @@ func read_full_pdb_line(line string, read_additional bool, contlines int) (*Atom
 	return atom, coords, bfactor, nil
 }
 
-/*Parses a PDB line if only the coordinates and bfactors are to be read*/
+//read_onlycoords_pdb_line parses an ATOM/HETATM PDB line returning only the coordinates and b-factors
 func read_onlycoords_pdb_line(line string, contlines int) ([]float64, float64, error) {
 	coords := make([]float64, 3, 3)
 	err := make([]error, 4, 4)
-	var bfactor float64 //I dont get why I must declare this instead of using :=
-	//I get an "expected identifier" error if I do so.
+	var bfactor float64
 	coords[0], err[0] = strconv.ParseFloat(strings.TrimSpace(line[30:38]), 64)
 	coords[1], err[1] = strconv.ParseFloat(strings.TrimSpace(line[38:46]), 64)
 	coords[2], err[2] = strconv.ParseFloat(strings.TrimSpace(line[46:54]), 64)
 	bfactor, err[3] = strconv.ParseFloat(strings.TrimSpace(line[60:66]), 64)
-	//this will take care of any error
 	for i := range err {
 		if err[i] != nil {
 			//Here I should add the line number to the returned error.
@@ -195,8 +190,7 @@ func read_onlycoords_pdb_line(line string, contlines int) ([]float64, float64, e
 	return coords, bfactor, nil
 }
 
-//PDBRRead reads a pdb file from an io.Reader. Returns a bunch of without coordinates,
-// and the coordinates in a separate array of arrays. If there is one frame in the PDB
+//PDBRRead reads a pdb file from an io.Reader. Returns a Molecule. If there is one frame in the PDB
 // the coordinates array will be of lenght 1. It also returns an error which is not
 // really well set up right now.
 func PDBRead(pdb io.Reader, read_additional bool) (*Molecule, error) {
@@ -205,8 +199,7 @@ func PDBRead(pdb io.Reader, read_additional bool) (*Molecule, error) {
 	return mol, errDecorate(err, "PDBReaderREad")
 }
 
-//PDBFileRead reads the atomic entries for a PDB file, returns a bunch of without coordinates,
-// and the coordinates in a separate array of arrays. If there is one frame in the PDB
+//PDBFileRead reads a pdb file from an io.Reader. Returns a Molecule. If there is one frame in the PDB
 // the coordinates array will be of lenght 1. It also returns an error which is not
 // really well set up right now.
 func PDBFileRead(pdbname string, read_additional bool) (*Molecule, error) {
@@ -221,10 +214,9 @@ func PDBFileRead(pdbname string, read_additional bool) (*Molecule, error) {
 	return mol, err
 }
 
-//pdbBufIORead reads the atomic entries for a PDB bufio.IO, returns a bunch of without coordinates,
-// and the coordinates in a separate array of arrays. If there is one frame in the PDB
-// the coordinates array will be of lenght 1. It also returns an error which is not
-// really well set up right now.
+//pdbBufIORead reads the atomic entries for a PDB bufio.IO, reads a pdb file from an io.Reader.
+//Returns a Molecule. If there is one frame in the PDB the coordinates array will be of lenght 1.
+//It also returns an error which is not really well set up right now.
 func pdbBufIORead(pdb *bufio.Reader, read_additional bool) (*Molecule, error) {
 	molecule := make([]*Atom, 0)
 	modelnumber := 0 //This is the number of frames read
@@ -344,7 +336,7 @@ func writePDBLine(atom *Atom, coord *v3.Matrix, bfact float64, chainprev string)
 	return out, chainprev, nil
 }
 
-//PDBFileWrite writes a PDB for the molecule mol and the coordinates Coords.
+//PDBFileWrite writes a PDB for the molecule mol and the coordinates Coords to a file name pdbname.
 func PDBFileWrite(pdbname string, coords *v3.Matrix, mol Atomer, Bfactors []float64) error {
 	out, err := os.Create(pdbname)
 	if err != nil {
@@ -359,8 +351,7 @@ func PDBFileWrite(pdbname string, coords *v3.Matrix, mol Atomer, Bfactors []floa
 	return nil
 }
 
-//PDBWrite writes a PDB formatted sequence of bytes to an io.Writer for a given reference, coordinate set and bfactor set, which must match each other
-//returns error or nil.
+//PDBWrite writes a PDB formatted sequence of bytes to an io.Writer for a given reference, coordinate set and bfactor set, which must match each other. Returns error or nil.
 func PDBWrite(out io.Writer, coords *v3.Matrix, mol Atomer, bfact []float64) error {
 	err := pdbWrite(out, coords, mol, bfact)
 	if err != nil {
@@ -498,7 +489,7 @@ func XYZFileRead(xyzname string) (*Molecule, error) {
 
 }
 
-//Reads an xyz or multixyz formatted bufio.Reader (as produced by Turbomole). Returns a Molecule and error or nil.
+//XYZRead Reads an xyz or multixyz formatted bufio.Reader (as produced by Turbomole). Returns a Molecule and error or nil.
 func XYZRead(xyzp io.Reader) (*Molecule, error) {
 	snaps := 1
 	xyz := bufio.NewReader(xyzp)
@@ -545,6 +536,7 @@ func XYZRead(xyzp io.Reader) (*Molecule, error) {
 	return returned, errDecorate(err, "XYZRead")
 }
 
+//XYZTraj is a trajectory-like representation of an XYZ File.
 type XYZTraj struct {
 	natoms     int
 	xyz        *bufio.Reader //The DCD file
@@ -869,7 +861,7 @@ func groReadSnap(gro *bufio.Reader, ReadTopol bool) (*v3.Matrix, []*Atom, error)
 	return mcoords, molecule, nil
 }
 
-//Parses a valid ATOM or HETATM line of a PDB file, returns an Atom
+//read_gro_line Parses a valid ATOM or HETATM line of a PDB file, returns an Atom
 // object with the info except for the coordinates and b-factors, which  are returned
 // separately as an array of 3 float64 and a float64, respectively
 func read_gro_line(line string) (*Atom, []float64, error) {

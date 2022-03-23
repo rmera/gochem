@@ -39,7 +39,7 @@ import (
  * fields
  */
 
-//Atom contains the atoms read except for the coordinates, which will be in a matrix
+//Atom contains the information to represent an atom, except for the coordinates, which will be in a separate *v3.Matrix
 //and the b-factors, which are in a separate slice of float64.
 type Atom struct {
 	Name      string  //PDB name of the atom
@@ -83,6 +83,7 @@ func (N *Atom) Copy(A *Atom) {
 	N.Het = A.Het
 }
 
+//Index returns the index of the atom
 func (N *Atom) Index() int {
 	return N.index
 }
@@ -96,9 +97,9 @@ type Topology struct {
 	multi  int
 }
 
-//NewTopology returns topology with ats atoms
+//NewTopology returns topology with ats atoms,
 //charge charge and multi multiplicity.
-// It doesnt check for consitency across slices or correct charge
+// It doesnt check for consitency across slices, correct charge
 //or unpaired electrons.
 func NewTopology(charge, multi int, ats ...[]*Atom) *Topology {
 	top := new(Topology)
@@ -119,7 +120,7 @@ func (T *Topology) Charge() int {
 	return T.charge
 }
 
-//Unpaired returns the multiplicity in the topology
+//Multi returns the multiplicity in the topology
 func (T *Topology) Multi() int {
 	return T.multi
 }
@@ -230,8 +231,8 @@ func (T *Topology) AppendAtom(at *Atom) {
 	T.Atoms = append(T.Atoms, at)
 }
 
-//SelectAtoms puts the atoms of T
-//with indexes in atomlist into the receiver.
+//SelectAtoms puts the subset of atoms in T that have
+//indexes in atomlist into the receiver. Panics if problem.
 func (R *Topology) SomeAtoms(T Atomer, atomlist []int) {
 	var ret []*Atom
 	lenatoms := T.Len()
@@ -245,7 +246,7 @@ func (R *Topology) SomeAtoms(T Atomer, atomlist []int) {
 	R.Atoms = ret
 }
 
-//SelectAtoms puts the atoms of T
+//SelectAtomsSafe puts the atoms of T
 //with indexes in atomlist into the receiver. Returns error if problem.
 func (R *Topology) SomeAtomsSafe(T Atomer, atomlist []int) error {
 	f := func() { R.SomeAtoms(T, atomlist) }
@@ -265,7 +266,7 @@ func (T *Topology) DelAtom(i int) {
 	}
 }
 
-//Len returns the length of the molecule.
+//Len returns the number of atoms in the topology.
 func (T *Topology) Len() int {
 	//if T.Atoms is nil, return len(T.Atoms) will panic, so I will let that happen for now.
 	//	if T.Atoms == nil {
@@ -274,7 +275,7 @@ func (T *Topology) Len() int {
 	return len(T.Atoms)
 }
 
-//MassCol returns a slice of float64 with the masses of atoms, or nil and an error if they have not been calculated
+//MassCol returns a slice of float64 with the masses of the atoms in the topology, or nil and an error if they have not been calculated
 func (T *Topology) Masses() ([]float64, error) {
 	mass := make([]float64, T.Len())
 	for i := 0; i < T.Len(); i++ {
@@ -410,8 +411,9 @@ func NewMolecule(coords []*v3.Matrix, ats Atomer, bfactors [][]float64) (*Molecu
 
 //The molecule methods:
 
-//DelCoord the coodinate i from every frame of the molecule.
+//DelCoord deletes the coodinate i from every frame of the molecule.
 func (M *Molecule) DelCoord(i int) error {
+	//note: Maybe this shouldn't be exported. Unexporting it could be a reasonable API change.
 	r, _ := M.Coords[0].Dims()
 	var err error
 	for j := 0; j < len(M.Coords); j++ {

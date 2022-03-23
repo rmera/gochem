@@ -25,23 +25,19 @@
  *
  */
 
-
 package chem
 
 import (
 	"bufio"
-	"github.com/rmera/gochem/v3"
 	"os"
 	"os/exec"
 	"strings"
+
+	v3 "github.com/rmera/gochem/v3"
 	//	"runtime" /////////
 	//	"fmt" ///////////
 )
 
-/****************
-NOTE: This function breaks in Go=>1.5 for unknown reasons.
-There seem to be an issue with StdinPipe, or the program Reduce been never actually excecuted
-*****************/
 //Reduce uses the Reduce program (Word, et. al. (1999) J. Mol. Biol. 285,
 //1735-1747. For more information see http://kinemage.biochem.duke.edu)
 //To protonate a protein and flip residues. It writes the report from Reduce

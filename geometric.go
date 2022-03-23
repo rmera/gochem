@@ -56,7 +56,7 @@ func Angle(v1, v2 *v3.Matrix) float64 {
 	return angle
 }
 
-//RotatorToNewY takes a set of coordinates (mol) and a vector (y). It returns
+//RotatorAroundZToNewY takes a set of coordinates (mol) and a vector (y). It returns
 //a rotation matrix that, when applied to mol, will rotate it around the Z axis
 //in such a way that the projection of newy in the XY plane will be aligned with
 //the Y axis.
@@ -150,7 +150,7 @@ func RotatorTranslatorToSuper(test, templa *v3.Matrix) (*v3.Matrix, *v3.Matrix, 
 	r, _ := aux2.Dims()
 	Maux := v3.Zeros(r)
 	Maux.Mul(aux2, ctest)
-	Maux.Tr() //Dont understand why this is needed
+	Maux = Maux.TrRet() //Dont understand why this is needed
 	svd := new(mat.SVD)
 	if ok := svd.Factorize(v3.Matrix2Dense(Maux), mat.SVDFull); !ok {
 		return nil, nil, nil, nil, errDecorate(fmt.Errorf("mat.SVD failed"), "RotatorTranslatorToSuper")
@@ -179,7 +179,7 @@ func RotatorTranslatorToSuper(test, templa *v3.Matrix) (*v3.Matrix, *v3.Matrix, 
 	vtr, _ := V.Dims()
 	Rotation := v3.Zeros(vtr)
 	Rotation.Mul(V, gnT(U))
-	Rotation.Tr() //Don't know why does this work :(
+	Rotation = Rotation.TrRet() //Don't know why does this work :(
 	RightHand := gnEye(3)
 	if det(Rotation) < 0 {
 		RightHand.Set(2, 2, -1)
@@ -286,7 +286,40 @@ func MemRMSD(test, templa, tmp *v3.Matrix, indexes ...[]int) (float64, error) {
 
 }
 
-//RMSD returns the RSMD (root of the mean square deviation) for the sets of cartesian
+//MemMSD calculates the MSDs between test and templa, considering only the atoms
+//present in the slices of int slices indexes. If given. If only one set of indexes
+//is given, it will be assumed to beling to test, if it has less elements than that
+//system, or to templa,otherwise.
+func MemPerAtomRMSD(test, templa, ctest, ctempla, tmp *v3.Matrix, indexes ...[]int) ([]float64, error) {
+	if len(indexes) == 0 || indexes[0] == nil || len(indexes[0]) == 0 {
+		ctest = test
+		ctempla = templa
+	} else if len(indexes) == 1 {
+		if test.NVecs() > len(indexes[0]) {
+			ctest.SomeVecs(test, indexes[0])
+			ctempla = templa
+		} else if templa.NVecs() > len(indexes[0]) {
+			ctempla.SomeVecs(templa, indexes[0])
+		} else {
+			return nil, fmt.Errorf("chem.memMSD: Indexes don't match molecules")
+		}
+	} else {
+		ctest.SomeVecs(test, indexes[0])
+		ctempla.SomeVecs(templa, indexes[1])
+	}
+	if ctest.NVecs() != ctempla.NVecs() || tmp.NVecs() != ctest.NVecs() {
+		return nil, fmt.Errorf("chem.memMSD: Ill formed matrices for memMSD calculation: cest: %d  ctempla: %d tmp: %d", ctest.NVecs(), ctempla.NVecs(), tmp.NVecs())
+	}
+	tmp.Sub(ctest, ctempla)
+	msds := make([]float64, ctest.NVecs())
+	for i := 0; i < tmp.NVecs(); i++ {
+		v := tmp.VecView(i)
+		msds[i] = v.Norm(2)
+	}
+	return msds, nil
+}
+
+//rMSD returns the RSMD (root of the mean square deviation) for the sets of cartesian
 //coordinates in test and template, only considering the template and test atoms in
 //the lists testlst and templalst, respectively. Since it is very explicit I leave it here for testing.
 func rMSD(test, template *v3.Matrix, testlst, templalst []int) (float64, error) {
@@ -563,7 +596,7 @@ func BestPlane(coords *v3.Matrix, mol ...Masser) (*v3.Matrix, error) {
 	return normal, err
 }
 
-//returns a flat64 slice of the size requested filed with ones
+//returns a float64 slice of the size requested filed with ones
 func ones(size int) []float64 {
 	slice := make([]float64, size, size)
 	for k, _ := range slice {
