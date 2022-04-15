@@ -1,17 +1,21 @@
 #!/usr/bin/env python3
 
-import gzip
+import io
 import numpy as np
-
+import zstandard as zstd #you need to have this one installed. It's not part of the std library.
 
 class rtraj:
     def __init__(self,filename,compresslevel=5):
         self.frames_read=0
-        self.traj=gzip.open(filename,compresslevel=compresslevel)
+        self.file=open(filename,'rb')
+        self.dctx = zstd.ZstdDecompressor()
+        self.stream = self.dctx.stream_reader(self.file)
+        self.traj = io.TextIOWrapper(self.stream, encoding='utf-8')
         self.header=""
         self.readable=True
         for i in self.traj:
-            if "**" in str(i):
+#            i=i.decode("utf-8")
+            if "**" in i:
                 self.natoms=int(i.split()[-1])
                 self.frame=np.zeros((self.natoms,3))
                 return
@@ -24,7 +28,7 @@ class rtraj:
             raise GeneratorExit #I guess not the best one.
         r=0
         for i in self.traj:
-            i=i.decode("utf-8")
+  #          i=i.decode("utf-8")
             if "*" in i:
                 self.frames_read+=1
                 return self.frame
@@ -47,7 +51,7 @@ class rtraj:
     def close(self):
         if self.readable:
             self.traj.close()
-            self.readable(False)
+            self.readable=False
 
 
 #I don't think there is really a need for this, but there it is.
@@ -57,11 +61,13 @@ class rtraj:
 class wtraj:
     def __init__(self, filename,natoms,compressionlevel=5, d=None):
         self.natoms=natoms
-        self.traj=gzip.open(filename,compresslevel=compressionlevel)
+        self.file=open(filename,'wb')
+        self.cctx=zstd.ZstdCompressor(level=compressionlevel)
+        self.traj=self.cctx.stream_writer(self.file)
         if d:
             for k,v in d:
-                self.traj.write("%s=%s\n"%(k,v))
-            self.traj.write("** %d\n"%natoms)
+                self.traj.write(b"%s=%s\n"%(k,v))
+            self.traj.write(b"** %d\n"%natoms)
     #Writes the next frame from data, which needs to be an Nx3 list of floats or numpy array.
     def wnext(data):
         if not self.readable:
@@ -70,8 +76,8 @@ class wtraj:
             raise ValueError
         for i in range(self.natoms):
             d=data[i]
-            self.traj.write("%07.3f %07.3f %07.3f\n"%(d[0],d[1],d[2]))
-        self.traj.write("*\n")
+            self.traj.write(b"%07.3f %07.3f %07.3f\n"%(d[0],d[1],d[2]))
+        self.traj.write(b"*\n")
     def close(self):
         if self.readable:
             self.traj.close()
