@@ -48,7 +48,7 @@ func TestSTFWrite(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
-	wtraj, err := NewWriter("../../test/test_stf.stz", mol.Len(), nil)
+	wtraj, err := NewWriter("../../test/test_stf.sts", mol.Len(), nil)
 	if err != nil {
 		Te.Error(err)
 	}
@@ -83,7 +83,7 @@ func TestSTF(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
-	rtraj, _, err := New("../../test/test_stf.stz")
+	rtraj, _, err := New("../../test/test_stf.sts")
 	if err != nil {
 		Te.Error(err)
 	}
@@ -110,7 +110,7 @@ func TestSTF(Te *testing.T) {
 
 func TestConc(Te *testing.T) {
 	fmt.Println("Concurrency test!")
-	traj, _, err := New("../../test/test_stf.stz")
+	traj, _, err := New("../../test/test_stf.sts")
 	if err != nil {
 		Te.Error(err)
 	}
@@ -201,7 +201,7 @@ func BenchmarkWriteSTF(B *testing.B) {
 	if err != nil {
 		B.Error(err)
 	}
-	wtraj, err := NewWriter("../../test/test_stf_b.stz", mol.Len(), nil)
+	wtraj, err := NewWriter("../../test/test_stf_b.sts", mol.Len(), nil)
 	if err != nil {
 		B.Error(err)
 	}

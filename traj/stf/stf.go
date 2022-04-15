@@ -14,6 +14,7 @@ import (
 	"unsafe"
 
 	//	"github.com/rmera/gochem"
+	"github.com/klauspost/compress/zstd"
 	chem "github.com/rmera/gochem"
 	v3 "github.com/rmera/gochem/v3"
 	"gonum.org/v1/gonum/mat"
@@ -99,6 +100,7 @@ func NewWriter(name string, natoms int, header map[string]string, compressionLev
 		return r, err
 	}
 	gzipwriter := func(a io.Writer) (io.WriteCloser, error) { return gzip.NewWriterLevel(a, level) }
+	zstdwriter := func(a io.Writer) (io.WriteCloser, error) { return zstd.NewWriter(a) }
 
 	var AnyNewWriter func(io.Writer) (io.WriteCloser, error)
 	switch format {
@@ -108,6 +110,9 @@ func NewWriter(name string, natoms int, header map[string]string, compressionLev
 		AnyNewWriter = zwriter
 	case 'z':
 		AnyNewWriter = gzipwriter
+	case 's':
+		AnyNewWriter = zstdwriter
+
 	default:
 		AnyNewWriter = gzipwriter
 
@@ -146,6 +151,18 @@ type StfR struct {
 	readable     bool
 }
 
+//This will cause additional indirections
+//but I suppose it won't matter, as each call will
+//take enough time to make those delays irrelevant.
+//Also, why couldn't *zstd.Decoder implement io.ReadCloser? :-(
+type stdql struct {
+	*zstd.Decoder
+}
+
+func (s stdql) Close() error {
+	return nil
+}
+
 func New(name string) (*StfR, map[string]string, error) {
 	S := new(StfR)
 	S.natoms = -1 //just so we know if things don't work
@@ -161,7 +178,13 @@ func New(name string) (*StfR, map[string]string, error) {
 		r := flate.NewReader(a)
 		return r, nil
 	}
+	zstdreader := func(a io.Reader) (io.ReadCloser, error) {
+		r, err := zstd.NewReader(a)
+		var ql *stdql
+		ql = &stdql{r}
+		return ql, err
 
+	}
 	gzreader := func(a io.Reader) (io.ReadCloser, error) { return gzip.NewReader(a) }
 	switch strings.ToLower(name)[len(name)-1] {
 	case 'l':
@@ -170,8 +193,12 @@ func New(name string) (*StfR, map[string]string, error) {
 		AnyNewReader = zreader
 	case 'z':
 		AnyNewReader = gzreader
+	case 's':
+		AnyNewReader = zstdreader
+
 	default:
 		AnyNewReader = gzreader
+
 	}
 
 	S.intermediate = bufio.NewReader(S.f)
