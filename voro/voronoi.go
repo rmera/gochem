@@ -24,6 +24,19 @@
  *
  */
 
+/**
+voro offers Voronoi polyhedra-based functionality for goChem, allowing to determine whether 2 atoms
+are in contact.
+
+Unfortunately, due to the author's lack of knowledge on comptuational geometry, and the lack of implementations
+of 3D-Voronoi polyhedra construction in Go, this library is extremely naive, un-sophisticated and
+heavily brute-force, in addition to incomplete. It uses a series of rather dirty tricks invoking physical and
+chemical knowledge to alliviate the performance problems caused by the previous, but they are still here.
+Also, the heavy numerical character of voro is sure to cause inaccuracies when compared to a proper,
+analytical implementation. Still, it does work in my tests.
+
+**/
+
 package voro
 
 import (
