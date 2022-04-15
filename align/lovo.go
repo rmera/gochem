@@ -134,6 +134,18 @@ func (L *LOVOReturn) String() string {
 	return strings.Join(retsl, " ")
 }
 
+//Implements Sort to sort by residue
+func (L *LOVOReturn) Less(i, j int) bool {
+	return L.Nmols[i].molid < L.Nmols[j].molid
+}
+
+func (L *LOVOReturn) Swap(i, j int) {
+	L.Nmols[i], L.Nmols[j] = L.Nmols[j], L.Nmols[i]
+}
+func (L *LOVOReturn) Len() int {
+	return len(L.Nmols)
+}
+
 //PyMOLSel returns a string of text to create a PyMOL
 //selection with the L.N most rigid residues from a LOVO
 //calculation.
