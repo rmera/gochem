@@ -43,11 +43,11 @@ func TestLovo(Te *testing.T) {
 	}
 	trajname := path + trajfilename
 	o := DefaultOptions()
-	o.NMostRigid = 10
-	o.LessThanRMSD = 1.0
-	o.Skip = 0
-	o.Cpus = 2
-	o.WriteTraj = path + "/aligned.dcd"
+	//	o.NMostRigid(10)
+	o.LessThanRMSD(1.0)
+	o.Skip(0)
+	o.Cpus(2)
+	o.TrajName(path + "/aligned.dcd")
 	ret, err := LOVO(mol, mol.Coords[0], trajname, o)
 	if err != nil {
 		Te.Error(err)
@@ -55,4 +55,5 @@ func TestLovo(Te *testing.T) {
 	//	fmt.Println("Most rigid residues:", ret.Nmols)
 	fmt.Println(ret.PyMOLSel())
 	fmt.Println(ret.String())
+	fmt.Println(ret.GMX("A"))
 }

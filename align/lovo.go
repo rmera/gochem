@@ -30,7 +30,6 @@ import (
 	"fmt"
 	"log"
 	"math"
-	"runtime"
 	"sort"
 	"strings"
 
@@ -45,55 +44,6 @@ type ConcTrajCloser interface {
 	chem.ConcTraj
 	//closes the trajectory
 	Close()
-}
-
-//Options contains various options for the LOVOnMostRigid and RMSDTraj functions
-type Options struct {
-	Begin int
-	Skip  int
-	Cpus  int
-	//The following are ignored by the RMSDTraj function
-	AtomNames    []string
-	Chains       []string
-	NMostRigid   int
-	WriteTraj    string  //the name of a file to where the aligned trajectory will be written. Nothing will be written if empty.
-	LessThanRMSD float64 //instead of using a N for the most rigid, selects all residues with RMSD (the square root of the RMSD) < LessThanRMSD, in A. If >0, this overrrides NMostRigid
-	MinimumN     int     //The smallest N we are willing to have. Only valid if LessThanRMSD is in use.
-}
-
-//DefaultOptions return reasonable options for atomistic trajectories.
-//It prepares a superposition of alpha carbons (CA) with all logical CPUs,
-//trying to use for the superposition all CAs with RMSD lower than 1.0 A.
-func DefaultOptions() *Options {
-	r := new(Options)
-	r.Begin = 0
-	r.Skip = 0
-	r.Cpus = runtime.NumCPU()
-	//all available CPUs
-	r.AtomNames = []string{"CA"}
-	r.Chains = nil
-	r.NMostRigid = -1
-	r.LessThanRMSD = 1.0
-	r.MinimumN = 10 //just a reasonable value.
-	return r
-}
-
-//DefaultCGOptions returns reasonable options for Martini trajectories.
-func DefaultCGOptions() *Options {
-	r := DefaultOptions()
-	r.AtomNames = []string{"BB"}
-	r.Skip = 1000 //seems reasonable for CG, those trajectories are _long_.
-	return r
-
-}
-
-//Sets O.N to represent the perc percent of the residues
-//in the sequence. It also requires seqlen, the total number of
-//residues in the system
-func (O *Options) SetRigidPercent(perc int, seqlen int) {
-	frac := float64(perc) / 100
-	O.NMostRigid = int(frac * float64(seqlen))
-
 }
 
 type MolIDandChain struct {
@@ -166,6 +116,38 @@ func (L *LOVOReturn) PyMOLSel() string {
 
 }
 
+//Return the LOVO-selected residues in a format that
+//can be pasted into the Gromacs gmx make_ndx tool
+//to build a selection. The selection will incluede
+//the residues from the chain given, and the chain ID,
+//if given, or all residues matching, if not.
+//The atomname (normally CA in atomistic simulations or
+//BB in Martini ones is not added, mostly out of laziness
+//and because it's easy to
+//simply append " & a CA" or " & a BB" at the end of the string.
+func (L *LOVOReturn) GMX(chain ...string) string {
+	data := L.Nmols
+	first := true
+	ret := ""
+	for _, v := range data {
+		if len(chain) > 0 && chain[0] != "" && chain[0] != v.Chain() {
+			continue
+		}
+		mid := v.MolID()
+		if first {
+			ret = fmt.Sprintf("r %d ", mid)
+			first = false
+			continue
+		}
+		ret = fmt.Sprintf("%s | r %d ", ret, mid)
+	}
+
+	if len(chain) > 0 && chain[0] != "" {
+		ret = fmt.Sprintf("%s & chain %s", ret, chain[0])
+	}
+	return ret
+}
+
 func opentraj(name string) (ConcTrajCloser, error) {
 	t := strings.Split(name, ".")
 	format := t[len(t)-1]
@@ -208,14 +190,20 @@ func mobileLimit(limit float64, tolerance int, RMSD *rMSD) (int, float64) {
 //10.1371/journal.pone.0119264.
 //10.1186/1471-2105-8-306
 //If you use this function in a to-consumer program, please print a message asking to cite the references when the function is used.
-func LOVO(mol chem.Atomer, ref *v3.Matrix, trajname string, o *Options) (*LOVOReturn, error) {
+func LOVO(mol chem.Atomer, ref *v3.Matrix, trajname string, opt ...*Options) (*LOVOReturn, error) {
+	var o *Options
+	if len(opt) == 0 {
+		o = DefaultOptions()
+	} else {
+		o = opt[0]
+	}
 	//we first do one iteration aligning the whole thing.
 	//these are atom, not residue indexes!
 	const defaultTopRigid int = 10 //by default we obtain the 1/topdefaultTopRigid top rigid
-	var fullindexes []int = res2atoms(mol, o.AtomNames, o.Chains, nil)
+	var fullindexes []int = res2atoms(mol, o.atomNames, o.chains, nil)
 	var printtraj string
-	printtraj = o.WriteTraj
-	o.WriteTraj = ""
+	printtraj = o.writeTraj
+	o.writeTraj = ""
 	indexesold := make([]int, len(fullindexes))
 	copy(indexesold, fullindexes)
 	var RMSD *rMSD
@@ -231,7 +219,7 @@ func LOVO(mol chem.Atomer, ref *v3.Matrix, trajname string, o *Options) (*LOVORe
 			return nil, err
 		}
 		if disagreement == 1 && printtraj != "" {
-			o.WriteTraj = printtraj
+			o.writeTraj = printtraj
 		}
 		rmsd, totalframes, err = RMSDTraj(mol, ref, traj, indexesold[0:n], o)
 		if err != nil {
@@ -242,15 +230,15 @@ func LOVO(mol chem.Atomer, ref *v3.Matrix, trajname string, o *Options) (*LOVORe
 		RMSD = newRMSD(fullindexes, rmsdFilter(rmsd, fullindexes))
 		RMSD.SortBy("rmsd")
 		var newlim float64
-		if o.LessThanRMSD > 0 {
-			n, newlim = mobileLimit(o.LessThanRMSD, o.MinimumN, RMSD)
+		if o.lessThanRMSD > 0 {
+			n, newlim = mobileLimit(o.lessThanRMSD, o.minimumN, RMSD)
 		}
 		indexes := RMSD.MolIDsCopy()
 		//There is a difference between the original paper and this implementation.
 		//In the original paper, the criterion for convergency is the sum of MSD of the phi*N most rigid atoms
 		//Here I simply check that the identity of those phi*N atoms has converged.
 		//I think it is completely equivalent.
-		if sameElementsInt(indexes[0:n], indexesold[0:n]) && (newlim == o.LessThanRMSD || approxEq(newlim, prevlim, 0.01)) {
+		if sameElementsInt(indexes[0:n], indexesold[0:n]) && (newlim == o.lessThanRMSD || approxEq(newlim, prevlim, 0.01)) {
 			break //converged
 		}
 		prevlim = newlim
@@ -293,7 +281,7 @@ func concproc(v chan *v3.Matrix, ref, t *v3.Matrix, r chan *rmsdandcoords, index
 func RMSDTraj(mol chem.Atomer, ref *v3.Matrix, traj chem.ConcTraj, indexes []int, o *Options) ([]float64, int, error) {
 	RMSD := make([]float64, mol.Len())
 	var err error
-	chunksize := o.Cpus
+	chunksize := o.cpus
 	chunk := make([]*v3.Matrix, chunksize)
 	tmps := make([]*v3.Matrix, chunksize)
 	for i, _ := range chunk {
@@ -301,18 +289,18 @@ func RMSDTraj(mol chem.Atomer, ref *v3.Matrix, traj chem.ConcTraj, indexes []int
 		tmps[i] = v3.Zeros(mol.Len())
 	}
 	var wtraj *dcd.DCDWObj
-	if o.WriteTraj != "" {
-		wtraj, err = dcd.NewWriter(o.WriteTraj, mol.Len())
+	if o.writeTraj != "" {
+		wtraj, err = dcd.NewWriter(o.writeTraj, mol.Len())
 		if err != nil {
-			log.Printf("Couldn't open %s for writing. Will not write aligned trajectory", o.WriteTraj) //no error handling here. If we can't open the file, we just don't write anything.
+			log.Printf("Couldn't open %s for writing. Will not write aligned trajectory", o.writeTraj) //no error handling here. If we can't open the file, we just don't write anything.
 		} else {
 			defer wtraj.Close()
 
 		}
 
 	}
-	begin := o.Begin / chunksize //how many chunks to skip before begining.
-	skip := o.Skip / chunksize   //how many chunks to skip
+	begin := o.begin / chunksize //how many chunks to skip before begining.
+	skip := o.skip / chunksize   //how many chunks to skip
 	results := make([]chan *rmsdandcoords, chunksize)
 	for i, _ := range results {
 		results[i] = make(chan *rmsdandcoords)
