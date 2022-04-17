@@ -71,7 +71,7 @@ func (r *Options) COM(com ...bool) bool {
 //a valid value is given
 func (r *Options) Cpus(cpus ...int) int {
 	ret := r.cpus
-	if len(cpus) > 0 || cpus[0] > 0 {
+	if len(cpus) > 0 && cpus[0] > 0 {
 		r.cpus = cpus[0]
 	}
 	return ret
@@ -81,7 +81,7 @@ func (r *Options) Cpus(cpus ...int) int {
 //a valid value is given
 func (r *Options) Skip(skip ...int) int {
 	ret := r.skip
-	if len(skip) > 0 || skip[0] > 0 {
+	if len(skip) > 0 && skip[0] > 0 {
 		r.skip = skip[0]
 	}
 	return ret
