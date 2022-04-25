@@ -168,7 +168,7 @@ func ConcMolRDF(traj chem.ConcTraj, mol *chem.Molecule, refindexes []int, residu
 			framesread++
 		}
 	}
-	ret, ret2 := mdfFromcdf(ret, framesread, o.step)
+	ret, ret2 := MDFFromCDF(ret, framesread, o.step)
 	return ret, ret2, nil
 }
 
@@ -227,7 +227,7 @@ reading:
 		framesread++
 
 	}
-	ret, ret2 := mdfFromcdf(ret, framesread, o.step)
+	ret, ret2 := MDFFromCDF(ret, framesread, o.step)
 
 	return ret, ret2, nil
 }
@@ -238,7 +238,7 @@ reading:
 //density (divide by the volume of the sector) and a slice with the
 //number of molecules i nthe sector.
 // it overwrites the original slice!
-func mdfFromcdf(ret []float64, framesread int, step float64) ([]float64, []float64) {
+func MDFFromCDF(ret []float64, framesread int, step float64) ([]float64, []float64) {
 	ret2 := make([]float64, len(ret))
 	vp := (4.0 / 3.0) * math.Pi
 	//vp := 4 * math.Pi
@@ -276,6 +276,8 @@ func mdfFromcdf(ret []float64, framesread int, step float64) ([]float64, []float
 	return ret, ret2
 }
 
+//NOTE: It could be good to have this function take a slice of floats and put the results there, so as to avoid
+//allocating more than needed.
 //FrameUMolCRDF Obtains the Unnormalized "Cummulative Molecular RDF" for one solvated structure. The RDF would be these values averaged over several structures.
 func FrameUMolCRDF(coord *v3.Matrix, mol chem.Atomer, refindexes []int, residues []string, options ...*Options) []float64 {
 	var o *Options
@@ -296,17 +298,13 @@ func FrameUMolCRDF(coord *v3.Matrix, mol chem.Atomer, refindexes []int, residues
 	dists := res.Distances()
 	for i := 1; i <= totalsteps; i++ {
 		limit := float64(i) * o.step
-		n := 0
-		//This should be replaced with a binary search.
-		for _, v := range dists {
-			if v > limit {
-				break
-			}
-			n++
-
+		n := sort.SearchFloat64s(dists, limit)
+		// the limit is not found, SearchFloat64 will return the index of the first element larger or equal than limit.
+		// we want the one before that.
+		if n > 0 {
+			n--
 		}
 		ret = append(ret, float64(n))
-
 	}
 	return ret
 }
