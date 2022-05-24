@@ -144,19 +144,29 @@ func read_full_pdb_line(line string, read_additional bool, contlines int) (*Atom
 	//we try to read the additional only if indicated and if it is there
 	// In this part we don't catch errors. If something is missing we
 	// just ommit it
-	if read_additional && len(line) >= 80 {
+	if read_additional && len(line) >= 79 {
 		atom.Symbol = strings.TrimSpace(line[76:78])
 		atom.Symbol = strings.Title(strings.ToLower(atom.Symbol))
-		atom.Charge = float64(line[78]) //strconv.ParseFloat(strings.TrimSpace(line[78:78]),64)
-		if strings.Contains(line[79:79], "-") {
-			atom.Charge = -1.0 * atom.Charge
+		if len(line) >= 80 {
+			var errcharge error
+			atom.Charge, errcharge = strconv.ParseFloat(strings.TrimSpace(line[78:78]), 64)
+			if errcharge == nil {
+
+				if strings.Contains(line[79:79], "-") {
+					atom.Charge = -1.0 * atom.Charge
+				}
+			} else {
+				//we dont' report an error here, just set the charge to 0 (the default)
+				atom.Charge = 0.0
+			}
 		}
 	}
 
 	//This part tries to guess the symbol from the atom name, if it has not been read
 	//No error checking here, just fills symbol with the empty string the function returns
+	var symbolerr error
 	if len(atom.Symbol) == 0 {
-		atom.Symbol, _ = symbolFromName(atom.Name)
+		atom.Symbol, symbolerr = symbolFromName(atom.Name)
 	}
 
 	for i := range err {
@@ -168,7 +178,9 @@ func read_full_pdb_line(line string, read_additional bool, contlines int) (*Atom
 	if atom.Symbol != "" {
 		atom.Mass = symbolMass[atom.Symbol] //Not error checking
 	}
-	return atom, coords, bfactor, nil
+	//if we couldn't read the symbol, we'll still return the atom and coords
+	//but with an error
+	return atom, coords, bfactor, symbolerr
 }
 
 //read_onlycoords_pdb_line parses an ATOM/HETATM PDB line returning only the coordinates and b-factors
@@ -193,16 +205,17 @@ func read_onlycoords_pdb_line(line string, contlines int) ([]float64, float64, e
 //PDBRRead reads a pdb file from an io.Reader. Returns a Molecule. If there is one frame in the PDB
 // the coordinates array will be of lenght 1. It also returns an error which is not
 // really well set up right now.
-func PDBRead(pdb io.Reader, read_additional bool) (*Molecule, error) {
+//read_additional is now "deprecated", it will be set to true regardless. I have made it into
+func PDBRead(pdb io.Reader, read_additional ...bool) (*Molecule, error) {
 	bufiopdb := bufio.NewReader(pdb)
-	mol, err := pdbBufIORead(bufiopdb, read_additional)
+	mol, err := pdbBufIORead(bufiopdb, read_additional...)
 	return mol, errDecorate(err, "PDBReaderREad")
 }
 
 //PDBFileRead reads a pdb file from an io.Reader. Returns a Molecule. If there is one frame in the PDB
 // the coordinates array will be of lenght 1. It also returns an error which is not
-// really well set up right now.
-func PDBFileRead(pdbname string, read_additional bool) (*Molecule, error) {
+// really well set up right now. read_additional is now deprecated. The reader will just read
+func PDBFileRead(pdbname string, read_additional ...bool) (*Molecule, error) {
 	pdbfile, err := os.Open(pdbname)
 	if err != nil {
 		//fmt.Println("Unable to open file!!")
@@ -210,14 +223,21 @@ func PDBFileRead(pdbname string, read_additional bool) (*Molecule, error) {
 	}
 	defer pdbfile.Close()
 	pdb := bufio.NewReader(pdbfile)
-	mol, err := pdbBufIORead(pdb, read_additional)
+	mol, err := pdbBufIORead(pdb, read_additional...)
 	return mol, err
 }
 
 //pdbBufIORead reads the atomic entries for a PDB bufio.IO, reads a pdb file from an io.Reader.
 //Returns a Molecule. If there is one frame in the PDB the coordinates array will be of lenght 1.
 //It also returns an error which is not really well set up right now.
-func pdbBufIORead(pdb *bufio.Reader, read_additional bool) (*Molecule, error) {
+//The read_additional_opt allows not reading the last fields of a PDB, if you know they are wrong.
+//if true (the default), the fields are read if they are available. Otherwise we attempt to figure
+//out the symbol from the atom name, which doesn't always work.
+func pdbBufIORead(pdb *bufio.Reader, read_additional_opt ...bool) (*Molecule, error) {
+	read_additional := true
+	if len(read_additional_opt) > 0 {
+		read_additional = read_additional_opt[0]
+	}
 	molecule := make([]*Atom, 0)
 	modelnumber := 0 //This is the number of frames read
 	coords := make([][]float64, 1, 1)

@@ -64,7 +64,7 @@ func TestXYZIO(Te *testing.T) {
 	XYZFileWrite("test/sampleFirst.xyz", mol.Coords[0], mol)
 }
 
-func TTestPDBIO(Te *testing.T) {
+func TestPDBIO(Te *testing.T) {
 	mol, err := PDBFileRead("test/2c9v.pdb", true)
 	if err != nil {
 		Te.Error(err)
