@@ -578,9 +578,9 @@ func (X *XYZTraj) Len() int {
 //otherwise, returns the original error.
 func (X *XYZTraj) xyztrajerror(err error) error {
 	errm := err.Error()
+	X.xyzfile.Close()
+	X.readable = false
 	if strings.Contains(errm, "Empty") || strings.Contains(errm, "header") {
-		X.xyzfile.Close()
-		X.readable = false
 		return newlastFrameError("", X.frames)
 	} else {
 		return err
