@@ -678,12 +678,12 @@ func (M *Molecule) InitRead() error {
 //form the trajectory. The frames are discarted if the corresponding elemetn of the slice
 //is false. The function returns a slice of channels through each of each of which
 // a *matrix.DenseMatrix will be transmited
-func (M *Molecule) NextConc(frames []bool) ([]chan *v3.Matrix, error) {
+func (M *Molecule) NextConc(frames []*v3.Matrix) ([]chan *v3.Matrix, error) {
 	toreturn := make([]chan *v3.Matrix, 0, len(frames))
 	used := false
 
 	for _, val := range frames {
-		if val == false {
+		if val == nil {
 			M.current++
 			toreturn = append(toreturn, nil)
 			continue
@@ -704,6 +704,13 @@ func (M *Molecule) NextConc(frames []bool) ([]chan *v3.Matrix, error) {
 		M.current++
 	}
 	return toreturn, nil
+}
+
+//Close just sets the "curren" counter to 0.
+//If you are using it as a trajectory, you can always just discard the molecule
+//and let the CG take care of it, as there is nothing on disk linked to it..
+func (M *Molecule) Close() {
+	M.current = 0
 }
 
 /**End Traj interface implementation***********/

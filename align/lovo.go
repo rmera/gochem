@@ -35,6 +35,7 @@ import (
 
 	chem "github.com/rmera/gochem"
 	"github.com/rmera/gochem/traj/dcd"
+	"github.com/rmera/gochem/traj/stf"
 	"github.com/rmera/gochem/traj/xtc"
 	v3 "github.com/rmera/gochem/v3"
 )
@@ -158,6 +159,10 @@ func opentraj(name string) (ConcTrajCloser, error) {
 		ret, err = xtc.New(name)
 	case "dcd":
 		ret, err = dcd.New(name)
+	case "stf":
+		ret, _, err = stf.New(name)
+	case "pdb":
+		ret, err = chem.PDBFileRead(name)
 	default:
 		ret = nil
 		err = fmt.Errorf("Trajectory fromat not supported. Must have concurrent read support in goChem")
