@@ -406,8 +406,8 @@ func FixNumbering(r Atomer) {
 	}
 }
 
-//CutBackRef takes a list of lists of residues and deletes from r
-//all atoms not in the list or not belonging to the chain chain.
+//CutBackRef takes a list of lists of residues and selects
+// from r all atoms in each the list list[i] and belonging to the chain chain[i].
 //It caps the N and C terminal
 //of each list with -COH for the N terminal and NH2 for C terminal.
 //the residues on each sublist should be contiguous to each other.

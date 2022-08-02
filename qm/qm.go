@@ -248,7 +248,7 @@ type Calc struct {
 	Guess string //initial guess
 	Grid  int
 	OldMO bool //Try to look for a file with MO. The
-	Job   Job  //NOTE: This should probably be a pointer: FIX!
+	Job   *Job //NOTE: This should probably be a pointer: FIX!  NOTE2: Fixed it, but must check and fix whatever is now broken.
 	//The following 3 are only for MD simulations, will be ignored in every other case.
 	MDTime       int     //simulation time (whatever unit the program uses!)
 	MDTemp       float64 //simulation temperature (K)

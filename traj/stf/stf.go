@@ -114,7 +114,7 @@ func NewWriter(name string, natoms int, header map[string]string, compressionLev
 		AnyNewWriter = zstdwriter
 
 	default:
-		AnyNewWriter = gzipwriter
+		AnyNewWriter = zstdwriter
 
 	}
 
