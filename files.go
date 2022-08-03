@@ -124,8 +124,8 @@ func read_full_pdb_line(line string, read_additional bool, contlines int) (*Atom
 	atom.Char16 = line[16]
 	//PDB says that pos. 17 is for other thing but I see that is
 	//used for residue name in many cases*/
-	atom.Molname = line[17:20]
-	atom.Molname1 = three2OneLetter[atom.Molname]
+	atom.MolName = line[17:20]
+	atom.MolName1 = three2OneLetter[atom.MolName]
 	atom.Chain = string(line[21])
 	atom.MolID, err[1] = strconv.Atoi(strings.TrimSpace(line[22:30]))
 	//Here we shouldn't need TrimSpace, but I keep it just in case someone
@@ -350,7 +350,7 @@ func writePDBLine(atom *Atom, coord *v3.Matrix, bfact float64, chainprev string)
 		return "", chainprev, CError{"Cant print PDB line", []string{"writePDBLine"}}
 	}
 	//"%-6s%5d  %-3s %3s %1c%4d    %8.3f%8.3f%8.3f%6.2f%6.2f          %2s  \n"
-	out = fmt.Sprintf(formatstring, first, atom.ID, atom.Name, atom.Molname, atom.Chain,
+	out = fmt.Sprintf(formatstring, first, atom.ID, atom.Name, atom.MolName, atom.Chain,
 		atom.MolID, coord.At(0, 0), coord.At(0, 1), coord.At(0, 2), atom.Occupancy, bfact, atom.Symbol)
 	out = strings.Join([]string{ter, out}, "")
 	return out, chainprev, nil
@@ -685,7 +685,7 @@ func xyzReadSnap(xyz *bufio.Reader, toplace *v3.Matrix, ReadTopol bool) (*v3.Mat
 			molecule[i] = new(Atom)
 			molecule[i].Symbol = strings.Title(fields[0])
 			molecule[i].Mass = symbolMass[molecule[i].Symbol]
-			molecule[i].Molname = "UNK"
+			molecule[i].MolName = "UNK"
 			molecule[i].Name = molecule[i].Symbol
 		}
 		coords[i*3], errs[0] = strconv.ParseFloat(fields[1], 64)
@@ -893,8 +893,8 @@ func read_gro_line(line string) (*Atom, []float64, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	atom.Molname = strings.TrimSpace(line[5:10])
-	atom.Molname1 = three2OneLetter[atom.Molname]
+	atom.MolName = strings.TrimSpace(line[5:10])
+	atom.MolName1 = three2OneLetter[atom.MolName]
 	atom.Name = strings.TrimSpace(line[10:15])
 	atom.ID, err = strconv.Atoi(strings.TrimSpace(line[15:20]))
 	//	fmt.Printf("%s|%s|%s|%s|\n", line[0:5], line[5:10], line[10:15], line[15:20]) ////////////
@@ -950,7 +950,7 @@ func GroSnapWrite(coords *v3.Matrix, mol Atomer, out io.Writer) error {
 		c = coords.Row(c, i)
 		at := mol.Atom(i)
 		//velocities are set to 0
-		temp := fmt.Sprintf("%5d%-5s%5s%5d%8.3f%8.3f%8.3f%8.4f%8.4f%8.4f\n", at.MolID, at.Molname, at.Name, at.ID, c[0]*A2nm, c[1]*A2nm, c[2]*A2nm, 0.0, 0.0, 0.0)
+		temp := fmt.Sprintf("%5d%-5s%5s%5d%8.3f%8.3f%8.3f%8.4f%8.4f%8.4f\n", at.MolID, at.MolName, at.Name, at.ID, c[0]*A2nm, c[1]*A2nm, c[2]*A2nm, 0.0, 0.0, 0.0)
 		_, err := out.Write([]byte(temp))
 		if err != nil {
 			return iowriterError(err)

@@ -46,8 +46,8 @@ type Atom struct {
 	ID        int     //The PDB index of the atom
 	index     int     //The place of the atom in a set. I won't make it accessible to ensure that it does correspond to the ordering.
 	Tag       int     //Just added this for something that someone might want to keep that is not a float.
-	Molname   string  //PDB name of the residue or molecule (3-letter code for residues)
-	Molname1  byte    //the one letter name for residues and nucleotids
+	MolName   string  //PDB name of the residue or molecule (3-letter code for residues)
+	MolName1  byte    //the one letter name for residues and nucleotids
 	Char16    byte    //Whatever is in the column 16 (counting from 0) in a PDB file, anything.
 	MolID     int     //PDB index of the corresponding residue or molecule
 	Chain     string  //One-character PDB name for a chain.
@@ -71,8 +71,8 @@ func (N *Atom) Copy(A *Atom) {
 	N.Name = A.Name
 	N.ID = A.ID
 	N.Tag = A.Tag
-	N.Molname = A.Molname
-	N.Molname1 = A.Molname1
+	N.MolName = A.MolName
+	N.MolName1 = A.MolName1
 	N.MolID = A.MolID
 	N.Chain = A.Chain
 	N.Mass = A.Mass

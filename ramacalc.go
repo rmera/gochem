@@ -42,7 +42,7 @@ type RamaSet struct {
 	C       int
 	Npost   int
 	MolID   int
-	Molname string
+	MolName string
 }
 
 // RamaCalc Obtains the values for the phi and psi dihedrals indicated in []Ramaset, for the
@@ -81,7 +81,7 @@ func RamaResidueFilter(dihedrals []RamaSet, filterdata []string, shouldBePresent
 	Index := make([]int, len(dihedrals))
 	var added int
 	for key, val := range dihedrals {
-		isPresent := isInString(filterdata, val.Molname)
+		isPresent := isInString(filterdata, val.MolName)
 		if isPresent == shouldBePresent {
 			RetList = append(RetList, val)
 			Index[key] = added
@@ -156,7 +156,7 @@ func RamaList(M Atomer, chains string, resran []int) ([]RamaSet, error) {
 					if r1 != r2-1 || r2 != r2a || r2a != r2b || r2b != r3-1 {
 						return nil, CError{fmt.Sprintf("Incorrect backbone Cprev: %d N-1: %d CA: %d C: %d Npost-1: %d", r1, r2-1, r2a, r2b, r3-1), []string{"RamaList"}}
 					}
-					temp := RamaSet{Cprev, N, Ca, C, Npost, r2, M.Atom(Ca).Molname}
+					temp := RamaSet{Cprev, N, Ca, C, Npost, r2, M.Atom(Ca).MolName}
 					RamaList = append(RamaList, temp)
 				}
 				N = Npost

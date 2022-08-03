@@ -426,7 +426,7 @@ func CutBackRef(r Atomer, chains []string, list [][]int) ([]int, error) {
 		cresname := ""
 		for j := 0; j < r.Len(); j++ {
 			if r.Atom(j).MolID == nter && r.Atom(j).Chain == chains[k] {
-				nresname = r.Atom(j).Molname
+				nresname = r.Atom(j).MolName
 				break
 			}
 		}
@@ -442,7 +442,7 @@ func CutBackRef(r Atomer, chains []string, list [][]int) ([]int, error) {
 				continue
 			}
 			if curr.MolID == cter {
-				cresname = curr.Molname
+				cresname = curr.MolName
 			}
 			if curr.MolID == nter-1 {
 				makeNcap(curr, nresname)
@@ -476,7 +476,7 @@ func makeNcap(at *Atom, resname string) {
 		return
 	}
 	at.MolID = at.MolID + 1
-	at.Molname = resname
+	at.MolName = resname
 	if at.Name == "C" {
 		at.Name = "CTZ"
 	}
@@ -491,7 +491,7 @@ func makeCcap(at *Atom, resname string) {
 		return
 	}
 	at.MolID = at.MolID - 1
-	at.Molname = resname
+	at.MolName = resname
 	if at.Name == "N" {
 		at.Name = "NTZ"
 	}
