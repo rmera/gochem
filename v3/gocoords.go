@@ -113,7 +113,7 @@ func (F *Matrix) DelVec(A *Matrix, i int) {
 }
 
 //NVecs return the number of (row) vectors in F.
-func (F *Matrix) NVecs() int { //NOTE Probably just "Vecs" is a better name
+func (F *Matrix) NVecs() int {
 	r, c := F.Dims()
 	if c != 3 {
 		panic(ErrNotXx3Matrix)
@@ -124,14 +124,14 @@ func (F *Matrix) NVecs() int { //NOTE Probably just "Vecs" is a better name
 
 //Len return the number of (row) vectors in F.
 //Equivalent to NVecs, but more in line with Go APIS.
-func (F *Matrix) Len() int { //NOTE Probably just "Vecs" is a better name
+func (F *Matrix) Len() int {
 	return F.NVecs()
 }
 
-//ScaleByVec scales each coordinates in the  A by the coordinate in the row-vector coord.
-//The result is put in F.
-func (F *Matrix) ScaleByVec(A, coord *Matrix) {
-	F.ScaleByRow(A, coord) //NOTE: here I try to fix what I coment in the previous line by caling ScaleByRow instead of ScaleByVec as it was before
+//ScaleByRow scales each coordinates in the  A by the coordinate in the row-vector coord.
+//The result is put in F. This is the old name fo the function, now called ScaleByVec. It is kept for compatibility
+func (F *Matrix) ScaleByRow(A, coord *Matrix) {
+	F.ScaleByVec(A, coord)
 }
 
 //SetVecs sets the vector F[clist[i]] to the vector A[i], for all indexes i in clist.
@@ -188,7 +188,6 @@ func (F *Matrix) SomeVecsSafe(A *Matrix, clist []int) error {
 
 //StackVec puts in F a matrix consistent of A over B or A to the left of B.
 func (F *Matrix) StackVec(A, B *Matrix) {
-	//NOTE DELETION CANDIDATE DELCAN
 	F.Stack(A, B)
 }
 
@@ -280,11 +279,11 @@ func (F *Matrix) ScaleByCol(A, Col mat.Matrix) {
 
 }
 
-//ScaleByRow scales each column of matrix A by row, putting the result
+//ScaleByVec scales each column of matrix A by Vec, putting the result
 //in the received.
-func (F *Matrix) ScaleByRow(A, Row *Matrix) { //NOTE it should be called ScaleByVec
+func (F *Matrix) ScaleByVec(A, Vec *Matrix) {
 	ar, ac := A.Dims()
-	rr, rc := Row.Dims()
+	rr, rc := Vec.Dims()
 	fr, fc := F.Dims()
 	if ac != rc || rr != 1 || ar != fr || ac != fc {
 		panic(ErrShape)
@@ -294,7 +293,7 @@ func (F *Matrix) ScaleByRow(A, Row *Matrix) { //NOTE it should be called ScaleBy
 	//	}
 	for i := 0; i < ac; i++ {
 		temp := F.RowView(i)
-		temp.Dense.MulElem(temp.Dense, Row.Dense)
+		temp.Dense.MulElem(temp.Dense, Vec.Dense)
 	}
 }
 

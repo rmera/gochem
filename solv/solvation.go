@@ -36,7 +36,7 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
-//NOTE: I might want to unexport some of these before merging to master.
+//Options contains options for the RDF/MDDF calculation
 type Options struct {
 	com  bool
 	cpus int

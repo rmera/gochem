@@ -190,14 +190,16 @@ func New(name string) (*StfR, map[string]string, error) {
 	case 'l':
 		AnyNewReader = func(a io.Reader) (io.ReadCloser, error) { return lzw.NewReader(a, lzw.MSB, 8), nil }
 	case 'f':
-		AnyNewReader = zreader
+		AnyNewReader = zstdreader
 	case 'z':
 		AnyNewReader = gzreader
 	case 's':
 		AnyNewReader = zstdreader
+	case 'r':
+		AnyNewReader = zreader
 
 	default:
-		AnyNewReader = gzreader
+		AnyNewReader = zstdreader
 
 	}
 

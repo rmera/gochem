@@ -30,9 +30,10 @@ The substrings "*" and "**" can't appear anywhere in the file except in the part
 
 An STF file might have 3 file extension, which indicate
 how they are compressed:
-	stf: Compressed with deflate, at any level of compression.
+	str: Compressed with deflate, at any level of compression.
 	stz: Compressed with gzip (no idea why this is different than stf, but gunzip won't open my deflate-compressed files
 	stl: Compressed with lzw
+	stf: Compressed with z-standard (the preferred format)
 
 This spec does not establish what to do in case of a filename not ending with f, z or l, but the reference implementation
 attempts to open anyway, and assumes it to be compressed with deflate. I repeat, that behavior is _not_ part of the spec, and might change.
