@@ -23,13 +23,18 @@ class rtraj:
     #each call returns the next frame
     #when there are no more frames left, it raises a GeneratorExit
     #This reads every frame to the same array, to save memory. This is normally 
-    def next(self,skip=False):
+    def next(self,skip=False, box=[]):
         if not self.readable:
             raise GeneratorExit #I guess not the best one.
         r=0
         for i in self.traj:
   #          i=i.decode("utf-8")
             if "*" in i:
+                if len(box)>=9:
+                    line=i.rstrip().split()
+                    if len(line)>=10:
+                        for i,v in enumerate(line[1:]):
+                            box[i]=float(v)
                 self.frames_read+=1
                 return self.frame
             if not skip:
@@ -54,7 +59,6 @@ class rtraj:
             self.readable=False
 
 
-#I don't think there is really a need for this, but there it is.
 #wtraj is a write-mode trajectory. It requires the name of the file
 #And natoms, the number of atoms per frame
 #d is a dictionary of strings.
@@ -69,7 +73,7 @@ class wtraj:
                 self.traj.write(b"%s=%s\n"%(k,v))
             self.traj.write(b"** %d\n"%natoms)
     #Writes the next frame from data, which needs to be an Nx3 list of floats or numpy array.
-    def wnext(data):
+    def wnext(data, box=[]):
         if not self.readable:
             raise GeneratorExit #I guess not the best one.
         if len(data)<self.natoms or len(data[0])<3:
@@ -77,6 +81,10 @@ class wtraj:
         for i in range(self.natoms):
             d=data[i]
             self.traj.write(b"%07.3f %07.3f %07.3f\n"%(d[0],d[1],d[2]))
+        if len(box)>=9:
+            b=box
+            self.traj.write(b"%5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f\n"%(b[0],b[1],
+                b[2],b[3],b[4],b[5],b[6],b[7],b[8]))
         self.traj.write(b"*\n")
     def close(self):
         if self.readable:

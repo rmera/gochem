@@ -35,8 +35,8 @@ how they are compressed:
 	stl: Compressed with lzw
 	stf: Compressed with z-standard (the preferred format)
 
-This spec does not establish what to do in case of a filename not ending with f, z or l, but the reference implementation
-attempts to open anyway, and assumes it to be compressed with deflate. I repeat, that behavior is _not_ part of the spec, and might change.
+This spec does not establish what to do in case of a filename not ending with f, z or l, but the Go implementation
+attempts to open anyway, and assumes it to be compressed with z-standard. I repeat, that behavior is _not_ part of the spec, and might change.
 
 A STF file may only contain ASCII symbols.
 
@@ -44,7 +44,9 @@ A STF file has a "header" starting in the first line, and ending with a line tha
 Each line of the header must be a pair key=value.
 
 After that, the file has one line per atom, per frame. Each line 3 numbers (x y z coordinates, in A). The precision is not specified.
-each frame ends with a line containing only "*".
+each frame ends with a line containing _only_  "*", optionally followed by a whitespace and 9 floating-point numbers separated by spaces (precision unspecified). If present, these number correspond to the vectors defining the simulation box, in A.
+
+The "**" sequence can not be used anywhere in the file, except in the line described above.
 
 ***************************************************************************************************/
 

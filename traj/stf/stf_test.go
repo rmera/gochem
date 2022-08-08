@@ -44,20 +44,21 @@ func TestSTFWrite(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
-	rtraj, err := xtc.New("../../test/test_stf.xtc")
+	rtraj, err := xtc.New("../../test/test.xtc")
 	if err != nil {
 		Te.Error(err)
 	}
-	wtraj, err := NewWriter("../../test/test_stf.sts", mol.Len(), nil)
+	wtraj, err := NewWriter("../../test/test_stf.stf", mol.Len(), nil)
 	if err != nil {
 		Te.Error(err)
 	}
 	defer wtraj.Close()
 	i := 0
 	mat := v3.Zeros(mol.Len())
+	box := make([]float64, 9)
 	for ; ; i++ {
 		if i%1 == 0 {
-			err = rtraj.Next(mat)
+			err = rtraj.Next(mat, box)
 		} else {
 			err = rtraj.Next(nil)
 		}
@@ -68,8 +69,9 @@ func TestSTFWrite(Te *testing.T) {
 			Te.Error(err)
 			break
 		}
+		//	fmt.Println(box) //////////////////////////
 		if i%1 == 0 {
-			wtraj.WNext(mat)
+			wtraj.WNext(mat, box)
 		}
 	}
 	fmt.Println("Over! frames read and written:", i)
@@ -83,7 +85,7 @@ func TestSTF(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
-	rtraj, _, err := New("../../test/test_stf.sts")
+	rtraj, _, err := New("../../test/test_stf.stf")
 	if err != nil {
 		Te.Error(err)
 	}
@@ -94,8 +96,9 @@ func TestSTF(Te *testing.T) {
 	defer rtraj.Close()
 	i := 0
 	mat := v3.Zeros(rtraj.Len())
+	box := make([]float64, 9)
 	for ; ; i++ {
-		err := rtraj.Next(mat)
+		err := rtraj.Next(mat, box)
 		if err != nil {
 			if _, ok := err.(chem.LastFrameError); ok {
 				break
@@ -104,6 +107,7 @@ func TestSTF(Te *testing.T) {
 			break
 		}
 		wtraj.WNext(mat)
+		fmt.Println("box", box)
 	}
 	fmt.Println("Over! frames read:", i)
 }

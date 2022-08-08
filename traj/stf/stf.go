@@ -8,6 +8,7 @@ import (
 	"compress/lzw"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -54,7 +55,7 @@ func (S *StfW) WNextDense(dcoord *mat.Dense) error {
 	return err
 }
 
-func (S *StfW) WNext(coord *v3.Matrix) error {
+func (S *StfW) WNext(coord *v3.Matrix, box ...[]float64) error {
 	if !S.writeable {
 		return Error{TrajUnIniWrite, S.filename, []string{"WNext"}, true}
 	}
@@ -77,7 +78,14 @@ func (S *StfW) WNext(coord *v3.Matrix) error {
 		//str := fmt.Sprintf("%07.3f %07.3f %07.3f\n", coord.At(i, 0), coord.At(i, 1), coord.At(i, 2))
 		S.h.Write([]byte(str))
 	}
-	S.h.Write([]byte("*\n"))
+	if len(box) > 0 && len(box[0]) >= 9 {
+		b := box[0]
+		S.h.Write([]byte(fmt.Sprintf("* %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f\n", b[0],
+			b[1], b[2], b[3], b[4], b[5], b[6], b[7], b[8])))
+
+	} else {
+		S.h.Write([]byte("*\n"))
+	}
 	return nil
 }
 
@@ -107,11 +115,13 @@ func NewWriter(name string, natoms int, header map[string]string, compressionLev
 	case 'l':
 		AnyNewWriter = func(a io.Writer) (io.WriteCloser, error) { return lzw.NewWriter(a, lzw.MSB, lzwLitwidth), nil }
 	case 'f':
-		AnyNewWriter = zwriter
+		AnyNewWriter = zstdwriter
 	case 'z':
 		AnyNewWriter = gzipwriter
 	case 's':
 		AnyNewWriter = zstdwriter
+	case 'r':
+		AnyNewWriter = zwriter
 
 	default:
 		AnyNewWriter = zstdwriter
@@ -243,7 +253,7 @@ func (S *StfR) Readable() bool {
 	return S.readable
 }
 
-func (S *StfR) Next(c *v3.Matrix) error {
+func (S *StfR) Next(c *v3.Matrix, box ...[]float64) error {
 	for i := 0; i < S.natoms; i++ {
 		b, err := S.h.ReadBytes('\n')
 		if err != nil {
@@ -272,15 +282,39 @@ func (S *StfR) Next(c *v3.Matrix) error {
 			}
 			c.Set(i, j, n)
 		}
-
 	}
-
 	s, err := S.h.ReadString('\n')
 	if err != nil {
 		return Error{"Can't read the frame termination mark" + err.Error(), S.filename, []string{"Next"}, true}
 	}
-	if s != "*\n" {
+	if s[0] != '*' {
 		return Error{"Wrong number of atoms in frame" + err.Error(), S.filename, []string{"Next"}, true}
+	}
+
+	//This part reads the
+	if len(box) > 0 && len(box[0]) >= 9 {
+		fields := strings.Fields(strings.TrimSpace(s)) //we get rid of that last "\n"
+		if len(fields) >= 10 {                         // The "*" and the 9 numbers
+			var errbox error
+			for j, v := range fields[1:] {
+				//This should be replaced for a call to bytesconv.BytesToString when I update the compiler.
+				box[0][j], errbox = strconv.ParseFloat(*(*string)(unsafe.Pointer(&v)), 64)
+				if errbox != nil {
+					break
+				}
+			}
+			//If we got an error reading any of the values, we just set the whole thing to zero
+			//and log, no error returned.
+			if errbox != nil {
+				log.Printf("Failed to read box in a frame from %s", S.filename) //just a head-up
+				for i, _ := range box[0] {
+					box[0][i] = 0.0
+				}
+			}
+
+		} else {
+			log.Printf("Trajectory file %s does not contain (correct) box information: %s", S.filename, fields) //just a head-up
+		}
 	}
 
 	return nil
