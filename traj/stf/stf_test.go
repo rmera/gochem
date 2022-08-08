@@ -40,7 +40,7 @@ import (
 func TestSTFWrite(Te *testing.T) {
 	var err error
 	fmt.Println("STF write test!")
-	mol, err := chem.PDBFileRead("../../test/test_stf.pdb", false)
+	_, err = chem.PDBFileRead("../../test/test_stf.pdb", false)
 	if err != nil {
 		Te.Error(err)
 	}
@@ -48,13 +48,13 @@ func TestSTFWrite(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
-	wtraj, err := NewWriter("../../test/test_stf.stf", mol.Len(), nil)
+	wtraj, err := NewWriter("../../test/test_stf.stf", rtraj.Len(), nil)
 	if err != nil {
 		Te.Error(err)
 	}
-	defer wtraj.Close()
+	defer rtraj.Close()
 	i := 0
-	mat := v3.Zeros(mol.Len())
+	mat := v3.Zeros(rtraj.Len())
 	box := make([]float64, 9)
 	for ; ; i++ {
 		if i%1 == 0 {
@@ -74,6 +74,7 @@ func TestSTFWrite(Te *testing.T) {
 			wtraj.WNext(mat, box)
 		}
 	}
+	wtraj.Close()
 	fmt.Println("Over! frames read and written:", i)
 }
 
@@ -81,7 +82,7 @@ func TestSTFWrite(Te *testing.T) {
 func TestSTF(Te *testing.T) {
 	fmt.Println("STF read test!")
 
-	mol, err := chem.PDBFileRead("../../test/test_stf.pdb", false)
+	_, err := chem.PDBFileRead("../../test/test_stf.pdb", false)
 	if err != nil {
 		Te.Error(err)
 	}
@@ -89,7 +90,7 @@ func TestSTF(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
-	wtraj, err := dcd.NewWriter("../../test/test_stf.dcd", mol.Len())
+	wtraj, err := dcd.NewWriter("../../test/test_stf.dcd", rtraj.Len())
 	if err != nil {
 		Te.Error(err)
 	}
@@ -114,7 +115,7 @@ func TestSTF(Te *testing.T) {
 
 func TestConc(Te *testing.T) {
 	fmt.Println("Concurrency test!")
-	traj, _, err := New("../../test/test_stf.sts")
+	traj, _, err := New("../../test/test_stf.stf")
 	if err != nil {
 		Te.Error(err)
 	}
@@ -205,7 +206,7 @@ func BenchmarkWriteSTF(B *testing.B) {
 	if err != nil {
 		B.Error(err)
 	}
-	wtraj, err := NewWriter("../../test/test_stf_b.sts", mol.Len(), nil)
+	wtraj, err := NewWriter("../../test/test_stf_b.stf", mol.Len(), nil)
 	if err != nil {
 		B.Error(err)
 	}

@@ -108,7 +108,9 @@ func NewWriter(name string, natoms int, header map[string]string, compressionLev
 		return r, err
 	}
 	gzipwriter := func(a io.Writer) (io.WriteCloser, error) { return gzip.NewWriterLevel(a, level) }
-	zstdwriter := func(a io.Writer) (io.WriteCloser, error) { return zstd.NewWriter(a) }
+	zstdwriter := func(a io.Writer) (io.WriteCloser, error) {
+		return zstd.NewWriter(a, zstd.WithEncoderLevel(zstd.SpeedBetterCompression))
+	}
 
 	var AnyNewWriter func(io.Writer) (io.WriteCloser, error)
 	switch format {
