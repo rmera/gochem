@@ -44,14 +44,17 @@ import (
 
 //XTCObj is a container for an GROMACS XTC binary trajectory file.
 type XTCObj struct {
-	readable   bool
-	natoms     int
-	filename   string
-	fp         *C.XDRFILE //pointer to the XDRFILE
-	goCoords   []float64
-	concBuffer [][]C.float
-	cCoords    []C.float
-	buffSize   int
+	readable      bool
+	natoms        int
+	filename      string
+	fp            *C.XDRFILE //pointer to the XDRFILE
+	goCoords      []float64
+	goBox         []float64
+	concBuffer    [][]C.float
+	concBoxBuffer [][]C.float
+	cCoords       []C.float
+	cBox          []C.float
+	buffSize      int
 }
 
 //New returns an xtb object from a xtb-formated trajectory file
@@ -90,7 +93,9 @@ func (X *XTCObj) initRead(name string) error {
 	//The idea is to reserve less memory, using the same buffer many times.
 	//X.goCoords = make([]float64, totalcoords, totalcoords)
 	X.cCoords = make([]C.float, totalcoords, totalcoords)
+	X.cBox = make([]C.float, 9)
 	X.concBuffer = append(X.concBuffer, X.cCoords)
+	X.concBoxBuffer = append(X.concBoxBuffer, X.cBox)
 	X.buffSize = 1
 	X.readable = true
 	return nil
@@ -100,6 +105,10 @@ func (X *XTCObj) Close() {
 	if !X.readable {
 		return //already closed
 	}
+	X.cCoords = nil
+	X.cBox = nil
+	X.concBuffer = nil
+	X.concBoxBuffer = nil
 	C.xtc_close(X.fp)
 	X.readable = false
 }
@@ -108,12 +117,12 @@ func (X *XTCObj) Close() {
 //With initread. If keep is true, returns a pointer to matrix.DenseMatrix
 //With the coordinates read, otherwiser, it discards the coordinates and
 //returns nil.
-func (X *XTCObj) Next(output *v3.Matrix) error {
+func (X *XTCObj) Next(output *v3.Matrix, box ...[]float64) error {
 	if !X.Readable() {
 		return Error{TrajUnIni, X.filename, []string{"Next"}, true}
 	}
 	cnatoms := C.int(X.natoms)
-	worked := C.get_coords(X.fp, &X.cCoords[0], cnatoms)
+	worked := C.get_coords(X.fp, &X.cCoords[0], &X.cBox[0], cnatoms)
 	if worked == 11 {
 		X.Close()
 		return newlastFrameError(X.filename, "Next") //This is not really an error and should be catched in the calling function
@@ -122,19 +131,27 @@ func (X *XTCObj) Next(output *v3.Matrix) error {
 		X.Close()
 		return Error{ReadError, X.filename, []string{"Next"}, true}
 	}
-	if output != nil { //col the frame
-		r, c := output.Dims()
-		if r < (X.natoms) {
-			panic("Buffer v3.Matrix too small to hold trajectory frame")
-		}
-		for j := 0; j < r; j++ {
-			for k := 0; k < c; k++ {
-				l := k + (3 * j)
-				output.Set(j, k, (10 * float64(X.cCoords[l]))) //nm to Angstroms
-			}
-		}
-		return nil
+	if output == nil {
+		return nil //just drop the frame and box
 	}
+	r, c := output.Dims()
+	if r < (X.natoms) {
+		panic("Buffer v3.Matrix too small to hold trajectory frame")
+	}
+	for j := 0; j < r; j++ {
+		for k := 0; k < c; k++ {
+			l := k + (3 * j)
+			output.Set(j, k, (10 * float64(X.cCoords[l]))) //nm to Angstroms
+		}
+	}
+	//We won't return an error here, as you most commonly don't want the vectors.
+	//If you give aything that won't fit the box vectors you just won't get the vectors back.
+	if len(box) > 0 && len(box[0]) >= 9 {
+		for k := 0; k < 9; k++ {
+			box[0][k] = 10 * float64(X.cBox[k])
+		}
+	}
+
 	return nil //Just drop the frame
 }
 
@@ -143,10 +160,15 @@ func (X *XTCObj) setConcBuffer(batchsize int) error {
 	l := X.buffSize
 	if l == batchsize {
 		return nil
+		//I won't do anything about the boxes if we have too many. It's little memory anyway.
 	} else if l > batchsize {
-		for i := batchsize; i < l; i++ {
-			X.concBuffer[i] = nil //no idea if this actually works
-		}
+		//I don't think it's worth it to free that memory. If the user wan't to read more frames again
+		//we'll have to re-aquire memory. Better just leave it until we free the object.
+		//I suspect the user rarely starts reading less frames concurrently half way the traj, anyway.
+		//	for i := batchsize; i < l; i++ {
+		//		X.concBuffer[i] = nil //no idea if this actually works
+		//		X.concBoxBuffer[i]=nil
+		//	}
 		X.concBuffer = X.concBuffer[:batchsize-1] //not sure if this frees the remaining []float32 slices
 		X.buffSize = batchsize
 		return nil
@@ -163,7 +185,7 @@ func (X *XTCObj) setConcBuffer(batchsize int) error {
 //form the trajectory. The frames are discarted if the corresponding elemetn of the slice
 //is false. The function returns a slice of channels through each of each of which
 // a *matrix.DenseMatrix will be transmited
-func (X *XTCObj) NextConc(frames []*v3.Matrix) ([]chan *v3.Matrix, error) {
+func (X *XTCObj) NextConc(frames []*v3.Matrix, boxes ...[]float64) ([]chan *v3.Matrix, error) {
 	if X.buffSize < len(frames) {
 		X.setConcBuffer(len(frames))
 	}
@@ -175,7 +197,7 @@ func (X *XTCObj) NextConc(frames []*v3.Matrix) ([]chan *v3.Matrix, error) {
 	used := false
 	for key, val := range frames {
 		//cCoords:=X.concBuffer[key]
-		worked := C.get_coords(X.fp, &X.concBuffer[key][0], cnatoms)
+		worked := C.get_coords(X.fp, &X.concBuffer[key][0], &X.cBox[0], cnatoms)
 		//Error handling
 		if worked == 11 {
 			if used == false {

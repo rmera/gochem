@@ -46,9 +46,10 @@ func TestXTC(Te *testing.T) {
 	}
 	i := 0
 	coords := v3.Zeros(traj.Len())
+	box := make([]float64, 9)
 reading:
 	for ; ; i++ {
-		err := traj.Next(coords)
+		err := traj.Next(coords, box)
 		if err != nil {
 			switch err := err.(type) {
 			default:
@@ -60,7 +61,7 @@ reading:
 				break reading
 			}
 		}
-		fmt.Println(coords.VecView(2))
+		fmt.Println(coords.VecView(2), box)
 
 	}
 	fmt.Println("Over! frames read:", i)

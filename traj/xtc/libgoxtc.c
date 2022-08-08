@@ -27,7 +27,7 @@
 #include "xdrfile.h"
 #include "xdrfile_xtc.h"
 
-int get_coords(XDRFILE *fp, float *coordbuffer, int natoms); 
+int get_coords(XDRFILE *fp, float *coordbuffer, float *box, int natoms); 
 XDRFILE *openfile(char *name);
 int read_natoms(char *name);
 void xtc_close(XDRFILE *fp);
@@ -84,18 +84,20 @@ It takes an XDRFILE pointer (fp), which can be treated just as an opaque
 * from Go, so it is garbage collected.
 * The function returns 0 on success and other number depending on the 
 * error encountered*/
-int get_coords(XDRFILE *fp, float *coordbuffer, int natoms){
+int get_coords(XDRFILE *fp, float *coordbuffer,float *box, int natoms){
 	int step=0;
 	int success=0;
 	rvec *coords;
-	float box[3][3];
+	rvec *grobox;
+	//float box[3][3];
 	float prec=0;
 	float time=0;
 	coords=(rvec *)coordbuffer; /*This is the type the GROMACS function wants*/
+	grobox=(rvec *)box;
 	if (coords==NULL){
 		return 1;
 		}
-	success=read_xtc(fp,natoms,&step,&time,box,
+	success=read_xtc(fp,natoms,&step,&time,grobox,
                         coords,&prec);
 	return success;
 	}

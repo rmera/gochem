@@ -98,9 +98,10 @@ func TestDCD(Te *testing.T) {
 		Te.Error(err)
 	}
 	i := 0
+	box := make([]float64, 9)
 	mat := v3.Zeros(traj.Len())
 	for ; ; i++ {
-		err := traj.Next(mat)
+		err := traj.Next(mat, box)
 		if err != nil {
 			if _, ok := err.(chem.LastFrameError); ok {
 				break
@@ -108,7 +109,7 @@ func TestDCD(Te *testing.T) {
 			Te.Error(err)
 			break
 		}
-		fmt.Println(mat)
+		fmt.Println(mat.VecView(2), box)
 		mat.Zero()
 	}
 	fmt.Println("Over! frames read:", i)

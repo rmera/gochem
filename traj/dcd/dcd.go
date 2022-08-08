@@ -34,11 +34,14 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"log"
+	"math"
 	"os"
 	"runtime"
 
 	chem "github.com/rmera/gochem"
 	v3 "github.com/rmera/gochem/v3"
+	"gonum.org/v1/gonum/floats"
 )
 
 const mAXTITLE int32 = 80
@@ -52,15 +55,61 @@ type DCDObj struct {
 	readable   bool //Is it ready to be read?
 	filename   string
 	charmm     bool //Charmm traj?
-	extrablock bool
+	extrablock bool //simulation box!
 	fourdim    bool
 	new        bool  //Still no frame read from it?
 	fixed      int32 //Fixed atoms (not supported)
+	box        [6]float32
 	fhandle    *os.File
 	dcd        io.ReadCloser //The DCD file
 	dcdFields  [][]float32
 	concBuffer [][][]float32
 	endian     binary.ByteOrder
+}
+
+//Angles in radians, lens in A
+func vectors2LenAngles(vecs []float64) ([]float64, []float64) {
+	lens := make([]float64, 3)
+	angs := make([]float64, 3)
+	lens[0] = floats.Norm(vecs[0:3], 2)
+	lens[2] = floats.Norm(vecs[3:6], 2)
+	lens[3] = floats.Norm(vecs[6:9], 2)
+	angs[0] = math.Acos(floats.Dot(vecs[3:6], vecs[6:9]) / (lens[1] * lens[2]))
+	angs[1] = math.Acos(floats.Dot(vecs[6:9], vecs[0:3]) / (lens[0] * lens[2]))
+	angs[1] = math.Acos(floats.Dot(vecs[0:3], vecs[3:6]) / (lens[0] * lens[1]))
+
+	return lens, angs
+}
+
+//Lens in A, angles in Radians
+func lensAngs2Vecs(lens, angs, vecs []float64) []float64 {
+	if len(vecs) < 0 {
+		vecs = make([]float64, 9)
+	}
+	vecs[0] = lens[0]
+	vecs[1] = 0
+	vecs[2] = 0
+	vecs[3] = lens[1] * math.Cos(angs[2])
+	vecs[4] = lens[1] * math.Sin(angs[2])
+	vecs[5] = 0
+	vecs[6] = lens[2] * math.Cos(angs[1])
+	vecs[6] = lens[2] * (math.Cos(angs[0]) - math.Cos(angs[1])*math.Cos(angs[2])) / math.Sin(angs[2])
+	//Deal with floating-point fun
+	cutoff := 1e-5
+	for i, v := range vecs {
+		if v < cutoff {
+			vecs[i] = 0.0
+		}
+	}
+	//If anything fails, I'm not crashing the calling program over a stupid box xD
+	defer func() {
+		if r := recover(); r != nil {
+			for i, _ := range vecs {
+				vecs[i] = 0.0
+			}
+		}
+	}()
+	return vecs
 }
 
 //New builds a new DCDObj object from a DCD trajectory file
@@ -229,10 +278,11 @@ func (D *DCDObj) initRead(name string) error {
 //With initread. If keep is true, returns a pointer to matrix.DenseMatrix
 //With the coordinates read, otherwiser, it discards the coordinates and
 //returns nil.
-func (D *DCDObj) Next(keep *v3.Matrix) error {
+func (D *DCDObj) Next(keep *v3.Matrix, box ...[]float64) error {
 	if !D.readable {
 		return Error{TrajUnIni, D.filename, []string{"Next"}, true}
 	}
+
 	if D.dcdFields == nil {
 		D.dcdFields = make([][]float32, 3, 3)
 		D.dcdFields[0] = make([]float32, int(D.natoms), int(D.natoms))
@@ -257,7 +307,39 @@ func (D *DCDObj) Next(keep *v3.Matrix) error {
 	}
 	//	final := NewVecs(outBlock, int(D.natoms), 3)
 	//	fmt.Print(final)/////////7
+	if len(box) > 0 && D.extrablock && !allZeros(D.box) {
+		lens := []float64{float64(D.box[0]), float64(D.box[2]), float64(D.box[5])}
+		angs := []float64{float64(D.box[1]), float64(D.box[3]), float64(D.box[4])}
+		box[0] = lensAngs2Vecs(lens, angs, box[0]) //No error here, if it doesn't work,
+		//you just get a bunch of zeros as a box.
+
+		//Here we reset the "box buffer" to zeros, so, if the next call fails, you get zeros
+		//and not something weird.
+		for i, _ := range D.box {
+			D.box[i] = 0
+		}
+	}
+	//If we couldn't get box info, you'll at least get a heads-up.
+	if len(box) > 0 {
+		if !D.extrablock {
+			log.Printf("The trajectory %s does not contain box info\n", D.filename)
+		}
+		if D.extrablock && allZeros(D.box) {
+			log.Printf("The trajectory %s contains box info, but", D.filename)
+			log.Printf("It's either absent from this frame, or it could not be read\n")
+		}
+	}
 	return nil
+}
+
+func allZeros(test [6]float32) bool {
+	for _, v := range test {
+		if v != 0.0 {
+			return false
+		}
+	}
+	return true
+
 }
 
 //Next Reads the next frame in a XtcObj that has been initialized for read
@@ -284,9 +366,12 @@ func (D *DCDObj) nextRaw(blocks [][]float32) error {
 			return newlastFrameError(D.filename, "nextRaw")
 		}
 		//If the blocksize is 4*natoms it means that the block is not an
-		//extra block, but the X coordinates, and thus we must skip the following
-		if blocksize != D.natoms*4 {
-			if _, err := D.readByteBlock(blocksize); err != nil {
+		//extra block, but the X coordinates, and thus we must skip the following.
+		//We will use the weaker condition blocksize<natoms*4, because the last
+		//frame doesn't seem to carry the 4th D.
+		if blocksize < D.natoms*3 {
+			//We'll try to read the box vectors. Good luck, I guess :-D
+			if err := D.readFloat32Block(blocksize, D.box[:]); err != nil {
 				return err
 			}
 			blocksize = 0
