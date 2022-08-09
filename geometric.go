@@ -630,6 +630,41 @@ func CenterOfMass(geometry *v3.Matrix, massS ...*mat.Dense) (*v3.Matrix, error) 
 	return ref2, nil
 }
 
+//MassCenterMem centers in in the center of mass of oref, putting the result in ret. Mass must be
+//A column vector. Returns the centered matrix and the displacement matrix.
+func MassCenterMem(in, oref, ret *v3.Matrix, massS ...*mat.Dense) (*v3.Matrix, error) {
+	or, _ := oref.Dims()
+	var mass *mat.Dense
+	if len(massS) == 0 || massS[0] == nil { //just obtain the geometric center
+		tmp := ones(or)
+		mass = mat.NewDense(or, 1, tmp) //gnOnes(or, 1)
+	} else {
+		mass = massS[0]
+	}
+	ref := v3.Zeros(or)
+	ref.Copy(oref)
+	gnOnesvector := gnOnes(1, or)
+	f := func() { ref.ScaleByCol(ref, mass) }
+	if err := gnMaybe(gnPanicker(f)); err != nil {
+		return nil, CError{err.Error(), []string{"v3.Matrix.ScaleByCol", "MassCenter"}}
+	}
+	ref2 := v3.Zeros(1)
+	g := func() { ref2.Mul(gnOnesvector, ref) }
+	if err := gnMaybe(gnPanicker(g)); err != nil {
+		return nil, CError{err.Error(), []string{"v3.gOnesVector", "MassCenter"}}
+	}
+	ref2.Scale(1.0/mat.Sum(mass), ref2)
+	ret.Copy(in)
+	ret.SubVec(ret, ref2)
+	/*	for i := 0; i < ir; i++ {
+			if err := returned.GetRowVector(i).Subtract(ref2); err != nil {
+				return nil, nil, err
+			}
+		}
+	*/
+	return ref2, nil
+}
+
 //MassCenter centers in in the center of mass of oref. Mass must be
 //A column vector. Returns the centered matrix and the displacement matrix.
 func MassCenter(in, oref *v3.Matrix, massS ...*mat.Dense) (*v3.Matrix, *v3.Matrix, error) {

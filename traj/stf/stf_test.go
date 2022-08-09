@@ -48,7 +48,7 @@ func TestSTFWrite(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
-	wtraj, err := NewWriter("../../test/test_stf.stf", rtraj.Len(), nil)
+	wtraj, err := NewWriter("/run/media/rmera/Fondecyt1TB/test_stf.stf", rtraj.Len(), nil)
 	if err != nil {
 		Te.Error(err)
 	}
@@ -86,11 +86,11 @@ func TestSTF(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
-	rtraj, _, err := New("../../test/test_stf.stf")
+	rtraj, _, err := New("/run/media/rmera/Fondecyt1TB/test_stf.stf")
 	if err != nil {
 		Te.Error(err)
 	}
-	wtraj, err := dcd.NewWriter("../../test/test_stf.dcd", rtraj.Len())
+	wtraj, err := dcd.NewWriter("/run/media/rmera/Fondecyt1TB/test_stf.dcd", rtraj.Len())
 	if err != nil {
 		Te.Error(err)
 	}
@@ -115,7 +115,7 @@ func TestSTF(Te *testing.T) {
 
 func TestConc(Te *testing.T) {
 	fmt.Println("Concurrency test!")
-	traj, _, err := New("../../test/test_stf.stf")
+	traj, _, err := New("/run/media/rmera/Fondecyt1TB/test_stf.stf")
 	if err != nil {
 		Te.Error(err)
 	}
@@ -123,7 +123,7 @@ func TestConc(Te *testing.T) {
 	for i, _ := range frames {
 		frames[i] = v3.Zeros(traj.Len())
 	}
-	frames[1] = nil /////Just a test
+	//	frames[1] = nil /////Just a test
 	results := make([][]chan *v3.Matrix, 0, 0)
 	for i := 0; ; i++ {
 		results = append(results, make([]chan *v3.Matrix, 0, len(frames)))
@@ -142,10 +142,10 @@ func TestConc(Te *testing.T) {
 		res := len(results) - 1
 		for frame, k := range results[res] {
 			if k == nil {
-				fmt.Println(frame)
+				fmt.Println(frame, "should be zeros!")
 				continue
 			}
-			fmt.Println(res, frame, <-k)
+			fmt.Println(res, frame, <-k, "res 1 should be 0s")
 		}
 	}
 }

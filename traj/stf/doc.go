@@ -26,7 +26,6 @@
 
 /******************** Format Specification   ***************************************************
 
-The substrings "*" and "**" can't appear anywhere in the file except in the parts indicated.
 
 An STF file has the extension stf, and it is compressed with z-standard (zstd)
 
@@ -36,7 +35,7 @@ A STF file has a "header" starting in the first line, and ending with a line tha
 Each line of the header must be a pair key=value.
 
 After that, the file has one line per atom, per frame. Each line 3 numbers (x y z coordinates, in A). The precision is not specified.
-each frame ends with a line starting with the character (no whitespaces before) "*", optionally followed by a whitespace and 9 floating-point numbers separated by spaces (precision unspecified). If present, these number correspond to the vectors defining the simulation box, in A.
+each frame ends with a line starting with the character (no whitespaces before) "*", optionally followed by: one or more whitespace and 9 floating-point numbers separated by spaces (precision unspecified). If present, these number correspond to the vectors defining the simulation box, in A.
 
 The "**" sequence may not be used anywhere in the file, except in the line described above.
 

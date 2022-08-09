@@ -14,7 +14,6 @@ import (
 	"strings"
 	"unsafe"
 
-	//	"github.com/rmera/gochem"
 	"github.com/klauspost/compress/zstd"
 	chem "github.com/rmera/gochem"
 	v3 "github.com/rmera/gochem/v3"
@@ -27,11 +26,13 @@ const (
 
 //Write!
 type StfW struct {
-	f         *os.File
-	h         io.WriteCloser
-	natoms    int
-	filename  string
-	writeable bool
+	f           *os.File
+	h           io.WriteCloser
+	natoms      int
+	filename    string
+	writeable   bool
+	framebuffer *v3.Matrix
+	big         bool
 }
 
 func (S *StfW) Close() {
@@ -56,6 +57,11 @@ func (S *StfW) WNextDense(dcoord *mat.Dense) error {
 }
 
 func (S *StfW) WNext(coord *v3.Matrix, box ...[]float64) error {
+	centroid, err := chem.MassCenterMem(coord, coord, S.framebuffer) //not actually the CoM, but the geometric center.
+	if err == nil {
+		coord = S.framebuffer //we won't say anything in case of error, sorry.
+	}
+
 	if !S.writeable {
 		return Error{TrajUnIniWrite, S.filename, []string{"WNext"}, true}
 	}
@@ -67,31 +73,47 @@ func (S *StfW) WNext(coord *v3.Matrix, box ...[]float64) error {
 		return Error{fmt.Sprintf("%d coordinates given, but %d expected", v, S.natoms), S.filename, []string{"WNext"}, true}
 	}
 	strs := make([]string, 4)
+	var str string
 	for i := 0; i < v; i++ {
+		//	ff := fmt.Sprintf
 		ff := strconv.FormatFloat
-		prec := 3
+		prec := 2 //This matches xtc precision
 		strs[0] = ff(coord.At(i, 0), 'f', prec, 64)
 		strs[1] = ff(coord.At(i, 1), 'f', prec, 64)
 		strs[2] = ff(coord.At(i, 2), 'f', prec, 64)
 		strs[3] = "\n"
-		str := strings.Join(strs, " ")
-		//str := fmt.Sprintf("%07.3f %07.3f %07.3f\n", coord.At(i, 0), coord.At(i, 1), coord.At(i, 2))
+		//	if !S.big { //this is never true. I keep it only just in case I use something smilar again
+		//		str = strings.Replace(strings.Join(strs, ""), ".", "", -1) //I just went ahead and removed the spaces
+		//		//This will work unless the system is pretty big (a box side >= ~200 A)
+		//	} else {
+		str = strings.Replace(strings.Join(strs, " "), ".", "", -1)
+		//	}
 		S.h.Write([]byte(str))
 	}
 	if len(box) > 0 && len(box[0]) >= 9 {
 		b := box[0]
-		S.h.Write([]byte(fmt.Sprintf("* %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f\n", b[0],
+		//if we did do the centroid thing, we should also displace the box vectors.
+		if centroid != nil {
+			for in := 0; in < 3; in++ {
+				b[(3*in)+0] -= centroid.At(0, 0) //I like it better with the parenthesis :-D
+				b[(3*in)+1] -= centroid.At(0, 1)
+				b[(3*in)+2] -= centroid.At(0, 2)
+
+			}
+		}
+		S.h.Write([]byte(fmt.Sprintf("* %4.2f %4.2f %4.2f %4.2f %4.2f %4.2f %4.2f %4.2f %4.2f\n", b[0],
 			b[1], b[2], b[3], b[4], b[5], b[6], b[7], b[8])))
 
 	} else {
 		S.h.Write([]byte("*\n"))
 	}
+	//	println("Wrote a frame!") ///////////////////////////
 	return nil
 }
 
 //Only the first map will be read!
 func NewWriter(name string, natoms int, header map[string]string, compressionLevel ...int) (*StfW, error) {
-	var level int = 5 //For python compatibility
+	var level int = 11 //For python compatibility
 	if len(compressionLevel) > 0 {
 		level = compressionLevel[0]
 	}
@@ -101,7 +123,7 @@ func NewWriter(name string, natoms int, header map[string]string, compressionLev
 	if err != nil {
 		return nil, err
 	}
-
+	S.framebuffer = v3.Zeros(natoms)
 	format := strings.ToLower(name)[len(name)-1]
 	zwriter := func(a io.Writer) (io.WriteCloser, error) {
 		r, err := flate.NewWriter(a, level)
@@ -109,8 +131,9 @@ func NewWriter(name string, natoms int, header map[string]string, compressionLev
 	}
 	gzipwriter := func(a io.Writer) (io.WriteCloser, error) { return gzip.NewWriterLevel(a, level) }
 	zstdwriter := func(a io.Writer) (io.WriteCloser, error) {
-		return zstd.NewWriter(a, zstd.WithEncoderLevel(zstd.SpeedBetterCompression))
+		return zstd.NewWriter(a, zstd.WithEncoderLevel(zstd.SpeedBestCompression))
 	}
+	//	snappywriter := func(a io.Writer) (io.WriteCloser, error) { return snappy.NewBufferedWriter(a), nil }
 
 	var AnyNewWriter func(io.Writer) (io.WriteCloser, error)
 	switch format {
@@ -146,7 +169,6 @@ func NewWriter(name string, natoms int, header map[string]string, compressionLev
 			headerstr += fmt.Sprintf("%s=%v\n", k, v)
 		}
 		S.h.Write([]byte(headerstr))
-
 	}
 	S.h.Write([]byte(fmt.Sprintf("** %d\n", S.natoms)))
 	return S, nil
@@ -158,9 +180,11 @@ type StfR struct {
 	lzw          io.ReadCloser
 	h            *bufio.Reader
 	intermediate *bufio.Reader
-	natoms       int
-	filename     string
-	readable     bool
+	//	framebuffer  *v3.Matrix
+	natoms   int
+	filename string
+	big      bool //The cell is too big to allow skipping the whitespaces in the trajectory
+	readable bool
 }
 
 //This will cause additional indirections
@@ -168,13 +192,19 @@ type StfR struct {
 //take enough time to make those delays irrelevant.
 //Also, why couldn't *zstd.Decoder implement io.ReadCloser? :-(
 type stdql struct {
+	closeql func() //The things I have to do xD
 	*zstd.Decoder
 }
 
+//Close Closes the object. It can not be used after this call
 func (s stdql) Close() error {
+	s.closeql()
 	return nil
 }
 
+//New opens a STF trajectory for reading, and returns a pointer
+//to the handle, a map with the metadata (or nil, if no metadata is found)
+//and error or nil.
 func New(name string) (*StfR, map[string]string, error) {
 	S := new(StfR)
 	S.natoms = -1 //just so we know if things don't work
@@ -193,7 +223,8 @@ func New(name string) (*StfR, map[string]string, error) {
 	zstdreader := func(a io.Reader) (io.ReadCloser, error) {
 		r, err := zstd.NewReader(a)
 		var ql *stdql
-		ql = &stdql{r}
+		ql = &stdql{r.Close, r}
+
 		return ql, err
 
 	}
@@ -247,15 +278,29 @@ func New(name string) (*StfR, map[string]string, error) {
 		}
 		m[kv[0]] = kv[1]
 	}
+	//	S.framebuffer = v3.Zeros(S.natoms)
 	S.readable = true
+	//	if m != nil {
+	//		if big, ok := m["big"]; ok && big != "0" {
+	//			S.big = true
+	//		}
+	//	}
 	return S, m, nil
 }
 
+//Readabe returns true if the handle is readable (if it is possible to call Next on it)
 func (S *StfR) Readable() bool {
 	return S.readable
 }
 
+//Next puts in the given matrix (c) the coordinates for the next frame of the trajectory
+//and, if given, and the information is present, puts the box vector information in box
+//Returns error if the operation is not successful. If the error is EOF, the end of the
+//trajectory has been reached, not an actual error.
 func (S *StfR) Next(c *v3.Matrix, box ...[]float64) error {
+	var tmpstr string
+	var prec int = 2
+	var pointplace int
 	for i := 0; i < S.natoms; i++ {
 		b, err := S.h.ReadBytes('\n')
 		if err != nil {
@@ -267,10 +312,13 @@ func (S *StfR) Next(c *v3.Matrix, box ...[]float64) error {
 			fmt.Println("i", i, b, err.Error())
 			return Error{fmt.Sprintf("Can't read frame, atom: %d  read: %s: %s", i, string(b), err.Error()), S.filename, []string{"Next"}, true}
 		}
-		str := (b[0 : len(b)-1]) //This should work for ASCII, which is fine for Stf. It removes the last '\n'
-		coords := bytes.Fields(str)
+		str := b[:len(b)-1] //It removes the last '\n'. Works for ascii, which is required for stf
+		var coords [][]byte
+		coords = bytes.Fields(str)
+		//I have to do this to change the reading frame when I encounter "-" signs.
+		//It's pretty cluncky, but, hey, it's late.
 		if len(coords) != 3 { //This also checks for a premature "end of frame" line, i.e. "*", which would have len 1
-			return Error{"Wrong number of coordinates or atoms in frame" + err.Error(), S.filename, []string{"Next"}, true}
+			return Error{"Wrong number of coordinates or atoms in frame " + string(str), S.filename, []string{"Next"}, true}
 		}
 		if c == nil {
 			continue //We ignore this whole frame, reading the content but not saving it.
@@ -278,9 +326,12 @@ func (S *StfR) Next(c *v3.Matrix, box ...[]float64) error {
 		}
 		for j, v := range coords {
 			//This should be replaced for a call to bytesconv.BytesToString when I update the compiler.
-			n, err := strconv.ParseFloat(*(*string)(unsafe.Pointer(&v)), 64)
+			tmpstr = *(*string)(unsafe.Pointer(&v))
+			pointplace = len(tmpstr) - prec
+			tmpstr = strings.Join([]string{tmpstr[:pointplace], tmpstr[pointplace:]}, ".")
+			n, err := strconv.ParseFloat(tmpstr, 64) //   *(*string)(unsafe.Pointer(&v)), 64)
 			if err != nil {
-				return Error{"Coordinate un parseable in frame." + err.Error(), S.filename, []string{"Next"}, true}
+				return Error{"Coordinate unparseable in frame." + err.Error(), S.filename, []string{"Next"}, true}
 			}
 			c.Set(i, j, n)
 		}
@@ -322,6 +373,7 @@ func (S *StfR) Next(c *v3.Matrix, box ...[]float64) error {
 	return nil
 }
 
+//Close closes the object, and marks it as unreadable
 func (S *StfR) Close() {
 	if !S.readable {
 		return
@@ -331,6 +383,7 @@ func (S *StfR) Close() {
 	return
 }
 
+//Len returns the number of atoms in each frame of the trajectory.
 func (S *StfR) Len() int {
 	return S.natoms
 }
