@@ -108,7 +108,7 @@ func TestSTF(Te *testing.T) {
 			break
 		}
 		wtraj.WNext(mat)
-		fmt.Println("box", box)
+		fmt.Println("box", box, mat.VecView(6))
 	}
 	fmt.Println("Over! frames read:", i)
 }

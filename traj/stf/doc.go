@@ -34,7 +34,7 @@ A STF file may only contain ASCII symbols.
 A STF file has a "header" starting in the first line, and ending with a line that contains "**" followed by one or more spaces, and the number of atoms per frame.
 Each line of the header must be a pair key=value.
 
-After that, the file has one line per atom, per frame. Each line 3 numbers (x y z coordinates, in A). The precision is not specified.
+After that, the file has one line per atom, per frame. Each line 3 numbers (x y z coordinates). The numbers contain containing the valu for each coordinate in A. The numbers go multiplied by 10^(precision) and rounded to make them ints. The default value for precision is 2 (so, the numbers go multiplied by 100). If a non-default precision is used, there must be line in the header with the key "prec" and the value of the desired precision (i.e. a line containing prec=X, where X is the desired precision).
 each frame ends with a line starting with the character (no whitespaces before) "*", optionally followed by: one or more whitespace and 9 floating-point numbers separated by spaces (precision unspecified). If present, these number correspond to the vectors defining the simulation box, in A.
 
 The "**" sequence may not be used anywhere in the file, except in the line described above.

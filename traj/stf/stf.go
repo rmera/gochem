@@ -2,13 +2,13 @@ package stf
 
 import (
 	"bufio"
-	"bytes"
 	"compress/flate"
 	"compress/gzip"
 	"compress/lzw"
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -33,6 +33,7 @@ type StfW struct {
 	writeable   bool
 	framebuffer *v3.Matrix
 	big         bool
+	prec        int
 }
 
 func (S *StfW) Close() {
@@ -72,9 +73,20 @@ func (S *StfW) WNext(coord *v3.Matrix, box ...[]float64) error {
 	if v != S.natoms {
 		return Error{fmt.Sprintf("%d coordinates given, but %d expected", v, S.natoms), S.filename, []string{"WNext"}, true}
 	}
-	strs := make([]string, 4)
+	//	strs := make([]string, 4) //old code
+	var temp [3]int
+	var tempstring [3][2]string
+	var floats [3]float64
 	var str string
+	//	prec = 2 //default
 	for i := 0; i < v; i++ {
+		floats[0] = coord.At(i, 0)
+		floats[1] = coord.At(i, 1)
+		floats[2] = coord.At(i, 2)
+
+		str = hexaDecEncode(floats, temp, tempstring, S.prec, S.big)
+
+		/*** old code
 		//	ff := fmt.Sprintf
 		ff := strconv.FormatFloat
 		prec := 2 //This matches xtc precision
@@ -88,6 +100,7 @@ func (S *StfW) WNext(coord *v3.Matrix, box ...[]float64) error {
 		//	} else {
 		str = strings.Replace(strings.Join(strs, " "), ".", "", -1)
 		//	}
+		end old code*************/
 		S.h.Write([]byte(str))
 	}
 	if len(box) > 0 && len(box[0]) >= 9 {
@@ -163,7 +176,22 @@ func NewWriter(name string, natoms int, header map[string]string, compressionLev
 	S.natoms = natoms
 	S.filename = name
 	S.writeable = true
+	S.prec = 2 //the default
 	if header != nil {
+		if big, ok := header["big"]; ok && big != "0" {
+			S.big = true
+		}
+		if p, ok := header["prec"]; ok && p != "2" {
+			prec, err := strconv.Atoi(p)
+			if err != nil {
+				S.prec = prec
+			} else {
+				log.Printf("Invalid precision for trajectory %s. Will use the default", S.filename)
+			}
+		}
+		if S.prec > 2 { //just in case
+			S.big = true
+		}
 		headerstr := ""
 		for k, v := range header {
 			headerstr += fmt.Sprintf("%s=%v\n", k, v)
@@ -184,6 +212,7 @@ type StfR struct {
 	natoms   int
 	filename string
 	big      bool //The cell is too big to allow skipping the whitespaces in the trajectory
+	prec     int
 	readable bool
 }
 
@@ -202,6 +231,101 @@ func (s stdql) Close() error {
 	return nil
 }
 
+func hexaDecEncode(f [3]float64, temp [3]int, ts [3][2]string, prec int, big ...bool) string {
+	p := 100.0
+	if prec > 0 && prec != 2 { //2 is the current value, so we do nothign in that case
+		p = math.Pow(10.0, float64(prec))
+	}
+	for i, v := range f {
+		temp[i] = int(math.RoundToEven(v * p))
+	}
+	return fmt.Sprintf("%d %d %d\n", temp[0], temp[1], temp[2])
+}
+
+/*
+func hexaDecEncode(f [3]float64, temp [3]int, ts [3][2]string, prec int, big ...bool) string {
+	p := 100.0
+	var ret string
+	if prec > 0 && prec != 2 { //2 is the current value, so we do nothign in that case
+		p = math.Pow(10.0, float64(prec))
+	}
+	for i, v := range f {
+		temp[i] = int(math.RoundToEven(v * p))
+	}
+	if len(big) > 0 && big[0] {
+		ret = fmt.Sprintf("%x %x %x", temp[0], temp[1], temp[2])
+		//All this mess is to ensure that the numbers use either 4 spaces, if positive, or 5, if negative, but never less.
+	} else {
+		for i, v := range temp {
+			if v < 0 {
+				ts[i][0] = fmt.Sprintf("%04x", v*-1)
+				ts[i][1] = "-"
+			} else {
+				ts[i][0] = fmt.Sprintf("%04x", v)
+				ts[i][1] = ""
+			}
+		}
+		ret = fmt.Sprintf("%s%s%s%s%s%s\n", ts[0][1], ts[0][0], ts[1][1], ts[1][0], ts[2][1], ts[2][0])
+	}
+	//	for i, _ := range temp {
+	//		temp[i] = 0 //I really don't want to risk any contamination here
+	//	}
+	return ret
+
+}
+
+
+
+
+func mustParseHexInt(s string) int64 {
+	ret, err := strconv.ParseInt(strings.Replace(s, " ", "", -1), 16, 32)
+	if err != nil {
+		panic(err.Error()) //really shouldn't happen
+	}
+	return ret
+}
+
+
+func hexaDecDecode(str string, temp [3]float64, coords [3]string, delays [3]int, prec int, big ...bool) {
+	mult := 100.0
+	if prec > 0 && prec != 2 { //2 is just the current value, so we can save the operation
+		mult = math.Pow(10, float64(prec))
+	}
+	delays[0] = 0 //just to be sure
+	delays[1] = 0
+	delays[2] = 0
+	str = strings.Replace(str, "\n", "", -1) //maybe wasteful, but I'd rather be careful. We can see if things get too slow
+	if len(big) > 0 && big[0] {
+		s := strings.Fields(str)
+		for i, v := range s {
+			coords[i] = v
+		}
+		//the most common case. This
+		//whole thing is to deal with the fact that a "-" sign means
+		//that the coresponding field will take 5 spaces instead of 4.
+	} else {
+		if str[0] == '-' {
+			delays[0] = 1
+		} else {
+
+		}
+		coords[0] = str[0 : 5+delays[0]]
+		if str[5+delays[0]] == '-' {
+			delays[1] = 1
+		}
+		coords[1] = str[5+delays[0] : 9+delays[0]+delays[1]]
+		if str[9+delays[0]+delays[1]] == '-' {
+			delays[2] = 1
+		}
+		coords[2] = str[9+delays[0]+delays[1]:]
+	}
+	for i, v := range coords {
+		temp[i] = float64(mustParseHexInt(v)) / mult
+
+	}
+
+}
+**************/
 //New opens a STF trajectory for reading, and returns a pointer
 //to the handle, a map with the metadata (or nil, if no metadata is found)
 //and error or nil.
@@ -280,11 +404,20 @@ func New(name string) (*StfR, map[string]string, error) {
 	}
 	//	S.framebuffer = v3.Zeros(S.natoms)
 	S.readable = true
-	//	if m != nil {
-	//		if big, ok := m["big"]; ok && big != "0" {
-	//			S.big = true
-	//		}
-	//	}
+	if m != nil {
+		if big, ok := m["big"]; ok && big != "0" {
+			S.big = true
+		}
+		if p, ok := m["prec"]; ok && p != "2" {
+			prec, err := strconv.Atoi(p)
+			if err != nil {
+				S.prec = prec
+			} else {
+				log.Printf("Invalid precision for trajectory %s. Will assume the default", S.filename)
+			}
+		}
+
+	}
 	return S, m, nil
 }
 
@@ -293,48 +426,67 @@ func (S *StfR) Readable() bool {
 	return S.readable
 }
 
+func hexaDecDecode(str string, temp *[3]float64, coords [3]string, delays [3]int, prec int, big ...bool) error {
+	p := 100.0
+	if prec > 0 && prec != 2 { //2 is just the current value, so we can save the operation
+		p = math.Pow(10.0, float64(prec))
+
+	}
+	s := strings.Fields(str)
+	if len(s) < 3 {
+		return fmt.Errorf("Ill formated coordinates line in stf: Too few fields: %s", str)
+	}
+	if len(s) > 3 {
+		return fmt.Errorf("Ill formated coordinates line in stf: Too many fields: %s", str)
+	}
+	for i, v := range s {
+		f, err := strconv.Atoi(v)
+		if err != nil {
+			return fmt.Errorf("Can't parse coordinate %d (%s). Error: %s", i, v, err.Error())
+		}
+		temp[i] = float64(f) / p
+	}
+	return nil
+}
+
 //Next puts in the given matrix (c) the coordinates for the next frame of the trajectory
 //and, if given, and the information is present, puts the box vector information in box
 //Returns error if the operation is not successful. If the error is EOF, the end of the
 //trajectory has been reached, not an actual error.
 func (S *StfR) Next(c *v3.Matrix, box ...[]float64) error {
-	var tmpstr string
-	var prec int = 2
-	var pointplace int
+	//	var tmpstr string
+	//	var prec int = 2
+	//	var pointplace int
+	var delays [3]int
+	var temp [3]float64
+	var coords [3]string
+	var err error
 	for i := 0; i < S.natoms; i++ {
 		b, err := S.h.ReadBytes('\n')
 		if err != nil {
-			if err.Error() == "EOF" && (strings.Contains(err.Error(), "EOF") && i == 0) {
+			// EOF should only happen when reading the first atom
+			if err.Error() == "EOF" && (strings.Contains(err.Error(), "EOF")) && i == 0 {
 				//nothing bad happened here, the trajectory just ended.
 				S.Close()
 				return newlastFrameError(S.filename, "Next")
+			} else {
+				return Error{message: err.Error(), filename: S.filename, critical: true}
 			}
-			fmt.Println("i", i, b, err.Error())
-			return Error{fmt.Sprintf("Can't read frame, atom: %d  read: %s: %s", i, string(b), err.Error()), S.filename, []string{"Next"}, true}
+
 		}
-		str := b[:len(b)-1] //It removes the last '\n'. Works for ascii, which is required for stf
-		var coords [][]byte
-		coords = bytes.Fields(str)
-		//I have to do this to change the reading frame when I encounter "-" signs.
-		//It's pretty cluncky, but, hey, it's late.
-		if len(coords) != 3 { //This also checks for a premature "end of frame" line, i.e. "*", which would have len 1
-			return Error{"Wrong number of coordinates or atoms in frame " + string(str), S.filename, []string{"Next"}, true}
+		err = hexaDecDecode(string(b[:len(b)-1]), &temp, coords, delays, S.prec, S.big)
+		if err != nil {
+			return Error{message: err.Error(), filename: S.filename, critical: true}
 		}
+
 		if c == nil {
 			continue //We ignore this whole frame, reading the content but not saving it.
 			//Note that we still check the frame for correctness.
 		}
-		for j, v := range coords {
-			//This should be replaced for a call to bytesconv.BytesToString when I update the compiler.
-			tmpstr = *(*string)(unsafe.Pointer(&v))
-			pointplace = len(tmpstr) - prec
-			tmpstr = strings.Join([]string{tmpstr[:pointplace], tmpstr[pointplace:]}, ".")
-			n, err := strconv.ParseFloat(tmpstr, 64) //   *(*string)(unsafe.Pointer(&v)), 64)
-			if err != nil {
-				return Error{"Coordinate unparseable in frame." + err.Error(), S.filename, []string{"Next"}, true}
-			}
-			c.Set(i, j, n)
+		for j, v := range temp {
+			c.Set(i, j, v)
 		}
+
 	}
 	s, err := S.h.ReadString('\n')
 	if err != nil {
