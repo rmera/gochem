@@ -5,13 +5,15 @@ import numpy as np
 import zstandard as zstd #you need to have this one installed. It's not part of the std library.
 
 class rtraj:
-    def __init__(self,filename,compresslevel=5):
+    def __init__(self,filename):
+        self.prec=pow(10,precision)
         self.frames_read=0
         self.file=open(filename,'rb')
         self.dctx = zstd.ZstdDecompressor()
         self.stream = self.dctx.stream_reader(self.file)
         self.traj = io.TextIOWrapper(self.stream, encoding='utf-8')
         self.header=""
+        self.headerdict={}
         self.readable=True
         for i in self.traj:
 #            i=i.decode("utf-8")
@@ -20,12 +22,20 @@ class rtraj:
                 self.frame=np.zeros((self.natoms,3))
                 return
             self.header+=" "+i.rstrip("\n")
+        for i in self.header.split():
+            k,v=i.split("=")
+            self.headerdict[k]=v
+        try:
+            p=self.headerdic["prec"]
+        except KeyError:
+            p="2"
+        self.prec=pow(10,int(p))
     #each call returns the next frame
-    #when there are no more frames left, it raises a GeneratorExit
+    #when there are no more frames left, it raises an EOFError
     #This reads every frame to the same array, to save memory. This is normally 
     def next(self,skip=False, box=[]):
         if not self.readable:
-            raise GeneratorExit #I guess not the best one.
+            raise EOFError #I guess not the best one, but I hate exceptions.
         r=0
         for i in self.traj:
   #          i=i.decode("utf-8")
@@ -39,11 +49,11 @@ class rtraj:
                 return self.frame
             if not skip:
                 n=i.rstrip("\n").split()
-                self.frame[r][0]=float(n[0])
-                self.frame[r][1]=float(n[1])
-                self.frame[r][2]=float(n[2])
+                self.frame[r][0]=float(n[0])/self.prec
+                self.frame[r][1]=float(n[1])/self.prec
+                self.frame[r][2]=float(n[2])/self.prec
                 r+=1
-        raise GeneratorExit #I guess not the best one.
+        raise EOFError #I guess not the best one.
     def next_list(self,skip=False):
         f=self.next(skip)
         return f.tolist()
@@ -63,24 +73,28 @@ class rtraj:
 #And natoms, the number of atoms per frame
 #d is a dictionary of strings.
 class wtraj:
-    def __init__(self, filename,natoms,compressionlevel=5, d=None):
+    def __init__(self, filename,natoms,compressionlevel=9,d=None,precision=2):
+        self.prec=pow(10,precision)
         self.natoms=natoms
         self.file=open(filename,'wb')
         self.cctx=zstd.ZstdCompressor(level=compressionlevel)
         self.traj=self.cctx.stream_writer(self.file)
+        if precision!=2:
+            if not d:
+                d={"prec":str(precision)}
+            else:
+                d["prec"]=str(precision)
         if d:
             for k,v in d:
-                self.traj.write(b"%s=%s\n"%(k,v))
+                self.traj.write(b"%s=%s\n"%(str(k),str(v))) #I'll attempt converting things to string, but it's your responsibility to ensure that is possible.
             self.traj.write(b"** %d\n"%natoms)
     #Writes the next frame from data, which needs to be an Nx3 list of floats or numpy array.
     def wnext(data, box=[]):
-        if not self.readable:
-            raise GeneratorExit #I guess not the best one.
         if len(data)<self.natoms or len(data[0])<3:
             raise ValueError
         for i in range(self.natoms):
             d=data[i]
-            self.traj.write(b"%07.3f %07.3f %07.3f\n"%(d[0],d[1],d[2]))
+            self.traj.write(b"%d %d %d\n"%(round(d[0]*self.prec),round(d[1]*self.prec),round(d[2]*self.prec)))
         if len(box)>=9:
             b=box
             self.traj.write(b"%5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f\n"%(b[0],b[1],

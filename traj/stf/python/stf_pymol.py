@@ -20,7 +20,7 @@ def loadstf(filename,sele="all",skip=0,begin=0):
         fr+=1
         try:
             f=t.next(read)
-        except: #not an actual error
+        except EOFError: #not an actual error
             t.close()
             break
         if not read:

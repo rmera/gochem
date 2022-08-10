@@ -32,7 +32,6 @@ type StfW struct {
 	filename    string
 	writeable   bool
 	framebuffer *v3.Matrix
-	big         bool
 	prec        int
 }
 
@@ -75,7 +74,6 @@ func (S *StfW) WNext(coord *v3.Matrix, box ...[]float64) error {
 	}
 	//	strs := make([]string, 4) //old code
 	var temp [3]int
-	var tempstring [3][2]string
 	var floats [3]float64
 	var str string
 	//	prec = 2 //default
@@ -84,23 +82,8 @@ func (S *StfW) WNext(coord *v3.Matrix, box ...[]float64) error {
 		floats[1] = coord.At(i, 1)
 		floats[2] = coord.At(i, 2)
 
-		str = hexaDecEncode(floats, temp, tempstring, S.prec, S.big)
+		str = coordsEncode(floats, temp, S.prec)
 
-		/*** old code
-		//	ff := fmt.Sprintf
-		ff := strconv.FormatFloat
-		prec := 2 //This matches xtc precision
-		strs[0] = ff(coord.At(i, 0), 'f', prec, 64)
-		strs[1] = ff(coord.At(i, 1), 'f', prec, 64)
-		strs[2] = ff(coord.At(i, 2), 'f', prec, 64)
-		strs[3] = "\n"
-		//	if !S.big { //this is never true. I keep it only just in case I use something smilar again
-		//		str = strings.Replace(strings.Join(strs, ""), ".", "", -1) //I just went ahead and removed the spaces
-		//		//This will work unless the system is pretty big (a box side >= ~200 A)
-		//	} else {
-		str = strings.Replace(strings.Join(strs, " "), ".", "", -1)
-		//	}
-		end old code*************/
 		S.h.Write([]byte(str))
 	}
 	if len(box) > 0 && len(box[0]) >= 9 {
@@ -178,9 +161,6 @@ func NewWriter(name string, natoms int, header map[string]string, compressionLev
 	S.writeable = true
 	S.prec = 2 //the default
 	if header != nil {
-		if big, ok := header["big"]; ok && big != "0" {
-			S.big = true
-		}
 		if p, ok := header["prec"]; ok && p != "2" {
 			prec, err := strconv.Atoi(p)
 			if err != nil {
@@ -188,9 +168,6 @@ func NewWriter(name string, natoms int, header map[string]string, compressionLev
 			} else {
 				log.Printf("Invalid precision for trajectory %s. Will use the default", S.filename)
 			}
-		}
-		if S.prec > 2 { //just in case
-			S.big = true
 		}
 		headerstr := ""
 		for k, v := range header {
@@ -211,7 +188,6 @@ type StfR struct {
 	//	framebuffer  *v3.Matrix
 	natoms   int
 	filename string
-	big      bool //The cell is too big to allow skipping the whitespaces in the trajectory
 	prec     int
 	readable bool
 }
@@ -231,7 +207,7 @@ func (s stdql) Close() error {
 	return nil
 }
 
-func hexaDecEncode(f [3]float64, temp [3]int, ts [3][2]string, prec int, big ...bool) string {
+func coordsEncode(f [3]float64, temp [3]int, prec int) string {
 	p := 100.0
 	if prec > 0 && prec != 2 { //2 is the current value, so we do nothign in that case
 		p = math.Pow(10.0, float64(prec))
@@ -405,9 +381,6 @@ func New(name string) (*StfR, map[string]string, error) {
 	//	S.framebuffer = v3.Zeros(S.natoms)
 	S.readable = true
 	if m != nil {
-		if big, ok := m["big"]; ok && big != "0" {
-			S.big = true
-		}
 		if p, ok := m["prec"]; ok && p != "2" {
 			prec, err := strconv.Atoi(p)
 			if err != nil {
@@ -426,7 +399,7 @@ func (S *StfR) Readable() bool {
 	return S.readable
 }
 
-func hexaDecDecode(str string, temp *[3]float64, coords [3]string, delays [3]int, prec int, big ...bool) error {
+func coordsDecode(str string, temp *[3]float64, prec int) error {
 	p := 100.0
 	if prec > 0 && prec != 2 { //2 is just the current value, so we can save the operation
 		p = math.Pow(10.0, float64(prec))
@@ -457,9 +430,7 @@ func (S *StfR) Next(c *v3.Matrix, box ...[]float64) error {
 	//	var tmpstr string
 	//	var prec int = 2
 	//	var pointplace int
-	var delays [3]int
 	var temp [3]float64
-	var coords [3]string
 	var err error
 	for i := 0; i < S.natoms; i++ {
 		b, err := S.h.ReadBytes('\n')
@@ -474,7 +445,7 @@ func (S *StfR) Next(c *v3.Matrix, box ...[]float64) error {
 			}
 
 		}
-		err = hexaDecDecode(string(b[:len(b)-1]), &temp, coords, delays, S.prec, S.big)
+		err = coordsDecode(string(b[:len(b)-1]), &temp, S.prec)
 		if err != nil {
 			return Error{message: err.Error(), filename: S.filename, critical: true}
 		}
