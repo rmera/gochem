@@ -6,7 +6,7 @@ import zstandard as zstd #you need to have this one installed. It's not part of 
 
 class rtraj:
     def __init__(self,filename):
-        self.prec=pow(10,precision)
+        self.prec=100
         self.frames_read=0
         self.file=open(filename,'rb')
         self.dctx = zstd.ZstdDecompressor()
@@ -32,8 +32,10 @@ class rtraj:
         self.prec=pow(10,int(p))
     #each call returns the next frame
     #when there are no more frames left, it raises an EOFError
-    #This reads every frame to the same array, to save memory. This is normally 
-    def next(self,skip=False, box=[]):
+    #This reads every frame to the same array
+    #if box is given, it should be an array of 9 or more floats, or compabile type, (only the first 9 will be considered)
+    #with the 3 vectors of the box, in A.
+    def next(self,skip=False, box=[0]):
         if not self.readable:
             raise EOFError #I guess not the best one, but I hate exceptions.
         r=0
@@ -85,24 +87,31 @@ class wtraj:
             else:
                 d["prec"]=str(precision)
         if d:
-            for k,v in d:
-                self.traj.write(b"%s=%s\n"%(str(k),str(v))) #I'll attempt converting things to string, but it's your responsibility to ensure that is possible.
+            for k,v in d.items():
+                self.traj.write(b"%s=%s\n"%(str(k).encode("utf-8"),str(v).encode("utf-8"))) #I'll attempt converting things to string, but it's your responsibility to ensure that is possible.
             self.traj.write(b"** %d\n"%natoms)
-    #Writes the next frame from data, which needs to be an Nx3 list of floats or numpy array.
-    def wnext(data, box=[]):
+    #Writes the next frame from data, which needs to be an Nx3 numpy array.
+    def wnext(self, data, box=[0]):
         if len(data)<self.natoms or len(data[0])<3:
             raise ValueError
+        #we center the data on the mean. This reduces a bit the size of the file.
+        mean=data.mean(0)
+        data=data-mean
         for i in range(self.natoms):
             d=data[i]
             self.traj.write(b"%d %d %d\n"%(round(d[0]*self.prec),round(d[1]*self.prec),round(d[2]*self.prec)))
+        bstr=b"*\n"
         if len(box)>=9:
-            b=box
-            self.traj.write(b"%5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f\n"%(b[0],b[1],
-                b[2],b[3],b[4],b[5],b[6],b[7],b[8]))
-        self.traj.write(b"*\n")
+            #We center the box on the mean, also
+            for i in (0,1,2):
+                box[3*i+0]-=mean[0]
+                box[3*i+1]-=mean[1]
+                box[3*i+2]-=mean[2]
+
+            bstr=b"* %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f\n"%(box[0],box[1],
+                box[2],box[3],box[4],box[5],box[6],box[7],box[8])
+        self.traj.write(bstr)
     def close(self):
-        if self.readable:
             self.traj.close()
-            selr.readable=False
 
 

@@ -5,9 +5,9 @@ import copy
 
 res2code={"SER":"S", "THR":"T", "ASN":"N", "GLN":"Q", "SEC":"U", "CYS":"C", "GLY":"G", "PRO":"P", "ALA":"A", "VAL": "V", "ILE": "I", "LEU":"L", "MET":"M", "PHE":"F", "TYR":"Y", "TRP":"W", "ARG":"R", "HIS":"H", "LYS":"K", "ASP":"D", "GLU":"E", "HIP":"H", "HID":"H", "HIE":"H"}
 
-def loadstf(filename,sele="all",skip=0,begin=0):
-#    if objname=="":
- #       objname=filename.replace(".stz","")
+def loadstf(filename,objname="",skip=0,begin=0):
+    if objname=="":
+         objname=filename.replace(".stf","")
     t=stf.rtraj(filename)
     fr=0
     st=0
@@ -25,7 +25,7 @@ def loadstf(filename,sele="all",skip=0,begin=0):
             break
         if not read:
             continue
-        b=cmd.get_model(sele)
+        b=cmd.get_model(objname)
         #For _some_ reason, PyMOL changes the order of a system when it reads it
         #Here we map the new order to the original one (which, of course, is the one
         #used by the trajectory.
@@ -37,7 +37,7 @@ def loadstf(filename,sele="all",skip=0,begin=0):
                 v.resn_code=res2code[v.resn]
             except KeyError:
                 v.resn_code=v.resn
-        cmd.load_coordset(f, sele,st)
+        cmd.load_coordset(f, objname,st)
         st+=1
     cmd.center(objname)
 

@@ -36,6 +36,10 @@ import (
 	v3 "github.com/rmera/gochem/v3"
 )
 
+var rootdirtest string = "../../test/"
+
+//var rootdirtest string = "/run/media/rmera/Fondecyt1TB"
+
 //Tests the writing capabilities.
 func TestSTFWrite(Te *testing.T) {
 	var err error
@@ -48,7 +52,7 @@ func TestSTFWrite(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
-	wtraj, err := NewWriter("/run/media/rmera/Fondecyt1TB/test_stf.stf", rtraj.Len(), nil)
+	wtraj, err := NewWriter(rootdirtest+"/test_stf.stf", rtraj.Len(), nil)
 	if err != nil {
 		Te.Error(err)
 	}
@@ -86,11 +90,11 @@ func TestSTF(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
-	rtraj, _, err := New("/run/media/rmera/Fondecyt1TB/test_stf.stf")
+	rtraj, _, err := New(rootdirtest + "/test_stf.stf")
 	if err != nil {
 		Te.Error(err)
 	}
-	wtraj, err := dcd.NewWriter("/run/media/rmera/Fondecyt1TB/test_stf.dcd", rtraj.Len())
+	wtraj, err := dcd.NewWriter(rootdirtest+"/test_stf.dcd", rtraj.Len())
 	if err != nil {
 		Te.Error(err)
 	}
@@ -115,7 +119,7 @@ func TestSTF(Te *testing.T) {
 
 func TestConc(Te *testing.T) {
 	fmt.Println("Concurrency test!")
-	traj, _, err := New("/run/media/rmera/Fondecyt1TB/test_stf.stf")
+	traj, _, err := New(rootdirtest + "/test_stf.stf")
 	if err != nil {
 		Te.Error(err)
 	}

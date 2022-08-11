@@ -1,10 +1,10 @@
-load ../../../test/test_stf.pdb
+load prod.pdb
 
 load stf_pymol.py
-loadstf ../../../test/test_stf.stz,test_stf, skip=100
+loadstf prod.stf, skip=2
 
 #load sampleql.py
 
 #weaita
 
-quit
+#quit
