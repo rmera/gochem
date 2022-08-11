@@ -95,8 +95,8 @@ class wtraj:
         if len(data)<self.natoms or len(data[0])<3:
             raise ValueError
         #we center the data on the mean. This reduces a bit the size of the file.
-        mean=data.mean(0)
-        data=data-mean
+       # mean=data.mean(0)
+       # data=data-mean
         for i in range(self.natoms):
             d=data[i]
             self.traj.write(b"%d %d %d\n"%(round(d[0]*self.prec),round(d[1]*self.prec),round(d[2]*self.prec)))

@@ -43,8 +43,6 @@ Each frame ends with a line starting with the character "*" (no whitespaces befo
 
 The "**" sequence may only be used as a header termination, as described above and can not appear anywhere else in the file.
 
-When writing a frame to a stf file, an implementation may choose to center everything (including the box, if any) on the
-atom's coordinates mean (currently, the Go and the Python implementation included in this package, do so).
 
 ***************************************************************************************************/
 

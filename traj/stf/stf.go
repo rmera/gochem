@@ -63,10 +63,10 @@ func (S *StfW) WNextDense(dcoord *mat.Dense) error {
 }
 
 func (S *StfW) WNext(coord *v3.Matrix, box ...[]float64) error {
-	centroid, err := chem.MassCenterMem(coord, coord, S.framebuffer) //not actually the CoM, but the geometric center.
-	if err == nil {
-		coord = S.framebuffer //we won't say anything in case of error, sorry.
-	}
+	//centroid, err := chem.MassCenterMem(coord, coord, S.framebuffer) //not actually the CoM, but the geometric center.
+	//if err == nil {
+	//	coord = S.framebuffer //we won't say anything in case of error, sorry.
+	//}
 
 	if !S.writeable {
 		return Error{TrajUnIniWrite, S.filename, []string{"WNext"}, true}
@@ -95,13 +95,13 @@ func (S *StfW) WNext(coord *v3.Matrix, box ...[]float64) error {
 	if len(box) > 0 && len(box[0]) >= 9 {
 		b := box[0]
 		//if we did do the centroid thing, we should also displace the box vectors.
-		if centroid != nil {
-			for in := 0; in < 3; in++ {
-				b[(3*in)+0] -= centroid.At(0, 0) //I like it better with the parenthesis :-D
-				b[(3*in)+1] -= centroid.At(0, 1)
-				b[(3*in)+2] -= centroid.At(0, 2)
-
-			}
+	//	if centroid != nil {
+	//		for in := 0; in < 3; in++ {
+	//			b[(3*in)+0] -= centroid.At(0, 0) //I like it better with the parenthesis :-D
+	//			b[(3*in)+1] -= centroid.At(0, 1)
+	//			b[(3*in)+2] -= centroid.At(0, 2)
+//
+//			}
 		}
 		S.h.Write([]byte(fmt.Sprintf("* %4.2f %4.2f %4.2f %4.2f %4.2f %4.2f %4.2f %4.2f %4.2f\n", b[0],
 			b[1], b[2], b[3], b[4], b[5], b[6], b[7], b[8])))
