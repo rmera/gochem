@@ -185,7 +185,7 @@ func (X *XTCObj) setConcBuffer(batchsize int) error {
 //form the trajectory. The frames are discarted if the corresponding elemetn of the slice
 //is false. The function returns a slice of channels through each of each of which
 // a *matrix.DenseMatrix will be transmited
-func (X *XTCObj) NextConc(frames []*v3.Matrix, boxes ...[]float64) ([]chan *v3.Matrix, error) {
+func (X *XTCObj) NextConc(frames []*v3.Matrix) ([]chan *v3.Matrix, error) {
 	if X.buffSize < len(frames) {
 		X.setConcBuffer(len(frames))
 	}

@@ -651,8 +651,9 @@ func (M *Molecule) Readable() bool {
 	return false
 }
 
-//Next returns the  next frame and an error
-func (M *Molecule) Next(V *v3.Matrix) error {
+//Next puts the next frame into V and returns  an error or nil
+//The box argument is never used.
+func (M *Molecule) Next(V *v3.Matrix, box ...[]float64) error {
 	if M.current >= len(M.Coords) {
 		return newlastFrameError("", len(M.Coords)-1)
 	}
