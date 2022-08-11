@@ -36,8 +36,14 @@ type StfW struct {
 }
 
 func (S *StfW) Close() {
-	S.h.Close()
-	S.f.Close()
+
+	if S == nil {
+		return
+	}
+	if S.writeable {
+		S.h.Close()
+		S.f.Close()
+	}
 	S.writeable = false
 	return
 }
