@@ -100,7 +100,7 @@ func (C *CrdObj) Close() {
 //With initread. If keep is true, returns a pointer to matrix.DenseMatrix
 //With the coordinates read, otherwiser, it discards the coordinates and
 //returns nil. The box argument is never used.
-func (C *CrdObj) Next(keep *v3.Matrix box ..[]float64) error {
+func (C *CrdObj) Next(keep *v3.Matrix, box ...[]float64) error {
 	const ncoords = 3
 	if !C.readable {
 		return Error{TrajUnIni, C.filename, []string{"Next"}, true}
