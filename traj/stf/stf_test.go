@@ -36,7 +36,7 @@ import (
 	v3 "github.com/rmera/gochem/v3"
 )
 
-var rootdirtest string = "../../test/"
+var rootdirtest string = "../../test"
 
 //var rootdirtest string = "/run/media/rmera/Fondecyt1TB"
 
@@ -82,19 +82,21 @@ func TestSTFWrite(Te *testing.T) {
 	fmt.Println("Over! frames read and written:", i)
 }
 
+var readfromtest string = "./python"
+
 //Now the read
 func TestSTF(Te *testing.T) {
 	fmt.Println("STF read test!")
 
-	_, err := chem.PDBFileRead("../../test/test_stf.pdb", false)
+	_, err := chem.PDBFileRead(readfromtest+"/prod.pdb", false)
 	if err != nil {
 		Te.Error(err)
 	}
-	rtraj, _, err := New(rootdirtest + "/test_stf.stf")
+	rtraj, _, err := New(readfromtest + "/prod.stf")
 	if err != nil {
 		Te.Error(err)
 	}
-	wtraj, err := dcd.NewWriter(rootdirtest+"/test_stf.dcd", rtraj.Len())
+	wtraj, err := dcd.NewWriter(readfromtest+"/test_stf.dcd", rtraj.Len())
 	if err != nil {
 		Te.Error(err)
 	}

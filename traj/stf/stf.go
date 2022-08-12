@@ -95,14 +95,14 @@ func (S *StfW) WNext(coord *v3.Matrix, box ...[]float64) error {
 	if len(box) > 0 && len(box[0]) >= 9 {
 		b := box[0]
 		//if we did do the centroid thing, we should also displace the box vectors.
-	//	if centroid != nil {
-	//		for in := 0; in < 3; in++ {
-	//			b[(3*in)+0] -= centroid.At(0, 0) //I like it better with the parenthesis :-D
-	//			b[(3*in)+1] -= centroid.At(0, 1)
-	//			b[(3*in)+2] -= centroid.At(0, 2)
-//
-//			}
-		}
+		//	if centroid != nil {
+		//		for in := 0; in < 3; in++ {
+		//			b[(3*in)+0] -= centroid.At(0, 0) //I like it better with the parenthesis :-D
+		//			b[(3*in)+1] -= centroid.At(0, 1)
+		//			b[(3*in)+2] -= centroid.At(0, 2)
+		//
+		//			}
+		//	}
 		S.h.Write([]byte(fmt.Sprintf("* %4.2f %4.2f %4.2f %4.2f %4.2f %4.2f %4.2f %4.2f %4.2f\n", b[0],
 			b[1], b[2], b[3], b[4], b[5], b[6], b[7], b[8])))
 
@@ -166,7 +166,7 @@ func NewWriter(name string, natoms int, header map[string]string, compressionLev
 	S.filename = name
 	S.writeable = true
 	S.prec = 2 //the default
-	if header != nil {
+	if header != nil && len(header) != 0 {
 		if p, ok := header["prec"]; ok && p != "2" {
 			prec, err := strconv.Atoi(p)
 			if err != nil {
@@ -224,97 +224,13 @@ func coordsEncode(f [3]float64, temp [3]int, prec int) string {
 	return fmt.Sprintf("%d %d %d\n", temp[0], temp[1], temp[2])
 }
 
-/*
-func hexaDecEncode(f [3]float64, temp [3]int, ts [3][2]string, prec int, big ...bool) string {
-	p := 100.0
-	var ret string
-	if prec > 0 && prec != 2 { //2 is the current value, so we do nothign in that case
-		p = math.Pow(10.0, float64(prec))
-	}
-	for i, v := range f {
-		temp[i] = int(math.RoundToEven(v * p))
-	}
-	if len(big) > 0 && big[0] {
-		ret = fmt.Sprintf("%x %x %x", temp[0], temp[1], temp[2])
-		//All this mess is to ensure that the numbers use either 4 spaces, if positive, or 5, if negative, but never less.
-	} else {
-		for i, v := range temp {
-			if v < 0 {
-				ts[i][0] = fmt.Sprintf("%04x", v*-1)
-				ts[i][1] = "-"
-			} else {
-				ts[i][0] = fmt.Sprintf("%04x", v)
-				ts[i][1] = ""
-			}
-		}
-		ret = fmt.Sprintf("%s%s%s%s%s%s\n", ts[0][1], ts[0][0], ts[1][1], ts[1][0], ts[2][1], ts[2][0])
-	}
-	//	for i, _ := range temp {
-	//		temp[i] = 0 //I really don't want to risk any contamination here
-	//	}
-	return ret
-
-}
-
-
-
-
-func mustParseHexInt(s string) int64 {
-	ret, err := strconv.ParseInt(strings.Replace(s, " ", "", -1), 16, 32)
-	if err != nil {
-		panic(err.Error()) //really shouldn't happen
-	}
-	return ret
-}
-
-
-func hexaDecDecode(str string, temp [3]float64, coords [3]string, delays [3]int, prec int, big ...bool) {
-	mult := 100.0
-	if prec > 0 && prec != 2 { //2 is just the current value, so we can save the operation
-		mult = math.Pow(10, float64(prec))
-	}
-	delays[0] = 0 //just to be sure
-	delays[1] = 0
-	delays[2] = 0
-	str = strings.Replace(str, "\n", "", -1) //maybe wasteful, but I'd rather be careful. We can see if things get too slow
-	if len(big) > 0 && big[0] {
-		s := strings.Fields(str)
-		for i, v := range s {
-			coords[i] = v
-		}
-		//the most common case. This
-		//whole thing is to deal with the fact that a "-" sign means
-		//that the coresponding field will take 5 spaces instead of 4.
-	} else {
-		if str[0] == '-' {
-			delays[0] = 1
-		} else {
-
-		}
-		coords[0] = str[0 : 5+delays[0]]
-		if str[5+delays[0]] == '-' {
-			delays[1] = 1
-		}
-		coords[1] = str[5+delays[0] : 9+delays[0]+delays[1]]
-		if str[9+delays[0]+delays[1]] == '-' {
-			delays[2] = 1
-		}
-		coords[2] = str[9+delays[0]+delays[1]:]
-	}
-	for i, v := range coords {
-		temp[i] = float64(mustParseHexInt(v)) / mult
-
-	}
-
-}
-**************/
 //New opens a STF trajectory for reading, and returns a pointer
 //to the handle, a map with the metadata (or nil, if no metadata is found)
 //and error or nil.
 func New(name string) (*StfR, map[string]string, error) {
 	S := new(StfR)
 	S.natoms = -1 //just so we know if things don't work
-	var m map[string]string
+	m := make(map[string]string)
 	var err error
 	S.filename = name
 	S.f, err = os.Open(S.filename)
@@ -386,7 +302,7 @@ func New(name string) (*StfR, map[string]string, error) {
 	}
 	//	S.framebuffer = v3.Zeros(S.natoms)
 	S.readable = true
-	if m != nil {
+	if len(m) != 0 {
 		if p, ok := m["prec"]; ok && p != "2" {
 			prec, err := strconv.Atoi(p)
 			if err != nil {

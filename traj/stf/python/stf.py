@@ -103,10 +103,10 @@ class wtraj:
         bstr=b"*\n"
         if len(box)>=9:
             #We center the box on the mean, also
-            for i in (0,1,2):
-                box[3*i+0]-=mean[0]
-                box[3*i+1]-=mean[1]
-                box[3*i+2]-=mean[2]
+            #for i in (0,1,2):
+            #    box[3*i+0]-=mean[0]
+            #    box[3*i+1]-=mean[1]
+            #    box[3*i+2]-=mean[2]
 
             bstr=b"* %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f\n"%(box[0],box[1],
                 box[2],box[3],box[4],box[5],box[6],box[7],box[8])

@@ -1,7 +1,7 @@
-load prod.pdb
+load prodtest.pdb
 
 load stf_pymol.py
-loadstf prod.stf, skip=2
+loadstf prodtest.stf, skip=2
 
 #load sampleql.py
 
