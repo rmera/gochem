@@ -19,12 +19,12 @@ All dependencies of goChem are open source.
 
 Design goals:
 
-*Simplicity (of the code).
-*Readability.
-*Fast and light
-*Concurrent when possible and necessary
-*Easy to extend
-*Useful for Computational Chemistry/Biochemistry 
+* Simplicity (of the code).
+* Readability.
+* Fast and light
+* Concurrent when possible and necessary
+* Easy to extend
+* Useful for Computational Chemistry/Biochemistry 
 at a classical and QM levels.
 
 
@@ -32,8 +32,9 @@ See the Wiki por goChem's current capabilities
 (https://github.com/rmera/gochem/wiki)
 
 
-There is no publication on goChem yet. If you use one goAnalyze,
-or any program based on goChem before such a publication is available,
+There is no publication on goChem yet. If you use goChem, or 
+or any program based on goChem (such as goMD and goAnalize) 
+before such a publication is available,
 we ask you to support goChem by citing the library in your publication as:
 
 Domínguez, C., Jiménez, V, Savasci, G., Pesonen, J., Mera-Adasme, 

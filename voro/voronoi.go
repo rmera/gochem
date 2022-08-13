@@ -56,6 +56,21 @@ const (
 	defAngleStep float64 = 5
 )
 
+//AngleScan contains options to perform angle scans to see if there is an angle in which 2 atoms
+//are in direct contact (i.e. if part of the plane bisecting them is part of the Voronoi polihedra for the system).
+type AngleScan struct {
+	VdwFactor float64
+	Offset    float64
+	Angles    []float64 //last angle, step between angles, in degrees. A full scan would be 0 to 90
+	Cutoff    float64   //distance cutoff, if the vectors at the given angle are farther than this, the angle is ignored.
+	Test      bool      //for debugging
+}
+
+//DefaultAngleScan returns the default setting for an AngleScan
+func DefaultAngleScan() *AngleScan {
+	return &AngleScan{Offset: defOffset, VdwFactor: defVdwFactor, Angles: []float64{defMaxAngle, defAngleStep}}
+}
+
 //This is a naive, unoptimal, simple and incomplete implementation
 //of 3D Voronoi polihedra.
 
@@ -69,6 +84,7 @@ type VPlane struct {
 	NotContact bool //true if this plane is a confirmed non-contact
 }
 
+//OtherAtom, given the index of one of the atoms bisected by the plane,returns the index of the other atom.
 func (V *VPlane) OtherAtom(i int) int {
 	if V.Atoms[0] == i {
 		return V.Atoms[1]
@@ -78,7 +94,7 @@ func (V *VPlane) OtherAtom(i int) int {
 	panic(fmt.Sprintf("Plane is not related to atom %d", i)) //I think this is fair enough. This should always be a bug in the program.
 }
 
-//This obtains the distance from a point o to the plane in the direction of d
+//DistanceInterVector  obtains the distance from a point o to the plane in the direction of d.
 //It returns -1 if the vector never intersects the plane.
 func (V *VPlane) DistanceInterVector(o, d *v3.Matrix) float64 {
 	p := v3.Zeros(1)
@@ -103,8 +119,10 @@ func (V *VPlane) DistanceInterVector(o, d *v3.Matrix) float64 {
 	return p2.Norm(2)
 }
 
+//VPSlice contains a slice to pointers to VPlane.
 type VPSlice []*VPlane
 
+//AtomPlanes returns all the planes that bisect the atom with index i, and any other atom.
 func (P VPSlice) AtomPlanes(i int) VPSlice {
 	ret := make([]*VPlane, 0, len(P)/10) //the cap value is just a wild guess
 	for _, v := range P {
@@ -115,6 +133,7 @@ func (P VPSlice) AtomPlanes(i int) VPSlice {
 	return VPSlice(ret)
 }
 
+//PairPlane returns the plane bisecting the atoms with indexes i and j.
 func (P VPSlice) PairPlane(i, j int) *VPlane {
 	for _, v := range P {
 		if (v.Atoms[0] == i && v.Atoms[1] == j) || (v.Atoms[0] == j && v.Atoms[1] == i) {
@@ -124,18 +143,8 @@ func (P VPSlice) PairPlane(i, j int) *VPlane {
 	return nil
 }
 
-type AngleScan struct {
-	VdwFactor float64
-	Offset    float64
-	Angles    []float64 //last angle, step between angles, in degrees. A full scan would be 0 to 90
-	Cutoff    float64   //distance cutoff, if the vectors at the given angle are farther than this, the angle is ignored.
-	Test      bool      //for debugging
-}
-
-func DefaultAngleScan() *AngleScan {
-	return &AngleScan{Offset: defOffset, VdwFactor: defVdwFactor, Angles: []float64{defMaxAngle, defAngleStep}}
-}
-
+//Determines whether 2 atoms are in contact, using the sum of their vdW radii (multiplied by an optional
+//factor, 1.2 by default), as a cutoff.
 func (P VPSlice) VdwContact(coords *v3.Matrix, mol chem.Atomer, i, j int, scan ...*AngleScan) bool {
 	if len(scan) <= 0 {
 		scan = append(scan, DefaultAngleScan()) //1.4 is the vdW radius of water

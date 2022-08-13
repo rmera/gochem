@@ -18,11 +18,11 @@
  * <http://www.gnu.org/licenses/>.
  *
  */
-/***Dedicated to the long life of the Ven. Khenpo Phuntzok Tenzin Rinpoche***/
 
-/*Package chem is the main package of the goChem library. It provides atom and molecule structures, facilities for reading and writing some
-files used in computational chemistry and functions for geometric manipulations and shape, among others
-indicators.
+/*This is the main package of the goChem library.
+It provides atom and molecule structures, facilities for reading and
+writing some files used in computational chemistry and functions for
+geometric manipulations and shape, among others indicators.
 
 See www.gochem.org for more information.
 

@@ -1,5 +1,5 @@
 /*
- * files.go, part of gochem.
+ * handy.go, part of gochem.
  *
  *
  * Copyright 2012 Raul Mera <rmera{at}chemDOThelsinkiDOTfi>
@@ -79,9 +79,9 @@ func FixGromacsPDB(mol Atomer) {
 
 //Molecules2Atoms gets a selection list from a list of residues.
 //It select all the atoms that form part of the residues in the list.
-//It doesnt return errors, if a residue is out of range, no atom will
+//It doesnt return errors. If a residue is out of range, no atom will
 //be returned for it. Atoms are also required to be part of one of the chains
-//specified in chains.
+//specified in chains, but a nil "chains" can be given to select all chains.
 func Molecules2Atoms(mol Atomer, residues []int, chains []string) []int {
 	atlist := make([]int, 0, len(residues)*3)
 	for key := 0; key < mol.Len(); key++ {

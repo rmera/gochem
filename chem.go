@@ -275,7 +275,7 @@ func (T *Topology) Len() int {
 	return len(T.Atoms)
 }
 
-//MassCol returns a slice of float64 with the masses of the atoms in the topology, or nil and an error if they have not been calculated
+//Masses returns a slice of float64 with the masses of the atoms in the topology, or nil and an error if they have not been calculated
 func (T *Topology) Masses() ([]float64, error) {
 	mass := make([]float64, T.Len())
 	for i := 0; i < T.Len(); i++ {
@@ -707,7 +707,7 @@ func (M *Molecule) NextConc(frames []*v3.Matrix) ([]chan *v3.Matrix, error) {
 	return toreturn, nil
 }
 
-//Close just sets the "curren" counter to 0.
+//Close just sets the "current" counter to 0.
 //If you are using it as a trajectory, you can always just discard the molecule
 //and let the CG take care of it, as there is nothing on disk linked to it..
 func (M *Molecule) Close() {

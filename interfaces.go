@@ -40,6 +40,7 @@ type Traj interface {
 	Readable() bool
 
 	//reads the next frame and returns it as DenseMatrix if keep==true, or discards it if false
+	//it can also fill the (optional) box with the box vectors, it present in the frame.
 	Next(output *v3.Matrix, box ...[]float64) error
 
 	//Returns the number of atoms per frame

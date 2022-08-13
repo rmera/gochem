@@ -276,10 +276,10 @@ func MDFFromCDF(ret []float64, framesread int, step float64) ([]float64, []float
 	return ret, ret2
 }
 
-//NOTE: It could be good to have this function take a slice of floats and put the results there, so as to avoid
-//allocating more than needed.
-//FrameUMolCRDF Obtains the Unnormalized "Cummulative Molecular RDF" for one solvated structure. The RDF would be these values averaged over several structures.
+//FrameUMolCRDF Obtains the Unnormalized Cummulative Molecular RDF for one solvated structure. The RDF would be these values averaged over several structures.
 func FrameUMolCRDF(coord *v3.Matrix, mol chem.Atomer, refindexes []int, residues []string, options ...*Options) []float64 {
+	//NOTE: It could be good to have this function take a slice of floats and put the results there, so as to avoid
+	//allocating more than needed.
 	var o *Options
 	if len(options) > 0 {
 		o = options[0]
@@ -552,8 +552,7 @@ func dist(r, t, temp *v3.Matrix) float64 {
 //NOTE: These will be replaced when the generic funcions
 //make it to Go's stdlib.
 
-//isInInt is a helper for the RamaList function,
-//returns true if test is in container, false otherwise.
+//isInInt returns true if test is in container, false otherwise.
 func isInInt(container []int, test int) bool {
 	if container == nil {
 		return false

@@ -566,6 +566,7 @@ type XYZTraj struct {
 	firstframe *v3.Matrix
 }
 
+//Readable returns true if the trajectory is fit to be read, false otherwise.
 func (X *XYZTraj) Readable() bool {
 	return X.readable
 }
@@ -589,8 +590,9 @@ func (X *XYZTraj) xyztrajerror(err error) error {
 }
 
 //Next reads the next snapshot of the trajectory into coords, or discards it, if coords
-//is nil
-func (X *XYZTraj) Next(coords *v3.Matrix) error {
+//is nil. It can take a box slice of floats, but won't do anything with it
+//(only for compatibility with the Traj interface.
+func (X *XYZTraj) Next(coords *v3.Matrix, box ...[]float64) error {
 	if coords == nil {
 		_, _, _, err := xyzReadSnap(X.xyz, coords, false)
 		if err != nil {
@@ -640,7 +642,8 @@ func XYZFileAsTraj(xyzname string) (*Molecule, *XYZTraj, error) {
 	return returned, traj, nil
 }
 
-//xyzReadSnap reads an xyz file snapshot from a bufio.Reader, returns a slice of Atom objects, which will be nil if ReadTopol is false,
+//xyzReadSnap reads an xyz file snapshot from a bufio.Reader, returns a slice of Atom
+//objects, which will be nil if ReadTopol is false,
 // a slice of matrix.DenseMatrix and an error or nil.
 func xyzReadSnap(xyz *bufio.Reader, toplace *v3.Matrix, ReadTopol bool) (*v3.Matrix, []*Atom, string, error) {
 	line, err := xyz.ReadString('\n')
@@ -738,7 +741,7 @@ func XYZStringWrite(Coords *v3.Matrix, mol Atomer) (string, error) {
 	return out, nil
 }
 
-//XYZWrite writes the mol Ref and the Coord coordinates to a io.Writer.
+//XYZWrite writes the mol Ref and the Coords coordinates to a io.Writer, in the XYZ format.
 func XYZWrite(out io.Writer, Coords *v3.Matrix, mol Atomer) error {
 	iowriterError := func(err error) error {
 		return CError{"Failed to write in io.Writer" + err.Error(), []string{"io.Writer.Write", "XYZWrite"}}
@@ -930,7 +933,7 @@ func GroFileWrite(outname string, Coords []*v3.Matrix, mol Atomer) error {
 	return nil
 }
 
-//GroSnapWrite writes a single snapshot of a molecule to an io.Writer
+//GroSnapWrite writes a single snapshot of a molecule to an io.Writer, in the Gro format.
 func GroSnapWrite(coords *v3.Matrix, mol Atomer, out io.Writer) error {
 	A2nm := 0.1
 	iowriterError := func(err error) error {
