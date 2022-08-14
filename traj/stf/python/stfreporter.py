@@ -1,7 +1,7 @@
 # Copyright (c) 2021, Raul Mera A.
 
-#This program is based on the DCD reporter dcdreporte.py
-#From DCD. The copyright note and license for that program is included below.
+#This program is based on the DCD reporter dcdreporter.py
+#From OpenMM. The copyright note and license for that program is included below.
 #The included license applies to this program, also.
 
 """

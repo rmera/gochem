@@ -5,6 +5,9 @@ import copy
 
 res2code={"SER":"S", "THR":"T", "ASN":"N", "GLN":"Q", "SEC":"U", "CYS":"C", "GLY":"G", "PRO":"P", "ALA":"A", "VAL": "V", "ILE": "I", "LEU":"L", "MET":"M", "PHE":"F", "TYR":"Y", "TRP":"W", "ARG":"R", "HIS":"H", "LYS":"K", "ASP":"D", "GLU":"E", "HIP":"H", "HID":"H", "HIE":"H"}
 
+
+#This is a fairly slow function, I assume, because of the 
+#pure-python stf implementatoin that backs it up.
 def loadstf(filename,objname="",skip=0,begin=0):
     if objname=="":
          objname=filename.replace(".stf","")
