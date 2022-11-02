@@ -31,7 +31,7 @@ func TessssssRotation(t *testing.T) {
 	}
 }
 
-func TestVoronoi(t *testing.T) {
+func TTestVoronoi(t *testing.T) {
 	mol, err := chem.PDBFileRead("../test/2c9vIOH.pdb", true)
 	if err != nil {
 		panic(err.Error())
@@ -67,5 +67,52 @@ func TestVoronoi(t *testing.T) {
 	imol := chem.NewTopology(0, 1)
 	imol.SomeAtoms(mol, ABConts)
 	chem.PDBFileWrite("../test/inter.pdb", icoord, imol, nil)
+
+}
+
+func TestAreas(t *testing.T) {
+	mol, err := chem.PDBFileRead("../test/2c9vIOH.pdb", true)
+	if err != nil {
+		panic(err.Error())
+	}
+	const cutoff = 4
+	mol.FillVdw()
+	//res := []int{148, 149, 150, 151, 152, 153, 48, 49, 50, 51, 52}
+	//	resB := []int{48, 49, 50, 51, 52}
+	res := []int{}
+	for i := 1; i <= 153; i++ {
+		res = append(res, i)
+	}
+	indexA := chem.Molecules2Atoms(mol, res, []string{"A"})
+	indexB := chem.Molecules2Atoms(mol, res, []string{"F"})
+	coord := mol.Coords[0]
+	planes := GetPlanes(coord, mol, cutoff, true)
+	var ABConts [][]int
+	//	testatoms := indexA[2:6] ////////
+	for _, v := range indexA {
+		for _, w := range indexB {
+			angles := DefaultAngleScan() //this is the cutoff for inter-atom distances, so half of it is about right for atom-plane
+			if planes.VdwContact(coord, mol, v, w, angles) {
+				ABConts = append(ABConts, []int{v, w})
+			}
+		}
+	}
+	fmt.Println("Ready with A-B contacts")
+	fmt.Println("Got", len(planes.ConfirmedContacts()), "A-B confirmed contacts")
+	for i, v := range indexA {
+		for _, w := range indexA[i:] {
+			angles := DefaultAngleScan()                //this is the cutoff for inter-atom distances, so half of it is about right for atom-plane
+			planes.VdwContact(coord, mol, v, w, angles) //we only want to "mark" the contact planes
+		}
+	}
+	fmt.Println("Ready with A-A contacts")
+	area := 0.0
+	contactplanes := planes.ConfirmedContacts()
+	fmt.Println("Got", len(contactplanes), "confirmed contacts")
+	for _, v := range ABConts {
+		area += PairContactArea(v[0], v[1], coord, contactplanes)
+		fmt.Println("Area so far", area)
+	}
+	fmt.Println("Total contact area:", area, "A")
 
 }
