@@ -70,7 +70,55 @@ func TTestVoronoi(t *testing.T) {
 
 }
 
-func TestAreas(t *testing.T) {
+func TestCubes(t *testing.T) {
+	mol, err := chem.PDBFileRead("../test/2c9vIOH.pdb", true)
+	if err != nil {
+		panic(err.Error())
+	}
+	const cutoff = 2
+	const step = 0.5 //A
+	res := []int{}
+	for i := 1; i <= 153; i++ {
+		res = append(res, i)
+	}
+	indexA := chem.Molecules2Atoms(mol, res, []string{"A"})
+	indexB := chem.Molecules2Atoms(mol, res, []string{"F"})
+	aindexes := make([]int, 0, len(indexA)+len(indexB))
+	aindexes = append(aindexes, indexA...)
+	aindexes = append(aindexes, indexB...)
+	coord := mol.Coords[0]
+	subcoord := v3.Zeros(len(aindexes))
+	subcoord.SomeVecs(coord, aindexes) //all of them, in this case, but I'll keep this
+	cubeset := makeCubes(subcoord, step)
+	cubeset.FindDistances(coord, cutoff)
+	contacts := cubeset.Contacts()
+	var ABConts []int
+	//	testatoms := indexA[2:6] ////////
+	for _, v := range contacts {
+		if (isInInt(indexA, v[0]) && isInInt(indexB, v[0])) || (isInInt(indexB, v[0]) && isInInt(indexA, v[0])) {
+			if !isInInt(ABConts, v[0]) {
+				ABConts = append(ABConts, v[0])
+			}
+			if !isInInt(ABConts, v[1]) {
+				ABConts = append(ABConts, v[1])
+			}
+
+		}
+
+	}
+	if len(ABConts) == 0 {
+		t.Fatal("No contact found")
+	}
+	fmt.Println("Contacts: ", len(ABConts))
+	icoord := v3.Zeros(len(ABConts))
+	icoord.SomeVecs(coord, ABConts)
+	imol := chem.NewTopology(0, 1)
+	imol.SomeAtoms(mol, ABConts)
+	chem.PDBFileWrite("../test/inter.pdb", icoord, imol, nil)
+
+}
+
+func TTestAreas(t *testing.T) {
 	mol, err := chem.PDBFileRead("../test/2c9vIOH.pdb", true)
 	if err != nil {
 		panic(err.Error())
