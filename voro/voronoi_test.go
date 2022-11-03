@@ -70,13 +70,11 @@ func TTestVoronoi(t *testing.T) {
 
 }
 
-func TestCubes(t *testing.T) {
+func TestFPlanes(t *testing.T) {
 	mol, err := chem.PDBFileRead("../test/2c9vIOH.pdb", true)
 	if err != nil {
 		panic(err.Error())
 	}
-	const cutoff = 2
-	const step = 0.5 //A
 	res := []int{}
 	for i := 1; i <= 153; i++ {
 		res = append(res, i)
@@ -89,13 +87,14 @@ func TestCubes(t *testing.T) {
 	coord := mol.Coords[0]
 	subcoord := v3.Zeros(len(aindexes))
 	subcoord.SomeVecs(coord, aindexes) //all of them, in this case, but I'll keep this
-	cubeset := makeCubes(subcoord, step)
-	cubeset.FindDistances(coord, cutoff)
-	contacts := cubeset.Contacts()
+	fmt.Println("indexes", len(indexA), len(indexB))
+	cPlanes := ContactPlanes(subcoord, indexA, indexB)
+	contacts := cPlanes.AllContacts()
+	fmt.Println(contacts) /////////////////
 	var ABConts []int
 	//	testatoms := indexA[2:6] ////////
 	for _, v := range contacts {
-		if (isInInt(indexA, v[0]) && isInInt(indexB, v[0])) || (isInInt(indexB, v[0]) && isInInt(indexA, v[0])) {
+		if (isInInt(indexA, v[0]) && isInInt(indexB, v[1])) || (isInInt(indexB, v[0]) && isInInt(indexA, v[1])) {
 			if !isInInt(ABConts, v[0]) {
 				ABConts = append(ABConts, v[0])
 			}

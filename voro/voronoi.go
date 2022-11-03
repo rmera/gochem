@@ -54,6 +54,7 @@ const (
 	defVdwFactor float64 = 1.2
 	defMaxAngle  float64 = 87
 	defAngleStep float64 = 5
+	defCutoff    float64 = 6 //rather permissive
 )
 
 //AngleScan contains options to perform angle scans to see if there is an angle in which 2 atoms
@@ -68,7 +69,7 @@ type AngleScan struct {
 
 //DefaultAngleScan returns the default setting for an AngleScan
 func DefaultAngleScan() *AngleScan {
-	return &AngleScan{Offset: defOffset, VdwFactor: defVdwFactor, Angles: []float64{defMaxAngle, defAngleStep}}
+	return &AngleScan{Offset: defOffset, VdwFactor: defVdwFactor, Angles: []float64{defMaxAngle, defAngleStep}, Cutoff: defCutoff}
 }
 
 //This is a naive, unoptimal, simple and incomplete implementation
@@ -238,6 +239,61 @@ func (P VPSlice) Contact(coords *v3.Matrix, i, j int, anglest ...*AngleScan) boo
 	}
 	ref.Contact = true
 	return true
+}
+
+//checks if the ith plane is repeated elsewhere
+func (P VPSlice) IsRepeated(p *VPlane) bool {
+	for _, v := range P {
+		if p.Atoms[0] == v.Atoms[1] && p.Atoms[1] == v.Atoms[0] {
+			return true
+		}
+		if p.Atoms[0] == v.Atoms[0] && p.Atoms[1] == v.Atoms[1] {
+			//this should never happen!
+			return true
+		}
+	}
+	return false
+}
+
+//All contacts returns a list of pairs of atoms that are in contact
+//It is assumed that the P slice doesn't contain any non-contact or any repeated plane
+func (P VPSlice) AllContacts() [][2]int {
+	r := make([][2]int, 0, len(P))
+	for _, v := range P {
+		r = append(r, [2]int{v.Atoms[0], v.Atoms[1]})
+	}
+	return r
+}
+
+func (P VPSlice) IsBlocked(p *VPlane, c *v3.Matrix, mustbeatom int, anglest ...*AngleScan) bool {
+	var as *AngleScan
+	if len(anglest) == 0 {
+		as = DefaultAngleScan()
+	}
+	ai := c.VecView(p.Atoms[0])
+	aj := c.VecView(p.Atoms[1])
+
+	for _, v := range P {
+		if v.Atoms[1] == p.Atoms[0] && v.Atoms[0] == p.Atoms[1] {
+			continue //This is just the same plane
+		}
+		//if a "mustbeatom" is given, we only check the planes that contain that atom
+		//if mustbeatom >= 0 && !(v.Atoms[1] == mustbeatom || v.Atoms[0] == mustbeatom) {
+		//	continue
+
+		if !(v.Atoms[1] == p.Atoms[0] || v.Atoms[0] == p.Atoms[0] || v.Atoms[1] == p.Atoms[1] || v.Atoms[0] == p.Atoms[1]) {
+			continue //there is no point to check planes that have no atoms in common with the test one.
+		}
+
+		blocked := ConeBlock(p, v, ai, aj, as.Cutoff, as.Angles)
+		if blocked {
+			p.NotContact = true
+			return true
+		}
+	}
+	p.Contact = true
+	return false
+
 }
 
 func (P VPSlice) ConfirmedContacts() VPSlice {
