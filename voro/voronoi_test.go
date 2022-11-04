@@ -88,10 +88,10 @@ func TestFPlanes(t *testing.T) {
 	subcoord := v3.Zeros(len(aindexes))
 	subcoord.SomeVecs(coord, aindexes) //all of them, in this case, but I'll keep this
 	fmt.Println("indexes", len(indexA), len(indexB))
-	cPlanes := ContactPlanes(subcoord, indexA, indexB)
+	cPlanes := ContactPlanes(subcoord, nil, nil)
 	contacts := cPlanes.AllContacts()
-	fmt.Println(contacts) /////////////////
 	var ABConts []int
+	fmt.Println(len(contacts)) ///////////
 	//	testatoms := indexA[2:6] ////////
 	for _, v := range contacts {
 		if (isInInt(indexA, v[0]) && isInInt(indexB, v[1])) || (isInInt(indexB, v[0]) && isInInt(indexA, v[1])) {
@@ -101,14 +101,12 @@ func TestFPlanes(t *testing.T) {
 			if !isInInt(ABConts, v[1]) {
 				ABConts = append(ABConts, v[1])
 			}
-
 		}
-
 	}
 	if len(ABConts) == 0 {
 		t.Fatal("No contact found")
 	}
-	fmt.Println("Contacts: ", len(ABConts))
+	fmt.Println("Contacts: ", len(ABConts), ABConts)
 	icoord := v3.Zeros(len(ABConts))
 	icoord.SomeVecs(coord, ABConts)
 	imol := chem.NewTopology(0, 1)
