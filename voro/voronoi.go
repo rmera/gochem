@@ -41,12 +41,9 @@ package voro
 
 import (
 	"fmt"
-	"log"
-	"os"
 
 	chem "github.com/rmera/gochem"
 	v3 "github.com/rmera/gochem/v3"
-	"gonum.org/v1/gonum/stat/combin"
 )
 
 const (
@@ -159,19 +156,6 @@ func (P VPSlice) PairPlane(i, j int) *VPlane {
 		}
 	}
 	return nil
-}
-
-//Determines whether 2 atoms are in contact, using the sum of their vdW radii (multiplied by an optional
-//factor, 1.2 by default), as a cutoff.
-func (P VPSlice) VdwContact(coords *v3.Matrix, mol chem.Atomer, i, j int, scan ...*AngleScan) bool {
-	if len(scan) <= 0 {
-		scan = append(scan, DefaultAngleScan()) //1.4 is the vdW radius of water
-
-	}
-	vdwsum := mol.Atom(i).Vdw + mol.Atom(j).Vdw
-	scan[0].Cutoff = vdwsum*scan[0].VdwFactor + scan[0].Offset
-	return P.Contact(coords, i, j, scan[0])
-
 }
 
 func distance(coords *v3.Matrix, i, j int) float64 {
@@ -307,26 +291,12 @@ func (P VPSlice) ConfirmedContacts() VPSlice {
 	return ret
 }
 
-//returns a crappy xyz string from the slice of 1x3 vectors provided
-//for testing purposes only
-func writetestxyzstring(vec ...*v3.Matrix) string {
-	form := fmt.Sprintf
-	elem := []string{"O", "C", "N", "H", "P", "F", "I", "Br", "Zn", "Cu"}
-	str := form("%d\n\n", len(vec))
-	for i, v := range vec {
-		str += form("%s %5.3f %5.3f %5.3f\n", elem[i], v.At(0, 0), v.At(0, 1), v.At(0, 2))
-	}
-	return str
-
-}
-
 //Test if the path between ati and the ref plane is blocked by the test plane
 //it will scan cones at increasing angles from the ati-atj vector(from 0 to angles[0] degrees, where angles[0] should be <90)
 //in angle[1] steps.
 //This is a brute-force, very slow and clumsy system. But hey, I'm a chemist. I'll change it when a) there is a pure Go 3D-Voronoi
 //library or b) I find the time to study computational geometry.
 func ConeBlock(ref, test *VPlane, ati, atj *v3.Matrix, cutoff float64, angles []float64, testname ...string) bool {
-	var xyz string
 	refdist := ref.Distance
 	axis := v3.Zeros(1)
 	aux := v3.Zeros(1)
@@ -356,9 +326,9 @@ func ConeBlock(ref, test *VPlane, ati, atj *v3.Matrix, cutoff float64, angles []
 			if err != nil {
 				panic(err.Error())
 			}
-			if len(testname) > 0 {
-				xyz += writetestxyzstring(ati, atj, ndir)
-			}
+			//		if len(testname) > 0 {
+			//			xyz += writetestxyzstring(ati, atj, ndir)
+			//		}
 			refdist = ref.DistanceInterVector(ati, ndir)
 			if refdist > cutoff/2 && refdist < 0 {
 				return true
@@ -366,28 +336,11 @@ func ConeBlock(ref, test *VPlane, ati, atj *v3.Matrix, cutoff float64, angles []
 
 			Dij_k := test.DistanceInterVector(ati, ndir)
 			if Dij_k > refdist || Dij_k < 0 { //a distance <0 means that the vector never intersects the plane.
-				writetest(xyz, testname)
 				return false
 			}
 		}
 	}
-	//for debugging
-	writetest(xyz, testname)
 	return true
-
-}
-
-//debug function, to be called on testing.
-func writetest(xyz string, name []string) {
-	if len(name) > 0 {
-		f, err := os.Create(name[0])
-		if err != nil {
-			log.Println(err.Error())
-		}
-		f.WriteString(xyz)
-		f.Close()
-
-	}
 
 }
 
@@ -402,39 +355,4 @@ func PlaneBetweenAtoms(at1, at2 *v3.Matrix, i, j int) *VPlane {
 	ret.Point.Add(at1, at2)
 	ret.Point.Scale(0.5, ret.Point) //I'm actually not 100% sure about this! D:
 	return ret
-}
-
-//get all planes between all possible pairs of atoms
-//which are not farther away from each other than cutoff
-func GetPlanes(atoms *v3.Matrix, mol chem.Atomer, cutoff float64, noHs ...bool) VPSlice {
-	var noH bool //false by default (it's zero-value)
-	if len(noHs) != 0 {
-		noH = noHs[0]
-	}
-	var ai, aj *v3.Matrix
-	//ai := v3.Zeros(1)
-	//aj := v3.Zeros(1)
-	tot := atoms.NVecs()
-	planes := make([]*VPlane, 0, combin.Binomial(tot, 2)/2) //I couldn't resist adding the binomial coefficient, sorry.
-	for i := 0; i < tot; i++ {
-		ai = atoms.VecView(i)
-		ati := mol.Atom(i)
-		if noH && ati.Symbol == "H" {
-			continue
-		}
-		for j := i + 1; j < tot; j++ {
-			aj = atoms.VecView(j)
-			atj := mol.Atom(j)
-			if noH && atj.Symbol == "H" {
-				continue
-			}
-			t := PlaneBetweenAtoms(ai, aj, i, j)
-			if t.Distance*2.0 > cutoff {
-				continue
-			}
-			planes = append(planes, t)
-
-		}
-	}
-	return VPSlice(planes)
 }

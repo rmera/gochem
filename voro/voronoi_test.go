@@ -31,77 +31,40 @@ func TessssssRotation(t *testing.T) {
 	}
 }
 
-func TTestVoronoi(t *testing.T) {
-	mol, err := chem.PDBFileRead("../test/2c9vIOH.pdb", true)
-	if err != nil {
-		panic(err.Error())
-	}
-	const cutoff = 4
-	mol.FillVdw()
-	//	resA := []int{148, 149, 150, 151, 152, 153}
-	//	resB := []int{48, 49, 50, 51, 52}
-	res := []int{}
-	for i := 1; i <= 153; i++ {
-		res = append(res, i)
-	}
-	indexA := chem.Molecules2Atoms(mol, res, []string{"A"})
-	indexB := chem.Molecules2Atoms(mol, res, []string{"F"})
-	coord := mol.Coords[0]
-	planes := GetPlanes(coord, mol, cutoff, true)
-	var ABConts []int
-	//	testatoms := indexA[2:6] ////////
-	for _, v := range indexA {
-		for _, w := range indexB {
-			angles := DefaultAngleScan() //this is the cutoff for inter-atom distances, so half of it is about right for atom-plane
-			if planes.VdwContact(coord, mol, v, w, angles) {
-				ABConts = append(ABConts, v, w)
-			}
-		}
-	}
-	if len(ABConts) == 0 {
-		t.Fatal("No contact found")
-	}
-	fmt.Println("Contacts: ", len(ABConts))
-	icoord := v3.Zeros(len(ABConts))
-	icoord.SomeVecs(coord, ABConts)
-	imol := chem.NewTopology(0, 1)
-	imol.SomeAtoms(mol, ABConts)
-	chem.PDBFileWrite("../test/inter.pdb", icoord, imol, nil)
-
-}
-
 func TestFPlanes(t *testing.T) {
 	mol, err := chem.PDBFileRead("../test/2c9vIOH.pdb", true)
 	if err != nil {
 		panic(err.Error())
 	}
-	res := []int{}
-	for i := 1; i <= 153; i++ {
-		res = append(res, i)
-	}
+	//res := []int{}
+	//for i := 1; i <= 153; i++ {
+	//		res = append(res, i)
+	//	}
+	res := []int{2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 145, 146, 147, 148, 149, 150, 151, 152, 153}
 	indexA := chem.Molecules2Atoms(mol, res, []string{"A"})
 	indexB := chem.Molecules2Atoms(mol, res, []string{"F"})
 	aindexes := make([]int, 0, len(indexA)+len(indexB))
 	aindexes = append(aindexes, indexA...)
 	aindexes = append(aindexes, indexB...)
 	coord := mol.Coords[0]
-	subcoord := v3.Zeros(len(aindexes))
-	subcoord.SomeVecs(coord, aindexes) //all of them, in this case, but I'll keep this
+	mol.FillVdw()
+	//	subcoord := v3.Zeros(len(aindexes))
+	//	subcoord.SomeVecs(coord, aindexes) //all of them, in this case, but I'll keep this
 	fmt.Println("indexes", len(indexA), len(indexB))
-	cPlanes := ContactPlanes(subcoord, nil, nil)
+	cPlanes := ContactPlanes(coord, mol, false, aindexes)
 	contacts := cPlanes.AllContacts()
 	var ABConts []int
 	fmt.Println(len(contacts)) ///////////
 	//	testatoms := indexA[2:6] ////////
 	for _, v := range contacts {
-		if (isInInt(indexA, v[0]) && isInInt(indexB, v[1])) || (isInInt(indexB, v[0]) && isInInt(indexA, v[1])) {
-			if !isInInt(ABConts, v[0]) {
-				ABConts = append(ABConts, v[0])
-			}
-			if !isInInt(ABConts, v[1]) {
-				ABConts = append(ABConts, v[1])
-			}
+		//	if (isInInt(indexA, v[0]) && isInInt(indexB, v[1])) || (isInInt(indexB, v[0]) && isInInt(indexA, v[1])) {
+		if !isInInt(ABConts, v[0]) {
+			ABConts = append(ABConts, v[0])
 		}
+		if !isInInt(ABConts, v[1]) {
+			ABConts = append(ABConts, v[1])
+		}
+		//	}
 	}
 	if len(ABConts) == 0 {
 		t.Fatal("No contact found")
@@ -115,6 +78,7 @@ func TestFPlanes(t *testing.T) {
 
 }
 
+/*
 func TTestAreas(t *testing.T) {
 	mol, err := chem.PDBFileRead("../test/2c9vIOH.pdb", true)
 	if err != nil {
@@ -131,7 +95,7 @@ func TTestAreas(t *testing.T) {
 	indexA := chem.Molecules2Atoms(mol, res, []string{"A"})
 	indexB := chem.Molecules2Atoms(mol, res, []string{"F"})
 	coord := mol.Coords[0]
-	planes := GetPlanes(coord, mol, cutoff, true)
+	planes := ContactPlanes(coord, mol)
 	var ABConts [][]int
 	//	testatoms := indexA[2:6] ////////
 	for _, v := range indexA {
@@ -161,3 +125,4 @@ func TTestAreas(t *testing.T) {
 	fmt.Println("Total contact area:", area, "A")
 
 }
+*/

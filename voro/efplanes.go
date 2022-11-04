@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 
+	chem "github.com/rmera/gochem"
 	v3 "github.com/rmera/gochem/v3"
 )
 
@@ -32,21 +33,12 @@ func (d dids) String() string {
 	return ret
 }
 
-func atomDistances(at int, c *v3.Matrix, cutoff float64, indexes ...[]int) dids {
-	if cutoff < 0 {
-		cutoff = defCutoff
+func atomVdwDistances(at int, c *v3.Matrix, mol chem.Atomer, noH bool, allowed []int, scan ...*AngleScan) []*did {
+	if len(scan) <= 0 {
+		scan = append(scan, DefaultAngleScan()) //1.4 is the vdW radius of water
+
 	}
-	//you can give this function a set of atoms to consider for the interactions
-	in := make([]int, 0, 0)
-	if len(indexes) == 0 || len(indexes[0]) == 0 {
-		nvecs := c.NVecs()
-		for i := 0; i < nvecs; i++ {
-			in = append(in, i)
-		}
-	} else {
-		in = indexes[0]
-	}
-	//	fmt.Println("in", len(in)) ////////////
+	var vdwsum, cutoff float64
 	tmp := v3.Zeros(1)
 	var test *v3.Matrix
 	ref := c.VecView(at)
@@ -55,15 +47,21 @@ func atomDistances(at int, c *v3.Matrix, cutoff float64, indexes ...[]int) dids 
 	//This means many distances are calculated/stored twice.
 	//I'll do things in this naive way for now
 	for i := 0; i < vecs; i++ {
-		if i == at || !isInInt(in, i) {
+		if i == at || !isInInt(allowed, i) {
 			continue
 		}
+		if noH && mol.Atom(i).Symbol == "H" {
+			continue
+		}
+
+		vdwsum = mol.Atom(at).Vdw + mol.Atom(i).Vdw
+		cutoff = vdwsum*scan[0].VdwFactor + scan[0].Offset
 
 		test = c.VecView(i)
 		tmp.Sub(ref, test)
 		d := tmp.Norm(2)
 		if d < cutoff {
-			dists = append(dists, &did{id: i, d: tmp.Norm(2)})
+			dists = append(dists, &did{id: i, d: d})
 		}
 		//else {
 		//	fmt.Println("further away than cutoff! ", at, i, d, cutoff)
@@ -71,24 +69,23 @@ func atomDistances(at int, c *v3.Matrix, cutoff float64, indexes ...[]int) dids 
 
 	}
 	return dists
+
 }
 
-//if groups are given, each atom is only analized with respect to atoms in the group
-//it is NOT present.
-func distances(c *v3.Matrix, group1, group2 []int) []dids {
+func vdwdistances(c *v3.Matrix, mol chem.Atomer, noH bool, alo []int) []dids {
 	vecs := c.NVecs()
 	ret := make([]dids, 0, vecs)
-	var only []int
 	for i := 0; i < vecs; i++ {
-		if group1 != nil && group2 != nil {
-			if isInInt(group1, i) {
-				only = group2
-			} else if isInInt(group2, i) {
-				only = group1
-			}
-		}
 		//	fmt.Println("only", only) ////////////
-		ret = append(ret, atomDistances(i, c, -1, only))
+		if !isInInt(alo, i) {
+			ret = append(ret, nil)
+			continue
+		}
+		if noH && mol.Atom(i).Symbol == "H" {
+			ret = append(ret, nil)
+			continue
+		}
+		ret = append(ret, atomVdwDistances(i, c, mol, noH, alo))
 	}
 	for _, v := range ret {
 		sort.Sort(v)
@@ -98,38 +95,43 @@ func distances(c *v3.Matrix, group1, group2 []int) []dids {
 
 //adds to the set of planes the plane from each atom to its (ith+1)th closest atom,
 //if not repeated or blocked by already present planes.
-func ithClosestPlanes(c *v3.Matrix, dists []dids, ith int, planes VPSlice) VPSlice {
+func kthClosestPlanes(c *v3.Matrix, mol chem.Atomer, dists []dids, kth int, noH bool, allowed []int, planes VPSlice) VPSlice {
 	vecs := c.NVecs()
-	blocked := 0
-	repeated := 0
 	total := 0
-	excluded := 0
+	offset := 0
 	for i := 0; i < vecs; i++ {
+		if !isInInt(allowed, i) {
+			continue
+		}
+		if noH && mol.Atom(i).Symbol == "H" {
+			continue
+		}
 		//fmt.Println(len(dists[i]), ith) ///////////////////
-		if len(dists[i]) <= ith {
+		if len(dists[i]) <= kth {
+			//			println("not enough distances!!1") ////////
 			continue
 		}
 		//fmt.Println("found", ith, "atom to", i, "!") ///////////////////
-		j := dists[i][ith].id
+		j := dists[i][kth].id
 		ci := c.VecView(i)
 		cj := c.VecView(j)
 		p := PlaneBetweenAtoms(ci, cj, i, j)
 		total++
-		if planes.IsBlocked(p, c, i) { /////
-			blocked++ /////////////
-		} //////////////////////////////////
-		if planes.IsRepeated(p) {
-			repeated++
-		}
-		if planes.IsRepeated(p) || planes.IsBlocked(p, c, i) {
-			excluded++
-		}
+		//		if planes.IsBlocked(p, c, i) { /////
+		//			blocked++ /////////////
+		//		} //////////////////////////////////
+		//		if planes.IsRepeated(p) {
+		//			repeated++
+		//		}
+		//		if planes.IsRepeated(p) || planes.IsBlocked(p, c, i) {
+		//			excluded++
+		//		}
 
-		if !planes.IsBlocked(p, c, i) && !planes.IsRepeated(p) {
+		if !planes.IsRepeated(p) && !planes.IsBlocked(p, c, i-offset) {
 			planes = append(planes, p)
 		}
 	}
-	fmt.Println(total, " total planes read, ", blocked, "planes blocked and ", repeated, "repeated at the ", "and", excluded, "planes excluded at the ", ith, "closest") ////////
+	fmt.Println(total, " total planes read") ////////
 	//now we prune the repeated planes
 	newplanes := make([]*VPlane, 0, len(planes)/2)
 	np := VPSlice(newplanes)
@@ -142,16 +144,16 @@ func ithClosestPlanes(c *v3.Matrix, dists []dids, ith int, planes VPSlice) VPSli
 	return planes
 }
 
-func progressivePlanes(c *v3.Matrix, dists []dids) VPSlice {
+func progressivePlanes(c *v3.Matrix, mol chem.Atomer, dists []dids, noH bool, allowed []int) VPSlice {
 	planess := make([]*VPlane, 0, 100)
 	planes := VPSlice(planess)
-	added := []int{1, 1, 1, 1} //, 1, 1, 1, 1}
+	added := []int{1, 1} //, 1, 1, 1, 1}
 	var add int
 	//the following interates until no more planes are added
 	for i := 0; !isInInt(added, 0); i++ {
-		println("vueeeltaaa") ///////
+		println("vueeeltaaa", i) ///////
 		prev := len(planes)
-		planes = ithClosestPlanes(c, dists, i, planes)
+		planes = kthClosestPlanes(c, mol, dists, i, noH, allowed, planes)
 		post := len(planes)
 		add = post - prev
 		for j := 0; j < len(added)-1; j++ {
@@ -163,8 +165,20 @@ func progressivePlanes(c *v3.Matrix, dists []dids) VPSlice {
 	return planes
 }
 
-func ContactPlanes(c *v3.Matrix, group1, group2 []int) VPSlice {
-	dists := distances(c, group1, group2)
+func ContactPlanes(c *v3.Matrix, mol chem.Atomer, noH bool, allowed ...[]int) VPSlice {
+	var alo []int
+	vecs := c.NVecs()
+	if len(allowed) > 0 && len(allowed[0]) > 0 {
+		alo = allowed[0]
+	} else {
+		alo = make([]int, 0, vecs)
+		for i := 0; i < vecs; i++ {
+			alo = append(alo, i)
+		}
+
+	}
+
+	dists := vdwdistances(c, mol, noH, alo)
 	atoms := 0
 	avdist := 0
 	for _, v := range dists {
@@ -173,5 +187,5 @@ func ContactPlanes(c *v3.Matrix, group1, group2 []int) VPSlice {
 	}
 	fmt.Println("average distances", avdist/atoms) ////////////
 	//fmt.Println(dists) /////////////////////
-	return progressivePlanes(c, dists)
+	return progressivePlanes(c, mol, dists, noH, alo)
 }

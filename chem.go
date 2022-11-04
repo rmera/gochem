@@ -25,8 +25,13 @@
 package chem
 
 import (
+	"bufio"
 	"fmt"
+	"os"
+	"regexp"
 	"sort"
+	"strconv"
+	"strings"
 
 	v3 "github.com/rmera/gochem/v3"
 )
@@ -156,12 +161,71 @@ func (T *Topology) FillIndexes() {
 
 //FillVdw tries to get fill the  van der Waals radii for the atoms in the molecule
 //from a symbol->radii map. Only a few common elements are supported
-func (T *Topology) FillVdw() {
+func (T *Topology) FillVdw() error {
+	var err error
+	var ok bool
 	for _, val := range T.Atoms {
 		if val.Symbol != "" && val.Vdw == 0 {
-			val.Vdw = symbolVdwrad[val.Symbol] //Not error checking
+			val.Vdw, ok = symbolVdwrad[val.Symbol]
+			if !ok {
+				err = &CError{msg: fmt.Sprintf("Couldn't assign a radius to at least the atom %v", val), deco: []string{"Topology.FillVdw"}}
+			}
 		}
 	}
+	return err
+}
+
+//FillVdwFromFile uses a file to obtain vdW radii for the atoms in the Topology
+//The file must contain only lines of the form:
+// REGEX radius
+//Where REGEX is a regular expression to be matched with atom names and radius is the
+//corresponding vdW radius for the matching atoms, in A. The first REGEX matched will be used
+//for each atom, so the order of the lines in the file might be significant.
+func (T *Topology) FillVdwFromFile(fname string) error {
+	f, err := os.Open(fname)
+	if err != nil {
+		return err
+	}
+	buf := bufio.NewReader(f)
+
+	radii := make([]*a2v, 0, T.Len())
+	var line string
+	for line, err = buf.ReadString('\n'); err == nil; line, err = buf.ReadString('\n') {
+		f := strings.Fields(line)
+		if len(f) < 2 {
+			err = &CError{msg: fmt.Sprintf("vdW file %s improperly formatted", fname), deco: []string{}}
+			break
+		}
+		re, err2 := regexp.Compile(f[0])
+		if err2 != nil {
+			err = err2
+			break
+		}
+		val, err3 := strconv.ParseFloat(f[1], 64)
+		if err3 != nil {
+			err = err3
+			break
+		}
+		radii = append(radii, &a2v{a: re, vdw: val})
+	}
+	if err != nil && err.Error() != "EOF" {
+		return err
+	}
+
+	for _, v := range T.Atoms {
+		for _, w := range radii {
+			if w.a.MatchString(v.Name) {
+				v.Vdw = w.vdw
+				break
+			}
+		}
+	}
+	return nil
+}
+
+type a2v struct {
+	a   *regexp.Regexp
+	vdw float64
 }
 
 //ResetIDs sets the current order of atoms as ID and the order of molecules as
