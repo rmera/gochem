@@ -106,11 +106,21 @@ func TestAreas(t *testing.T) {
 			ABConts = append(ABConts, v)
 		}
 	}
-	area := 0.0
+	var surf float64 = 0.00
+	var vol float64
+	var ctm []float64
 	for _, v := range ABConts {
-		area += PairContactArea(v[0], v[1], coord, cPlanes)
-		fmt.Println("Area so far", area)
+
+		//	if isInInt(indexA, v[0]) {
+		ctm = PairContactAreaAndVolume(v[0], v[1], coord, cPlanes)
+		//	} else {
+		//	ctm = PairContactAreaAndVolume(v[1], v[0], coord, cPlanes)
+
+		//	}
+		surf += ctm[0]
+		vol += ctm[1]
+		fmt.Println("Area and vol so far", surf, vol, "added now", ctm)
 	}
-	fmt.Println("Total contact area:", area, "A")
+	fmt.Println("Total contact area:", surf, "A^2. volume for the polyhedron associated to the 'A' chain part of the interface:", vol, "A^3")
 
 }

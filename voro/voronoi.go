@@ -91,20 +91,26 @@ type VPlane struct {
 //NOT in the direction of the vector d!
 //It returns -1 if the vector never intersects the plane.
 //I think now this should be an average betweent eh posiotion of o and d.
-func (V *VPlane) DistanceInterVector2(o, d *v3.Matrix) float64 {
+func (V *VPlane) DistanceInterVector(o, d *v3.Matrix) float64 {
 	od := v3.Zeros(1)
 	od.Sub(d, o)
 	od.Unit(od)
 	dot := V.Normal.Dot(od)
 	if dot == 0 {
 		return -1 //odtor and plane never intersect
-		//The other corner case, where the odtor is contained in the plane, should not happen here!
+		//The other corner case, where the odtor is contained in the plane, should not happen,
+		//but it would also lead to a dot==0 int his case.
 	}
 	P := V.Parametric()
 	subterm := P[0]*o.At(0, 0) + P[1]*o.At(0, 1) + P[2]*o.At(0, 2)
 	deno := P[0]*od.At(0, 0) + P[1]*od.At(0, 1) + P[2]*od.At(0, 2)
 	m := (P[3] - subterm) / deno
-	return m
+	//	if m < 0 {
+	//		log.Println("m<0!", m)
+	//	}
+	return m //The sign of this number is pretty important. if your have this situation:  / .   / If you don't consider the sign
+	//it could seem that the leftmost plane is blocking the way between the point and the rightmost one, as it is closer,
+	//but in the wrong direction.
 }
 
 //obtains the plane equation Ax+By+Cz = D for our plane, returns A, B, C and D
@@ -246,8 +252,8 @@ func ConeBlockSlice(ref *VPlane, tests VPSlice, ati, atj *v3.Matrix, cutoff floa
 			continue //This is just the same plane
 		}
 		if ref.Atoms[1] == test.Atoms[1] && ref.Atoms[0] == test.Atoms[1] {
-			println("this shouldn't happen!") /////////////
-			continue                          //This is just the same plane
+			//	println("this shouldn't happen!") /////////////
+			continue //This is just the same plane
 		}
 
 		if !(ref.Atoms[1] == test.Atoms[0] || ref.Atoms[1] == test.Atoms[1] || ref.Atoms[0] == test.Atoms[0] || ref.Atoms[0] == test.Atoms[1]) {
@@ -267,14 +273,14 @@ func ConeBlockSlice(ref *VPlane, tests VPSlice, ati, atj *v3.Matrix, cutoff floa
 			if err != nil {
 				panic(err.Error())
 			}
-			refdist = ref.DistanceInterVector2(ati, ndir)
+			refdist = ref.DistanceInterVector(ati, ndir)
 			//means at this angle there is never an intersection
 			if refdist < 0 || refdist > cutoff {
 				continue
 			}
 			blocked := false
 			for _, test := range truetests {
-				Dij_k := test.DistanceInterVector2(ati, ndir)
+				Dij_k := test.DistanceInterVector(ati, ndir)
 				if Dij_k <= refdist && Dij_k >= 0 { //a D_ij_K <0 ==>  vector never intersects the plane.
 					//				if ang == 0 && rot == 0 {
 					//					fmt.Println(ref.Atoms, test.Atoms, refdist, Dij_k, ang, rot) /////////
@@ -292,32 +298,6 @@ func ConeBlockSlice(ref *VPlane, tests VPSlice, ati, atj *v3.Matrix, cutoff floa
 
 }
 
-//DistanceInterVector  obtains the distance from a point o to the plane in the direction to the point d
-//NOT in the direction of the vector d!
-//It returns -1 if the vector never intersects the plane.
-func (V *VPlane) DistanceInterVector(o, d *v3.Matrix) float64 {
-	p := v3.Zeros(1)
-	p.Sub(d, o)
-	dot := V.Normal.Dot(p)
-	if dot == 0 {
-		return -1 //vector and plane never intersect
-		//The other corner case, where the vector is contained in the plane, should not happen here!
-	}
-	n := V.Normal
-	a := V.Point
-	c := func(v *v3.Matrix, i int) float64 { return v.At(0, i) }
-	t := (c(n, 0)*(c(o, 0)-c(a, 0)) + c(n, 1)*(c(o, 1)-c(a, 1)) + c(n, 2)*(c(o, 2)-c(a, 2))) / (c(n, 0)*c(d, 0) + c(n, 1)*c(d, 1) + c(n, 2)*c(d, 2))
-	x := c(o, 0) + c(d, 0)*t
-	y := c(o, 1) + c(d, 1)*t
-	z := c(o, 2) + c(d, 2)*t
-	p.Set(0, 0, x)
-	p.Set(0, 1, y)
-	p.Set(0, 2, z)
-	p2 := v3.Zeros(1)
-	p2.Sub(p, o)
-	return p2.Norm(2)
-}
-
 func PlaneBetweenAtoms(at1, at2 *v3.Matrix, i, j int) *VPlane {
 	ret := &VPlane{}
 	ret.Atoms = []int{i, j}
@@ -327,6 +307,6 @@ func PlaneBetweenAtoms(at1, at2 *v3.Matrix, i, j int) *VPlane {
 	ret.Point = v3.Zeros(1)
 	ret.Point.Add(at1, at2)
 	ret.Point.Scale(0.5, ret.Point) //It's the geometric center of the 2 points, so it should definitely be part of the plane.
-	//println(ret.Distance, ret.DistanceInterVector2(at1, at2), "SHOULD BE THE SAME!!!") ///////////
+	//println(ret.Distance, ret.DistanceInterVector(at1, at2), "SHOULD BE THE SAME!!!") ///////////
 	return ret
 }
