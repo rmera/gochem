@@ -26,6 +26,15 @@
 
 package chem
 
+import (
+	"bufio"
+	"fmt"
+	"os"
+	"regexp"
+	"strconv"
+	"strings"
+)
+
 //A map for assigning mass to elements.
 //Note that just common "bio-elements" are present
 var symbolMass = map[string]float64{
@@ -129,4 +138,63 @@ var symbolMaxBonds = map[string]int{
 	"F":  1,
 	"Br": 1,
 	"I":  1,
+}
+
+//ALL the Following is _not_ tested.
+
+type RA2VdW struct {
+	a   *regexp.Regexp
+	vdw float64
+}
+
+//Martini 3 bible, p 42
+var Martini3TypesvdW []*RA2VdW = []*RA2VdW{&RA2VdW{a: regexp.MustCompile("^S"), vdw: 2.30}, &RA2VdW{a: regexp.MustCompile("^T"), vdw: 1.91}, &RA2VdW{a: regexp.MustCompile("^(Q|P|N|C|X|D)"), vdw: 2.64}, &RA2VdW{a: regexp.MustCompile("W"), vdw: 1.4 * 4}}
+
+//Martini 3 bible, p 42
+var Martini3VdW []*RA2VdW = []*RA2VdW{&RA2VdW{a: regexp.MustCompile(".*BB"), vdw: 2.30}, &RA2VdW{a: regexp.MustCompile("(CYS|ALA|SER|HIS|HIH|TYR|TRP)SC"), vdw: 1.91}, &RA2VdW{a: regexp.MustCompile("PHESC1"), vdw: 2.3}, &RA2VdW{a: regexp.MustCompile("PHESC(2|3)"), vdw: 1.91}, &RA2VdW{a: regexp.MustCompile("W"), vdw: 1.4 * 4}}
+
+//Where REGEX is a regular expression to be matched with atom residue and atomname (example: TYRCA)  and radius is the
+//corresponding vdW radius for the matching atoms, in A. The first REGEX matched will be used
+//for each atom, so the order of the lines in the file might be significant.
+func VdwResAndNAmeFromFile(fname string, mol Atomer) ([]*RA2VdW, error) {
+	f, err := os.Open(fname)
+	if err != nil {
+		return nil, err
+	}
+	buf := bufio.NewReader(f)
+
+	radii := make([]*RA2VdW, 0, mol.Len())
+	var line string
+	for line, err = buf.ReadString('\n'); err == nil; line, err = buf.ReadString('\n') {
+		f := strings.Fields(line)
+		if len(f) < 2 {
+			err = &CError{msg: fmt.Sprintf("vdW file %s improperly formatted", fname), deco: []string{}}
+			break
+		}
+		re, err2 := regexp.Compile(f[0])
+		if err2 != nil {
+			err = err2
+			break
+		}
+		val, err3 := strconv.ParseFloat(f[1], 64)
+		if err3 != nil {
+			err = err3
+			break
+		}
+		radii = append(radii, &RA2VdW{a: re, vdw: val})
+	}
+	if err != nil && err.Error() != "EOF" {
+		return nil, err
+	}
+
+	for i := 0; i < mol.Len(); i++ {
+		v := mol.Atom(i)
+		for _, w := range radii {
+			if w.a.MatchString(v.Name) {
+				v.Vdw = w.vdw
+				break
+			}
+		}
+	}
+	return radii, nil
 }

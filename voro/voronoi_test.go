@@ -31,15 +31,11 @@ func TessssssRotation(t *testing.T) {
 	}
 }
 
-func TestFPlanes(t *testing.T) {
+func TTestFPlanes(t *testing.T) {
 	mol, err := chem.PDBFileRead("../test/2c9vIOH.pdb", true)
 	if err != nil {
 		panic(err.Error())
 	}
-	//res := []int{}
-	//for i := 1; i <= 153; i++ {
-	//		res = append(res, i)
-	//	}
 	res := []int{2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 145, 146, 147, 148, 149, 150, 151, 152, 153}
 	indexA := chem.Molecules2Atoms(mol, res, []string{"A"})
 	indexB := chem.Molecules2Atoms(mol, res, []string{"F"})
@@ -51,25 +47,28 @@ func TestFPlanes(t *testing.T) {
 	//	subcoord := v3.Zeros(len(aindexes))
 	//	subcoord.SomeVecs(coord, aindexes) //all of them, in this case, but I'll keep this
 	fmt.Println("indexes", len(indexA), len(indexB))
-	cPlanes := ContactPlanes(coord, mol, false, aindexes)
+	options := DefaultScanOptions()
+	options.Subset = aindexes
+	options.NoH = true
+	cPlanes := ContactPlanes(coord, mol, options)
 	contacts := cPlanes.AllContacts()
 	var ABConts []int
 	fmt.Println(len(contacts)) ///////////
 	//	testatoms := indexA[2:6] ////////
 	for _, v := range contacts {
-		//	if (isInInt(indexA, v[0]) && isInInt(indexB, v[1])) || (isInInt(indexB, v[0]) && isInInt(indexA, v[1])) {
-		if !isInInt(ABConts, v[0]) {
-			ABConts = append(ABConts, v[0])
+		if (isInInt(indexA, v[0]) && isInInt(indexB, v[1])) || (isInInt(indexB, v[0]) && isInInt(indexA, v[1])) {
+			if !isInInt(ABConts, v[0]) {
+				ABConts = append(ABConts, v[0])
+			}
+			if !isInInt(ABConts, v[1]) {
+				ABConts = append(ABConts, v[1])
+			}
 		}
-		if !isInInt(ABConts, v[1]) {
-			ABConts = append(ABConts, v[1])
-		}
-		//	}
 	}
 	if len(ABConts) == 0 {
 		t.Fatal("No contact found")
 	}
-	fmt.Println("Contacts: ", len(ABConts), ABConts)
+	fmt.Println("Atoms in Contact: ", len(ABConts), ABConts)
 	icoord := v3.Zeros(len(ABConts))
 	icoord.SomeVecs(coord, ABConts)
 	imol := chem.NewTopology(0, 1)
@@ -78,51 +77,40 @@ func TestFPlanes(t *testing.T) {
 
 }
 
-/*
-func TTestAreas(t *testing.T) {
+func TestAreas(t *testing.T) {
 	mol, err := chem.PDBFileRead("../test/2c9vIOH.pdb", true)
 	if err != nil {
 		panic(err.Error())
 	}
-	const cutoff = 4
-	mol.FillVdw()
-	//res := []int{148, 149, 150, 151, 152, 153, 48, 49, 50, 51, 52}
-	//	resB := []int{48, 49, 50, 51, 52}
-	res := []int{}
-	for i := 1; i <= 153; i++ {
-		res = append(res, i)
-	}
+	res := []int{2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 145, 146, 147, 148, 149, 150, 151, 152, 153}
 	indexA := chem.Molecules2Atoms(mol, res, []string{"A"})
 	indexB := chem.Molecules2Atoms(mol, res, []string{"F"})
+	aindexes := make([]int, 0, len(indexA)+len(indexB))
+	aindexes = append(aindexes, indexA...)
+	aindexes = append(aindexes, indexB...)
 	coord := mol.Coords[0]
-	planes := ContactPlanes(coord, mol)
-	var ABConts [][]int
+	mol.FillVdw()
+	//	subcoord := v3.Zeros(len(aindexes))
+	//	subcoord.SomeVecs(coord, aindexes) //all of them, in this case, but I'll keep this
+	fmt.Println("indexes", len(indexA), len(indexB))
+	options := DefaultScanOptions()
+	options.Subset = aindexes
+	options.NoH = false
+	cPlanes := ContactPlanes(coord, mol, options)
+	contacts := cPlanes.AllContacts()
+	var ABConts [][2]int
+	fmt.Println(len(contacts)) ///////////
 	//	testatoms := indexA[2:6] ////////
-	for _, v := range indexA {
-		for _, w := range indexB {
-			angles := DefaultAngleScan() //this is the cutoff for inter-atom distances, so half of it is about right for atom-plane
-			if planes.VdwContact(coord, mol, v, w, angles) {
-				ABConts = append(ABConts, []int{v, w})
-			}
+	for _, v := range contacts {
+		if (isInInt(indexA, v[0]) && isInInt(indexB, v[1])) || (isInInt(indexB, v[0]) && isInInt(indexA, v[1])) {
+			ABConts = append(ABConts, v)
 		}
 	}
-	fmt.Println("Ready with A-B contacts")
-	fmt.Println("Got", len(planes.ConfirmedContacts()), "A-B confirmed contacts")
-	for i, v := range indexA {
-		for _, w := range indexA[i:] {
-			angles := DefaultAngleScan()                //this is the cutoff for inter-atom distances, so half of it is about right for atom-plane
-			planes.VdwContact(coord, mol, v, w, angles) //we only want to "mark" the contact planes
-		}
-	}
-	fmt.Println("Ready with A-A contacts")
 	area := 0.0
-	contactplanes := planes.ConfirmedContacts()
-	fmt.Println("Got", len(contactplanes), "confirmed contacts")
 	for _, v := range ABConts {
-		area += PairContactArea(v[0], v[1], coord, contactplanes)
+		area += PairContactArea(v[0], v[1], coord, cPlanes)
 		fmt.Println("Area so far", area)
 	}
 	fmt.Println("Total contact area:", area, "A")
 
 }
-*/

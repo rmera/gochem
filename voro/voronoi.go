@@ -47,26 +47,30 @@ import (
 )
 
 const (
-	defOffset    float64 = 1.4
-	defVdwFactor float64 = 1.2
-	defMaxAngle  float64 = 87
-	defAngleStep float64 = 5
-	defCutoff    float64 = 6 //rather permissive
+	defWaterOffset float64 = 1.4
+	defOffset      float64 = 0.0
+	defVdwFactor   float64 = 1.2
+	defMaxAngle    float64 = 87
+	defAngleStep   float64 = 5
+	defCutoff      float64 = 5 //rather permissive
 )
 
-//AngleScan contains options to perform angle scans to see if there is an angle in which 2 atoms
+//ScanOptions contains options to perform angle scans to see if there is an angle in which 2 atoms
 //are in direct contact (i.e. if part of the plane bisecting them is part of the Voronoi polihedra for the system).
-type AngleScan struct {
-	VdwFactor float64
-	Offset    float64
-	Angles    []float64 //last angle, step between angles, in degrees. A full scan would be 0 to 90
-	Cutoff    float64   //distance cutoff, if the vectors at the given angle are farther than this, the angle is ignored.
-	Test      bool      //for debugging
+type ScanOptions struct {
+	NoH           bool
+	Subset        []int
+	VdwFactor     float64
+	vdwSum        float64
+	Offset        float64
+	WaterContacts bool
+	Angles        []float64 //last angle, step between angles, in degrees. A full scan would be 0 to 90
+	Cutoff        float64   //distance cutoff, if the vectors at the given angle are farther than this, the angle is ignored.
 }
 
-//DefaultAngleScan returns the default setting for an AngleScan
-func DefaultAngleScan() *AngleScan {
-	return &AngleScan{Offset: defOffset, VdwFactor: defVdwFactor, Angles: []float64{defMaxAngle, defAngleStep}, Cutoff: defCutoff}
+//DefaultScanOptions returns the default setting for an ScanOptions
+func DefaultScanOptions() *ScanOptions {
+	return &ScanOptions{Offset: defOffset, VdwFactor: defVdwFactor, Angles: []float64{defMaxAngle, defAngleStep}, Cutoff: defCutoff}
 }
 
 //This is a naive, unoptimal, simple and incomplete implementation
@@ -83,9 +87,30 @@ type VPlane struct {
 	Contact    bool       //true if this plane is a confirmed contact
 }
 
+//DistanceInterVector  obtains the distance from a point o to the plane in the direction to the point d
+//NOT in the direction of the vector d!
+//It returns -1 if the vector never intersects the plane.
+//I think now this should be an average betweent eh posiotion of o and d.
+func (V *VPlane) DistanceInterVector2(o, d *v3.Matrix) float64 {
+	od := v3.Zeros(1)
+	od.Sub(d, o)
+	od.Unit(od)
+	dot := V.Normal.Dot(od)
+	if dot == 0 {
+		return -1 //odtor and plane never intersect
+		//The other corner case, where the odtor is contained in the plane, should not happen here!
+	}
+	P := V.Parametric()
+	subterm := P[0]*o.At(0, 0) + P[1]*o.At(0, 1) + P[2]*o.At(0, 2)
+	deno := P[0]*od.At(0, 0) + P[1]*od.At(0, 1) + P[2]*od.At(0, 2)
+	m := (P[3] - subterm) / deno
+	return m
+}
+
+//obtains the plane equation Ax+By+Cz = D for our plane, returns A, B, C and D
 func (V *VPlane) Parametric(parameters ...[]float64) []float64 {
 	var pars []float64
-	if len(parameters) > 1 || len(parameters[0]) >= 4 {
+	if len(parameters) >= 1 && len(parameters[0]) >= 4 {
 		pars = parameters[0]
 
 	} else {
@@ -106,32 +131,6 @@ func (V *VPlane) OtherAtom(i int) int {
 		return V.Atoms[0]
 	}
 	panic(fmt.Sprintf("Plane is not related to atom %d", i)) //I think this is fair enough. This should always be a bug in the program.
-}
-
-//DistanceInterVector  obtains the distance from a point o to the plane in the direction to the point d
-//NOT in the direction of the vector d!
-//It returns -1 if the vector never intersects the plane.
-func (V *VPlane) DistanceInterVector(o, d *v3.Matrix) float64 {
-	p := v3.Zeros(1)
-	p.Sub(d, o)
-	dot := V.Normal.Dot(p)
-	if dot == 0 {
-		return -1 //vector and plane never intersect
-		//The other corner case, where the vector is contained in the plane, should not happen here!
-	}
-	n := V.Normal
-	a := V.Point
-	c := func(v *v3.Matrix, i int) float64 { return v.At(0, i) }
-	t := (c(n, 0)*(c(o, 0)-c(a, 0)) + c(n, 1)*(c(o, 1)-c(a, 1)) + c(n, 2)*(c(o, 2)-c(a, 2))) / (c(n, 0)*c(d, 0) + c(n, 1)*c(d, 1) + c(n, 2)*c(d, 2))
-	x := c(o, 0) + c(d, 0)*t
-	y := c(o, 1) + c(d, 1)*t
-	z := c(o, 2) + c(d, 2)*t
-	p.Set(0, 0, x)
-	p.Set(0, 1, y)
-	p.Set(0, 2, z)
-	p2 := v3.Zeros(1)
-	p2.Sub(p, o)
-	return p2.Norm(2)
 }
 
 //VPSlice contains a slice to pointers to VPlane.
@@ -166,65 +165,6 @@ func distance(coords *v3.Matrix, i, j int) float64 {
 	return d.Norm(2)
 }
 
-// Determines whether vectors i and j from coords are in contact, by checking that no plane is closer to i
-// than the plane bisecting the ij vector, along some direction with an angle smaller than 90 degrees from the
-// direction along the ij vector.
-// This function is safe for concurrent use.
-func (P VPSlice) Contact(coords *v3.Matrix, i, j int, anglest ...*AngleScan) bool {
-	var angles []float64 //if given, should contain 3 values. First angle, last angle, and step (all in degrees).
-	cutoff := 6.0        //some default (rather permisive) cutoff
-	if len(anglest) == 0 {
-		angles = []float64{1, 2} //these values ensure that only one angle 0 deg is tested.
-	} else {
-		angles = anglest[0].Angles
-		cutoff = anglest[0].Cutoff
-
-	}
-	ref := P.PairPlane(i, j)
-	if ref == nil {
-		return false //the plane was never created, probably above the initial distance cutoff
-	}
-	if distance(coords, i, j) > anglest[0].Cutoff {
-		ref.NotContact = true
-		return false //profiling is good! This made everything over an order of magnitude faster xD
-
-	}
-	//no need to test things that are too far anyway.
-	planes := P.AtomPlanes(i)
-	notcontact := make([]bool, len(planes))
-	for k, v := range planes {
-		if v.Distance > anglest[0].Cutoff/2 {
-			notcontact[k] = true
-			//		planes[k].NotContact = true
-		} else {
-			notcontact[k] = false
-
-			//		planes[k].NotContact = false
-		}
-	}
-	ati := coords.VecView(i)
-	atj := coords.VecView(j)
-	for i, v := range planes {
-		if v.Atoms[1] == j || v.Atoms[0] == j {
-			continue //shouldn't be needed, really
-		}
-		if notcontact[i] {
-			continue
-		}
-		var fname []string
-		if len(anglest) > 0 && anglest[0].Test {
-			fname = append(fname, fmt.Sprintf("test_%d_%d.xyz", i, j)) //test/debug
-		}
-		blocked := ConeBlock(ref, v, ati, atj, cutoff, angles, fname...)
-		if blocked {
-			ref.NotContact = true
-			return false
-		}
-	}
-	ref.Contact = true
-	return true
-}
-
 //checks if the ith plane is repeated elsewhere
 func (P VPSlice) IsRepeated(p *VPlane) bool {
 	for _, v := range P {
@@ -249,31 +189,17 @@ func (P VPSlice) AllContacts() [][2]int {
 	return r
 }
 
-func (P VPSlice) IsBlocked(p *VPlane, c *v3.Matrix, mustbeatom int, anglest ...*AngleScan) bool {
-	var as *AngleScan
+func (P VPSlice) IsBlocked(p *VPlane, c *v3.Matrix, mustbeatom int, anglest ...*ScanOptions) bool {
+	var as *ScanOptions
 	if len(anglest) == 0 {
-		as = DefaultAngleScan()
+		as = DefaultScanOptions()
 	}
 	ai := c.VecView(p.Atoms[0])
 	aj := c.VecView(p.Atoms[1])
-
-	for _, v := range P {
-		if v.Atoms[1] == p.Atoms[0] && v.Atoms[0] == p.Atoms[1] {
-			continue //This is just the same plane
-		}
-		//if a "mustbeatom" is given, we only check the planes that contain that atom
-		//if mustbeatom >= 0 && !(v.Atoms[1] == mustbeatom || v.Atoms[0] == mustbeatom) {
-		//	continue
-
-		if !(v.Atoms[1] == p.Atoms[0] || v.Atoms[0] == p.Atoms[0] || v.Atoms[1] == p.Atoms[1] || v.Atoms[0] == p.Atoms[1]) {
-			continue //there is no point to check planes that have no atoms in common with the test one.
-		}
-
-		blocked := ConeBlock(p, v, ai, aj, as.Cutoff, as.Angles)
-		if blocked {
-			p.NotContact = true
-			return true
-		}
+	blocked := ConeBlockSlice(p, P, ai, aj, as.Cutoff, as.Angles)
+	if blocked {
+		p.NotContact = true
+		return true
 	}
 	p.Contact = true
 	return false
@@ -296,8 +222,11 @@ func (P VPSlice) ConfirmedContacts() VPSlice {
 //in angle[1] steps.
 //This is a brute-force, very slow and clumsy system. But hey, I'm a chemist. I'll change it when a) there is a pure Go 3D-Voronoi
 //library or b) I find the time to study computational geometry.
-func ConeBlock(ref, test *VPlane, ati, atj *v3.Matrix, cutoff float64, angles []float64, testname ...string) bool {
+func ConeBlockSlice(ref *VPlane, tests VPSlice, ati, atj *v3.Matrix, cutoff float64, angles []float64, testname ...string) bool {
 	refdist := ref.Distance
+	//	if refdist != ref.DistanceInterVector(ati, atj) {
+	//		println("ctm", refdist, ref.DistanceInterVector(ati, atj)) ///////////
+	//	}
 	axis := v3.Zeros(1)
 	aux := v3.Zeros(1)
 	ax2 := v3.Zeros(1)
@@ -308,34 +237,53 @@ func ConeBlock(ref, test *VPlane, ati, atj *v3.Matrix, cutoff float64, angles []
 	if angles[0] >= 90 { //this will never intersect the ref plane!
 		angles[0] = 89
 	}
-	for ang := 0.0; ang <= angles[0]; ang += angles[1] {
-		if ang == 0 {
-			refdist = ref.Distance
-			Dij_k := test.DistanceInterVector(ati, atj)
-			if Dij_k > refdist || Dij_k < 0 {
-				return false
-			}
+	truetests := make([]*VPlane, 0, 100)
+	//	fmt.Println(ref.Atoms) ////////
+	//we first go through the planes to discard the ones we don't consider here
+	// we collect a subset of the planes that will actually be tested
+	for _, test := range tests {
+		if ref.Atoms[1] == test.Atoms[0] && ref.Atoms[0] == test.Atoms[1] {
+			continue //This is just the same plane
 		}
+		if ref.Atoms[1] == test.Atoms[1] && ref.Atoms[0] == test.Atoms[1] {
+			println("this shouldn't happen!") /////////////
+			continue                          //This is just the same plane
+		}
+
+		if !(ref.Atoms[1] == test.Atoms[0] || ref.Atoms[1] == test.Atoms[1] || ref.Atoms[0] == test.Atoms[0] || ref.Atoms[0] == test.Atoms[1]) {
+			continue //there is no point to check planes that have no atoms in common with the test one.
+		}
+		truetests = append(truetests, test)
+
+	}
+	for ang := 0.0; ang <= angles[0]; ang += angles[1] {
 		//now the cone
 		dir, err := chem.RotateAbout(atj, ati, ax2, ang*chem.Deg2Rad)
 		if err != nil {
 			panic(err.Error()) //I am not 100% sure about panicking over this, but it seems like it has to be a bug in the caller
 		}
 		for rot := 0.0; rot < 360; rot += angles[1] {
-			ndir, err := chem.RotateAbout(dir, ati, atj, rot)
+			ndir, err := chem.RotateAbout(dir, ati, atj, rot*chem.Deg2Rad)
 			if err != nil {
 				panic(err.Error())
 			}
-			//		if len(testname) > 0 {
-			//			xyz += writetestxyzstring(ati, atj, ndir)
-			//		}
-			refdist = ref.DistanceInterVector(ati, ndir)
-			if refdist > cutoff/2 && refdist < 0 {
-				return true
+			refdist = ref.DistanceInterVector2(ati, ndir)
+			//means at this angle there is never an intersection
+			if refdist < 0 || refdist > cutoff {
+				continue
 			}
-
-			Dij_k := test.DistanceInterVector(ati, ndir)
-			if Dij_k > refdist || Dij_k < 0 { //a distance <0 means that the vector never intersects the plane.
+			blocked := false
+			for _, test := range truetests {
+				Dij_k := test.DistanceInterVector2(ati, ndir)
+				if Dij_k <= refdist && Dij_k >= 0 { //a D_ij_K <0 ==>  vector never intersects the plane.
+					//				if ang == 0 && rot == 0 {
+					//					fmt.Println(ref.Atoms, test.Atoms, refdist, Dij_k, ang, rot) /////////
+					//				}
+					blocked = true
+					break
+				}
+			}
+			if !blocked {
 				return false
 			}
 		}
@@ -344,7 +292,32 @@ func ConeBlock(ref, test *VPlane, ati, atj *v3.Matrix, cutoff float64, angles []
 
 }
 
-//
+//DistanceInterVector  obtains the distance from a point o to the plane in the direction to the point d
+//NOT in the direction of the vector d!
+//It returns -1 if the vector never intersects the plane.
+func (V *VPlane) DistanceInterVector(o, d *v3.Matrix) float64 {
+	p := v3.Zeros(1)
+	p.Sub(d, o)
+	dot := V.Normal.Dot(p)
+	if dot == 0 {
+		return -1 //vector and plane never intersect
+		//The other corner case, where the vector is contained in the plane, should not happen here!
+	}
+	n := V.Normal
+	a := V.Point
+	c := func(v *v3.Matrix, i int) float64 { return v.At(0, i) }
+	t := (c(n, 0)*(c(o, 0)-c(a, 0)) + c(n, 1)*(c(o, 1)-c(a, 1)) + c(n, 2)*(c(o, 2)-c(a, 2))) / (c(n, 0)*c(d, 0) + c(n, 1)*c(d, 1) + c(n, 2)*c(d, 2))
+	x := c(o, 0) + c(d, 0)*t
+	y := c(o, 1) + c(d, 1)*t
+	z := c(o, 2) + c(d, 2)*t
+	p.Set(0, 0, x)
+	p.Set(0, 1, y)
+	p.Set(0, 2, z)
+	p2 := v3.Zeros(1)
+	p2.Sub(p, o)
+	return p2.Norm(2)
+}
+
 func PlaneBetweenAtoms(at1, at2 *v3.Matrix, i, j int) *VPlane {
 	ret := &VPlane{}
 	ret.Atoms = []int{i, j}
@@ -353,6 +326,7 @@ func PlaneBetweenAtoms(at1, at2 *v3.Matrix, i, j int) *VPlane {
 	ret.Distance = ret.Normal.Norm(2) / 2.0
 	ret.Point = v3.Zeros(1)
 	ret.Point.Add(at1, at2)
-	ret.Point.Scale(0.5, ret.Point) //I'm actually not 100% sure about this! D:
+	ret.Point.Scale(0.5, ret.Point) //It's the geometric center of the 2 points, so it should definitely be part of the plane.
+	//println(ret.Distance, ret.DistanceInterVector2(at1, at2), "SHOULD BE THE SAME!!!") ///////////
 	return ret
 }

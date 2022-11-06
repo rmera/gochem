@@ -33,11 +33,7 @@ func (d dids) String() string {
 	return ret
 }
 
-func atomVdwDistances(at int, c *v3.Matrix, mol chem.Atomer, noH bool, allowed []int, scan ...*AngleScan) []*did {
-	if len(scan) <= 0 {
-		scan = append(scan, DefaultAngleScan()) //1.4 is the vdW radius of water
-
-	}
+func atomVdwDistances(at int, c *v3.Matrix, mol chem.Atomer, scan *ScanOptions) []*did {
 	var vdwsum, cutoff float64
 	tmp := v3.Zeros(1)
 	var test *v3.Matrix
@@ -47,15 +43,14 @@ func atomVdwDistances(at int, c *v3.Matrix, mol chem.Atomer, noH bool, allowed [
 	//This means many distances are calculated/stored twice.
 	//I'll do things in this naive way for now
 	for i := 0; i < vecs; i++ {
-		if i == at || !isInInt(allowed, i) {
+		if i == at || !isInInt(scan.Subset, i) {
 			continue
 		}
-		if noH && mol.Atom(i).Symbol == "H" {
+		if scan.NoH && mol.Atom(i).Symbol == "H" {
 			continue
 		}
-
-		vdwsum = mol.Atom(at).Vdw + mol.Atom(i).Vdw
-		cutoff = vdwsum*scan[0].VdwFactor + scan[0].Offset
+		vdwsum = mol.Atom(at).Vdw + mol.Atom(i).Vdw + scan.vdwSum
+		cutoff = vdwsum*scan.VdwFactor + scan.Offset
 
 		test = c.VecView(i)
 		tmp.Sub(ref, test)
@@ -72,79 +67,52 @@ func atomVdwDistances(at int, c *v3.Matrix, mol chem.Atomer, noH bool, allowed [
 
 }
 
-func vdwdistances(c *v3.Matrix, mol chem.Atomer, noH bool, alo []int) []dids {
+func vdwdistances(c *v3.Matrix, mol chem.Atomer, scan *ScanOptions) []dids {
 	vecs := c.NVecs()
 	ret := make([]dids, 0, vecs)
+	alo := scan.Subset
 	for i := 0; i < vecs; i++ {
 		//	fmt.Println("only", only) ////////////
 		if !isInInt(alo, i) {
 			ret = append(ret, nil)
 			continue
 		}
-		if noH && mol.Atom(i).Symbol == "H" {
+		if scan.NoH && mol.Atom(i).Symbol == "H" {
 			ret = append(ret, nil)
 			continue
 		}
-		ret = append(ret, atomVdwDistances(i, c, mol, noH, alo))
-	}
-	for _, v := range ret {
-		sort.Sort(v)
+		tmp := atomVdwDistances(i, c, mol, scan)
+		sort.Sort(dids(tmp))
+		ret = append(ret, tmp)
 	}
 	return ret
 }
 
 //adds to the set of planes the plane from each atom to its (ith+1)th closest atom,
 //if not repeated or blocked by already present planes.
-func kthClosestPlanes(c *v3.Matrix, mol chem.Atomer, dists []dids, kth int, noH bool, allowed []int, planes VPSlice) VPSlice {
+func kthClosestPlanes(c *v3.Matrix, mol chem.Atomer, dists []dids, kth int, planes VPSlice) VPSlice {
 	vecs := c.NVecs()
 	total := 0
-	offset := 0
+	repeated := 0
+	blocked := 0
 	for i := 0; i < vecs; i++ {
-		if !isInInt(allowed, i) {
-			continue
-		}
-		if noH && mol.Atom(i).Symbol == "H" {
-			continue
-		}
-		//fmt.Println(len(dists[i]), ith) ///////////////////
 		if len(dists[i]) <= kth {
-			//			println("not enough distances!!1") ////////
 			continue
 		}
-		//fmt.Println("found", ith, "atom to", i, "!") ///////////////////
 		j := dists[i][kth].id
 		ci := c.VecView(i)
 		cj := c.VecView(j)
 		p := PlaneBetweenAtoms(ci, cj, i, j)
 		total++
-		//		if planes.IsBlocked(p, c, i) { /////
-		//			blocked++ /////////////
-		//		} //////////////////////////////////
-		//		if planes.IsRepeated(p) {
-		//			repeated++
-		//		}
-		//		if planes.IsRepeated(p) || planes.IsBlocked(p, c, i) {
-		//			excluded++
-		//		}
-
-		if !planes.IsRepeated(p) && !planes.IsBlocked(p, c, i-offset) {
+		if !planes.IsRepeated(p) && !planes.IsBlocked(p, c, i) {
 			planes = append(planes, p)
 		}
 	}
-	fmt.Println(total, " total planes read") ////////
-	//now we prune the repeated planes
-	newplanes := make([]*VPlane, 0, len(planes)/2)
-	np := VPSlice(newplanes)
-	for _, v := range planes {
-		if !np.IsRepeated(v) {
-			np = append(np, v)
-		}
-	}
-
+	fmt.Println(total, " total planes read. ", repeated, "found repeated", blocked, "found blocked") ////////
 	return planes
 }
 
-func progressivePlanes(c *v3.Matrix, mol chem.Atomer, dists []dids, noH bool, allowed []int) VPSlice {
+func progressivePlanes(c *v3.Matrix, mol chem.Atomer, dists []dids) VPSlice {
 	planess := make([]*VPlane, 0, 100)
 	planes := VPSlice(planess)
 	added := []int{1, 1} //, 1, 1, 1, 1}
@@ -153,7 +121,7 @@ func progressivePlanes(c *v3.Matrix, mol chem.Atomer, dists []dids, noH bool, al
 	for i := 0; !isInInt(added, 0); i++ {
 		println("vueeeltaaa", i) ///////
 		prev := len(planes)
-		planes = kthClosestPlanes(c, mol, dists, i, noH, allowed, planes)
+		planes = kthClosestPlanes(c, mol, dists, i, planes)
 		post := len(planes)
 		add = post - prev
 		for j := 0; j < len(added)-1; j++ {
@@ -165,20 +133,29 @@ func progressivePlanes(c *v3.Matrix, mol chem.Atomer, dists []dids, noH bool, al
 	return planes
 }
 
-func ContactPlanes(c *v3.Matrix, mol chem.Atomer, noH bool, allowed ...[]int) VPSlice {
+func ContactPlanes(c *v3.Matrix, mol chem.Atomer, options ...*ScanOptions) VPSlice {
+	var scan *ScanOptions
+	if len(options) == 0 || options[0] == nil {
+		scan = DefaultScanOptions()
+	} else {
+		scan = options[0]
+	}
+	if scan.NoH {
+		scan.vdwSum = 2
+	}
+	if scan.WaterContacts {
+		scan.Offset = defWaterOffset
+	}
 	var alo []int
 	vecs := c.NVecs()
-	if len(allowed) > 0 && len(allowed[0]) > 0 {
-		alo = allowed[0]
-	} else {
-		alo = make([]int, 0, vecs)
+	if len(scan.Subset) == 0 {
+		scan.Subset = make([]int, 0, vecs)
 		for i := 0; i < vecs; i++ {
-			alo = append(alo, i)
+			scan.Subset = append(alo, i)
 		}
 
 	}
-
-	dists := vdwdistances(c, mol, noH, alo)
+	dists := vdwdistances(c, mol, scan)
 	atoms := 0
 	avdist := 0
 	for _, v := range dists {
@@ -187,5 +164,5 @@ func ContactPlanes(c *v3.Matrix, mol chem.Atomer, noH bool, allowed ...[]int) VP
 	}
 	fmt.Println("average distances", avdist/atoms) ////////////
 	//fmt.Println(dists) /////////////////////
-	return progressivePlanes(c, mol, dists, noH, alo)
+	return progressivePlanes(c, mol, dists)
 }

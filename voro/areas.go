@@ -121,7 +121,7 @@ func areaFromVertices(atomCoord *v3.Matrix, verts []*vertix, tmp *v3.Matrix) flo
 	temp := v3.Zeros(1)
 	fmt.Println("largos ql", len(verts), len(ordered))
 	for i := 0; len(ordered) < len(verts); i = closest(temp, i, ordered, verts) {
-		fmt.Println(i) ///////////////
+		fmt.Println("vertice", i) ///////////////
 		ordered = append(ordered, i)
 	}
 	area := 0.0
@@ -151,6 +151,13 @@ func PairContactArea(at1, at2 int, coords *v3.Matrix, planes VPSlice) float64 {
 	return areaFromVertices(coords.VecView(at1), verts, tmp)
 }
 
+func sameAtoms(a, b []int) bool {
+	if a[0] == b[0] && a[1] == b[1] {
+		return true
+	}
+	return false
+}
+
 //Looks for al the vertices for the voronoi polihedra which are in the plane separating atoms
 //atom and atom2, i.e. the limits of the face of the polihedron that separates those 2
 //atoms.
@@ -161,12 +168,12 @@ func verticesInAtomPair(planes VPSlice, atom, atom2 int, atomCoord *v3.Matrix) [
 	Ainvdata := make([]float64, 9)
 	Cdata := make([]float64, 3)
 	planesat := filterPerAtom(planes, atom)
-	fmt.Println("planesat", len(planesat)) //////////
+	//fmt.Println("planesat", len(planesat)) //////////
 	ret := make([]*vertix, 0, 5)
 	//all possible triads of planes
 	for i, v := range planesat {
 		for _, w := range planesat[i+1:] {
-			if v == ref || w == ref {
+			if sameAtoms(v.Atoms, ref.Atoms) || sameAtoms(w.Atoms, ref.Atoms) {
 				continue
 			}
 			vertix := findVertix(v, w, ref, Adata, Ainvdata, Cdata, pars)
@@ -181,7 +188,7 @@ func verticesInAtomPair(planes VPSlice, atom, atom2 int, atomCoord *v3.Matrix) [
 	od := v3.Zeros(1)
 	var dvert, dp float64
 	total := len(ret)
-	println(len(ret), "total vertices") /////////////////
+	//println(len(ret), "total vertices") /////////////////
 	for _, v := range ret {
 		od.Sub(v.loc, atomCoord)
 		for _, p := range planesat {
@@ -190,13 +197,13 @@ func verticesInAtomPair(planes VPSlice, atom, atom2 int, atomCoord *v3.Matrix) [
 				//are the same. There is no point in checking the planes that form the vertices.
 			}
 			od.Sub(v.loc, atomCoord)
-			dp = p.DistanceInterVector(atomCoord, v.loc)
+			dp = p.DistanceInterVector2(atomCoord, v.loc)
 			if dp < 0 {
 				continue //it means the plane never intesects the vector
 			}
 			dvert = od.Norm(2)
 			if dp < dvert {
-				fmt.Println("falsalaweaaaaaaaa", dp, dvert) //////
+				///	fmt.Println("falsalaweaaaaaaaa", dp, dvert) //////
 				v.isVertix = false
 				total--
 				break
@@ -204,7 +211,6 @@ func verticesInAtomPair(planes VPSlice, atom, atom2 int, atomCoord *v3.Matrix) [
 		}
 
 	}
-	fmt.Println("ret", len(ret), total) ///////////
 	retdef := make([]*vertix, 0, total)
 	for _, v := range ret {
 		if v.isVertix {
@@ -212,6 +218,8 @@ func verticesInAtomPair(planes VPSlice, atom, atom2 int, atomCoord *v3.Matrix) [
 			retdef = append(retdef, v)
 		}
 	}
+	fmt.Println("vertices finales!", len(retdef), total) ///////////
+
 	return retdef
 
 }
