@@ -128,6 +128,7 @@ func TTestAreas(t *testing.T) {
 }
 
 func TestSolvAreas(t *testing.T) {
+	fmt.Println("Will test solvated contact areas!!")
 	mol, err := chem.PDBFileRead("../test/WTFull.pdb", true)
 	if err != nil {
 		panic(err.Error())
@@ -143,8 +144,8 @@ func TestSolvAreas(t *testing.T) {
 	//solvation
 	options := solv.DefaultOptions()
 	options.Cpus(1)
-	solv := solv.DistRank(coord, mol, aindexes, []string{"SOL"}, options)
-	var distanceCutoff float64 = 3.0
+	solv := solv.DistRank(coord, mol, aindexes, []string{"SOL", "NA+", "CL-"}, options)
+	var distanceCutoff float64 = 4.0
 	sort.Sort(solv)
 	solvids, solvdist := solv.Data()
 	var i int
@@ -177,15 +178,15 @@ func TestSolvAreas(t *testing.T) {
 	var ctm []float64
 	for _, v := range ABConts {
 
-		//	if isInInt(indexA, v[0]) {
-		ctm = PairContactAreaAndVolume(v[0], v[1], coord, cPlanes)
-		//	} else {
-		//	ctm = PairContactAreaAndVolume(v[1], v[0], coord, cPlanes)
+		if isInInt(indexA, v[0]) {
+			ctm = PairContactAreaAndVolume(v[0], v[1], coord, cPlanes)
+		} else {
+			ctm = PairContactAreaAndVolume(v[1], v[0], coord, cPlanes)
 
-		//	}
+		}
 		surf += ctm[0]
 		vol += ctm[1]
-		fmt.Println("Area and vol so far", surf, vol, "added now", ctm)
+		fmt.Println("Area and vol so far", surf, vol, "added now", ctm, v)
 	}
 	fmt.Println("Total contact area:", surf, "A^2. volume for the polyhedron associated to the 'A' chain part of the interface:", vol, "A^3")
 

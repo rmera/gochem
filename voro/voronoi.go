@@ -99,7 +99,7 @@ func (V *VPlane) DistanceInterVector(o, d *v3.Matrix) float64 {
 	if dot == 0 {
 		return -1 //odtor and plane never intersect
 		//The other corner case, where the odtor is contained in the plane, should not happen,
-		//but it would also lead to a dot==0 int his case.
+		//but it would also lead to a dot==0
 	}
 	P := V.Parametric()
 	subterm := P[0]*o.At(0, 0) + P[1]*o.At(0, 1) + P[2]*o.At(0, 2)
@@ -156,9 +156,16 @@ func (P VPSlice) AtomPlanes(i int) VPSlice {
 //PairPlane returns the plane bisecting the atoms with indexes i and j.
 func (P VPSlice) PairPlane(i, j int) *VPlane {
 	for _, v := range P {
-		if (v.Atoms[0] == i && v.Atoms[1] == j) || (v.Atoms[0] == j && v.Atoms[1] == i) {
+		if v.Atoms[0] == i && v.Atoms[1] == j {
 			return v
 		}
+		//We always return the plan in such a way that it's "from the point of view" of the first atom
+		if v.Atoms[0] == j && v.Atoms[1] == i {
+			v.Atoms[0], v.Atoms[1] = v.Atoms[1], v.Atoms[0]
+			v.Normal.Scale(-1, v.Normal)
+			return v
+		}
+
 	}
 	return nil
 }
@@ -302,7 +309,7 @@ func PlaneBetweenAtoms(at1, at2 *v3.Matrix, i, j int) *VPlane {
 	ret := &VPlane{}
 	ret.Atoms = []int{i, j}
 	ret.Normal = v3.Zeros(1)
-	ret.Normal.Sub(at2, at1)
+	ret.Normal.Sub(at1, at2)
 	ret.Distance = ret.Normal.Norm(2) / 2.0
 	ret.Point = v3.Zeros(1)
 	ret.Point.Add(at1, at2)
