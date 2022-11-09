@@ -46,10 +46,10 @@ import (
 	v3 "github.com/rmera/gochem/v3"
 )
 
-const (
-	defWaterOffset float64 = 1.4
+const ( ///the nex
+	defWaterOffset float64 = 2.8 //1 water radius added to the radii of each atom in contact, so 2 water radii.
 	defOffset      float64 = 0.0
-	defVdwFactor   float64 = 1.2
+	defVdwFactor   float64 = 1.0 // 1.2
 	defMaxAngle    float64 = 87
 	defAngleStep   float64 = 5
 	defCutoff      float64 = 5 //rather permissive

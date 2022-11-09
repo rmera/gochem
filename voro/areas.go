@@ -237,10 +237,10 @@ func verticesInAtomPair(planes VPSlice, atom, atom2 int, atomCoord *v3.Matrix) [
 			}
 			if dp < dvert {
 				longvertex = false
-				if dvert > 50 {
-					println("nos salvamos!", dvert, dp) //////////
+				//			if dvert > 50 {
+				fmt.Println("nos salvamos!", dvert, dp, p.Atoms) //////////
 
-				}
+				//			}
 
 				//println(dp, dvert) ////////////////////////////
 				v.isVertix = false
