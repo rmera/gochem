@@ -359,9 +359,9 @@ func DistRank(coord *v3.Matrix, mol chem.Atomer, refindexes []int, residues []st
 	ref = v3.Zeros(len(refindexes))
 	ref.SomeVecs(coord, refindexes)
 	cutoff := o.end
-	cutoffplus := cutoff + 3
+	//	cutoffplus := cutoff + 3
 	//	chunk := NewTopology(0, 1)
-	tmp := v3.Zeros(1)
+	//tmp := v3.Zeros(1)
 	//	fmt.Println("Start looking!") ///////////////////
 	for i := 0; i < mol.Len(); i++ {
 		at := mol.Atom(i)
@@ -370,10 +370,10 @@ func DistRank(coord *v3.Matrix, mol chem.Atomer, refindexes []int, residues []st
 		chain = at.Chain
 		var test *v3.Matrix
 		//a little pre-screening for waters
-		if isInString([]string{"SOL", "WAT", "HOH"}, molname) && dist(ref.VecView(0), coord.VecView(i), tmp) > cutoffplus {
-			continue
+		//	if isInString([]string{"SOL", "WAT", "HOH"}, molname) && dist(ref.VecView(0), coord.VecView(i), tmp) > cutoffplus {
+		//		continue
 
-		}
+		//	}
 		if isInString(residues, molname) && !repeated(id, chain, ownresIDs) && (id != molid_skip || chain != chain_skip) {
 			expectedreslen := 6
 			indexes := make([]int, 1, expectedreslen)
@@ -381,7 +381,7 @@ func DistRank(coord *v3.Matrix, mol chem.Atomer, refindexes []int, residues []st
 			//	fmt.Println("New mol!", molname, id, chain) //////////
 			for j := i + 1; j < mol.Len(); j++ {
 				at2 := mol.Atom(j)
-				if at2.MolID != id {
+				if at2.MolID != id || at.Chain != chain {
 					break
 				}
 				indexes = append(indexes, j)
@@ -421,6 +421,35 @@ func DistRank(coord *v3.Matrix, mol chem.Atomer, refindexes []int, residues []st
 	}
 	return MolDistList(ranks)
 
+}
+
+//support functions for DistRank
+
+//MolShortestDistGiven two sets of coordinates, it obtains the shortest distance from any 2 points
+//in the set. This is probably not a very efficient way to do it.
+func MolShortestDist(test, ref *v3.Matrix) float64 {
+	temp := v3.Zeros(1)
+	var d1, dclosest float64
+	var vt1, vr1 *v3.Matrix // vtclosest,vr1, vrclosest *v3.Matrix
+	dclosest = 1            //we initialize this to some crazy large value so it's immediately replaced with the first calculated distance.
+	// dist(ref.VecView(0), test.VecView(0), temp)
+	for i := 0; i < test.NVecs(); i++ {
+		vt1 = test.VecView(i)
+		for j := 0; j < ref.NVecs(); j++ {
+			vr1 = ref.VecView(j)
+			temp.Sub(vr1, vt1)
+			d1 = temp.Norm(2)
+			if d1 < dclosest || (i == 0 && j == 0) {
+				dclosest = d1
+			}
+		}
+	}
+	return dclosest
+}
+
+func dist(r, t, temp *v3.Matrix) float64 {
+	temp.Sub(r, t)
+	return temp.Norm(2)
 }
 
 //A structure for the distance from a residue to a particular point
@@ -494,7 +523,7 @@ func (M MolDistList) MolIDs() []int {
 func (M MolDistList) Data() ([]int, []float64) {
 	ret := make([]int, len(M))
 	ret2 := make([]float64, len(M))
-	for i := range M {
+	for i, _ := range M {
 		ret[i] = M[i].MolID //This absolutely should never fail!
 		ret2[i] = M[i].Distance
 	}
@@ -520,33 +549,6 @@ func (M MolDistList) Merge(list ...MolDistList) {
 		}
 	}
 
-}
-
-//MolShortestDistGiven two sets of coordinates, it obtains the shortest distance from any 2 points
-//in the set. This is probably not a very efficient way to do it.
-func MolShortestDist(test, ref *v3.Matrix) float64 {
-	temp := v3.Zeros(1)
-	var d1, dclosest float64
-	var vt1, vr1 *v3.Matrix // vtclosest,vr1, vrclosest *v3.Matrix
-	dclosest = 100000       //we initialize this to some crazy large value so it's immediately replaced with the first calculated distance.
-	// dist(ref.VecView(0), test.VecView(0), temp)
-	for i := 0; i < test.NVecs(); i++ {
-		vt1 = test.VecView(i)
-		for j := 0; j < ref.NVecs(); j++ {
-			vr1 = ref.VecView(j)
-			temp.Sub(vr1, vt1)
-			d1 = temp.Norm(2)
-			if d1 < dclosest {
-				dclosest = d1
-			}
-		}
-	}
-	return dclosest
-}
-
-func dist(r, t, temp *v3.Matrix) float64 {
-	temp.Sub(r, t)
-	return temp.Norm(2)
 }
 
 //NOTE: These will be replaced when the generic funcions

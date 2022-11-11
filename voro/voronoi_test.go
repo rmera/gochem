@@ -46,8 +46,6 @@ func TTestFPlanes(t *testing.T) {
 	aindexes = append(aindexes, indexB...)
 	coord := mol.Coords[0]
 	mol.FillVdw()
-	//	subcoord := v3.Zeros(len(aindexes))
-	//	subcoord.SomeVecs(coord, aindexes) //all of them, in this case, but I'll keep this
 	fmt.Println("indexes", len(indexA), len(indexB))
 	options := DefaultScanOptions()
 	options.Subset = aindexes
@@ -127,6 +125,18 @@ func TTestAreas(t *testing.T) {
 
 }
 
+/***************
+**
+**
+**
+**
+**
+**
+**
+**
+**
+****************/
+
 func TestSolvAreas(t *testing.T) {
 	fmt.Println("Will test solvated contact areas!!")
 	mol, err := chem.PDBFileRead("../test/WTFull.pdb", true)
@@ -144,8 +154,9 @@ func TestSolvAreas(t *testing.T) {
 	//solvation
 	options := solv.DefaultOptions()
 	options.Cpus(1)
+	//options.End(20)
 	solv := solv.DistRank(coord, mol, aindexes, []string{"SOL", "NA+", "CL-"}, options)
-	var distanceCutoff float64 = 4.0
+	var distanceCutoff float64 = 6.0
 	sort.Sort(solv)
 	solvids, solvdist := solv.Data()
 	var i int
@@ -155,8 +166,16 @@ func TestSolvAreas(t *testing.T) {
 			break
 		}
 	}
-	solvindexes := chem.Molecules2Atoms(mol, solvids[:i], nil)
+	fmt.Println(solvdist, len(solvdist), i, solv.Len()) /////////////
+	fmt.Println(solvids, len(solvdist), i)              /////////////
+
+	solvindexes := chem.Molecules2Atoms(mol, solvids[:i], []string{"C", "D"})
 	aindexes = append(aindexes, solvindexes...)
+	redumol := chem.NewTopology(0, 1, nil)
+	redumol.SomeAtoms(mol, aindexes)
+	reduc := v3.Zeros(len(aindexes))
+	reduc.SomeVecs(coord, aindexes)
+	chem.PDBFileWrite("reduced.pdb", reduc, redumol, nil)
 	//	subcoord := v3.Zeros(len(aindexes))
 	//	subcoord.SomeVecs(coord, aindexes) //all of them, in this case, but I'll keep this
 	//end solvation part
