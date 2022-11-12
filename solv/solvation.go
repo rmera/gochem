@@ -412,7 +412,7 @@ func DistRank(coord *v3.Matrix, mol chem.Atomer, refindexes []int, residues []st
 				distance = MolShortestDist(test, ref)
 			}
 			if distance <= cutoff {
-				ranks = append(ranks, &molDist{Distance: distance, MolID: id})
+				ranks = append(ranks, &molDist{distance: distance, molID: id, chain: chain})
 			}
 			molid_skip = id
 			chain_skip = chain
@@ -454,12 +454,13 @@ func dist(r, t, temp *v3.Matrix) float64 {
 
 //A structure for the distance from a residue to a particular point
 type molDist struct {
-	Distance float64
-	MolID    int
+	distance float64
+	molID    int
+	chain    string
 }
 
 func (M *molDist) str() string {
-	return fmt.Sprintf("D: %4.3f ID: %d", M.Distance, M.MolID)
+	return fmt.Sprintf("D: %4.3f ID: %d Chain: %s", M.distance, M.molID, M.chain)
 }
 
 //A set of distances for different molecules to the same point
@@ -473,7 +474,7 @@ func (M MolDistList) Swap(i, j int) {
 //to the pre-defined point is smallert than that of the element j,
 //or false otherwise
 func (M MolDistList) Less(i, j int) bool {
-	return M[i].Distance < M[j].Distance
+	return M[i].distance < M[j].distance
 }
 func (M MolDistList) Len() int {
 	return len(M)
@@ -482,13 +483,19 @@ func (M MolDistList) Len() int {
 //Distance returns the distance from the element i of
 //the slice to the pre-defined point
 func (M MolDistList) Distance(i int) float64 {
-	return M[i].Distance
+	return M[i].distance
 }
 
 //MolID resturns the MolID (the residue number, for a protein)
 //of the i element of the slice
 func (M MolDistList) MolID(i int) int {
-	return M[i].MolID
+	return M[i].molID
+}
+
+//Chain resturns the chain
+//of the i element of the slice
+func (M MolDistList) Chain(i int) string {
+	return M[i].chain
 }
 
 //String produces a string representation of a set of distances
@@ -504,7 +511,7 @@ func (M MolDistList) String() string {
 func (M MolDistList) Distances() []float64 {
 	ret := make([]float64, len(M))
 	for i := range M {
-		ret[i] = M[i].Distance //This absolutely should never fail!
+		ret[i] = M[i].distance //This absolutely should never fail!
 	}
 	return ret
 }
@@ -513,28 +520,90 @@ func (M MolDistList) Distances() []float64 {
 func (M MolDistList) MolIDs() []int {
 	ret := make([]int, len(M))
 	for i := range M {
-		ret[i] = M[i].MolID //This absolutely should never fail!
+		ret[i] = M[i].molID //This absolutely should never fail!
+	}
+	return ret
+}
+
+//MolIDs returns a slice with the molIDs in al the lists
+func (M MolDistList) Chains() []string {
+	ret := make([]string, len(M))
+	for i := range M {
+		ret[i] = M[i].chain //This absolutely should never fail!
 	}
 	return ret
 }
 
 //Data returns a list with all the MolIDs and a list with all the distances
 //in the set
-func (M MolDistList) Data() ([]int, []float64) {
+func (M MolDistList) Data() ([]int, []float64, []string) {
 	ret := make([]int, len(M))
 	ret2 := make([]float64, len(M))
+	ret3 := make([]string, len(M))
+
 	for i, _ := range M {
-		ret[i] = M[i].MolID //This absolutely should never fail!
-		ret2[i] = M[i].Distance
+		ret[i] = M[i].molID //This absolutely should never fail!
+		ret2[i] = M[i].distance
+		ret3[i] = M[i].chain
 	}
-	return ret, ret2
+	return ret, ret2, ret3
+}
+
+//ChainsPresents returns a slice with all the chains present in the receiver.
+func (M MolDistList) ChainsPresent() []string {
+	chains := make([]string, 0, 3)
+	ch := M.Chains()
+	for _, v := range ch {
+		if !isInString(chains, v) {
+			chains = append(chains, v)
+		}
+	}
+	return chains
+}
+
+//ByChain returns a list of MolDistList where the receiver is split by chain,
+//otherwise preserving the original order
+func (M MolDistList) ByChains() map[string]MolDistList {
+	chains := M.ChainsPresent()
+	ret := make(map[string]MolDistList, len(chains))
+	for _, v := range chains {
+		ret[v] = make([]*molDist, 0, 10)
+	}
+	for _, v := range M {
+		ret[v.chain] = append(ret[v.chain], v)
+	}
+	fmt.Println(ret) ////////////
+	return ret
+}
+
+//UpToDistance returns a MolDistList with only the elements from the receiver
+// that have a distance equal or smaller than cutoff. It sorts the receiver in place, unless
+// the first "sorted" argument is given and true
+func (M MolDistList) UpToDistance(cutoff float64, sorted ...bool) MolDistList {
+	if len(sorted) == 0 || sorted[0] == false {
+		sort.Sort(M)
+	}
+	ret := make([]*molDist, 0, 10)
+	d := M.Distances()
+	for i, v := range d {
+		if v > cutoff {
+			break
+		}
+		ret = append(ret, M[i])
+	}
+	return ret
 }
 
 //AtomIDs returns a list of all the atom IDs for all the residues in the list.
 //Only a convenience function.
 func (M MolDistList) AtomIDs(mol chem.Atomer) []int {
-	molids := M.MolIDs()
-	return chem.Molecules2Atoms(mol, molids, []string{})
+	ret := make([]int, 0, 100)
+	bychains := M.ByChains()
+	chains := M.ChainsPresent()
+	for _, v := range chains {
+		ret = append(ret, chem.Molecules2Atoms(mol, bychains[v].MolIDs(), []string{v})...)
+	}
+	return ret
 }
 
 //Merge aggregates the receiver and the arguments in the receiver
@@ -542,8 +611,9 @@ func (M MolDistList) AtomIDs(mol chem.Atomer) []int {
 func (M MolDistList) Merge(list ...MolDistList) {
 	for _, v := range list {
 		ref := M.MolIDs()
+		chains := M.Chains()
 		for _, w := range v {
-			if !isInInt(ref, w.MolID) {
+			if !isInInt(ref, w.molID) && !isInString(chains, w.chain) {
 				M = append(M, w)
 			}
 		}

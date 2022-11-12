@@ -132,24 +132,24 @@ func areaFromVertices(atomCoord *v3.Matrix, verts []*vertix, tmp *v3.Matrix) flo
 
 //PairContactAreaAndVolume takes the vertices for the voronoi polihedra of an atom at1, plus the index for that
 //atom and that of a second atom at2. It returns the area for the face of the voronoi polihedron separating the 2 atoms,
-func PairContactArea(at1, at2 int, coords *v3.Matrix, planes VPSlice) float64 {
-	ret := PairContactAreaAndVolume(at1, at2, coords, planes, false)
+func PairContactArea(at1, at2 int, coords *v3.Matrix, mol chem.Atomer, planes VPSlice) float64 {
+	ret := PairContactAreaAndVolume(at1, at2, coords, mol, planes, false)
 	return ret[0]
 }
 
 //PairContactAreaAndVolume takes the vertices for the voronoi polihedra of an atom at1, plus the index for that
 //atom and that of a second atom at2. It returns an array of 2 float64 where the first element is the area for the face of the voronoi polihedron separating the 2 atoms, and the second is 0. If volume is given (only the first element of the slice is considered) and it is true, the volume of the polyhedron centerd in at1 associated to at2 is also obtained and returned as the second element of the slice.
-func PairContactAreaAndVolume(at1, at2 int, coords *v3.Matrix, planes VPSlice, notvolume ...bool) []float64 {
+func PairContactAreaAndVolume(at1, at2 int, coords *v3.Matrix, mol chem.Atomer, planes VPSlice, notvolume ...bool) []float64 {
 	verts := verticesInAtomPair(planes, at1, at2, coords.VecView(at1))
 	if len(verts) < 3 {
 		log.Println("The interface between toms", at1, at2, "seem to be unbounded, or they could be sharing only an edge")
 		return []float64{0, 0} //It might be that in some cases, the area between 2 atoms is "unbound" so you can't estimate it like this.
 	}
-	vertstr := ""
-	for i, v := range verts {
-		vertstr += fmt.Sprintf("n %d loc: %v |", i, v.loc)
-	}
-	println(vertstr) //////////////////
+	//	vertstr := ""
+	//	for i, v := range verts {
+	//		vertstr += fmt.Sprintf("n %d loc: %v |", i, v.loc)
+	//	}
+	//	println(vertstr) //////////////////
 	//we first need to select the vertices that are shared with at2
 	tmp := v3.Zeros(1)
 	if len(notvolume) > 0 && notvolume[0] {
@@ -160,6 +160,18 @@ func PairContactAreaAndVolume(at1, at2 int, coords *v3.Matrix, planes VPSlice, n
 
 	plane := planes.PairPlane(at1, at2)
 	area, volume := areaAndVolumeFromVerticesAndPlane(coords.VecView(at1), verts, plane, tmp)
+	vdw := mol.Atom(at1).Vdw
+	vdw2 := mol.Atom(at2).Vdw
+	if vdw2 < vdw {
+		vdw = vdw2
+	}
+	//I am assuming that the contact area should never be greater than the 'disk' are of the hemisphere
+	//of the smaller atom. This probably means at1 is unbounded
+	if area > math.Pi*math.Pow(vdw, 2) {
+		log.Printf("Too large area of %3.5f A for contact between atoms %d and %d. Area of the 'disk' in the atom's hemispheres are %3.5f and %3.5f A^2, the smallest of which should be the maximum possible contact area. Likely unbounded polyhedron for atom %d, the area and volume will be set to 0.0\n", area, at1, at2, math.Pi*math.Pow(mol.Atom(at1).Vdw, 2), math.Pi*math.Pow(mol.Atom(at2).Vdw, 2), at1)
+		return []float64{0, 0}
+	}
+
 	return []float64{area, volume}
 
 }
@@ -182,7 +194,7 @@ func verticesInAtomPair(planes VPSlice, atom, atom2 int, atomCoord *v3.Matrix) [
 	Cdata := make([]float64, 3)
 	planesat := planes.AtomPlanes(atom) //filterPerAtom(planes, atom)
 	//planesat = append(planesat, filterPerAtom(planes, atom2)...) //////////////////////////////////
-	println("planesat", len(planesat)) /////////
+	//	println("planesat", len(planesat)) /////////
 	if len(planesat) < 4 {
 		return nil
 	}
@@ -198,8 +210,6 @@ func verticesInAtomPair(planes VPSlice, atom, atom2 int, atomCoord *v3.Matrix) [
 			vertix := findVertex(v, w, ref, Adata, Ainvdata, Cdata, pars)
 			if vertix != nil {
 				ret = append(ret, vertix)
-			} else {
-				println("nil fking vertex") ///////
 			}
 		}
 	}
@@ -215,7 +225,7 @@ func verticesInAtomPair(planes VPSlice, atom, atom2 int, atomCoord *v3.Matrix) [
 		dvert = od.Norm(2)
 		if dvert > 50 { /////////////
 			longvertex = true
-			fmt.Println("vertice largo", dvert, "planesat:", len(planesat))
+			//			fmt.Println("vertice largo", dvert, "planesat:", len(planesat))
 		}
 		for _, p := range planesat {
 			if p == v.planes[0] || p == v.planes[1] || p == v.planes[2] {
@@ -224,21 +234,21 @@ func verticesInAtomPair(planes VPSlice, atom, atom2 int, atomCoord *v3.Matrix) [
 				//are the same. There is no point in checking the planes that form the vertices.
 			}
 			dp = p.DistanceInterVector(atomCoord, v.loc)
-			if dvert > 50 {
-				println("a plane's distance", dp) //////////
-			}
+			//			if dvert > 50 {
+			//				println("a plane's distance", dp) //////////
+			//			}
 
 			//println("distancia reql", dp) ///////////////////
 			if dp < 0 {
-				if dvert > 50 {
-					println("PassedDue dp<0", dp) //////////
-				}
+				//				if dvert > 50 {
+				//					println("PassedDue dp<0", dp) //////////
+				//				}
 				continue //it means the plane never intesects the vector
 			}
 			if dp < dvert {
 				longvertex = false
 				//			if dvert > 50 {
-				fmt.Println("nos salvamos!", dvert, dp, p.Atoms) //////////
+				//				fmt.Println("nos salvamos!", dvert, dp, p.Atoms) //////////
 
 				//			}
 

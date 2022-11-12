@@ -2,7 +2,6 @@ package voro
 
 import (
 	"fmt"
-	"sort"
 	"testing"
 
 	chem "github.com/rmera/gochem"
@@ -112,7 +111,7 @@ func TTestAreas(t *testing.T) {
 	for _, v := range ABConts {
 
 		//	if isInInt(indexA, v[0]) {
-		ctm = PairContactAreaAndVolume(v[0], v[1], coord, cPlanes)
+		ctm = PairContactAreaAndVolume(v[0], v[1], coord, mol, cPlanes)
 		//	} else {
 		//	ctm = PairContactAreaAndVolume(v[1], v[0], coord, cPlanes)
 
@@ -143,7 +142,7 @@ func TestSolvAreas(t *testing.T) {
 	if err != nil {
 		panic(err.Error())
 	}
-	res := []int{2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 145, 146, 147, 148, 149, 150, 151, 152, 153}
+	res := []int{151, 152, 153, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 145, 146, 147, 148, 149, 150, 151, 152, 153}
 	indexA := chem.Molecules2Atoms(mol, res, []string{"A"})
 	indexB := chem.Molecules2Atoms(mol, res, []string{"B"})
 	aindexes := make([]int, 0, len(indexA)+len(indexB))
@@ -154,32 +153,25 @@ func TestSolvAreas(t *testing.T) {
 	//solvation
 	options := solv.DefaultOptions()
 	options.Cpus(1)
+	//options.COM(true)
 	//options.End(20)
 	solv := solv.DistRank(coord, mol, aindexes, []string{"SOL", "NA+", "CL-"}, options)
-	var distanceCutoff float64 = 6.0
-	sort.Sort(solv)
-	solvids, solvdist := solv.Data()
-	var i int
-	var v float64
-	for i, v = range solvdist {
-		if v > distanceCutoff {
-			break
-		}
-	}
-	fmt.Println(solvdist, len(solvdist), i, solv.Len()) /////////////
-	fmt.Println(solvids, len(solvdist), i)              /////////////
+	var distanceCutoff float64 = 3.0
+	solvdista := solv.UpToDistance(distanceCutoff)
 
-	solvindexes := chem.Molecules2Atoms(mol, solvids[:i], []string{"C", "D"})
+	/////////////
+
+	solvindexes := solvdista.AtomIDs(mol)
+	fmt.Println(len(solvdista), solvindexes) //////////
+
 	aindexes = append(aindexes, solvindexes...)
 	redumol := chem.NewTopology(0, 1, nil)
 	redumol.SomeAtoms(mol, aindexes)
 	reduc := v3.Zeros(len(aindexes))
 	reduc.SomeVecs(coord, aindexes)
 	chem.PDBFileWrite("reduced.pdb", reduc, redumol, nil)
-	//	subcoord := v3.Zeros(len(aindexes))
-	//	subcoord.SomeVecs(coord, aindexes) //all of them, in this case, but I'll keep this
 	//end solvation part
-	fmt.Println("indexes", len(indexA), len(indexB), len(solvindexes))
+	//fmt.Println("indexes", len(indexA), len(indexB), len(solvindexes))
 	scanoptions := DefaultScanOptions()
 	scanoptions.Subset = aindexes
 	cPlanes := ContactPlanes(coord, mol, scanoptions)
@@ -198,9 +190,9 @@ func TestSolvAreas(t *testing.T) {
 	for _, v := range ABConts {
 
 		if isInInt(indexA, v[0]) {
-			ctm = PairContactAreaAndVolume(v[0], v[1], coord, cPlanes)
+			ctm = PairContactAreaAndVolume(v[0], v[1], coord, mol, cPlanes)
 		} else {
-			ctm = PairContactAreaAndVolume(v[1], v[0], coord, cPlanes)
+			ctm = PairContactAreaAndVolume(v[1], v[0], coord, mol, cPlanes)
 
 		}
 		surf += ctm[0]
