@@ -33,7 +33,7 @@ func (d dids) String() string {
 	return ret
 }
 
-func atomVdwDistances(at int, c *v3.Matrix, mol chem.Atomer, scan *ScanOptions) []*did {
+func atomVdwDistances(at int, c *v3.Matrix, mol chem.Atomer, scan *Options) []*did {
 	var vdwsum, cutoff float64
 	tmp := v3.Zeros(1)
 	var test *v3.Matrix
@@ -67,7 +67,7 @@ func atomVdwDistances(at int, c *v3.Matrix, mol chem.Atomer, scan *ScanOptions) 
 
 }
 
-func vdwdistances(c *v3.Matrix, mol chem.Atomer, scan *ScanOptions) []dids {
+func vdwdistances(c *v3.Matrix, mol chem.Atomer, scan *Options) []dids {
 	vecs := c.NVecs()
 	ret := make([]dids, 0, vecs)
 	alo := scan.Subset
@@ -90,7 +90,7 @@ func vdwdistances(c *v3.Matrix, mol chem.Atomer, scan *ScanOptions) []dids {
 
 //adds to the set of planes the plane from each atom to its (ith+1)th closest atom,
 //if not repeated or blocked by already present planes.
-func kthClosestPlanes(c *v3.Matrix, mol chem.Atomer, dists []dids, kth int, planes VPSlice) VPSlice {
+func kthClosestPlanes(c *v3.Matrix, mol chem.Atomer, dists []dids, kth int, planes VPSlice, options ...*Options) VPSlice {
 	vecs := c.NVecs()
 	total := 0
 	//repeated := 0
@@ -102,7 +102,15 @@ func kthClosestPlanes(c *v3.Matrix, mol chem.Atomer, dists []dids, kth int, plan
 		j := dists[i][kth].id
 		ci := c.VecView(i)
 		cj := c.VecView(j)
-		p := PlaneBetweenAtoms(ci, cj, i, j)
+		//Unless the options request it, the plane is no longer in the middle of both atoms, but in the weighted average
+		//between them, where the weights are the vdW radii.
+		vdw1 := mol.Atom(i).Vdw
+		vdw2 := mol.Atom(j).Vdw
+		if len(options) >= 1 && options[0].EquidistantPlanes {
+			vdw1 = 1.0
+			vdw2 = 1.0
+		}
+		p := PlaneBetweenAtoms(ci, cj, i, j, vdw1, vdw2)
 		total++
 		if !planes.IsRepeated(p) && !planes.IsBlocked(p, c, i) {
 			planes = append(planes, p)
@@ -112,16 +120,16 @@ func kthClosestPlanes(c *v3.Matrix, mol chem.Atomer, dists []dids, kth int, plan
 	return planes
 }
 
-func progressivePlanes(c *v3.Matrix, mol chem.Atomer, dists []dids) VPSlice {
+func progressivePlanes(c *v3.Matrix, mol chem.Atomer, dists []dids, options ...*Options) VPSlice {
 	planess := make([]*VPlane, 0, 100)
 	planes := VPSlice(planess)
-	added := []int{1, 1} //, 1, 1, 1, 1}
+	added := []int{1, 1}
 	var add int
 	//the following interates until no more planes are added
 	for i := 0; !isInInt(added, 0); i++ {
 		//println("vueeeltaaa", i) ///////
 		prev := len(planes)
-		planes = kthClosestPlanes(c, mol, dists, i, planes)
+		planes = kthClosestPlanes(c, mol, dists, i, planes, options...)
 		post := len(planes)
 		add = post - prev
 		for j := 0; j < len(added)-1; j++ {
@@ -133,10 +141,10 @@ func progressivePlanes(c *v3.Matrix, mol chem.Atomer, dists []dids) VPSlice {
 	return planes
 }
 
-func ContactPlanes(c *v3.Matrix, mol chem.Atomer, options ...*ScanOptions) VPSlice {
-	var scan *ScanOptions
+func ContactPlanes(c *v3.Matrix, mol chem.Atomer, options ...*Options) VPSlice {
+	var scan *Options
 	if len(options) == 0 || options[0] == nil {
-		scan = DefaultScanOptions()
+		scan = DefaultOptions()
 	} else {
 		scan = options[0]
 	}
@@ -164,5 +172,5 @@ func ContactPlanes(c *v3.Matrix, mol chem.Atomer, options ...*ScanOptions) VPSli
 	}
 	//fmt.Println("average distances", avdist/atoms) ////////////
 	//fmt.Println(dists) /////////////////////
-	return progressivePlanes(c, mol, dists)
+	return progressivePlanes(c, mol, dists, options...)
 }

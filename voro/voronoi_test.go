@@ -46,7 +46,7 @@ func TTestFPlanes(t *testing.T) {
 	coord := mol.Coords[0]
 	mol.FillVdw()
 	fmt.Println("indexes", len(indexA), len(indexB))
-	options := DefaultScanOptions()
+	options := DefaultOptions()
 	options.Subset = aindexes
 	options.NoH = true
 	cPlanes := ContactPlanes(coord, mol, options)
@@ -92,7 +92,7 @@ func TTestAreas(t *testing.T) {
 	//	subcoord := v3.Zeros(len(aindexes))
 	//	subcoord.SomeVecs(coord, aindexes) //all of them, in this case, but I'll keep this
 	fmt.Println("indexes", len(indexA), len(indexB))
-	options := DefaultScanOptions()
+	options := DefaultOptions()
 	options.Subset = aindexes
 	options.NoH = false
 	cPlanes := ContactPlanes(coord, mol, options)
@@ -172,7 +172,7 @@ func TestSolvAreas(t *testing.T) {
 	chem.PDBFileWrite("reduced.pdb", reduc, redumol, nil)
 	//end solvation part
 	//fmt.Println("indexes", len(indexA), len(indexB), len(solvindexes))
-	scanoptions := DefaultScanOptions()
+	scanoptions := DefaultOptions()
 	scanoptions.Subset = aindexes
 	cPlanes := ContactPlanes(coord, mol, scanoptions)
 	contacts := cPlanes.AllContacts()

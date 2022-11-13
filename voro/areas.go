@@ -200,7 +200,7 @@ func PairContactAreaAndVolume(a1, a2 int, coords *v3.Matrix, mol chem.Atomer, pl
 	//of the smaller atom. This probably means at1 is unbounded
 	leeway := 1.2 //I just made this up
 	if area > math.Pi*math.Pow(vdw, 2)*leeway {
-		log.Printf("Too large area of %3.5f A for contact between atoms %d and %d. Area of the 'disk' in the atom's hemispheres are %3.5f and %3.5f A^2, the smallest of which should be the maximum possible contact area. Likely unbounded polyhedron for atom %d, the area and volume will be set to 0.0\n", area, a1, a2, math.Pi*math.Pow(mol.Atom(a1).Vdw, 2), math.Pi*math.Pow(mol.Atom(a2).Vdw, 2), a1)
+		log.Printf("Too large area of %3.5f A for contact between atoms %d and %d. Area of the 'disk' in the atom's hemispheres are %3.5f and %3.5f A^2, the smallest of which should be an upper bound for the contact area. Likely unbounded polyhedra for the atoms, the area and volume will be set to 0.0\n", area, a1, a2, math.Pi*math.Pow(mol.Atom(a1).Vdw, 2), math.Pi*math.Pow(mol.Atom(a2).Vdw, 2))
 		return []float64{0, 0}
 	}
 

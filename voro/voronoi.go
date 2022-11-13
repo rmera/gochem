@@ -55,22 +55,23 @@ const ( ///the nex
 	defCutoff      float64 = 5 //rather permissive
 )
 
-//ScanOptions contains options to perform angle scans to see if there is an angle in which 2 atoms
+//Options contains options to perform angle scans to see if there is an angle in which 2 atoms
 //are in direct contact (i.e. if part of the plane bisecting them is part of the Voronoi polihedra for the system).
-type ScanOptions struct {
-	NoH           bool
-	Subset        []int
-	VdwFactor     float64
-	vdwSum        float64
-	Offset        float64
-	WaterContacts bool
-	Angles        []float64 //last angle, step between angles, in degrees. A full scan would be 0 to 90
-	Cutoff        float64   //distance cutoff, if the vectors at the given angle are farther than this, the angle is ignored.
+type Options struct {
+	NoH               bool
+	Subset            []int
+	VdwFactor         float64
+	vdwSum            float64
+	Offset            float64
+	WaterContacts     bool
+	Angles            []float64 //last angle, step between angles, in degrees. A full scan would be 0 to 90
+	Cutoff            float64   //distance cutoff, if the vectors at the given angle are farther than this, the angle is ignored.
+	EquidistantPlanes bool
 }
 
-//DefaultScanOptions returns the default setting for an ScanOptions
-func DefaultScanOptions() *ScanOptions {
-	return &ScanOptions{Offset: defOffset, VdwFactor: defVdwFactor, Angles: []float64{defMaxAngle, defAngleStep}, Cutoff: defCutoff}
+//DefaultOptions returns the default setting for an Options
+func DefaultOptions() *Options {
+	return &Options{Offset: defOffset, VdwFactor: defVdwFactor, Angles: []float64{defMaxAngle, defAngleStep}, Cutoff: defCutoff}
 }
 
 //This is a naive, unoptimal, simple and incomplete implementation
@@ -202,10 +203,10 @@ func (P VPSlice) AllContacts() [][2]int {
 	return r
 }
 
-func (P VPSlice) IsBlocked(p *VPlane, c *v3.Matrix, mustbeatom int, anglest ...*ScanOptions) bool {
-	var as *ScanOptions
+func (P VPSlice) IsBlocked(p *VPlane, c *v3.Matrix, mustbeatom int, anglest ...*Options) bool {
+	var as *Options
 	if len(anglest) == 0 {
-		as = DefaultScanOptions()
+		as = DefaultOptions()
 	}
 	ai := c.VecView(p.Atoms[0])
 	aj := c.VecView(p.Atoms[1])
@@ -305,7 +306,14 @@ func ConeBlockSlice(ref *VPlane, tests VPSlice, ati, atj *v3.Matrix, cutoff floa
 
 }
 
-func PlaneBetweenAtoms(at1, at2 *v3.Matrix, i, j int) *VPlane {
+func PlaneBetweenAtoms(at1, at2 *v3.Matrix, i, j int, vdw ...float64) *VPlane {
+	vdw1 := 1.0
+	vdw2 := 1.0
+	if len(vdw) >= 2 {
+		vdw1 = vdw[0]
+		vdw2 = vdw[1]
+	}
+	vdwr := vdw2 / (vdw1 + vdw2) //just 0.5 if we don't weight by the radii
 	ret := &VPlane{}
 	ret.Atoms = []int{i, j}
 	ret.Normal = v3.Zeros(1)
@@ -313,7 +321,7 @@ func PlaneBetweenAtoms(at1, at2 *v3.Matrix, i, j int) *VPlane {
 	ret.Distance = ret.Normal.Norm(2) / 2.0
 	ret.Point = v3.Zeros(1)
 	ret.Point.Add(at1, at2)
-	ret.Point.Scale(0.5, ret.Point) //It's the geometric center of the 2 points, so it should definitely be part of the plane.
+	ret.Point.Scale(vdwr, ret.Point) //It's the geometric center of the 2 points, so it should definitely be part of the plane.
 	//println(ret.Distance, ret.DistanceInterVector(at1, at2), "SHOULD BE THE SAME!!!") ///////////
 	return ret
 }
