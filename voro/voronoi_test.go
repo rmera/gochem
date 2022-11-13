@@ -162,7 +162,7 @@ func TestSolvAreas(t *testing.T) {
 	/////////////
 
 	solvindexes := solvdista.AtomIDs(mol)
-	fmt.Println(len(solvdista), solvindexes) //////////
+	//	fmt.Println(len(solvdista), solvindexes) //////////
 
 	aindexes = append(aindexes, solvindexes...)
 	redumol := chem.NewTopology(0, 1, nil)
@@ -177,7 +177,9 @@ func TestSolvAreas(t *testing.T) {
 	cPlanes := ContactPlanes(coord, mol, scanoptions)
 	contacts := cPlanes.AllContacts()
 	var ABConts [][2]int
-	fmt.Println(len(contacts)) ///////////
+	var open []int
+	var allConts []int
+	//	fmt.Println(len(contacts)) ///////////
 	//	testatoms := indexA[2:6] ////////
 	for _, v := range contacts {
 		if (isInInt(indexA, v[0]) && isInInt(indexB, v[1])) || (isInInt(indexB, v[0]) && isInInt(indexA, v[1])) {
@@ -195,10 +197,31 @@ func TestSolvAreas(t *testing.T) {
 			ctm = PairContactAreaAndVolume(v[1], v[0], coord, mol, cPlanes)
 
 		}
+		if ctm[0] == 0 {
+			open = appendNotRepeatedInt(open, v[0])
+			open = appendNotRepeatedInt(open, v[1])
+		}
 		surf += ctm[0]
 		vol += ctm[1]
 		fmt.Println("Area and vol so far", surf, vol, "added now", ctm, v)
 	}
+	if len(open) > 0 {
+		openmol := chem.NewTopology(0, 1, nil)
+		openmol.SomeAtoms(mol, open)
+		openc := v3.Zeros(len(open))
+		openc.SomeVecs(coord, open)
+		chem.PDBFileWrite("open_polyhedra.pdb", openc, openmol, nil)
+	}
+	for _, v := range ABConts {
+		allConts = appendNotRepeatedInt(allConts, v[0])
+		allConts = appendNotRepeatedInt(allConts, v[1])
+	}
+	intermol := chem.NewTopology(0, 1, nil)
+	intermol.SomeAtoms(mol, allConts)
+	interc := v3.Zeros(len(allConts))
+	interc.SomeVecs(coord, allConts)
+	chem.PDBFileWrite("interface.pdb", interc, intermol, nil)
+
 	fmt.Println("Total contact area:", surf, "A^2. volume for the polyhedron associated to the 'A' chain part of the interface:", vol, "A^3")
 
 }

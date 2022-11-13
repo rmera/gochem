@@ -28,6 +28,14 @@ type vertix struct {
 	isVertix bool
 }
 
+//
+func appendNotRepeatedInt(container []int, test int) []int {
+	if isInInt(container, test) {
+		return container
+	}
+	return append(container, test)
+}
+
 //isInInt is a helper for the RamaList function,
 //returns true if test is in container, false otherwise.
 //At some point I'll upgrade to generics :-D
@@ -139,36 +147,60 @@ func PairContactArea(at1, at2 int, coords *v3.Matrix, mol chem.Atomer, planes VP
 
 //PairContactAreaAndVolume takes the vertices for the voronoi polihedra of an atom at1, plus the index for that
 //atom and that of a second atom at2. It returns an array of 2 float64 where the first element is the area for the face of the voronoi polihedron separating the 2 atoms, and the second is 0. If volume is given (only the first element of the slice is considered) and it is true, the volume of the polyhedron centerd in at1 associated to at2 is also obtained and returned as the second element of the slice.
-func PairContactAreaAndVolume(at1, at2 int, coords *v3.Matrix, mol chem.Atomer, planes VPSlice, notvolume ...bool) []float64 {
-	verts := verticesInAtomPair(planes, at1, at2, coords.VecView(at1))
-	if len(verts) < 3 {
-		log.Println("The interface between toms", at1, at2, "seem to be unbounded, or they could be sharing only an edge")
-		return []float64{0, 0} //It might be that in some cases, the area between 2 atoms is "unbound" so you can't estimate it like this.
-	}
-	//	vertstr := ""
-	//	for i, v := range verts {
-	//		vertstr += fmt.Sprintf("n %d loc: %v |", i, v.loc)
-	//	}
-	//	println(vertstr) //////////////////
-	//we first need to select the vertices that are shared with at2
-	tmp := v3.Zeros(1)
-	if len(notvolume) > 0 && notvolume[0] {
-		area := areaFromVertices(coords.VecView(at1), verts, tmp)
-		return []float64{area, 0}
+func PairContactAreaAndVolume(a1, a2 int, coords *v3.Matrix, mol chem.Atomer, planes VPSlice, notvolume ...bool) []float64 {
+	var areas [2]float64
+	var volumes [2]float64
+	for i, v := range [][2]int{[2]int{a1, a2}, [2]int{a2, a1}} {
+		at1 := v[0]
+		at2 := v[1]
+		verts := verticesInAtomPair(planes, at1, at2, coords.VecView(at1))
+		if len(verts) < 3 {
+			log.Println("The interface between toms", at1, at2, "seem to be unbounded, or they could be sharing only an edge")
+			return []float64{0, 0} //It might be that in some cases, the area between 2 atoms is "unbound" so you can't estimate it like this.
+		}
+		tmp := v3.Zeros(1)
+		if len(notvolume) > 0 && notvolume[0] {
+			area := areaFromVertices(coords.VecView(at1), verts, tmp)
+			return []float64{area, 0}
 
+		}
+
+		plane := planes.PairPlane(at1, at2)
+		areas[i], volumes[i] = areaAndVolumeFromVerticesAndPlane(coords.VecView(at1), verts, plane, tmp)
+		/****
+		vdw := mol.Atom(at1).Vdw
+		vdw2 := mol.Atom(at2).Vdw
+		if vdw2 < vdw {
+			vdw = vdw2
+		}
+
+		//I am assuming that the contact area should never be greater than the 'disk' are of the hemisphere
+		//of the smaller atom. This probably means at1 is unbounded
+		if area > math.Pi*math.Pow(vdw, 2) {
+			log.Printf("Too large area of %3.5f A for contact between atoms %d and %d. Area of the 'disk' in the atom's hemispheres are %3.5f and %3.5f A^2, the smallest of which should be the maximum possible contact area. Likely unbounded polyhedron for atom %d, the area and volume will be set to 0.0\n", area, at1, at2, math.Pi*math.Pow(mol.Atom(at1).Vdw, 2), math.Pi*math.Pow(mol.Atom(at2).Vdw, 2), at1)
+			return []float64{0, 0}
+		}
+		*/
+	}
+	area := areas[0]
+	volume := volumes[0]
+	if areas[0] > areas[1] {
+		area = areas[1]
+		volume = volumes[1]
 	}
 
-	plane := planes.PairPlane(at1, at2)
-	area, volume := areaAndVolumeFromVerticesAndPlane(coords.VecView(at1), verts, plane, tmp)
-	vdw := mol.Atom(at1).Vdw
-	vdw2 := mol.Atom(at2).Vdw
+	//Now we check that the areas obtained are not too crazy
+	vdw := mol.Atom(a1).Vdw
+	vdw2 := mol.Atom(a2).Vdw
 	if vdw2 < vdw {
 		vdw = vdw2
 	}
+
 	//I am assuming that the contact area should never be greater than the 'disk' are of the hemisphere
 	//of the smaller atom. This probably means at1 is unbounded
-	if area > math.Pi*math.Pow(vdw, 2) {
-		log.Printf("Too large area of %3.5f A for contact between atoms %d and %d. Area of the 'disk' in the atom's hemispheres are %3.5f and %3.5f A^2, the smallest of which should be the maximum possible contact area. Likely unbounded polyhedron for atom %d, the area and volume will be set to 0.0\n", area, at1, at2, math.Pi*math.Pow(mol.Atom(at1).Vdw, 2), math.Pi*math.Pow(mol.Atom(at2).Vdw, 2), at1)
+	leeway := 1.2 //I just made this up
+	if area > math.Pi*math.Pow(vdw, 2)*leeway {
+		log.Printf("Too large area of %3.5f A for contact between atoms %d and %d. Area of the 'disk' in the atom's hemispheres are %3.5f and %3.5f A^2, the smallest of which should be the maximum possible contact area. Likely unbounded polyhedron for atom %d, the area and volume will be set to 0.0\n", area, a1, a2, math.Pi*math.Pow(mol.Atom(a1).Vdw, 2), math.Pi*math.Pow(mol.Atom(a2).Vdw, 2), a1)
 		return []float64{0, 0}
 	}
 
@@ -200,7 +232,7 @@ func verticesInAtomPair(planes VPSlice, atom, atom2 int, atomCoord *v3.Matrix) [
 	}
 	ret := make([]*vertix, 0, 5)
 	//all possible triads of planes
-	deflongvertex := false
+	//deflongvertex := false
 	for i, v := range planesat {
 		for _, w := range planesat[i+1:] {
 			if sameAtoms(v.Atoms, ref.Atoms) || sameAtoms(w.Atoms, ref.Atoms) {
@@ -213,7 +245,7 @@ func verticesInAtomPair(planes VPSlice, atom, atom2 int, atomCoord *v3.Matrix) [
 			}
 		}
 	}
-	longvertex := false
+	//	longvertex := false
 	//We now have all vertices between planes, but only some of them are actual vertices of the polihedron.
 	//In many cases the vertix will be "blocked" by another of the planes.
 	//We
@@ -223,46 +255,24 @@ func verticesInAtomPair(planes VPSlice, atom, atom2 int, atomCoord *v3.Matrix) [
 	for _, v := range ret {
 		od.Sub(v.loc, atomCoord)
 		dvert = od.Norm(2)
-		if dvert > 50 { /////////////
-			longvertex = true
-			//			fmt.Println("vertice largo", dvert, "planesat:", len(planesat))
-		}
 		for _, p := range planesat {
 			if p == v.planes[0] || p == v.planes[1] || p == v.planes[2] {
-				//println("pasa?") //////////////////////////
 				continue //as the planes are all pointers, this should check that they point to the same address, i.e.
 				//are the same. There is no point in checking the planes that form the vertices.
 			}
 			dp = p.DistanceInterVector(atomCoord, v.loc)
-			//			if dvert > 50 {
-			//				println("a plane's distance", dp) //////////
-			//			}
 
-			//println("distancia reql", dp) ///////////////////
 			if dp < 0 {
-				//				if dvert > 50 {
-				//					println("PassedDue dp<0", dp) //////////
-				//				}
 				continue //it means the plane never intesects the vector
 			}
 			if dp < dvert {
-				longvertex = false
-				//			if dvert > 50 {
-				//				fmt.Println("nos salvamos!", dvert, dp, p.Atoms) //////////
-
-				//			}
-
-				//println(dp, dvert) ////////////////////////////
 				v.isVertix = false
 				total--
 				break
 			}
 		}
-		if longvertex {
-			deflongvertex = true
-		}
-
 	}
+
 	retdef := make([]*vertix, 0, total)
 	for _, v := range ret {
 		if v.isVertix {
@@ -270,23 +280,26 @@ func verticesInAtomPair(planes VPSlice, atom, atom2 int, atomCoord *v3.Matrix) [
 			retdef = append(retdef, v)
 		}
 	}
-	//debugging stuff, draw the long vertices in an xyz file
-	_ = deflongvertex
-	if len(retdef) > 3 {
-		cvert := v3.Zeros(len(retdef))
-		ats := make([]*chem.Atom, len(retdef))
-		filename := fmt.Sprintf("vert_%d-%d.xyz", atom, atom2)
-		for i, v := range retdef {
-			ats[i] = &chem.Atom{Symbol: "I"}
-			cvert.Set(i, 0, v.loc.At(0, 0))
-			cvert.Set(i, 1, v.loc.At(0, 1))
-			cvert.Set(i, 2, v.loc.At(0, 2))
-		}
-		mol2 := chem.NewTopology(0, 1, ats)
-		chem.XYZFileWrite(filename, cvert, mol2)
+	/***********************
 
-	}
-	//end debugging stuff
+	  	//debugging stuff, draw the long vertices in an xyz file
+	  _ = deflongvertex
+	  	if len(retdef) > 3 {
+	  		cvert := v3.Zeros(len(retdef))
+	  		ats := make([]*chem.Atom, len(retdef))
+	  		filename := fmt.Sprintf("vert_%d-%d.xyz", atom, atom2)
+	  		for i, v := range retdef {
+	  			ats[i] = &chem.Atom{Symbol: "I"}
+	  			cvert.Set(i, 0, v.loc.At(0, 0))
+	  			cvert.Set(i, 1, v.loc.At(0, 1))
+	  			cvert.Set(i, 2, v.loc.At(0, 2))
+	  		}
+	  		mol2 := chem.NewTopology(0, 1, ats)
+	  		chem.XYZFileWrite(filename, cvert, mol2)
+
+	  	}
+	  	//end debugging stuff
+	  **********/
 	//	fmt.Println("original and cleaned", len(ret), len(retdef))
 	return retdef
 

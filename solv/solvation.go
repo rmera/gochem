@@ -572,7 +572,7 @@ func (M MolDistList) ByChains() map[string]MolDistList {
 	for _, v := range M {
 		ret[v.chain] = append(ret[v.chain], v)
 	}
-	fmt.Println(ret) ////////////
+	//fmt.Println(ret) ////////////
 	return ret
 }
 
