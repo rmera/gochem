@@ -1,9 +1,12 @@
 package histo
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"math"
+	"sort"
+	"strings"
 
 	"gonum.org/v1/gonum/floats"
 	"gonum.org/v1/gonum/stat"
@@ -16,7 +19,7 @@ func MatrixCombine(f func(a, b, dest *Data), a, b, dest *Matrix) {
 		panic("goChem/histo.MatrixMerge: Ill-formed matrices for merging")
 	}
 	//This should work if they are both nil
-	if a.dividers != b.dividers {
+	if !(a.dividers == nil && b.dividers == nil) && !floats.Equal(a.dividers, b.dividers) {
 		panic("goChem/histo.MatrixMerge: Matrices don't have the same dividers")
 	}
 	for i, v := range dest.d {
@@ -31,16 +34,34 @@ type Matrix struct {
 	dividers   []float64 //if not nil, all histograms have the same dividers
 }
 
-//Returns a new matrix of *Data with r and c rows and column
+//NewMatrix returns a new matrix of *Data with r and c rows and column
 //and dividers dividers. Dividers can be nil, in which case, elements
 //of the matrix will not be forced to have the same dividers
 func NewMatrix(r, c int, dividers []float64) *Matrix {
-	ret = new(*Matrix)
+	ret := new(Matrix)
 	ret.rows = r
 	ret.cols = c
 	ret.d = make([]*Data, r*c)
 	ret.dividers = dividers
 	return ret
+}
+
+func (M *Matrix) MarshalJSON() ([]byte, error) {
+	j, err := json.Marshal(struct {
+		Rows     int
+		Cols     int
+		D        []*Data
+		Dividers []float64
+	}{
+		Rows:     M.rows,
+		Cols:     M.cols,
+		D:        M.d,
+		Dividers: M.dividers,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return j, nil
 }
 
 //returns the index in the []*Data slice of a matrix given
@@ -51,13 +72,25 @@ func (M *Matrix) rc2i(r, c int) int {
 	return M.cols*r + c
 }
 
-//Checks if the given row and column indexes are within range.
+//Fill fills the matrix with empty histograms
+//If the matrix has a non-nil delimiters slice,
+//that slice is used for all the histograms created
+func (M *Matrix) Fill() {
+	for i := 0; i < M.rows; i++ {
+		for j := 0; j < M.cols; j++ {
+			M.NewHisto(i, j, nil, nil)
+		}
+
+	}
+}
+
+//Check checks if the given row and column indexes are within range.
 //if pan is given and true, it panics if either is out of range,
 //otherwise, it returns an error.
 func (M *Matrix) Check(r, c int, pan ...bool) error {
 	p := false
 	var err error
-	if len(pan) > 0 && pan[0] == true {
+	if len(pan) > 0 && pan[0] {
 		p = true
 	}
 	if r >= M.rows {
@@ -72,8 +105,10 @@ func (M *Matrix) Check(r, c int, pan ...bool) error {
 	return err
 }
 
-//Returns a view of the histogram in the r,c position in the matrix
-func (M *Matrix) NewHisto(r, c int, dividers []float64, rawdata [][]float64) {
+//NewHisto Puts a new histogram in the r,c position in the matrix. Dividers can be nil, in which case, the matrix
+//should have its dividers. If there are no dividers, or they don't match, the function will panic.
+//rawdata can also be nil, in which case, an empty histogram will be put in the position.
+func (M *Matrix) NewHisto(r, c int, dividers []float64, rawdata []float64) {
 	if dividers == nil {
 		if M.dividers != nil {
 			dividers = M.dividers
@@ -88,13 +123,13 @@ func (M *Matrix) NewHisto(r, c int, dividers []float64, rawdata [][]float64) {
 	M.d[M.rc2i(r, c)] = NewData(dividers, rawdata)
 }
 
-//Returns a view of the histogram in the r,c position in the matrix
+//View Returns a view of the histogram in the r,c position in the matrix
 func (M *Matrix) View(r, c int) *Data {
-	return M.d[M.rc2i(r, c)].View()
+	return M.d[M.rc2i(r, c)]
 }
 
 //Adds one or more data points to the histogram in the r,c position in the matrix
-func (M *Matrix) AddData(r, c int, point ...float64) *Data {
+func (M *Matrix) AddData(r, c int, point ...float64) {
 	M.d[M.rc2i(r, c)].AddData(point...)
 }
 
@@ -115,11 +150,10 @@ func (M *Matrix) UnNormalizeAll() {
 //Applies the f function to each element in the matrix, the results are returned as
 //a [][]float64. Also returns error unpon failure, or nil.
 func (M *Matrix) FromAll(f func(D *Data) (float64, error)) ([][]float64, error) {
-	var r [][]float64
-	r = make([][]float64, M.rows)
+	r := make([][]float64, M.rows)
 	var err error
 	for i := 0; i < M.rows; i++ {
-		r[i] = appen(r[i], make([]float64, cols))
+		r[i] = make([]float64, M.cols)
 		for j := 0; j < M.cols; j++ {
 			r[i][j], err = f(M.d[M.rc2i(i, j)])
 			if err != nil {
@@ -137,11 +171,12 @@ func (M *Matrix) ToAll(f func(D *Data) error) error {
 		for j := 0; j < M.cols; j++ {
 			err = f(M.d[M.rc2i(i, j)])
 			if err != nil {
-				return nil, fmt.Errorf("goChem/Histo.Matrix.ToAll: Error at %d, %d: %v", i, j, err)
+				return fmt.Errorf("goChem/Histo.Matrix.ToAll: Error at %d, %d: %v", i, j, err)
 			}
 
 		}
 	}
+	return nil
 }
 
 type Data struct {
@@ -151,9 +186,41 @@ type Data struct {
 	histo      []float64
 }
 
+func (D *Data) MarshalJSON() ([]byte, error) {
+	j, err := json.Marshal(struct {
+		Normalized bool
+		Total      int
+		Dividers   []float64
+		Histo      []float64
+	}{
+		Normalized: D.normalized,
+		Total:      D.total,
+		Dividers:   D.dividers,
+		Histo:      D.histo,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return j, nil
+}
+
+//String prints a -hopefully- pretty string representation of
+//the histogram. The representation uses 3 lines of thext
+func (D *Data) String() string {
+	ret := fmt.Sprintf("Normalized: %v, TotalData: %d\n", D.normalized, D.total)
+	d := make([]string, 0, len(D.dividers)-1)
+	h := make([]string, 0, len(D.dividers)-1)
+	for i, v := range D.histo {
+		d = append(d, fmt.Sprintf("%4.2f-%4.2f", D.dividers[i], D.dividers[i+1]))
+		h = append(d, fmt.Sprintf("%9.3f", v))
+	}
+	return ret + fmt.Sprintf("%s\n%s", strings.Join(d, " "), strings.Join(h, " "))
+
+}
+
 //Returns a new histogram from the dividers and rawdata given
 //rawdata can be nil. In that case, an empty histogram is created.
-func NewData(dividers []float64, rawdata [][]float64) *Data {
+func NewData(dividers []float64, rawdata []float64) *Data {
 	d := new(Data)
 	//I prefer to copy the slice to avoid somebody changing it from outside
 	d.dividers = make([]float64, len(dividers))
@@ -171,24 +238,27 @@ func NewData(dividers []float64, rawdata [][]float64) *Data {
 
 //Adds the given data point(s) to the histogram
 func (M *Data) AddData(point ...float64) {
-	if D.normalized {
-		D.UnNormalize()
+	var norma bool
+	if M.normalized {
+		norma = true
+		M.UnNormalize()
 	}
 	for _, v := range point {
 		for j, w := range M.dividers {
-			if j == len(M.dividers)-1 {
-				histo[j]++
-				break
-			}
+			//Values that are larger than the last divider are just omitted.
+			//	if j == len(M.dividers)-1 { //this is the last divider, so anything that didn't get added to a bin goes here
+			//		M.histo[j-1]++
+			//	}
 			if w <= v && v < M.dividers[j+1] {
-				histo[j]++
+				M.histo[j]++
+				break
 			}
 		}
 	}
 	M.total += len(point)
 	//if it was normalized, we should return it to that state
-	if D.normalized {
-		D.Normalize()
+	if norma {
+		M.Normalize()
 	}
 }
 
@@ -211,35 +281,36 @@ func (D *Data) UnNormalize() {
 //on whether normalize is true
 func (D *Data) normaunnorma(normalize bool) {
 	if D.total <= 0 {
-		return nil
+		return
 	}
-	n := D.total
+	n := float64(D.total)
 	D.normalized = false
 	if normalize {
-		n = 1 / D.total
+		n = 1 / float64(D.total)
 		D.normalized = true
 	}
 
-	D.histo = floats.Scale(n, D.histo)
+	floats.Scale(n, D.histo)
 
 }
 
 //Copies the dividers of the histogram
-func CopyDividers(dest ...[]float64) []float64 {
+func (D *Data) CopyDividers(dest ...[]float64) []float64 {
 	d := getCopySlice(len(D.dividers), dest...)
 	return floats.ScaleTo(d, 0, D.dividers)
 }
 
 func (D *Data) Copy(dest ...[]float64) []float64 {
 	d := getCopySlice(len(D.histo), dest...)
-	return floats.ScaleTo(d, 0, D.Histo)
+	return floats.ScaleTo(d, 0, D.histo)
 }
 
 func (D *Data) View() []float64 {
 	return D.histo
 }
 
-func (D *Data) Add(a, b *Data) []float64 {
+//Add adds the histograms a and b putting the result in the receiver.
+func (D *Data) Add(a, b *Data) {
 	D.dividers = a.CopyDividers(D.dividers)
 	if len(a.dividers) != len(b.dividers) {
 		panic("goChem/Histo.Data.Add: Ill-formed histograms for addition")
@@ -252,11 +323,13 @@ func (D *Data) Add(a, b *Data) []float64 {
 		if i == len(a.dividers)-1 {
 			break //a.histo has 1 less element than a.dividers, so we skip the next operation for the last one.
 		}
-		D.histo[v] = a.histo[v] + b.histo[v]
+		D.histo[i] = a.histo[i] + b.histo[i]
 	}
 }
 
-func (D *Data) Sub(a, b *Data, abs ...bool) []float64 {
+//Sub substract the histograms a and b puting the results in the receiver
+//if abs is given and true (only the first element is considered)
+func (D *Data) Sub(a, b *Data, abs ...bool) {
 	f := func(a float64) float64 { return a }
 	if len(abs) > 0 && abs[0] {
 		f = func(a float64) float64 { return math.Abs(a) }
@@ -274,7 +347,7 @@ func (D *Data) Sub(a, b *Data, abs ...bool) []float64 {
 			break //a.histo has 1 less element than a.dividers, so we skip the next operation for the last one.
 		}
 
-		D.histo[v] = f(a.histo[v] - b.histo[v])
+		D.histo[i] = f(a.histo[i] - b.histo[i])
 	}
 }
 
@@ -283,10 +356,27 @@ func (D *Data) Sum() float64 {
 }
 
 func (D *Data) ReHisto(dividers, rawdata []float64) {
-	D.histo = stat.Histogram(dividers, rawdata)
+	if rawdata != nil {
+		sort.Float64s(rawdata)
+		//stat.Histograms just panics instead of omitting the values that are off limits
+		//so we remove them here before the call.
+		maxi := sort.SearchFloat64s(rawdata, dividers[len(dividers)-1])
+		mini := sort.SearchFloat64s(rawdata, dividers[0])
+		if maxi < len(rawdata) {
+			rawdata = rawdata[:maxi]
+
+		}
+		if mini != 0 {
+			rawdata = rawdata[mini:]
+
+		}
+
+	}
+	D.total = len(rawdata) //as this could have been modified
+	D.histo = stat.Histogram(nil, dividers, rawdata, nil)
 }
 
-func getCopySlice(N float64, dest ...[]float64) []float64 {
+func getCopySlice(N int, dest ...[]float64) []float64 {
 	var d []float64
 	if len(dest) > 0 && len(dest[0]) >= N {
 		d = dest[0]
