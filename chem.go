@@ -783,6 +783,8 @@ type CError struct {
 	deco []string
 }
 
+//func (err CError) NonCritical() bool { return err.noncritical }
+
 func (err CError) Error() string { return err.msg }
 
 //Decorate will add the dec string to the decoration slice of strings of the error,

@@ -46,12 +46,21 @@ func NewMatrix(r, c int, dividers []float64) *Matrix {
 	return ret
 }
 
+func (M *Matrix) String() string {
+	ret := fmt.Sprintf("rows:%d cols:%d | Data:\n", M.rows, M.cols)
+	t := make([]string, 0, len(M.d))
+	for _, v := range M.d {
+		t = append(t, v.String())
+	}
+	return ret + strings.Join(t, "\n\n")
+}
+
 func (M *Matrix) MarshalJSON() ([]byte, error) {
 	j, err := json.Marshal(struct {
-		Rows     int
-		Cols     int
-		D        []*Data
-		Dividers []float64
+		Rows     int       `json:"rows"`
+		Cols     int       `json:"cols"`
+		D        []*Data   `json:"data"`
+		Dividers []float64 `json:"dividers"`
 	}{
 		Rows:     M.rows,
 		Cols:     M.cols,
@@ -62,6 +71,25 @@ func (M *Matrix) MarshalJSON() ([]byte, error) {
 		return nil, err
 	}
 	return j, nil
+}
+
+func (M *Matrix) UnmarshalJSON(b []byte) error {
+	var a struct {
+		Rows     int       `json:"rows"`
+		Cols     int       `json:"cols"`
+		D        []*Data   `json:"data"`
+		Dividers []float64 `json:"dividers"`
+	}
+
+	err := json.Unmarshal(b, &a)
+	if err != nil {
+		return err
+	}
+	M.rows = a.Rows
+	M.cols = a.Cols
+	M.d = a.D
+	M.dividers = a.Dividers
+	return nil
 }
 
 //returns the index in the []*Data slice of a matrix given
@@ -188,10 +216,10 @@ type Data struct {
 
 func (D *Data) MarshalJSON() ([]byte, error) {
 	j, err := json.Marshal(struct {
-		Normalized bool
-		Total      int
-		Dividers   []float64
-		Histo      []float64
+		Normalized bool      `json:"normalized"`
+		Total      int       `json:"total"`
+		Dividers   []float64 `json:"dividers"`
+		Histo      []float64 `json:"histo"`
 	}{
 		Normalized: D.normalized,
 		Total:      D.total,
@@ -204,6 +232,25 @@ func (D *Data) MarshalJSON() ([]byte, error) {
 	return j, nil
 }
 
+func (D *Data) UnmarshalJSON(b []byte) error {
+	var a struct {
+		Normalized bool      `json:"normalized"`
+		Total      int       `json:"total"`
+		Dividers   []float64 `json:"dividers"`
+		Histo      []float64 `json:"histo"`
+	}
+
+	err := json.Unmarshal(b, &a)
+	if err != nil {
+		return err
+	}
+	D.normalized = a.Normalized
+	D.total = a.Total
+	D.dividers = a.Dividers
+	D.histo = a.Histo
+	return nil
+}
+
 //String prints a -hopefully- pretty string representation of
 //the histogram. The representation uses 3 lines of thext
 func (D *Data) String() string {
@@ -212,8 +259,9 @@ func (D *Data) String() string {
 	h := make([]string, 0, len(D.dividers)-1)
 	for i, v := range D.histo {
 		d = append(d, fmt.Sprintf("%4.2f-%4.2f", D.dividers[i], D.dividers[i+1]))
-		h = append(d, fmt.Sprintf("%9.3f", v))
+		h = append(h, fmt.Sprintf("%9.3f", v))
 	}
+	//fmt.Println(h, D.histo) /////////
 	return ret + fmt.Sprintf("%s\n%s", strings.Join(d, " "), strings.Join(h, " "))
 
 }
@@ -229,8 +277,9 @@ func NewData(dividers []float64, rawdata []float64) *Data {
 	}
 	d.histo = make([]float64, len(dividers)-1)
 	if rawdata != nil {
-		d.total = len(rawdata)
+		//d.total = len(rawdata)
 		d.ReHisto(d.dividers, rawdata)
+		//println("not nil!") ///////
 	}
 	return d
 
@@ -246,9 +295,9 @@ func (M *Data) AddData(point ...float64) {
 	for _, v := range point {
 		for j, w := range M.dividers {
 			//Values that are larger than the last divider are just omitted.
-			//	if j == len(M.dividers)-1 { //this is the last divider, so anything that didn't get added to a bin goes here
-			//		M.histo[j-1]++
-			//	}
+			if j == len(M.dividers)-1 {
+				break
+			}
 			if w <= v && v < M.dividers[j+1] {
 				M.histo[j]++
 				break
@@ -364,16 +413,15 @@ func (D *Data) ReHisto(dividers, rawdata []float64) {
 		mini := sort.SearchFloat64s(rawdata, dividers[0])
 		if maxi < len(rawdata) {
 			rawdata = rawdata[:maxi]
-
 		}
 		if mini != 0 {
 			rawdata = rawdata[mini:]
-
 		}
 
 	}
 	D.total = len(rawdata) //as this could have been modified
 	D.histo = stat.Histogram(nil, dividers, rawdata, nil)
+	//println(D.histo[0]) ////////////
 }
 
 func getCopySlice(N int, dest ...[]float64) []float64 {

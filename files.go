@@ -29,6 +29,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -106,7 +107,7 @@ func symbolFromName(name string) (string, error) {
 		symbol = "Zn"
 	}
 	if symbol == "" {
-		return symbol, CError{"Couldn't guess symbol from PDB name", []string{"symbolFromName"}}
+		return name, CError{"Couldn't guess symbol from PDB name. Will set the 'symbol' field to the name", []string{"symbolFromName"}}
 	}
 	return symbol, nil
 }
@@ -238,6 +239,7 @@ func pdbBufIORead(pdb *bufio.Reader, read_additional_opt ...bool) (*Molecule, er
 	if len(read_additional_opt) > 0 {
 		read_additional = read_additional_opt[0]
 	}
+	var symbolerrorlogged bool
 	molecule := make([]*Atom, 0)
 	modelnumber := 0 //This is the number of frames read
 	coords := make([][]float64, 1, 1)
@@ -273,7 +275,18 @@ func pdbBufIORead(pdb *bufio.Reader, read_additional_opt ...bool) (*Molecule, er
 				atomtmp = new(Atom)
 				atomtmp, c, bfactemp, err = read_full_pdb_line(line, read_additional, contlines)
 				if err != nil {
-					return nil, errDecorate(err, "pdbBufIORead")
+					//It would be better to pass this along, but that would create a big mess
+					//I think, at least for now, I have to just keep it here.
+					if strings.Contains(err.Error(), "Couldn't guess symbol from PDB name") {
+						if !symbolerrorlogged { //to avoid logging this many times
+							log.Printf("Error: %s. If the structure contains coarse-grained beads, this error is meaningless. Will continue", err.Error())
+							symbolerrorlogged = true
+						}
+						err = nil
+					} else {
+
+						return nil, errDecorate(err, "pdbBufIORead")
+					}
 				}
 				//atom data other than coords is the same in all models so just read for the first.
 				molecule = append(molecule, atomtmp)
