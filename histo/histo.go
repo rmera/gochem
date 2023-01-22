@@ -46,6 +46,19 @@ func NewMatrix(r, c int, dividers []float64) *Matrix {
 	return ret
 }
 
+func (M *Matrix) Dims() (int, int) {
+	return M.rows, M.cols
+}
+
+//Copies the dividers of the histogram
+func (M *Matrix) CopyDividers(dest ...[]float64) []float64 {
+	if M.dividers == nil {
+		return nil
+	}
+	d := getCopySlice(len(M.dividers), dest...)
+	return floats.ScaleTo(d, 0, M.dividers)
+}
+
 func (M *Matrix) String() string {
 	ret := fmt.Sprintf("rows:%d cols:%d | Data:\n", M.rows, M.cols)
 	t := make([]string, 0, len(M.d))
@@ -106,7 +119,7 @@ func (M *Matrix) rc2i(r, c int) int {
 func (M *Matrix) Fill() {
 	for i := 0; i < M.rows; i++ {
 		for j := 0; j < M.cols; j++ {
-			M.NewHisto(i, j, nil, nil)
+			M.NewHisto(i, j, M.dividers, nil)
 		}
 
 	}
