@@ -94,7 +94,8 @@ func Molecules2Atoms(mol Atomer, residues []int, chains []string) []int {
 
 }
 
-//EasyShape takes a matrix of coordinates, a value for epsilon (a number close to zero, the closer, the more
+//EasyShape takes a matrix of coordinates, a value for epsilon (a number close to
+//zero, the closer, the more
 //strict the orthogonality requriements are) and an (optative) masser and returns
 //two shape indicators based on the elipsoid of inertia (or it massless equivalent)
 //a linear and circular distortion indicators, and an error or nil (in that order).

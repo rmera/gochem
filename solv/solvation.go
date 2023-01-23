@@ -36,6 +36,33 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
+const epsilon = 0.0001
+
+func EllipsoidAxes(coords *v3.Matrix, epsilon float64, mol ...chem.Masser) ([]float64, error) {
+	var masses []float64
+	var err2 error
+	var err error
+	if len(mol) < 0 {
+		masses = nil
+	} else {
+		masses, err = mol[0].Masses()
+		if err != nil {
+			masses = nil
+			err2 = err
+		}
+	}
+	moment, err := chem.MomentTensor(coords, masses)
+	if err != nil {
+		return nil, err
+	}
+	rhos, err := chem.Rhos(moment, epsilon)
+	if err != nil {
+		return nil, err
+	}
+
+	return rhos, err2
+}
+
 //Options contains options for the RDF/MDDF calculation
 type Options struct {
 	com  bool
@@ -117,6 +144,17 @@ func ConcMolRDF(traj chem.ConcTraj, mol *chem.Molecule, refindexes []int, residu
 	} else {
 		o = DefaultOptions()
 	}
+	A := 1.0
+	B := 1.0
+	if mol.Len() > 1 {
+		elip, err := EllipsoidAxes(mol.Coords[0], epsilon, mol)
+		if err != nil {
+			return nil, nil, err
+		}
+		A = elip[2] / elip[0]
+		B = elip[1] / elip[0]
+
+	}
 
 	var ret []float64
 	frames := make([]*v3.Matrix, o.cpus, o.cpus)
@@ -165,11 +203,12 @@ func ConcMolRDF(traj chem.ConcTraj, mol *chem.Molecule, refindexes []int, residu
 			for i, v := range ret {
 				ret[i] = v + rettemp[i]
 			}
+
 			framesread++
 		}
 	}
-	ret, ret2 := MDFFromCDF(ret, framesread, o.step)
-	return ret, ret2, nil
+	ret, ret2, err := MDFFromCDF(ret, framesread, A, B, o.step)
+	return ret, ret2, err
 }
 
 //The worker function for the RDF
@@ -185,7 +224,8 @@ func unitRDF(channelin chan *v3.Matrix, channelout chan []float64, mol chem.Atom
 }
 
 //MolRDF calculates the RDF for a trajectory given the indexes of the solute atoms, the solvent molecule name, the step for the "layers" and the cutoff.
-func MolRDF(traj chem.Traj, mol chem.Atomer, refindexes []int, residues []string, options ...*Options) ([]float64, []float64, error) {
+//API BREAK: mol used to be chem.Atomer.
+func MolRDF(traj chem.Traj, mol *chem.Molecule, refindexes []int, residues []string, options ...*Options) ([]float64, []float64, error) {
 	var o *Options
 	if len(options) > 0 {
 		o = options[0]
@@ -196,6 +236,8 @@ func MolRDF(traj chem.Traj, mol chem.Atomer, refindexes []int, residues []string
 	coords := v3.Zeros(mol.Len())
 	framesread := 0
 	var err error
+	A := 1.0
+	B := 1.0
 
 reading:
 	for i := 0; ; i++ {
@@ -224,23 +266,58 @@ reading:
 		for j, _ := range ret {
 			ret[j] = ret[j] + rdf[j]
 		}
+		if mol.Len() > 1 && framesread == 1 {
+			elip, err := EllipsoidAxes(coords, epsilon, mol)
+			if err != nil {
+				return nil, nil, err
+			}
+			A = elip[2] / elip[0]
+			B = elip[1] / elip[0]
+
+		}
+
 		framesread++
 
 	}
-	ret, ret2 := MDFFromCDF(ret, framesread, o.step)
+	ret, ret2, err := MDFFromCDF(ret, framesread, A, B, o.step)
 
-	return ret, ret2, nil
+	return ret, ret2, err
 }
 
-// transforms a cdf into mdf, and normalizes it by the total value
-//it also divides from the total number of datapoints to go from
-//accumulated data, to the mean. It returns a slice with the molecule
-//density (divide by the volume of the sector) and a slice with the
-//number of molecules i nthe sector.
-// it overwrites the original slice!
-func MDFFromCDF(ret []float64, framesread int, step float64) ([]float64, []float64) {
+//Obtaines the radial standard-deviation distribution function from the unnormalized cummulative RDF and square RDF
+func SQRDF2RSDF(avs, sqavs []float64, framesread int, step float64) []float64 {
+	ret := make([]float64, len(avs))
+	for i, v := range avs {
+		ret[i] = sqavs[i]/float64(framesread) - math.Pow(v/float64(framesread), 2)
+
+	}
+	last := math.Sqrt(ret[len(ret)-1])
+	for i, _ := range ret {
+		ret[i] = math.Sqrt(ret[i]) / last
+	}
+
+	return ret
+
+}
+
+//MDDFFromCDF takes the sume of a cummulative distribution function over framesread frames.
+//It obtaines the RDF/MDDF from there by dividing each "shell" by an approximation to the
+//volume (the ellipsoid of inerta of the solute scaled to the corresponding radius) and divided
+//by the frames read. It returns a slice with the average  density per shell (divided by volume)
+//and another with the average number of molecules per shell, in both cases, divided by the value
+//of the last shell. The function also requires the ratio of the largest semiaxes of the ellipsoid of inertia
+//to its smallest semiaxis, A and B. It returns an error and nil slices if A and B are smaller than 1.
+//it overwrites the original slice CDF slice!
+//API BREAK: The original function did not take A and B, and simply approximated the volume as a sphere.
+//This departs from the behavior described in the publication, in a way that could create wrong results.
+//The current implementation also departs from the publication, which approximated the volume by a parallelepiped.
+//I think this behavior is better, as it allows the MDDF to reduce to the RDF for spherically symmetric systems.
+func MDFFromCDF(ret []float64, framesread int, A, B, step float64) ([]float64, []float64, error) {
+	if A < 1.0 || B < 1.0 {
+		return nil, nil, fmt.Errorf("goChem/solvation.MDFFromCDF: A and B are the ratio between the lartest axis of an elipsoid to the smallest, they can't be smaller than 1.0")
+	}
 	ret2 := make([]float64, len(ret))
-	vp := (4.0 / 3.0) * math.Pi
+	vp := (4.0 / 3.0) * math.Pi * A * B
 	//vp := 4 * math.Pi
 	//	avtotalsolv := ret[len(ret)-1]   //I think this is not needed, as we are already dealing with densities
 	var vol float64
@@ -273,7 +350,45 @@ func MDFFromCDF(ret []float64, framesread int, step float64) ([]float64, []float
 		ret[i] = ret[i] / last
 	}
 
-	return ret, ret2
+	return ret, ret2, nil
+}
+
+//FrameUMolCRDF Obtains the Unnormalized Molecular RDF for one solvated structure. The RDF would be these values averaged over several structures.
+func FrameUMolSQRDF(coord *v3.Matrix, mol chem.Atomer, refindexes []int, residues []string, options ...*Options) ([]float64, []float64) {
+	//NOTE: It could be good to have this function take a slice of floats and put the results there, so as to avoid
+	//allocating more than needed.
+	var o *Options
+	if len(options) > 0 {
+		o = options[0]
+	} else {
+		o = DefaultOptions()
+	}
+
+	totalsteps := int(o.end / o.step)
+	av := make([]float64, 0, totalsteps)
+	sqav := make([]float64, 0, totalsteps)
+	// Here we get the RDF by counting the molecules at X distance or less from the solute, and subtracting the result from the previous callculation.
+	//This means that we do more calculation than needed, as every time keep including the solvent that was in previous layers.
+	//	acclen := 0.0
+
+	res := DistRank(coord, mol, refindexes, residues, o)
+	sort.Sort(res)
+	dists := res.Distances()
+	var nprev float64 = 0
+	for i := 1; i <= totalsteps; i++ {
+		limit := float64(i) * o.step
+		n := sort.SearchFloat64s(dists, limit)
+		// the limit is not found, SearchFloat64 will return the index of the first element larger or equal than limit.
+		// we want the one before that.
+		if n > 0 {
+			n--
+		}
+		av = append(av, float64(n)-nprev)
+		sqav = append(av, math.Pow(float64(n)-nprev, 2))
+		nprev = float64(n)
+
+	}
+	return av, sqav
 }
 
 //FrameUMolCRDF Obtains the Unnormalized Cummulative Molecular RDF for one solvated structure. The RDF would be these values averaged over several structures.
