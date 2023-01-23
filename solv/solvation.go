@@ -284,7 +284,7 @@ reading:
 	return ret, ret2, err
 }
 
-//Obtaines the radial standard-deviation distribution function from the unnormalized cummulative RDF and square RDF
+//Obtains the radial standard-deviation distribution function from the unnormalized cummulative RDF and square RDF
 func SQRDF2RSDF(avs, sqavs []float64, framesread int, step float64) []float64 {
 	ret := make([]float64, len(avs))
 	for i, v := range avs {
@@ -353,7 +353,8 @@ func MDFFromCDF(ret []float64, framesread int, A, B, step float64) ([]float64, [
 	return ret, ret2, nil
 }
 
-//FrameUMolCRDF Obtains the Unnormalized Molecular RDF for one solvated structure. The RDF would be these values averaged over several structures.
+//FrameUMolCRDF Obtains the the number of solvent molecules in each solvent shell, and the sqare of that number for each shell
+//in a given frame.
 func FrameUMolSQRDF(coord *v3.Matrix, mol chem.Atomer, refindexes []int, residues []string, options ...*Options) ([]float64, []float64) {
 	//NOTE: It could be good to have this function take a slice of floats and put the results there, so as to avoid
 	//allocating more than needed.
