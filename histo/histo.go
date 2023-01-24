@@ -149,7 +149,7 @@ func (M *Matrix) Check(r, c int, pan ...bool) error {
 //NewHisto Puts a new histogram in the r,c position in the matrix. Dividers can be nil, in which case, the matrix
 //should have its dividers. If there are no dividers, or they don't match, the function will panic.
 //rawdata can also be nil, in which case, an empty histogram will be put in the position.
-func (M *Matrix) NewHisto(r, c int, dividers []float64, rawdata []float64) {
+func (M *Matrix) NewHisto(r, c int, dividers []float64, rawdata []float64, ID ...int) {
 	if dividers == nil {
 		if M.dividers != nil {
 			dividers = M.dividers
@@ -161,7 +161,7 @@ func (M *Matrix) NewHisto(r, c int, dividers []float64, rawdata []float64) {
 		log.Printf("goChem/histo.Matrix.NewHisto: dividers given but don't match the dividers of the matrix. The matrix's dividers will be used.")
 		dividers = M.dividers
 	}
-	M.d[M.rc2i(r, c)] = NewData(dividers, rawdata)
+	M.d[M.rc2i(r, c)] = NewData(dividers, rawdata,ID...)
 }
 
 //View Returns a view of the histogram in the r,c position in the matrix
@@ -221,6 +221,7 @@ func (M *Matrix) ToAll(f func(D *Data) error) error {
 }
 
 type Data struct {
+    	id int
 	normalized bool
 	total      int
 	dividers   []float64
@@ -229,11 +230,13 @@ type Data struct {
 
 func (D *Data) MarshalJSON() ([]byte, error) {
 	j, err := json.Marshal(struct {
+	    	ID         int       `json:"id"`
 		Normalized bool      `json:"normalized"`
 		Total      int       `json:"total"`
 		Dividers   []float64 `json:"dividers"`
 		Histo      []float64 `json:"histo"`
 	}{
+	    	ID: D.id
 		Normalized: D.normalized,
 		Total:      D.total,
 		Dividers:   D.dividers,
@@ -247,6 +250,7 @@ func (D *Data) MarshalJSON() ([]byte, error) {
 
 func (D *Data) UnmarshalJSON(b []byte) error {
 	var a struct {
+	    	ID         int       `json:"id"`
 		Normalized bool      `json:"normalized"`
 		Total      int       `json:"total"`
 		Dividers   []float64 `json:"dividers"`
@@ -257,6 +261,7 @@ func (D *Data) UnmarshalJSON(b []byte) error {
 	if err != nil {
 		return err
 	}
+	D.id         = a.ID
 	D.normalized = a.Normalized
 	D.total = a.Total
 	D.dividers = a.Dividers
@@ -264,10 +269,17 @@ func (D *Data) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+
+//ID returns the ID of the histogram
+func (D *Data) ID() int {
+	return D.id
+}
+
+
 //String prints a -hopefully- pretty string representation of
 //the histogram. The representation uses 3 lines of thext
 func (D *Data) String() string {
-	ret := fmt.Sprintf("Normalized: %v, TotalData: %d\n", D.normalized, D.total)
+    ret := fmt.Sprintf("ID: %d, Normalized: %v, TotalData: %d\n", D.id, D.normalized, D.total)
 	d := make([]string, 0, len(D.dividers)-1)
 	h := make([]string, 0, len(D.dividers)-1)
 	for i, v := range D.histo {
@@ -281,7 +293,9 @@ func (D *Data) String() string {
 
 //Returns a new histogram from the dividers and rawdata given
 //rawdata can be nil. In that case, an empty histogram is created.
-func NewData(dividers []float64, rawdata []float64) *Data {
+//if an ID for the histogram is given, it will be set. If not, the ID will
+//be set to -1.
+func NewData(dividers []float64, rawdata []float64, ID ...int) *Data {
 	d := new(Data)
 	//I prefer to copy the slice to avoid somebody changing it from outside
 	d.dividers = make([]float64, len(dividers))
@@ -293,6 +307,10 @@ func NewData(dividers []float64, rawdata []float64) *Data {
 		//d.total = len(rawdata)
 		d.ReHisto(d.dividers, rawdata)
 		//println("not nil!") ///////
+	}
+	d.id=-1
+	if len(ID)>0{
+		d.id=ID[0]
 	}
 	return d
 
