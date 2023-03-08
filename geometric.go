@@ -254,6 +254,7 @@ func RMSD(test, templa *v3.Matrix, indexes ...[]int) (float64, error) {
 //To save memory, it asks for the temporary matrix it needs to be supplied:
 //tmp must be Nx3 where N is the number
 //of elements in testlst and templalst
+//NOTE: This function should ask for 3 tmp matrices, not just 1
 func MemRMSD(test, templa, tmp *v3.Matrix, indexes ...[]int) (float64, error) {
 	var ctest *v3.Matrix
 	var ctempla *v3.Matrix

@@ -7,6 +7,7 @@ import (
 	"math"
 	"sort"
 	"strings"
+	"sync"
 
 	"gonum.org/v1/gonum/floats"
 	"gonum.org/v1/gonum/stat"
@@ -29,6 +30,7 @@ func MatrixCombine(f func(a, b, dest *Data), a, b, dest *Matrix) {
 
 //A matrix of histograms
 type Matrix struct {
+	mu         sync.Mutex
 	rows, cols int       //total
 	d          []*Data   //row-major
 	dividers   []float64 //if not nil, all histograms have the same dividers
@@ -56,7 +58,7 @@ func (M *Matrix) CopyDividers(dest ...[]float64) []float64 {
 		return nil
 	}
 	d := getCopySlice(len(M.dividers), dest...)
-	return floats.ScaleTo(d, 0, M.dividers)
+	return floats.ScaleTo(d, 1, M.dividers)
 }
 
 func (M *Matrix) String() string {
@@ -161,7 +163,7 @@ func (M *Matrix) NewHisto(r, c int, dividers []float64, rawdata []float64, ID ..
 		log.Printf("goChem/histo.Matrix.NewHisto: dividers given but don't match the dividers of the matrix. The matrix's dividers will be used.")
 		dividers = M.dividers
 	}
-	M.d[M.rc2i(r, c)] = NewData(dividers, rawdata,ID...)
+	M.d[M.rc2i(r, c)] = NewData(dividers, rawdata, ID...)
 }
 
 //View Returns a view of the histogram in the r,c position in the matrix
@@ -172,6 +174,14 @@ func (M *Matrix) View(r, c int) *Data {
 //Adds one or more data points to the histogram in the r,c position in the matrix
 func (M *Matrix) AddData(r, c int, point ...float64) {
 	M.d[M.rc2i(r, c)].AddData(point...)
+}
+
+//Adds one or more data points to the histogram in the r,c position in the matrix
+//it is concurrent safe
+func (M *Matrix) AddDataCS(r, c int, point ...float64) {
+	M.mu.Lock()
+	M.d[M.rc2i(r, c)].AddData(point...)
+	M.mu.Unlock()
 }
 
 //Normalize all the histograms in the matrix
@@ -221,7 +231,7 @@ func (M *Matrix) ToAll(f func(D *Data) error) error {
 }
 
 type Data struct {
-    	id int
+	id         int
 	normalized bool
 	total      int
 	dividers   []float64
@@ -230,13 +240,13 @@ type Data struct {
 
 func (D *Data) MarshalJSON() ([]byte, error) {
 	j, err := json.Marshal(struct {
-	    	ID         int       `json:"id"`
+		ID         int       `json:"id"`
 		Normalized bool      `json:"normalized"`
 		Total      int       `json:"total"`
 		Dividers   []float64 `json:"dividers"`
 		Histo      []float64 `json:"histo"`
 	}{
-	    	ID: D.id
+		ID:         D.id,
 		Normalized: D.normalized,
 		Total:      D.total,
 		Dividers:   D.dividers,
@@ -250,7 +260,7 @@ func (D *Data) MarshalJSON() ([]byte, error) {
 
 func (D *Data) UnmarshalJSON(b []byte) error {
 	var a struct {
-	    	ID         int       `json:"id"`
+		ID         int       `json:"id"`
 		Normalized bool      `json:"normalized"`
 		Total      int       `json:"total"`
 		Dividers   []float64 `json:"dividers"`
@@ -261,7 +271,7 @@ func (D *Data) UnmarshalJSON(b []byte) error {
 	if err != nil {
 		return err
 	}
-	D.id         = a.ID
+	D.id = a.ID
 	D.normalized = a.Normalized
 	D.total = a.Total
 	D.dividers = a.Dividers
@@ -269,17 +279,15 @@ func (D *Data) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-
 //ID returns the ID of the histogram
 func (D *Data) ID() int {
 	return D.id
 }
 
-
 //String prints a -hopefully- pretty string representation of
 //the histogram. The representation uses 3 lines of thext
 func (D *Data) String() string {
-    ret := fmt.Sprintf("ID: %d, Normalized: %v, TotalData: %d\n", D.id, D.normalized, D.total)
+	ret := fmt.Sprintf("ID: %d, Normalized: %v, TotalData: %d\n", D.id, D.normalized, D.total)
 	d := make([]string, 0, len(D.dividers)-1)
 	h := make([]string, 0, len(D.dividers)-1)
 	for i, v := range D.histo {
@@ -308,9 +316,9 @@ func NewData(dividers []float64, rawdata []float64, ID ...int) *Data {
 		d.ReHisto(d.dividers, rawdata)
 		//println("not nil!") ///////
 	}
-	d.id=-1
-	if len(ID)>0{
-		d.id=ID[0]
+	d.id = -1
+	if len(ID) > 0 {
+		d.id = ID[0]
 	}
 	return d
 
@@ -377,12 +385,12 @@ func (D *Data) normaunnorma(normalize bool) {
 //Copies the dividers of the histogram
 func (D *Data) CopyDividers(dest ...[]float64) []float64 {
 	d := getCopySlice(len(D.dividers), dest...)
-	return floats.ScaleTo(d, 0, D.dividers)
+	return floats.ScaleTo(d, 1, D.dividers)
 }
 
 func (D *Data) Copy(dest ...[]float64) []float64 {
 	d := getCopySlice(len(D.histo), dest...)
-	return floats.ScaleTo(d, 0, D.histo)
+	return floats.ScaleTo(d, 1, D.histo)
 }
 
 func (D *Data) View() []float64 {
@@ -467,4 +475,86 @@ func getCopySlice(N int, dest ...[]float64) []float64 {
 	}
 	return d
 
+}
+
+//Some convenience functions
+
+func Integrate(lower, upper float64, dividers ...[]float64) func(*Data) (float64, error) {
+	var divs []float64
+	if len(dividers) > 0 {
+		divs = dividers[0]
+	}
+	r := func(D *Data) (float64, error) {
+		if len(divs) == 0 {
+			divs = D.CopyDividers()
+		}
+		d := D.View()
+		if d == nil {
+			return 0, nil
+		}
+		var ret float64
+
+		for i, v := range d {
+			if divs[i+1] < lower {
+				continue
+			}
+			if divs[i+1] >= upper {
+				break
+			}
+			ret += v
+		}
+		return ret, nil
+	}
+	return r
+}
+
+//returns the nquant quartile of the histogram. nquant is a float between 0 and 1
+func Quantile(nquant float64, dividers ...[]float64) func(*Data) (float64, error) {
+	f := func(p, w []float64) float64 { return stat.Quantile(nquant, stat.CumulantKind(4), p, w) }
+
+	return StatFunc(f, dividers...)
+}
+
+func Mean(dividers ...[]float64) func(*Data) (float64, error) {
+	return StatFunc(stat.Mean, dividers...)
+}
+
+func StdDev(dividers ...[]float64) func(*Data) (float64, error) {
+	f := func(p, w []float64) float64 {
+		_, s := stat.MeanStdDev(p, w)
+		if math.IsNaN(s) || math.IsInf(s, 0) {
+			s = 0.0
+		}
+		return s
+	}
+	return StatFunc(f, dividers...)
+}
+
+//returns the results of the function f which takes a set of values and their weights (in this case, the values
+// are the mean of the 2 limits of each histogram bin, and the weights are the value for that bin.
+func StatFunc(f func(x, w []float64) float64, dividers ...[]float64) func(*Data) (float64, error) {
+	var divs []float64
+	if len(dividers) > 0 {
+		divs = dividers[0]
+	}
+	r := func(D *Data) (float64, error) {
+		if len(divs) == 0 {
+			divs = D.CopyDividers()
+		}
+		//	fmt.Println(divs) ////////////////////////////////
+		d := D.View()
+		if d == nil {
+			return 0, nil
+		}
+		var q float64
+		points := make([]float64, 0, len(d))
+		for i, _ := range d {
+			points = append(points, (divs[i+1]+divs[i])/2)
+		}
+		//		fmt.Println("points", points, "d", d, "\n") ////////////////
+		q = f(points, d)
+		return q, nil
+	}
+
+	return r
 }
