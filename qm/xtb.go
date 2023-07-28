@@ -263,13 +263,17 @@ func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q
 //only for unix-compatible systems, as it uses bash and nohup.
 func (O *XTBHandle) Run(wait bool) (err error) {
 	var com string
+	extraoptions := ""
+	if len(O.options) >= 3 {
+		extraoptions = strings.Join(O.options[2:], " ")
+	}
 	if O.gfnff {
-		com = fmt.Sprintf(" --gfnff %s.xyz  --input %s.inp  %s > %s.out  2>&1", O.inputname, O.inputname, strings.Join(O.options[2:], " "), O.inputname)
+		com = fmt.Sprintf(" --gfnff %s.xyz  --input %s.inp  %s > %s.out  2>&1", O.inputname, O.inputname, extraoptions, O.inputname)
 	} else {
 
-		com = fmt.Sprintf(" %s.xyz  --input %s.inp  %s > %s.out  2>&1", O.inputname, O.inputname, strings.Join(O.options[2:], " "), O.inputname)
+		com = fmt.Sprintf(" %s.xyz  --input %s.inp  %s > %s.out  2>&1", O.inputname, O.inputname, extraoptions, O.inputname)
 	}
-	if wait == true {
+	if wait {
 		//log.Printf(com) //this is stderr, I suppose
 		command := exec.Command("sh", "-c", O.command+com)
 		command.Dir = O.wrkdir
