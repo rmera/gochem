@@ -54,6 +54,7 @@ type XTBHandle struct {
 	relconstraints bool
 	force          float64
 	wrkdir         string
+	inputfile      string
 }
 
 //NewXTBHandle initializes and returns an xtb handle
@@ -119,7 +120,7 @@ func (O *XTBHandle) SetDefaults() {
 
 }
 
-func (O *XTBHandle) seticonstraints(Q *Calc, xcontrol *os.File) {
+func (O *XTBHandle) seticonstraints(Q *Calc, xcontrol []string) []string {
 	//Here xtb expects distances in A and angles in deg, so no conversion needed.
 	var g2x = map[byte]string{
 		'B': "distance: ",
@@ -139,10 +140,10 @@ func (O *XTBHandle) seticonstraints(Q *Calc, xcontrol *os.File) {
 		} else {
 			constra += " auto\n"
 		}
-		xcontrol.Write([]byte(constra))
+		xcontrol = append(xcontrol, constra)
 
 	}
-
+	return xcontrol
 }
 
 //BuildInput builds an input for XTB. Right now it's very limited, only singlets are allowed and
@@ -169,10 +170,7 @@ func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q
 		//Here we can adjust memory if needed
 	}
 
-	xcontrol, err := os.Create(w + O.inputname + ".inp")
-	if err != nil {
-		return err
-	}
+	xcontroltxt := make([]string, 0, 10)
 	O.options = make([]string, 0, 6)
 	O.options = append(O.options, O.command)
 	if Q.Method == "gfnff" {
@@ -209,7 +207,7 @@ func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q
 		fixtoken = "$constrain\n" + force
 	}
 	if Q.CConstraints != nil || Q.IConstraints != nil {
-		xcontrol.Write([]byte(fixtoken))
+		xcontroltxt = append(xcontroltxt, fixtoken)
 		if Q.CConstraints != nil {
 			fixed = "atoms: "
 			for _, v := range Q.CConstraints {
@@ -217,16 +215,16 @@ func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q
 			}
 			strings.TrimRight(fixed, ",")
 			fixed = fixed + "\n"
-			xcontrol.Write([]byte(fixed))
+			xcontroltxt = append(xcontroltxt, fixed)
 		}
 		if Q.IConstraints != nil {
 			if !O.relconstraints {
-				xcontrol.Write([]byte("$end\n$constrain\n"))
+				xcontroltxt = append(xcontroltxt, ("$end\n$constrain\n"))
 			}
-			O.seticonstraints(Q, xcontrol)
+			xcontroltxt = O.seticonstraints(Q, xcontroltxt)
 
 		}
-		xcontrol.Write([]byte("$end\n"))
+		xcontroltxt = append(xcontroltxt, "$end\n")
 
 	}
 	jc := jobChoose{}
@@ -243,17 +241,29 @@ func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q
 		//The restart=false option doesn't have any effect, but it's added so it's easier later to use sed or whatever to change it to true, and  restart
 		//a calculation.
 		if Q.Method == "gfnff" {
-			xcontrol.Write([]byte(fmt.Sprintf("$md\n temp=%5.3f\n time=%d\n velo=false\n nvt=true\n step=2.0\n hmass=4.0\n shake=0\n restart=false\n$end", Q.MDTemp, Q.MDTime)))
+			xcontroltxt = append(xcontroltxt, fmt.Sprintf("$md\n temp=%5.3f\n time=%d\n velo=false\n nvt=true\n step=2.0\n hmass=4.0\n shake=0\n restart=false\n$end", Q.MDTemp, Q.MDTime))
 		} else {
-			xcontrol.Write([]byte(fmt.Sprintf("$md\n temp=%5.3f\n time=%d\n velo=false\n nvt=true\n restart=false\n$end", Q.MDTemp, Q.MDTime)))
+			xcontroltxt = append(xcontroltxt, fmt.Sprintf("$md\n temp=%5.3f\n time=%d\n velo=false\n nvt=true\n restart=false\n$end", Q.MDTemp, Q.MDTime))
 		}
-		xcontrol.Close()
+
 	}
 	//	O.options = append(O.options, "--input xcontrol")
-
-	Q.Job.Do(jc)
-	xcontrol.Close()
 	O.options = append(O.options, Q.Others)
+	Q.Job.Do(jc)
+	if len(xcontroltxt) == 0 {
+		return nil //no need to write a control file
+	}
+	O.inputfile = O.inputname + ".inp" //if not input file was written
+	//this will just be an empty string.
+	xcontrol, err := os.Create(w + O.inputfile)
+	if err != nil {
+		return err
+	}
+	for _, v := range xcontroltxt {
+		xcontrol.WriteString(v)
+
+	}
+	xcontrol.Close()
 	return nil
 }
 
@@ -267,11 +277,16 @@ func (O *XTBHandle) Run(wait bool) (err error) {
 	if len(O.options) >= 3 {
 		extraoptions = strings.Join(O.options[2:], " ")
 	}
+	inputfile := ""
+	if O.inputfile != "" {
+		inputfile = "--input O.inputfile"
+	}
+
 	if O.gfnff {
-		com = fmt.Sprintf(" --gfnff %s.xyz  --input %s.inp  %s > %s.out  2>&1", O.inputname, O.inputname, extraoptions, O.inputname)
+		com = fmt.Sprintf(" --gfnff %s.xyz   %s  %s > %s.out  2>&1", O.inputname, inputfile, extraoptions, O.inputname)
 	} else {
 
-		com = fmt.Sprintf(" %s.xyz  --input %s.inp  %s > %s.out  2>&1", O.inputname, O.inputname, extraoptions, O.inputname)
+		com = fmt.Sprintf(" %s.xyz  --input %s  %s > %s.out  2>&1", O.inputname, inputfile, extraoptions, O.inputname)
 	}
 	if wait {
 		//log.Printf(com) //this is stderr, I suppose
