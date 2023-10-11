@@ -377,7 +377,7 @@ func searchBackwards(str, filename string) string {
 	}
 }
 
-// Energy returns the energy of a previous XTB calculations.
+// Energy returns the energy of a previous XTB calculations, in kcal/mol.
 // Returns error if problem, and also if the energy returned that is product of an
 // abnormally-terminated ORCA calculation. (in this case error is "Probable problem
 // in calculation")

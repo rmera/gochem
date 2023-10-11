@@ -160,7 +160,7 @@ func (T *Topology) FillVdw() {
 	for _, val := range T.Atoms {
 		if val.Symbol != "" && val.Vdw == 0 {
 			val.Vdw = symbolVdwrad[val.Symbol] //Not error checking
-		}
+	 //I'm not super sure about this.	}
 	}
 }
 
@@ -196,7 +196,12 @@ func (T *Topology) ResetIDs() {
 //at least as many atoms as A.
 func (T *Topology) CopyAtoms(A Atomer) {
 	//T := new(Topology)
-	T.Atoms = make([]*Atom, A.Len())
+	if len(T.Atoms) < A.Len() {
+		T.Atoms = make([]*Atom, A.Len())
+		for i, _ := range T.Atoms {
+			T.Atoms[i] = new(Atom)
+		}
+	}
 	for key := 0; key < A.Len(); key++ {
 		T.Atoms[key].Copy(A.Atom(key))
 	}

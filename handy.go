@@ -591,7 +591,7 @@ func TagAtomsByName(r Atomer, name string, list []int) int {
 }
 
 //ScaleBonds scales all bonds between atoms in the same residue with names n1, n2 to a final lenght finallengt, by moving the atoms n2.
-//the operation is executed in place.
+//the o<ration is executed in place.
 func ScaleBonds(coords *v3.Matrix, mol Atomer, n1, n2 string, finallenght float64) {
 	for i := 0; i < mol.Len(); i++ {
 		c1 := mol.Atom(i)

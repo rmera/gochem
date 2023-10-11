@@ -63,7 +63,7 @@ func EllipsoidAxes(coords *v3.Matrix, epsilon float64, mol ...chem.Masser) ([]fl
 	return rhos, err2
 }
 
-//Options contains options for the RDF/MDDF calculation
+// Options contains options for the RDF/MDDF calculation
 type Options struct {
 	com  bool
 	cpus int
@@ -72,7 +72,7 @@ type Options struct {
 	skip int
 }
 
-//Returns a Options with the default options.
+// Returns a Options with the default options.
 func DefaultOptions() *Options {
 	ret := new(Options)
 	ret.com = false
@@ -83,8 +83,8 @@ func DefaultOptions() *Options {
 	return ret
 }
 
-//Returns whether to use center of mass for solvent in the calculations
-//and sets the value to the one given, if any
+// Returns whether to use center of mass for solvent in the calculations
+// and sets the value to the one given, if any
 func (r *Options) COM(com ...bool) bool {
 	ret := r.com
 	if len(com) > 0 {
@@ -93,9 +93,9 @@ func (r *Options) COM(com ...bool) bool {
 	return ret
 }
 
-//Returns the current value of the Cpus options (the number of gorutines to
-//use on the concurrent calculation) and sets it, if
-//a valid value is given
+// Returns the current value of the Cpus options (the number of gorutines to
+// use on the concurrent calculation) and sets it, if
+// a valid value is given
 func (r *Options) Cpus(cpus ...int) int {
 	ret := r.cpus
 	if len(cpus) > 0 && cpus[0] > 0 {
@@ -104,8 +104,8 @@ func (r *Options) Cpus(cpus ...int) int {
 	return ret
 }
 
-//Returns the skipped frames (for functions where it's applicable) and sets it, if
-//a valid value is given
+// Returns the skipped frames (for functions where it's applicable) and sets it, if
+// a valid value is given
 func (r *Options) Skip(skip ...int) int {
 	ret := r.skip
 	if len(skip) > 0 && skip[0] > 0 {
@@ -114,8 +114,8 @@ func (r *Options) Skip(skip ...int) int {
 	return ret
 }
 
-//Returns the distance step to be used in the RDF/MDDF calculation
-//and sets if to a value, if a valid value is given
+// Returns the distance step to be used in the RDF/MDDF calculation
+// and sets if to a value, if a valid value is given
 func (r *Options) Step(step ...float64) float64 {
 	ret := r.step
 	if len(step) > 0 && step[0] > 0 {
@@ -124,8 +124,8 @@ func (r *Options) Step(step ...float64) float64 {
 	return ret
 }
 
-//Returns the maximum distance from the solute to be considered
-//in the RDF/MDDF calculation and sets if to a value, if given
+// Returns the maximum distance from the solute to be considered
+// in the RDF/MDDF calculation and sets if to a value, if given
 func (r *Options) End(end ...float64) float64 {
 	ret := r.end
 	if len(end) > 0 && end[0] > 0 {
@@ -134,9 +134,9 @@ func (r *Options) End(end ...float64) float64 {
 	return ret
 }
 
-//ConcMolRDF calculates the RDF for a trajectory given the indexes of the solute atoms, the solvent molecule name, the step for the "layers" and the cutoff.
-//It processes several frames of the trajectory concurrently, depending on the logical CPUs available.
-//The code includes some extra comments, so it can be used as a template for concurrent trajectory processing.
+// ConcMolRDF calculates the RDF for a trajectory given the indexes of the solute atoms, the solvent molecule name, the step for the "layers" and the cutoff.
+// It processes several frames of the trajectory concurrently, depending on the logical CPUs available.
+// The code includes some extra comments, so it can be used as a template for concurrent trajectory processing.
 func ConcMolRDF(traj chem.ConcTraj, mol *chem.Molecule, refindexes []int, residues []string, options ...*Options) ([]float64, []float64, error) {
 	var o *Options
 	if len(options) > 0 {
@@ -211,7 +211,7 @@ func ConcMolRDF(traj chem.ConcTraj, mol *chem.Molecule, refindexes []int, residu
 	return ret, ret2, err
 }
 
-//The worker function for the RDF
+// The worker function for the RDF
 func unitRDF(channelin chan *v3.Matrix, channelout chan []float64, mol chem.Atomer, refindexes []int, residues []string, o *Options) {
 	if channelin != nil {
 		temp := <-channelin
@@ -223,8 +223,8 @@ func unitRDF(channelin chan *v3.Matrix, channelout chan []float64, mol chem.Atom
 	return
 }
 
-//MolRDF calculates the RDF for a trajectory given the indexes of the solute atoms, the solvent molecule name, the step for the "layers" and the cutoff.
-//API BREAK: mol used to be chem.Atomer.
+// MolRDF calculates the RDF for a trajectory given the indexes of the solute atoms, the solvent molecule name, the step for the "layers" and the cutoff.
+// API BREAK: mol used to be chem.Atomer.
 func MolRDF(traj chem.Traj, mol *chem.Molecule, refindexes []int, residues []string, options ...*Options) ([]float64, []float64, error) {
 	var o *Options
 	if len(options) > 0 {
@@ -284,7 +284,7 @@ reading:
 	return ret, ret2, err
 }
 
-//Obtains the radial standard-deviation distribution function from the unnormalized cummulative RDF and square RDF
+// Obtains the radial standard-deviation distribution function from the unnormalized cummulative RDF and square RDF
 func SQRDF2RSDF(avs, sqavs []float64, framesread int, step float64) []float64 {
 	ret := make([]float64, len(avs))
 	for i, v := range avs {
@@ -300,18 +300,18 @@ func SQRDF2RSDF(avs, sqavs []float64, framesread int, step float64) []float64 {
 
 }
 
-//MDDFFromCDF takes the sume of a cummulative distribution function over framesread frames.
-//It obtaines the RDF/MDDF from there by dividing each "shell" by an approximation to the
-//volume (the ellipsoid of inerta of the solute scaled to the corresponding radius) and divided
-//by the frames read. It returns a slice with the average  density per shell (divided by volume)
-//and another with the average number of molecules per shell, in both cases, divided by the value
-//of the last shell. The function also requires the ratio of the largest semiaxes of the ellipsoid of inertia
-//to its smallest semiaxis, A and B. It returns an error and nil slices if A and B are smaller than 1.
-//it overwrites the original slice CDF slice!
-//API BREAK: The original function did not take A and B, and simply approximated the volume as a sphere.
-//This departs from the behavior described in the publication, in a way that could create wrong results.
-//The current implementation also departs from the publication, which approximated the volume by a parallelepiped.
-//I think this behavior is better, as it allows the MDDF to reduce to the RDF for spherically symmetric systems.
+// MDDFFromCDF takes the sume of a cummulative distribution function over framesread frames.
+// It obtaines the RDF/MDDF from there by dividing each "shell" by an approximation to the
+// volume (the ellipsoid of inerta of the solute scaled to the corresponding radius) and divided
+// by the frames read. It returns a slice with the average  density per shell (divided by volume)
+// and another with the average number of molecules per shell, in both cases, divided by the value
+// of the last shell. The function also requires the ratio of the largest semiaxes of the ellipsoid of inertia
+// to its smallest semiaxis, A and B. It returns an error and nil slices if A and B are smaller than 1.
+// it overwrites the original slice CDF slice!
+// API BREAK: The original function did not take A and B, and simply approximated the volume as a sphere.
+// This departs from the behavior described in the publication, in a way that could create wrong results.
+// The current implementation also departs from the publication, which approximated the volume by a parallelepiped.
+// I think this behavior is better, as it allows the MDDF to reduce to the RDF for spherically symmetric systems.
 func MDFFromCDF(ret []float64, framesread int, A, B, step float64) ([]float64, []float64, error) {
 	if A < 1.0 || B < 1.0 {
 		return nil, nil, fmt.Errorf("goChem/solvation.MDFFromCDF: A and B are the ratio between the lartest axis of an elipsoid to the smallest, they can't be smaller than 1.0")
@@ -353,8 +353,8 @@ func MDFFromCDF(ret []float64, framesread int, A, B, step float64) ([]float64, [
 	return ret, ret2, nil
 }
 
-//FrameUMolCRDF Obtains the the number of solvent molecules in each solvent shell, and the sqare of that number for each shell
-//in a given frame.
+// FrameUMolCRDF Obtains the the number of solvent molecules in each solvent shell, and the sqare of that number for each shell
+// in a given frame.
 func FrameUMolSQRDF(coord *v3.Matrix, mol chem.Atomer, refindexes []int, residues []string, options ...*Options) ([]float64, []float64) {
 	//NOTE: It could be good to have this function take a slice of floats and put the results there, so as to avoid
 	//allocating more than needed.
@@ -392,7 +392,7 @@ func FrameUMolSQRDF(coord *v3.Matrix, mol chem.Atomer, refindexes []int, residue
 	return av, sqav
 }
 
-//FrameUMolCRDF Obtains the Unnormalized Cummulative Molecular RDF for one solvated structure. The RDF would be these values averaged over several structures.
+// FrameUMolCRDF Obtains the Unnormalized Cummulative Molecular RDF for one solvated structure. The RDF would be these values averaged over several structures.
 func FrameUMolCRDF(coord *v3.Matrix, mol chem.Atomer, refindexes []int, residues []string, options ...*Options) []float64 {
 	//NOTE: It could be good to have this function take a slice of floats and put the results there, so as to avoid
 	//allocating more than needed.
@@ -430,7 +430,7 @@ type resAndChain struct {
 	Chain string
 }
 
-//returns all the residue numbers in mol covered by indexes
+// returns all the residue numbers in mol covered by indexes
 func allResIDandChains(mol chem.Atomer, indexes []int) []*resAndChain {
 	ret := make([]*resAndChain, 0, 2)
 	for _, i := range indexes {
@@ -451,9 +451,9 @@ func repeated(id int, chain string, rac []*resAndChain) bool {
 	return false
 }
 
-//DistRank determines, for a reference set of coordinates and a set of residue names, the minimum distance between any atom from the reference
-//and any atom from each residue with one of the names given (or the centroid of each residue, if a variadic "com" bool is given)
-//returns a list with ID and distances, which satisfies the sort interface and has several other useful methods.
+// DistRank determines, for a reference set of coordinates and a set of residue names, the minimum distance between any atom from the reference
+// and any atom from each residue with one of the names given (or the centroid of each residue, if a variadic "com" bool is given)
+// returns a list with ID and distances, which satisfies the sort interface and has several other useful methods.
 func DistRank(coord *v3.Matrix, mol chem.Atomer, refindexes []int, residues []string, options ...*Options) MolDistList {
 	var o *Options
 	if len(options) > 0 {
@@ -539,7 +539,7 @@ func DistRank(coord *v3.Matrix, mol chem.Atomer, refindexes []int, residues []st
 
 }
 
-//A structure for the distance from a residue to a particular point
+// A structure for the distance from a residue to a particular point
 type molDist struct {
 	Distance float64
 	MolID    int
@@ -549,16 +549,16 @@ func (M *molDist) str() string {
 	return fmt.Sprintf("D: %4.3f ID: %d", M.Distance, M.MolID)
 }
 
-//A set of distances for different molecules to the same point
+// A set of distances for different molecules to the same point
 type MolDistList []*molDist
 
 func (M MolDistList) Swap(i, j int) {
 	M[i], M[j] = M[j], M[i]
 }
 
-//Less returns true if the distance of the element i
-//to the pre-defined point is smallert than that of the element j,
-//or false otherwise
+// Less returns true if the distance of the element i
+// to the pre-defined point is smallert than that of the element j,
+// or false otherwise
 func (M MolDistList) Less(i, j int) bool {
 	return M[i].Distance < M[j].Distance
 }
@@ -566,19 +566,19 @@ func (M MolDistList) Len() int {
 	return len(M)
 }
 
-//Distance returns the distance from the element i of
-//the slice to the pre-defined point
+// Distance returns the distance from the element i of
+// the slice to the pre-defined point
 func (M MolDistList) Distance(i int) float64 {
 	return M[i].Distance
 }
 
-//MolID resturns the MolID (the residue number, for a protein)
-//of the i element of the slice
+// MolID resturns the MolID (the residue number, for a protein)
+// of the i element of the slice
 func (M MolDistList) MolID(i int) int {
 	return M[i].MolID
 }
 
-//String produces a string representation of a set of distances
+// String produces a string representation of a set of distances
 func (M MolDistList) String() string {
 	retslice := make([]string, len(M))
 	for i := range M {
@@ -587,7 +587,7 @@ func (M MolDistList) String() string {
 	return strings.Join(retslice, "\n")
 }
 
-//Distances returns a slice with all the distances in the set
+// Distances returns a slice with all the distances in the set
 func (M MolDistList) Distances() []float64 {
 	ret := make([]float64, len(M))
 	for i := range M {
@@ -596,7 +596,7 @@ func (M MolDistList) Distances() []float64 {
 	return ret
 }
 
-//MolIDs returns a slice with the molIDs in al the lists
+// MolIDs returns a slice with the molIDs in al the lists
 func (M MolDistList) MolIDs() []int {
 	ret := make([]int, len(M))
 	for i := range M {
@@ -605,8 +605,8 @@ func (M MolDistList) MolIDs() []int {
 	return ret
 }
 
-//Data returns a list with all the MolIDs and a list with all the distances
-//in the set
+// Data returns a list with all the MolIDs and a list with all the distances
+// in the set
 func (M MolDistList) Data() ([]int, []float64) {
 	ret := make([]int, len(M))
 	ret2 := make([]float64, len(M))
@@ -617,15 +617,15 @@ func (M MolDistList) Data() ([]int, []float64) {
 	return ret, ret2
 }
 
-//AtomIDs returns a list of all the atom IDs for all the residues in the list.
-//Only a convenience function.
+// AtomIDs returns a list of all the atom IDs for all the residues in the list.
+// Only a convenience function.
 func (M MolDistList) AtomIDs(mol chem.Atomer) []int {
 	molids := M.MolIDs()
 	return chem.Molecules2Atoms(mol, molids, []string{})
 }
 
-//Merge aggregates the receiver and the arguments in the receiver
-//it removes entries with repeated MolIDs
+// Merge aggregates the receiver and the arguments in the receiver
+// it removes entries with repeated MolIDs
 func (M MolDistList) Merge(list ...MolDistList) {
 	for _, v := range list {
 		ref := M.MolIDs()
@@ -638,8 +638,10 @@ func (M MolDistList) Merge(list ...MolDistList) {
 
 }
 
-//MolShortestDistGiven two sets of coordinates, it obtains the shortest distance from any 2 points
-//in the set. This is probably not a very efficient way to do it.
+// MolShortestDistGiven two sets of coordinates, it obtains the distance between the two closest atoms
+// in the 2 sets.
+// This is probably not a very efficient way to do it.
+// Note:This should probably be moved to the main gochem package, in geometric.go
 func MolShortestDist(test, ref *v3.Matrix) float64 {
 	temp := v3.Zeros(1)
 	var d1, dclosest float64
@@ -668,7 +670,7 @@ func dist(r, t, temp *v3.Matrix) float64 {
 //NOTE: These will be replaced when the generic funcions
 //make it to Go's stdlib.
 
-//isInInt returns true if test is in container, false otherwise.
+// isInInt returns true if test is in container, false otherwise.
 func isInInt(container []int, test int) bool {
 	if container == nil {
 		return false
@@ -681,7 +683,7 @@ func isInInt(container []int, test int) bool {
 	return false
 }
 
-//Same as the previous, but with strings.
+// Same as the previous, but with strings.
 func isInString(container []string, test string) bool {
 	if container == nil {
 		return false
