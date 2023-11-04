@@ -46,22 +46,24 @@ import (
 	v3 "github.com/rmera/gochem/v3"
 )
 
-//TMHandle is the representation of a Turbomole (TM) calculation
-//This imlpementation supports only singlets and doublets.
+// TMHandle is the representation of a Turbomole (TM) calculation
+// This imlpementation supports only singlets and doublets.
 type TMHandle struct {
-	defmethod   string
-	defbasis    string
-	defauxbasis string
-	previousMO  string
-	command     string
-	inputname   string
-	gimic       bool
-	marij       bool
-	dryrun      bool
+	defmethod    string
+	defbasis     string
+	defauxbasis  string
+	defgrid      int
+	previousMO   string
+	command      string
+	cosmoprepcom string
+	inputname    string
+	gimic        bool
+	marij        bool
+	dryrun       bool
 }
 
-//Creates and initializes a new instance of TMRuner, with values set
-//to its defaults.
+// Creates and initializes a new instance of TMRuner, with values set
+// to its defaults.
 func NewTMHandle() *TMHandle {
 	run := new(TMHandle)
 	run.SetDefaults()
@@ -72,48 +74,58 @@ const noCosmoPrep = "goChem/QM: Unable to run cosmoprep"
 
 //TMHandle methods
 
-//SetName sets the name of the subdirectory, in the current directory
-//where the calculation will be ran
+// SetName sets the name of the subdirectory, in the current directory
+// where the calculation will be ran
 func (O *TMHandle) SetName(name string) {
 	O.inputname = name
 
 }
 
-//SetMARIJ sets the multipole acceleration
+// SetMARIJ sets the multipole acceleration
 func (O *TMHandle) SetMARIJ(state bool) {
 	O.marij = state
 }
 
-//SetDryRun sets the flag to see this is a dry run or
-//if define will actually be run.
+// SetDryRun sets the flag to see this is a dry run or
+// if define will actually be run.
 func (O *TMHandle) SetDryRun(dry bool) {
 	O.dryrun = dry
 }
 
-//SetCommand doesn't do anything, and it is here only for compatibility.
-//In TM the command is set according to the method. goChem assumes a normal TM installation.
+// SetCommand doesn't do anything, and it is here only for compatibility.
+// In TM the command is set according to the method. goChem assumes a normal TM installation.
 func (O *TMHandle) SetCommand(name string) {
 	//Does nothing again
 }
 
-//SetDefaults sets default values for TMHandle. default is an optimization at
-//  TPSS-D3 / def2-SVP
-//Defaults are not part of the API, they might change as new methods appear.
+// SetCommand doesn't do anything, and it is here only for compatibility.
+// In TM the command is set according to the method. goChem assumes a normal TM installation.
+func (O *TMHandle) SetCosmoPrepCommand(name string) {
+	O.cosmoprepcom = name
+}
+
+// SetDefaults sets default values for TMHandle. default is an optimization at
+//
+//	TPSS-D3 / def2-SVP
+//
+// Defaults are not part of the API, they might change as new methods appear.
 func (O *TMHandle) SetDefaults() {
-	O.defmethod = "tpss"
-	O.defbasis = "def2-SVP"
-	O.defauxbasis = "def2-SVP"
+	O.defmethod = "B97-3c"
+	O.defbasis = "def2-mTZVP"
+	O.defgrid = 4
+	O.defauxbasis = "def2-mTZVP"
 	O.command = "ridft"
 	O.marij = false  //Apparently marij can cause convergence problems
 	O.dryrun = false //define IS run by default.
 	O.inputname = "gochemturbo"
+	O.cosmoprepcom = "cosmoprep"
 }
 
-//addMARIJ adds the multipole acceleration if certain conditions are fullfilled:
-//O.marij must be true
-//The RI approximation must be in use
-//The system must have more than 20 atoms
-//The basis set cannot be very large (i.e. it can NOT be quadruple-zeta, tzvpp, or basis with diffuse functions)
+// addMARIJ adds the multipole acceleration if certain conditions are fullfilled:
+// O.marij must be true
+// The RI approximation must be in use
+// The system must have more than 20 atoms
+// The basis set cannot be very large (i.e. it can NOT be quadruple-zeta, tzvpp, or basis with diffuse functions)
 func (O *TMHandle) addMARIJ(defstring string, atoms chem.AtomMultiCharger, Q *Calc) string {
 	if !O.marij {
 		return defstring
@@ -139,8 +151,28 @@ func (O *TMHandle) addMARIJ(defstring string, atoms chem.AtomMultiCharger, Q *Ca
 	return defstring
 }
 
-//Adds all the strings in toapend to the control file, just before the $symmetry keyword
-func (O *TMHandle) addToControl(toappend []string, Q *Calc) error {
+func ReasonableSetting(k string, Q *Calc) string {
+	if strings.Contains(k, "$scfiterlimit") {
+		k = "$scfiterlimit   100\n"
+	}
+
+	if strings.Contains(k, "$maxcor    500 MiB  per_core") {
+		k = "$maxcor    3000 MiB  per_core\n"
+	}
+	if strings.Contains(k, "$ricore      500") {
+		k = "$ricore      1000\n"
+	}
+	if Q.SCFConvHelp >= 1 {
+		if strings.Contains(k, "$scfdamp") {
+			k = "$scfdamp start=10 step=0.005 min=0.5\n"
+		}
+	}
+	return k
+}
+
+// Adds all the strings in toapend to the control file, just before the $symmetry keyword
+// or just before the keyword specified in where.
+func (O *TMHandle) addToControl(toappend []string, Q *Calc, before, fix bool, where ...string) error {
 	f, err := os.Open("control")
 	if err != nil {
 		return Error{ErrCantInput, Turbomole, O.inputname, "", []string{"os.Open", "addtoControl"}, true}
@@ -159,26 +191,33 @@ func (O *TMHandle) addToControl(toappend []string, Q *Calc) error {
 	}
 	defer out.Close()
 	var k string
+	target := "$symmetry"
+	if len(where) > 0 {
+		target = where[0]
+	}
 	for _, i := range lines {
 		k = i //May not be too efficient
-		if strings.Contains(i, "$symmetry") {
+		if fix {
+			k = ReasonableSetting(k, Q)
+		}
+		if strings.Contains(i, target) {
+			if !before {
+				if _, err := fmt.Fprintf(out, k); err != nil {
+					return Error{ErrCantInput, Turbomole, O.inputname, "", []string{"fmt.Fprintf", "addtoControl"}, true}
+
+				}
+			}
 			for _, j := range toappend {
 				if _, err := fmt.Fprintf(out, j+"\n"); err != nil {
 					return Error{ErrCantInput, Turbomole, O.inputname, "", []string{"fmt.Fprintf", "addtoControl"}, true}
 				}
 			}
 		}
-		if Q.SCFConvHelp >= 1 {
-			if strings.Contains(k, "$scfiterlimit") {
-				k = "$scfiterlimit   100\n"
-			}
-			if strings.Contains(k, "$scfdamp") {
-				k = "$scfdamp start=10 step=0.005 min=0.5\n"
-			}
-		}
-		if _, err := fmt.Fprintf(out, k); err != nil {
-			return Error{ErrCantInput, Turbomole, O.inputname, "", []string{"fmt.Fprintf", "addtoControl"}, true}
+		if !strings.Contains(i, target) || before {
+			if _, err := fmt.Fprintf(out, k); err != nil {
+				return Error{ErrCantInput, Turbomole, O.inputname, "", []string{"fmt.Fprintf", "addtoControl"}, true}
 
+			}
 		}
 	}
 	return nil
@@ -191,7 +230,7 @@ func (O *TMHandle) addCosmo(epsilon float64) error {
 		return nil
 	}
 	cosmostring = fmt.Sprintf("%s%3.1f\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nr all b\n*\n\n\n\n\n\n", cosmostring, epsilon)
-	def := exec.Command("cosmoprep")
+	def := exec.Command(O.cosmoprepcom)
 	pipe, err := def.StdinPipe()
 	if err != nil {
 		return Error{noCosmoPrep, Turbomole, O.inputname, err.Error(), []string{"exec.StdinPipe", "addCosmo"}, true}
@@ -216,7 +255,7 @@ func (O *TMHandle) addBasis(basisOrEcp string, basiselems []string, basis, defst
 	return defstring
 }
 
-//modifies the coord file such as to freeze the atoms in the slice frozen.
+// modifies the coord file such as to freeze the atoms in the slice frozen.
 func (O *TMHandle) addFrozen(frozen []int) error {
 	f, err := os.Open("coord")
 	if err != nil {
@@ -255,10 +294,10 @@ func copy2pipe(pipe io.ReadCloser, file *os.File, end chan bool) {
 	end <- true
 }
 
-//BuildInput builds an input for TM based int the data in atoms, coords and C.
-//returns only error.
-//Note that at this point the interface does not support multiplicities different from 1 and 2.
-//The number in atoms is simply ignored.
+// BuildInput builds an input for TM based int the data in atoms, coords and C.
+// returns only error.
+// Note that at this point the interface does not support multiplicities different from 1 and 2.
+// The number in atoms is simply ignored.
 func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q *Calc) error {
 	const noDefine = "goChem/QM: Unable to run define"
 	const nox2t = "goChem/QM: Unable to run x2t"
@@ -305,6 +344,12 @@ func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q 
 		log.Printf("no basis set assigned for TM calculation, will used the default %s, \n", O.defbasis)
 		Q.Basis = O.defbasis
 	}
+	//there is another check for this funcitonal below. I should try to make it that it only checks for this
+	//once.
+	if Q.Method == "r2scan-3c" {
+		Q.Basis = "def2-mTZVPP"
+		Q.RI = true
+	}
 	defstring = defstring + "b all " + Q.Basis + "\n"
 	if Q.LowBasis != "" && len(Q.LBElements) > 0 {
 		defstring = O.addBasis("b", Q.LBElements, Q.LowBasis, defstring)
@@ -348,6 +393,9 @@ func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q 
 		grid := ""
 		if Q.Grid != 0 && Q.Grid <= 7 {
 			grid = fmt.Sprintf("grid\n m%d\n", Q.Grid)
+		} else {
+
+			grid = fmt.Sprintf("grid\n m%d\n", O.defgrid)
 		}
 		defstring = defstring + "dft\non\nfunc " + Q.Method + "\n" + grid + "*\n"
 		if Q.RI {
@@ -404,11 +452,21 @@ func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q 
 		fmt.Fprintf(os.Stderr, "Dispersion correction requested not supported, will used the default: D3, \n")
 		args[0] = "$disp3"
 	}
+	if Q.Method == "b97-3c" {
+		args[0] = "$disp3 -bj -abc"
+	}
+	if Q.Method == "r2scan-3c" {
+		args[0] = "$disp4"
+
+		if err := O.addToControl([]string{"    radsize   8"}, Q, false, false, "gridsize"); err != nil {
+			return errDecorate(err, "BuildInput")
+		}
+	}
 	if Q.Gimic {
 		O.command = "mpshift"
 		args = append(args, "$gimic")
 	}
-	if err := O.addToControl(args, Q); err != nil {
+	if err := O.addToControl(args, Q, true, true); err != nil {
 		return errDecorate(err, "BuildInput")
 	}
 
@@ -421,23 +479,24 @@ func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q 
 }
 
 var tMMethods = map[string]string{
-	"HF":     "hf",
-	"hf":     "hf",
-	"b3lyp":  "b3-lyp",
-	"B3LYP":  "b3-lyp",
-	"b3-lyp": "b3-lyp",
-	"PBE":    "pbe",
-	"pbe":    "pbe",
-	"TPSS":   "tpss",
-	"TPSSh":  "tpssh",
-	"tpss":   "tpss",
-	"tpssh":  "tpssh",
-	"BP86":   "b-p",
-	"b-p":    "b-p",
-	"blyp":   "b-lyp",
-	"BLYP":   "b-lyp",
-	"b-lyp":  "b-lyp",
-	"b97-3c": "b97-3c",
+	"HF":        "hf",
+	"hf":        "hf",
+	"b3lyp":     "b3-lyp",
+	"B3LYP":     "b3-lyp",
+	"b3-lyp":    "b3-lyp",
+	"PBE":       "pbe",
+	"pbe":       "pbe",
+	"TPSS":      "tpss",
+	"TPSSh":     "tpssh",
+	"tpss":      "tpss",
+	"tpssh":     "tpssh",
+	"BP86":      "b-p",
+	"b-p":       "b-p",
+	"blyp":      "b-lyp",
+	"BLYP":      "b-lyp",
+	"b-lyp":     "b-lyp",
+	"b97-3c":    "b97-3c",
+	"r2scan-3c": "r2scan-3c",
 }
 
 var tMDisp = map[string]string{
@@ -447,11 +506,13 @@ var tMDisp = map[string]string{
 	"D2":     "$disp2",
 	"D3":     "$disp3",
 	"D3BJ":   "$disp3 -bj",
+	"D4":     "$disp4",
+	"D3abc":  "$disp3 -bj -abc",
 }
 
-//Run runs the command given by the string O.command
-//it waits or not for the result depending on wait.
-//This is a Unix-only function.
+// Run runs the command given by the string O.command
+// it waits or not for the result depending on wait.
+// This is a Unix-only function.
 func (O *TMHandle) Run(wait bool) error {
 	os.Chdir(O.inputname)
 	defer os.Chdir("..")
@@ -471,7 +532,7 @@ func (O *TMHandle) Run(wait bool) error {
 	return err
 }
 
-//Energy returns the energy from the corresponding calculation, in kcal/mol.
+// Energy returns the energy from the corresponding calculation, in kcal/mol.
 func (O *TMHandle) Energy() (float64, error) {
 	os.Chdir(O.inputname)
 	defer os.Chdir("..")
@@ -493,7 +554,7 @@ func (O *TMHandle) Energy() (float64, error) {
 	return energy * chem.H2Kcal, err
 }
 
-//OptimizedGeometry returns the coordinates for the optimized structure.
+// OptimizedGeometry returns the coordinates for the optimized structure.
 func (O *TMHandle) OptimizedGeometry(atoms chem.Atomer) (*v3.Matrix, error) {
 	const not2x = "unable to run t2x "
 	os.Chdir(O.inputname)
@@ -515,8 +576,8 @@ func (O *TMHandle) OptimizedGeometry(atoms chem.Atomer) (*v3.Matrix, error) {
 
 }
 
-//Gets the second to last line in a turbomole energy file given as a bufio.Reader.
-//expensive on the CPU but rather easy on the memory, as the file is read line by line.
+// Gets the second to last line in a turbomole energy file given as a bufio.Reader.
+// expensive on the CPU but rather easy on the memory, as the file is read line by line.
 func getSecondToLastLine(f *bufio.Reader) (string, error) {
 	prevline := ""
 	line := ""
