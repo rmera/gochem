@@ -35,8 +35,8 @@ import (
 	v3 "github.com/rmera/gochem/v3"
 )
 
-//NegateIndexes, given a set of indexes and the length of a molecule, produces
-//a set of all the indexes _not_ in the original set.
+// NegateIndexes, given a set of indexes and the length of a molecule, produces
+// a set of all the indexes _not_ in the original set.
 func NegateIndexes(indexes []int, length int) []int {
 	ret := make([]int, 0, length-len(indexes))
 	for i := 0; i < length; i++ {
@@ -50,12 +50,12 @@ func NegateIndexes(indexes []int, length int) []int {
 
 const allchains = "*ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
-//FixGromacsPDB fixes the problem that Gromacs PDBs have when there are more than 10000 residues
-//Gromacs simply restarts the numbering. Since solvents (where this is likely to happen) don't have
-//chain ID in Gromacs, it's impossible to distinguish between the water 1 and the water 10001. FixGromacsPDB
-//Adds a chain ID to the newly restrated residue that is the letter/symbol coming after the last seen chain ID
-//in the constant allchains defined in this file. The current implementation does nothing if a chain ID is already
-//defined, even if it is wrong (if 9999 and the following 0 residue have the same chain).
+// FixGromacsPDB fixes the problem that Gromacs PDBs have when there are more than 10000 residues
+// Gromacs simply restarts the numbering. Since solvents (where this is likely to happen) don't have
+// chain ID in Gromacs, it's impossible to distinguish between the water 1 and the water 10001. FixGromacsPDB
+// Adds a chain ID to the newly restrated residue that is the letter/symbol coming after the last seen chain ID
+// in the constant allchains defined in this file. The current implementation does nothing if a chain ID is already
+// defined, even if it is wrong (if 9999 and the following 0 residue have the same chain).
 func FixGromacsPDB(mol Atomer) {
 	//	fmt.Println("FIXING!")
 	previd := 999999
@@ -77,11 +77,11 @@ func FixGromacsPDB(mol Atomer) {
 	}
 }
 
-//Molecules2Atoms gets a selection list from a list of residues.
-//It select all the atoms that form part of the residues in the list.
-//It doesnt return errors. If a residue is out of range, no atom will
-//be returned for it. Atoms are also required to be part of one of the chains
-//specified in chains, but a nil "chains" can be given to select all chains.
+// Molecules2Atoms gets a selection list from a list of residues.
+// It select all the atoms that form part of the residues in the list.
+// It doesnt return errors. If a residue is out of range, no atom will
+// be returned for it. Atoms are also required to be part of one of the chains
+// specified in chains, but a nil "chains" can be given to select all chains.
 func Molecules2Atoms(mol Atomer, residues []int, chains []string) []int {
 	atlist := make([]int, 0, len(residues)*3)
 	for key := 0; key < mol.Len(); key++ {
@@ -94,12 +94,12 @@ func Molecules2Atoms(mol Atomer, residues []int, chains []string) []int {
 
 }
 
-//EasyShape takes a matrix of coordinates, a value for epsilon (a number close to
-//zero, the closer, the more
-//strict the orthogonality requriements are) and an (optative) masser and returns
-//two shape indicators based on the elipsoid of inertia (or it massless equivalent)
-//a linear and circular distortion indicators, and an error or nil (in that order).
-//if you give a negative number as epsilon, the default (quite strict) will be used.
+// EasyShape takes a matrix of coordinates, a value for epsilon (a number close to
+// zero, the closer, the more
+// strict the orthogonality requriements are) and an (optative) masser and returns
+// two shape indicators based on the elipsoid of inertia (or it massless equivalent)
+// a linear and circular distortion indicators, and an error or nil (in that order).
+// if you give a negative number as epsilon, the default (quite strict) will be used.
 func EasyShape(coords *v3.Matrix, epsilon float64, mol ...Masser) (float64, float64, error) {
 	var masses []float64
 	var err2 error
@@ -128,8 +128,8 @@ func EasyShape(coords *v3.Matrix, epsilon float64, mol ...Masser) (float64, floa
 	return linear, circular, err2
 }
 
-//MolIDNameChain2Index takes a molID (residue number), atom name, chain index and a molecule Atomer.
-//it returns the index associated with the atom in question in the Ref. The function returns also an error (if failure of warning)
+// MolIDNameChain2Index takes a molID (residue number), atom name, chain index and a molecule Atomer.
+// it returns the index associated with the atom in question in the Ref. The function returns also an error (if failure of warning)
 // or nil (if succses and no warnings). Note that this function is not efficient to call several times to retrieve many atoms.
 func MolIDNameChain2Index(mol Atomer, molID int, name, chain string) (int, error) {
 	var ret int = -1
@@ -153,25 +153,25 @@ func MolIDNameChain2Index(mol Atomer, molID int, name, chain string) (int, error
 		if err != nil {
 			p = err.Error()
 		}
-		err = CError{fmt.Sprintf("%s.  No atomic index found in the Atomer given for the given MolID, atom name and chain.", p), []string{"MolIDNameChain2Index"}}
+		err = CError{fmt.Sprintf("%s, No atomic index found in the Atomer given for the given MolID, atom name and chain. %s %d", p, chain, molID), []string{"MolIDNameChain2Index"}}
 	}
 	return ret, err
 }
 
-//OnesMass returns a column matrix with lenght rosw.
-//This matrix can be used as a dummy mass matrix
-//for geometric calculations.
+// OnesMass returns a column matrix with lenght rosw.
+// This matrix can be used as a dummy mass matrix
+// for geometric calculations.
 func OnesMass(lenght int) *v3.Matrix {
 	return v3.Dense2Matrix(gnOnes(lenght, 1))
 }
 
-//Super determines the best rotation and translations to superimpose the coords in test
-//considering only the atoms present in the slices of int slices indexes.
-//The first indexes slices will be assumed to contain test indexes and the second, template indexes.
-//If you give only one, it will be assumed to correspond to test, if test has more atoms than
-//elements on the indexes set, or templa, otherwise. If no indexes are given, all atoms on each system
-//will be superimposed. The number of atoms superimposed on both systems must be equal.
-//Super modifies the test matrix, but template and indexes are not touched.
+// Super determines the best rotation and translations to superimpose the coords in test
+// considering only the atoms present in the slices of int slices indexes.
+// The first indexes slices will be assumed to contain test indexes and the second, template indexes.
+// If you give only one, it will be assumed to correspond to test, if test has more atoms than
+// elements on the indexes set, or templa, otherwise. If no indexes are given, all atoms on each system
+// will be superimposed. The number of atoms superimposed on both systems must be equal.
+// Super modifies the test matrix, but template and indexes are not touched.
 func Super(test, templa *v3.Matrix, indexes ...[]int) (*v3.Matrix, error) {
 	var ctest *v3.Matrix
 	var ctempla *v3.Matrix
@@ -213,9 +213,9 @@ func Super(test, templa *v3.Matrix, indexes ...[]int) (*v3.Matrix, error) {
 	return test, nil
 }
 
-//RotateAbout about rotates the coordinates in coordsorig around by angle radians around the axis
-//given by the vector axis. It returns the rotated coordsorig, since the original is not affected.
-//Uses Clifford algebra.
+// RotateAbout about rotates the coordinates in coordsorig around by angle radians around the axis
+// given by the vector axis. It returns the rotated coordsorig, since the original is not affected.
+// Uses Clifford algebra.
 func RotateAbout(coordsorig, ax1, ax2 *v3.Matrix, angle float64) (*v3.Matrix, error) {
 	coordsLen := coordsorig.NVecs()
 	coords := v3.Zeros(coordsLen)
@@ -237,10 +237,10 @@ func RotateAbout(coordsorig, ax1, ax2 *v3.Matrix, angle float64) (*v3.Matrix, er
 	return Rot, nil
 }
 
-//EulerRotateAbout uses Euler angles to rotate the coordinates in coordsorig around by angle
-//radians around the axis given by the vector axis. It returns the rotated coordsorig,
-//since the original is not affected. It seems more clunky than the RotateAbout, which uses Clifford algebra.
-//I leave it for benchmark, mostly, and might remove it later. There is no test for this function!
+// EulerRotateAbout uses Euler angles to rotate the coordinates in coordsorig around by angle
+// radians around the axis given by the vector axis. It returns the rotated coordsorig,
+// since the original is not affected. It seems more clunky than the RotateAbout, which uses Clifford algebra.
+// I leave it for benchmark, mostly, and might remove it later. There is no test for this function!
 func EulerRotateAbout(coordsorig, ax1, ax2 *v3.Matrix, angle float64) (*v3.Matrix, error) {
 	r, _ := coordsorig.Dims()
 	coords := v3.Zeros(r)
@@ -271,7 +271,7 @@ func EulerRotateAbout(coordsorig, ax1, ax2 *v3.Matrix, angle float64) (*v3.Matri
 	return coords, nil
 }
 
-//Corrupted is a convenience function to check that a reference and a trajectory have the same number of atoms
+// Corrupted is a convenience function to check that a reference and a trajectory have the same number of atoms
 func Corrupted(X Traj, R Atomer) error {
 	if X.Len() != R.Len() {
 		return CError{"Mismatched number of atoms/coordinates", []string{"Corrupted"}}
@@ -281,8 +281,8 @@ func Corrupted(X Traj, R Atomer) error {
 
 //Some internal convenience functions.
 
-//isInInt is a helper for the RamaList function,
-//returns true if test is in container, false otherwise.
+// isInInt is a helper for the RamaList function,
+// returns true if test is in container, false otherwise.
 func isInInt(container []int, test int) bool {
 	if container == nil {
 		return false
@@ -295,7 +295,7 @@ func isInInt(container []int, test int) bool {
 	return false
 }
 
-//Same as the previous, but with strings.
+// Same as the previous, but with strings.
 func isInString(container []string, test string) bool {
 	if container == nil {
 		return false
@@ -308,10 +308,10 @@ func isInString(container []string, test string) bool {
 	return false
 }
 
-//MakeWater Creates a water molecule at distance Angstroms from a2, in a direction that is angle radians from the axis defined by a1 and a2.
-//Notice that the exact position of the water is not well defined when angle is not zero. One can always use the RotateAbout
-//function to move the molecule to the desired location. If oxygen is true, the oxygen will be pointing to a2. Otherwise,
-//one of the hydrogens will.
+// MakeWater Creates a water molecule at distance Angstroms from a2, in a direction that is angle radians from the axis defined by a1 and a2.
+// Notice that the exact position of the water is not well defined when angle is not zero. One can always use the RotateAbout
+// function to move the molecule to the desired location. If oxygen is true, the oxygen will be pointing to a2. Otherwise,
+// one of the hydrogens will.
 func MakeWater(a1, a2 *v3.Matrix, distance, angle float64, oxygen bool) *v3.Matrix {
 	water := v3.Zeros(3)
 	const WaterOHDist = 0.96
@@ -391,8 +391,8 @@ func MakeWater(a1, a2 *v3.Matrix, distance, angle float64, oxygen bool) *v3.Matr
 	return water
 }
 
-//FixNumbering will put the internal numbering+1 in the atoms and residue fields, so they match the current residues/atoms
-//in the molecule
+// FixNumbering will put the internal numbering+1 in the atoms and residue fields, so they match the current residues/atoms
+// in the molecule
 func FixNumbering(r Atomer) {
 	resid := 0
 	prevres := -1
@@ -407,13 +407,13 @@ func FixNumbering(r Atomer) {
 	}
 }
 
-//CutBackRef takes a list of lists of residues and selects
+// CutBackRef takes a list of lists of residues and selects
 // from r all atoms in each the list list[i] and belonging to the chain chain[i].
-//It caps the N and C terminal
-//of each list with -COH for the N terminal and NH2 for C terminal.
-//the residues on each sublist should be contiguous to each other.
-//for instance, {6,7,8} is a valid sublist, {6,8,9} is not.
-//This is NOT currently checked by the function!. It returns the list of kept atoms
+// It caps the N and C terminal
+// of each list with -COH for the N terminal and NH2 for C terminal.
+// the residues on each sublist should be contiguous to each other.
+// for instance, {6,7,8} is a valid sublist, {6,8,9} is not.
+// This is NOT currently checked by the function!. It returns the list of kept atoms
 func CutBackRef(r Atomer, chains []string, list [][]int) ([]int, error) {
 	//i:=r.Len()
 	if len(chains) != len(list) {
@@ -526,9 +526,9 @@ func CutBackCoords(r Ref, coords *v3.Matrix, chain string, list [][]int) (*v3.Ma
 }
 */
 
-//CutLateralRef will return a list with the atom indexes of the lateral chains of the residues in list
-//for each of these residues it will change the alpha carbon to oxygen and change the residue number of the rest
-//of the backbone to -1.
+// CutLateralRef will return a list with the atom indexes of the lateral chains of the residues in list
+// for each of these residues it will change the alpha carbon to oxygen and change the residue number of the rest
+// of the backbone to -1.
 func CutBetaRef(r Atomer, chain []string, list []int) []int {
 	//	pairs := make([][]int,1,10)
 	//	pairs[0]=make([]int,0,2)
@@ -553,9 +553,9 @@ func CutBetaRef(r Atomer, chain []string, list []int) []int {
 	return newlist
 }
 
-//CutAlphaRef will return a list with the atoms in the residues indicated by list, in the chains given.
-//The carbonyl carbon and amide nitrogen for each residue will be transformer into hydrogens. The MolID of the
-//other backbone atoms will be set to -1 so they are no longer considered.
+// CutAlphaRef will return a list with the atoms in the residues indicated by list, in the chains given.
+// The carbonyl carbon and amide nitrogen for each residue will be transformer into hydrogens. The MolID of the
+// other backbone atoms will be set to -1 so they are no longer considered.
 func CutAlphaRef(r Atomer, chain []string, list []int) []int {
 	for i := 0; i < r.Len(); i++ {
 		curr := r.Atom(i)
@@ -576,8 +576,8 @@ func CutAlphaRef(r Atomer, chain []string, list []int) []int {
 	return newlist
 }
 
-//TagAtomsByName will tag all atoms with a given name in a given list of atoms.
-//return the number of tagged atoms
+// TagAtomsByName will tag all atoms with a given name in a given list of atoms.
+// return the number of tagged atoms
 func TagAtomsByName(r Atomer, name string, list []int) int {
 	tag := 0
 	for i := 0; i < r.Len(); i++ {
@@ -590,8 +590,8 @@ func TagAtomsByName(r Atomer, name string, list []int) int {
 	return tag
 }
 
-//ScaleBonds scales all bonds between atoms in the same residue with names n1, n2 to a final lenght finallengt, by moving the atoms n2.
-//the o<ration is executed in place.
+// ScaleBonds scales all bonds between atoms in the same residue with names n1, n2 to a final lenght finallengt, by moving the atoms n2.
+// the o<ration is executed in place.
 func ScaleBonds(coords *v3.Matrix, mol Atomer, n1, n2 string, finallenght float64) {
 	for i := 0; i < mol.Len(); i++ {
 		c1 := mol.Atom(i)
@@ -609,8 +609,8 @@ func ScaleBonds(coords *v3.Matrix, mol Atomer, n1, n2 string, finallenght float6
 	}
 }
 
-//ScaleBond takes a C-H bond and moves the H (in place) so the distance between them is the one given (bond).
-//CAUTION: I have only tested it for the case where the original distance>bond, although I expect it to also work in the other case.
+// ScaleBond takes a C-H bond and moves the H (in place) so the distance between them is the one given (bond).
+// CAUTION: I have only tested it for the case where the original distance>bond, although I expect it to also work in the other case.
 func ScaleBond(C, H *v3.Matrix, bond float64) {
 	Odist := v3.Zeros(1)
 	Odist.Sub(H, C)
@@ -619,7 +619,7 @@ func ScaleBond(C, H *v3.Matrix, bond float64) {
 	H.Sub(H, Odist)
 }
 
-//Merges A and B in a single topology which is returned
+// Merges A and B in a single topology which is returned
 func MergeAtomers(A, B Atomer) *Topology {
 	al := A.Len()
 	l := al + B.Len()
@@ -643,12 +643,12 @@ func MergeAtomers(A, B Atomer) *Topology {
 	return NewTopology(charge, multi, full)
 }
 
-//SelCone, Given a set of cartesian points in sellist, obtains a vector "plane" normal to the best plane passing through the points.
-//It selects atoms from the set A that are inside a cone in the direction of "plane" that starts from the geometric center of the cartesian points,
-//and has an angle of angle (radians), up to a distance distance. The cone is approximated by a set of radius-increasing cilinders with height thickness.
-//If one starts from one given point, 2 cgnOnes, one in each direction, are possible. If whatcone is 0, both cgnOnes are considered.
-//if whatcone<0, only the cone opposite to the plane vector direction. If whatcone>0, only the cone in the plane vector direction.
-//the 'initial' argument  allows the construction of a truncate cone with a radius of initial.
+// SelCone, Given a set of cartesian points in sellist, obtains a vector "plane" normal to the best plane passing through the points.
+// It selects atoms from the set A that are inside a cone in the direction of "plane" that starts from the geometric center of the cartesian points,
+// and has an angle of angle (radians), up to a distance distance. The cone is approximated by a set of radius-increasing cilinders with height thickness.
+// If one starts from one given point, 2 cgnOnes, one in each direction, are possible. If whatcone is 0, both cgnOnes are considered.
+// if whatcone<0, only the cone opposite to the plane vector direction. If whatcone>0, only the cone in the plane vector direction.
+// the 'initial' argument  allows the construction of a truncate cone with a radius of initial.
 func SelCone(B, selection *v3.Matrix, angle, distance, thickness, initial float64, whatcone int) []int {
 	A := v3.Zeros(B.NVecs())
 	A.Copy(B) //We will be altering the input so its better to work with a copy.

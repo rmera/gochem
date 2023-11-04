@@ -39,8 +39,8 @@ import (
  * fields
  */
 
-//Atom contains the information to represent an atom, except for the coordinates, which will be in a separate *v3.Matrix
-//and the b-factors, which are in a separate slice of float64.
+// Atom contains the information to represent an atom, except for the coordinates, which will be in a separate *v3.Matrix
+// and the b-factors, which are in a separate slice of float64.
 type Atom struct {
 	Name      string  //PDB name of the atom
 	ID        int     //The PDB index of the atom
@@ -62,8 +62,8 @@ type Atom struct {
 
 //Atom methods
 
-//Copy returns a copy of the Atom object.
-//puts the copy into the
+// Copy returns a copy of the Atom object.
+// puts the copy into the
 func (N *Atom) Copy(A *Atom) {
 	if A == nil || N == nil {
 		panic(ErrNilAtom)
@@ -83,24 +83,29 @@ func (N *Atom) Copy(A *Atom) {
 	N.Het = A.Het
 }
 
-//Index returns the index of the atom
+// Index returns the index of the atom
 func (N *Atom) Index() int {
 	return N.index
 }
 
+// Index returns the index of the atom
+func (N *Atom) SetIndex(i int) {
+	N.index = i
+}
+
 /*****Topology type***/
 
-//Topology contains information about a molecule which is not expected to change in time (i.e. everything except for coordinates and b-factors)
+// Topology contains information about a molecule which is not expected to change in time (i.e. everything except for coordinates and b-factors)
 type Topology struct {
 	Atoms  []*Atom
 	charge int
 	multi  int
 }
 
-//NewTopology returns topology with ats atoms,
-//charge charge and multi multiplicity.
+// NewTopology returns topology with ats atoms,
+// charge charge and multi multiplicity.
 // It doesnt check for consitency across slices, correct charge
-//or unpaired electrons.
+// or unpaired electrons.
 func NewTopology(charge, multi int, ats ...[]*Atom) *Topology {
 	top := new(Topology)
 	if len(ats) == 0 || ats[0] == nil {
@@ -115,28 +120,28 @@ func NewTopology(charge, multi int, ats ...[]*Atom) *Topology {
 
 /*Topology methods*/
 
-//Charge returns the total charge of the topology
+// Charge returns the total charge of the topology
 func (T *Topology) Charge() int {
 	return T.charge
 }
 
-//Multi returns the multiplicity in the topology
+// Multi returns the multiplicity in the topology
 func (T *Topology) Multi() int {
 	return T.multi
 }
 
-//SetCharge sets the total charge of the topology to i
+// SetCharge sets the total charge of the topology to i
 func (T *Topology) SetCharge(i int) {
 	T.charge = i
 }
 
-//SetMulti sets the multiplicity in the topology to i
+// SetMulti sets the multiplicity in the topology to i
 func (T *Topology) SetMulti(i int) {
 	T.multi = i
 }
 
-//FillMasses tries to get fill the  masses for atom that don't have one
-//by getting it from the symbol. Only a few common elements are supported
+// FillMasses tries to get fill the  masses for atom that don't have one
+// by getting it from the symbol. Only a few common elements are supported
 func (T *Topology) FillMasses() {
 	for _, val := range T.Atoms {
 		if val.Symbol != "" && val.Mass == 0 {
@@ -145,8 +150,8 @@ func (T *Topology) FillMasses() {
 	}
 }
 
-//FillsIndexes sets the Index value of each atom to that cooresponding to its
-//place in the molecule.
+// FillsIndexes sets the Index value of each atom to that cooresponding to its
+// place in the molecule.
 func (T *Topology) FillIndexes() {
 	for key, val := range T.Atoms {
 		val.index = key
@@ -154,18 +159,19 @@ func (T *Topology) FillIndexes() {
 
 }
 
-//FillVdw tries to get fill the  van der Waals radii for the atoms in the molecule
-//from a symbol->radii map. Only a few common elements are supported
+// FillVdw tries to get fill the  van der Waals radii for the atoms in the molecule
+// from a symbol->radii map. Only a few common elements are supported
 func (T *Topology) FillVdw() {
 	for _, val := range T.Atoms {
 		if val.Symbol != "" && val.Vdw == 0 {
 			val.Vdw = symbolVdwrad[val.Symbol] //Not error checking
-	 //I'm not super sure about this.	}
+			//I'm not super sure about this.
+		}
 	}
 }
 
-//ResetIDs sets the current order of atoms as ID and the order of molecules as
-//MolID for all atoms
+// ResetIDs sets the current order of atoms as ID and the order of molecules as
+// MolID for all atoms
 func (T *Topology) ResetIDs() {
 	currid := 1
 	currid2 := 1
@@ -192,8 +198,8 @@ func (T *Topology) ResetIDs() {
 	}
 }
 
-//CopyAtoms copies the atoms form A into the receiver topology. This is a deep copy, so the receiver must have
-//at least as many atoms as A.
+// CopyAtoms copies the atoms form A into the receiver topology. This is a deep copy, so the receiver must have
+// at least as many atoms as A.
 func (T *Topology) CopyAtoms(A Atomer) {
 	//T := new(Topology)
 	if len(T.Atoms) < A.Len() {
@@ -207,9 +213,9 @@ func (T *Topology) CopyAtoms(A Atomer) {
 	}
 }
 
-//Atom returns the Atom corresponding to the index i
-//of the Atom slice in the Topology. Panics if
-//out of range.
+// Atom returns the Atom corresponding to the index i
+// of the Atom slice in the Topology. Panics if
+// out of range.
 func (T *Topology) Atom(i int) *Atom {
 	if i >= T.Len() {
 		panic(ErrAtomOutOfRange)
@@ -217,8 +223,8 @@ func (T *Topology) Atom(i int) *Atom {
 	return T.Atoms[i]
 }
 
-//SetAtom sets the (i+1)th Atom of the topology to aT.
-//Panics if out of range
+// SetAtom sets the (i+1)th Atom of the topology to aT.
+// Panics if out of range
 func (T *Topology) SetAtom(i int, at *Atom) {
 	if i >= T.Len() {
 		panic(ErrAtomOutOfRange)
@@ -226,7 +232,7 @@ func (T *Topology) SetAtom(i int, at *Atom) {
 	T.Atoms[i] = at
 }
 
-//AppendAtom appends an atom at the end of the reference
+// AppendAtom appends an atom at the end of the reference
 func (T *Topology) AppendAtom(at *Atom) {
 	/*newmol, ok := T.CopyAtoms().(*Topology)
 	if !ok {
@@ -236,8 +242,8 @@ func (T *Topology) AppendAtom(at *Atom) {
 	T.Atoms = append(T.Atoms, at)
 }
 
-//SelectAtoms puts the subset of atoms in T that have
-//indexes in atomlist into the receiver. Panics if problem.
+// SelectAtoms puts the subset of atoms in T that have
+// indexes in atomlist into the receiver. Panics if problem.
 func (R *Topology) SomeAtoms(T Atomer, atomlist []int) {
 	var ret []*Atom
 	lenatoms := T.Len()
@@ -251,15 +257,15 @@ func (R *Topology) SomeAtoms(T Atomer, atomlist []int) {
 	R.Atoms = ret
 }
 
-//SelectAtomsSafe puts the atoms of T
-//with indexes in atomlist into the receiver. Returns error if problem.
+// SelectAtomsSafe puts the atoms of T
+// with indexes in atomlist into the receiver. Returns error if problem.
 func (R *Topology) SomeAtomsSafe(T Atomer, atomlist []int) error {
 	f := func() { R.SomeAtoms(T, atomlist) }
 	return gnMaybe(gnPanicker(f))
 }
 
-//DelAtom Deletes atom i by reslicing.
-//This means that the copy still uses as much memory as the original T.
+// DelAtom Deletes atom i by reslicing.
+// This means that the copy still uses as much memory as the original T.
 func (T *Topology) DelAtom(i int) {
 	if i >= T.Len() {
 		panic(ErrAtomOutOfRange)
@@ -271,7 +277,7 @@ func (T *Topology) DelAtom(i int) {
 	}
 }
 
-//Len returns the number of atoms in the topology.
+// Len returns the number of atoms in the topology.
 func (T *Topology) Len() int {
 	//if T.Atoms is nil, return len(T.Atoms) will panic, so I will let that happen for now.
 	//	if T.Atoms == nil {
@@ -280,7 +286,7 @@ func (T *Topology) Len() int {
 	return len(T.Atoms)
 }
 
-//Masses returns a slice of float64 with the masses of the atoms in the topology, or nil and an error if they have not been calculated
+// Masses returns a slice of float64 with the masses of the atoms in the topology, or nil and an error if they have not been calculated
 func (T *Topology) Masses() ([]float64, error) {
 	mass := make([]float64, T.Len())
 	for i := 0; i < T.Len(); i++ {
@@ -293,8 +299,8 @@ func (T *Topology) Masses() ([]float64, error) {
 	return mass, nil
 }
 
-//AssignBonds assigns bonds to a molecule based on a simple distance
-//criterium, similar to that described in DOI:10.1186/1758-2946-3-33
+// AssignBonds assigns bonds to a molecule based on a simple distance
+// criterium, similar to that described in DOI:10.1186/1758-2946-3-33
 func (T *Topology) AssignBonds(coord *v3.Matrix) error {
 	// might get slow for
 	//large systems. It's really not thought
@@ -367,8 +373,8 @@ func (T *Topology) AssignBonds(coord *v3.Matrix) error {
 
 /**Type Molecule**/
 
-//Molecule contains all the info for a molecule in many states. The info that is expected to change between states,
-//Coordinates and b-factors are stored separately from other atomic info.
+// Molecule contains all the info for a molecule in many states. The info that is expected to change between states,
+// Coordinates and b-factors are stored separately from other atomic info.
 type Molecule struct {
 	*Topology
 	Coords      []*v3.Matrix
@@ -379,8 +385,8 @@ type Molecule struct {
 	current int
 }
 
-//NewMolecule makes a molecule with ats atoms, coords coordinates, bfactors b-factors
-//charge charge and unpaired unpaired electrons, and returns it. It doesnt check for
+// NewMolecule makes a molecule with ats atoms, coords coordinates, bfactors b-factors
+// charge charge and unpaired unpaired electrons, and returns it. It doesnt check for
 // consitency across slices or correct charge or unpaired electrons.
 func NewMolecule(coords []*v3.Matrix, ats Atomer, bfactors [][]float64) (*Molecule, error) {
 	if ats == nil {
@@ -416,7 +422,7 @@ func NewMolecule(coords []*v3.Matrix, ats Atomer, bfactors [][]float64) (*Molecu
 
 //The molecule methods:
 
-//DelCoord deletes the coodinate i from every frame of the molecule.
+// DelCoord deletes the coodinate i from every frame of the molecule.
 func (M *Molecule) DelCoord(i int) error {
 	//note: Maybe this shouldn't be exported. Unexporting it could be a reasonable API change.
 	r, _ := M.Coords[0].Dims()
@@ -432,7 +438,7 @@ func (M *Molecule) DelCoord(i int) error {
 	return nil
 }
 
-//Del Deletes atom i and its coordinates from the molecule.
+// Del Deletes atom i and its coordinates from the molecule.
 func (M *Molecule) Del(i int) error {
 	if i >= M.Len() {
 		panic(ErrAtomOutOfRange)
@@ -442,7 +448,7 @@ func (M *Molecule) Del(i int) error {
 	return err
 }
 
-//Copy puts in the receiver a copy of the molecule  A including coordinates
+// Copy puts in the receiver a copy of the molecule  A including coordinates
 func (M *Molecule) Copy(A *Molecule) {
 	if err := A.Corrupted(); err != nil {
 		panic(err.Error())
@@ -479,7 +485,7 @@ func copyB(b []float64) []float64 {
 	return r
 }
 
-//AddFrame akes a matrix of coordinates and appends them at the end of the Coords.
+// AddFrame akes a matrix of coordinates and appends them at the end of the Coords.
 // It checks that the number of coordinates matches the number of atoms.
 func (M *Molecule) AddFrame(newframe *v3.Matrix) {
 	if newframe == nil {
@@ -498,8 +504,8 @@ func (M *Molecule) AddFrame(newframe *v3.Matrix) {
 	M.Coords = append(M.Coords, newframe)
 }
 
-//AddManyFrames adds the array of matrices newfames to the molecule. It checks that
-//the number of coordinates matches the number of atoms.
+// AddManyFrames adds the array of matrices newfames to the molecule. It checks that
+// the number of coordinates matches the number of atoms.
 func (M *Molecule) AddManyFrames(newframes []*v3.Matrix) {
 	if newframes == nil {
 		panic(ErrNilFrame)
@@ -516,8 +522,8 @@ func (M *Molecule) AddManyFrames(newframes []*v3.Matrix) {
 	}
 }
 
-//Coord returns the coords for the atom atom in the frame frame.
-//panics if frame or coords are out of range.
+// Coord returns the coords for the atom atom in the frame frame.
+// panics if frame or coords are out of range.
 func (M *Molecule) Coord(atom, frame int) *v3.Matrix {
 	if frame >= len(M.Coords) {
 		panic(PanicMsg(fmt.Sprintf("goChem: Frame requested (%d) out of range", frame)))
@@ -532,7 +538,7 @@ func (M *Molecule) Coord(atom, frame int) *v3.Matrix {
 	return ret
 }
 
-//Current returns the number of the next read frame
+// Current returns the number of the next read frame
 func (M *Molecule) Current() int {
 	if M == nil {
 		return -1
@@ -540,8 +546,8 @@ func (M *Molecule) Current() int {
 	return M.current
 }
 
-//SetCurrent sets the value of the frame nex to be read
-//to i.
+// SetCurrent sets the value of the frame nex to be read
+// to i.
 func (M *Molecule) SetCurrent(i int) {
 	if i < 0 || i >= len(M.Coords) {
 		panic(PanicMsg(fmt.Sprintf("goChem: Invalid new value for current frame: %d Current frames: %d", i, len(M.Coords))))
@@ -579,9 +585,9 @@ func (M *Molecule) SetCoords(NewVecs *CoordMA, atomlist []int, frame int) {
 
 */
 
-//Corrupted checks whether the molecule is corrupted, i.e. the
-//coordinates don't match the number of atoms. It also checks
-//That the coordinate matrices have 3 columns.
+// Corrupted checks whether the molecule is corrupted, i.e. the
+// coordinates don't match the number of atoms. It also checks
+// That the coordinate matrices have 3 columns.
 func (M *Molecule) Corrupted() error {
 	var err error
 	if M.Bfactors == nil {
@@ -610,15 +616,15 @@ func (M *Molecule) Corrupted() error {
 	return err
 }
 
-//NFrames returns the number of frames in the molecule
+// NFrames returns the number of frames in the molecule
 func (M *Molecule) NFrames() int {
 	return len(M.Coords)
 }
 
 //Implementaiton of the sort.Interface
 
-//Swap function, as demanded by sort.Interface. It swaps atoms, coordinates
-//(all frames) and bfactors of the molecule.
+// Swap function, as demanded by sort.Interface. It swaps atoms, coordinates
+// (all frames) and bfactors of the molecule.
 func (M *Molecule) Swap(i, j int) {
 	M.Atoms[i], M.Atoms[j] = M.Atoms[j], M.Atoms[i]
 	for k := 0; k < len(M.Coords); k++ {
@@ -630,8 +636,8 @@ func (M *Molecule) Swap(i, j int) {
 	}
 }
 
-//Less returns true if the value in the Bfactors for
-//atom i are less than that for atom j, and false otherwise.
+// Less returns true if the value in the Bfactors for
+// atom i are less than that for atom j, and false otherwise.
 func (M *Molecule) Less(i, j int) bool {
 	return M.Bfactors[0][i] < M.Bfactors[0][j]
 }
@@ -644,9 +650,9 @@ func (M *Molecule) Less(i, j int) bool {
 //The following implement the Traj interface
 **********************************************/
 
-//Checks that the molecule exists and has some existent
-//Coordinates, in which case returns true.
-//It returns false otherwise.
+// Checks that the molecule exists and has some existent
+// Coordinates, in which case returns true.
+// It returns false otherwise.
 // The coordinates could still be empty
 func (M *Molecule) Readable() bool {
 	if M != nil || M.Coords != nil || M.current < len(M.Coords) {
@@ -656,8 +662,8 @@ func (M *Molecule) Readable() bool {
 	return false
 }
 
-//Next puts the next frame into V and returns  an error or nil
-//The box argument is never used.
+// Next puts the next frame into V and returns  an error or nil
+// The box argument is never used.
 func (M *Molecule) Next(V *v3.Matrix, box ...[]float64) error {
 	if M.current >= len(M.Coords) {
 		return newlastFrameError("", len(M.Coords)-1)
@@ -671,7 +677,7 @@ func (M *Molecule) Next(V *v3.Matrix, box ...[]float64) error {
 	return nil
 }
 
-//InitRead initializes molecule to be read as a traj (not tested!)
+// InitRead initializes molecule to be read as a traj (not tested!)
 func (M *Molecule) InitRead() error {
 	if M == nil || len(M.Coords) == 0 {
 		return CError{"Bad molecule", []string{"InitRead"}}
@@ -680,9 +686,9 @@ func (M *Molecule) InitRead() error {
 	return nil
 }
 
-//NextConc takes a slice of bools and reads as many frames as elements the list has
-//form the trajectory. The frames are discarted if the corresponding elemetn of the slice
-//is false. The function returns a slice of channels through each of each of which
+// NextConc takes a slice of bools and reads as many frames as elements the list has
+// form the trajectory. The frames are discarted if the corresponding elemetn of the slice
+// is false. The function returns a slice of channels through each of each of which
 // a *matrix.DenseMatrix will be transmited
 func (M *Molecule) NextConc(frames []*v3.Matrix) ([]chan *v3.Matrix, error) {
 	toreturn := make([]chan *v3.Matrix, 0, len(frames))
@@ -712,9 +718,9 @@ func (M *Molecule) NextConc(frames []*v3.Matrix) ([]chan *v3.Matrix, error) {
 	return toreturn, nil
 }
 
-//Close just sets the "current" counter to 0.
-//If you are using it as a trajectory, you can always just discard the molecule
-//and let the CG take care of it, as there is nothing on disk linked to it..
+// Close just sets the "current" counter to 0.
+// If you are using it as a trajectory, you can always just discard the molecule
+// and let the CG take care of it, as there is nothing on disk linked to it..
 func (M *Molecule) Close() {
 	M.current = 0
 }
@@ -731,17 +737,17 @@ type lastFrameError struct {
 	deco     []string
 }
 
-//Error returns an error message string.
+// Error returns an error message string.
 func (E *lastFrameError) Error() string {
 	return "EOF" //: Last frame in mol-based trajectory from file %10s reached at frame %10d", E.fileName, E.frame)
 }
 
-//Format returns the format used by the trajectory that returned the error.
+// Format returns the format used by the trajectory that returned the error.
 func (E *lastFrameError) Format() string {
 	return "mol"
 }
 
-//Frame returns the frame at which the error was detected.
+// Frame returns the frame at which the error was detected.
 func (E *lastFrameError) Frame() int {
 	return E.frame
 }
@@ -750,18 +756,18 @@ func (E *lastFrameError) Critical() bool {
 	return false
 }
 
-//FileName returns the name of the file from where the trajectory that gave the error is read.
+// FileName returns the name of the file from where the trajectory that gave the error is read.
 func (E *lastFrameError) FileName() string {
 	return E.fileName
 }
 
-//NormalLastFrameTermination does nothing, it is there so we can have an interface unifying all
-//"normal termination" errors so they can be filtered out by type switch.
+// NormalLastFrameTermination does nothing, it is there so we can have an interface unifying all
+// "normal termination" errors so they can be filtered out by type switch.
 func (E *lastFrameError) NormalLastFrameTermination() {
 }
 
-//Decorate will add the dec string to the decoration slice of strings of the error,
-//and return the resulting slice.
+// Decorate will add the dec string to the decoration slice of strings of the error,
+// and return the resulting slice.
 func (E *lastFrameError) Decorate(dec string) []string {
 	if dec == "" {
 		return E.deco
@@ -781,8 +787,8 @@ func newlastFrameError(filename string, frame int) *lastFrameError {
 
 //The general concrete error type for the package
 
-//CError (Concrete Error) is the concrete error type
-//for the chem package, that implements chem.Error
+// CError (Concrete Error) is the concrete error type
+// for the chem package, that implements chem.Error
 type CError struct {
 	msg  string
 	deco []string
@@ -792,8 +798,8 @@ type CError struct {
 
 func (err CError) Error() string { return err.msg }
 
-//Decorate will add the dec string to the decoration slice of strings of the error,
-//and return the resulting slice.
+// Decorate will add the dec string to the decoration slice of strings of the error,
+// and return the resulting slice.
 func (err CError) Decorate(dec string) []string {
 	if dec == "" {
 		return err.deco
@@ -802,9 +808,9 @@ func (err CError) Decorate(dec string) []string {
 	return err.deco
 }
 
-//errDecorate will decorate a chem.Error, or use the message of the error
-//and the name of the called to produce a new chem.Error (if the original error does not
-//implement chem.Error
+// errDecorate will decorate a chem.Error, or use the message of the error
+// and the name of the called to produce a new chem.Error (if the original error does not
+// implement chem.Error
 func errDecorate(err error, caller string) Error {
 	if err == nil {
 		return nil
@@ -818,13 +824,13 @@ func errDecorate(err error, caller string) Error {
 	return err3
 }
 
-//PanicMsg is the type used for all the panics raised in the chem package
-//so they can be easily recovered if needed. goChem only raises panics
-//for programming errors: Attempts to to out of a matrice's bounds,
-//dimension mismatches in matrices, etc.
+// PanicMsg is the type used for all the panics raised in the chem package
+// so they can be easily recovered if needed. goChem only raises panics
+// for programming errors: Attempts to to out of a matrice's bounds,
+// dimension mismatches in matrices, etc.
 type PanicMsg string
 
-//Error returns a string with an error message
+// Error returns a string with an error message
 func (v PanicMsg) Error() string { return string(v) }
 
 const (
