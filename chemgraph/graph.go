@@ -80,7 +80,7 @@ func (A *Atoms) Reset() {
 	A.curr = 0
 }
 func (A *Atoms) Next() bool {
-	if A.curr >= len(A.Atoms) {
+	if A.curr >= len(A.Atoms)-1 {
 		return false
 	}
 	A.curr++
@@ -158,6 +158,43 @@ func (T *Topology) Weight(id1, id2 int64) (w float64, ok bool) {
 	return b.(*Bond).Weight(), true
 }
 
+// For each edge from A1->A2 adds a corresponding, equal edge from A2->A1
+func (T *Topology) SymmetrizePath() {
+	bonds := make([]*Bond, 0, len(T.Bonds))
+	for _, v := range T.Bonds {
+		b := new(Bond)
+		b.Bond = v.Bond
+		b.At1 = v.At2
+		b.At2 = v.At1
+		b.Weightfunc = v.Weightfunc
+		bonds = append(bonds, b)
+		T.Atoms.Atoms[b.At1.Index()].Bonds = append(T.Atoms.Atoms[b.At1.Index()].Bonds, b)
+		T.Atoms.Atoms[b.At2.Index()].Bonds = append(T.Atoms.Atoms[b.At2.Index()].Bonds, b)
+	}
+	T.Bonds = append(T.Bonds, bonds...)
+}
+
+// Will panic if a non-atom node is given
+func (T *Topology) AddNode(n graph.Node) {
+	a := n.(*Atom)
+	a.SetIndex(len(T.Atoms.Atoms))
+	T.Atoms.Atoms = append(T.Atoms.Atoms, a)
+
+}
+
+// Will panic if a non-bond edge is given
+func (T *Topology) SetWeightedEdge(e graph.WeightedEdge) {
+	b := e.(*Bond)
+	T.Bonds = append(T.Bonds, b)
+}
+
+func (T *Topology) NewNode() graph.Node {
+	a := new(Atom)
+	a.SetIndex(len(T.Atoms.Atoms))
+	a.IDFunc = T.Atoms.Atoms[0].IDFunc
+	return a
+}
+
 func atomID(Ats []*Atom, id int64) *Atom {
 	for _, v := range Ats {
 		if v.ID() == id {
@@ -192,7 +229,7 @@ func TopologyFromChem(mol *chem.Molecule, IDFunc func(*Atom) int64, weightfunc f
 		a = append(a, &Atom{Atom: at, IDFunc: IDFunc})
 		for _, v := range at.Bonds {
 			if !bondContains(b, v.Index) {
-				nb := &Bond{Bond: v, At1: &Atom{Atom: v.At1, IDFunc: IDFunc}, At2: &Atom{Atom: v.At2, IDFunc: funcID}, Weightfunc: weightfunc}
+				nb := &Bond{Bond: v, At1: &Atom{Atom: v.At1, IDFunc: IDFunc}, At2: &Atom{Atom: v.At2, IDFunc: IDFunc}, Weightfunc: weightfunc}
 				b = append(b, nb)
 			}
 		}
