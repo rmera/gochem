@@ -162,11 +162,11 @@ func ReasonableSetting(k string, Q *Calc) string {
 	if strings.Contains(k, "$ricore      500") {
 		k = "$ricore      1000\n"
 	}
-	if Q.SCFConvHelp >= 1 && strings.Contains(k, "$scfdamp") {
+	if Q.SCFConvHelp > 1 && strings.Contains(k, "$scfdamp") {
 		k = "$scfdamp start=10 step=0.005 min=0.5\n"
 
 	}
-	if Q.SCFTightness >= 1 && strings.Contains(k, "$scfconv") {
+	if Q.SCFTightness > 1 && strings.Contains(k, "$scfconv") {
 		k = "$scfconv  8\n"
 	}
 
@@ -517,6 +517,24 @@ var tMDisp = map[string]string{
 	"D3BJ":   "$disp3 -bj",
 	"D4":     "$disp4",
 	"D3abc":  "$disp3 -bj -abc",
+}
+
+func (O *TMHandle) PreOpt(wait bool) error {
+	command := exec.Command("sh", "-c", "jobex -level xtb -c 1000 > jobexpreopt.out")
+	var err error
+	os.Chdir(O.inputname)
+	defer os.Chdir("..")
+	if wait == true {
+		err = command.Run()
+	} else {
+		err = command.Start()
+	}
+	if err != nil {
+		err = Error{ErrNotRunning, Turbomole, O.inputname, err.Error(), []string{"exec.Run/Start", "Run"}, true}
+		return err
+
+	}
+	return nil
 }
 
 // Run runs the command given by the string O.command
