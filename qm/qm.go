@@ -31,7 +31,7 @@ import (
 	v3 "github.com/rmera/gochem/v3"
 )
 
-//builds an input for a QM calculation
+// builds an input for a QM calculation
 type InputBuilder interface {
 	//Sets the name for the job, used for input
 	//and output files. The extentions will depend on the program.
@@ -42,7 +42,7 @@ type InputBuilder interface {
 	BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q *Calc) error
 }
 
-//Runs a QM calculation
+// Runs a QM calculation
 type Runner interface {
 	//Run runs the QM program for a calculation previously set.
 	//it waits or not for the result depending of the value of
@@ -50,13 +50,13 @@ type Runner interface {
 	Run(wait bool) (err error)
 }
 
-//Builds inputs and runs a QM calculations
+// Builds inputs and runs a QM calculations
 type BuilderRunner interface {
 	InputBuilder
 	Runner
 }
 
-//Allows to recover energy and optimized geometries from a QM calculation
+// Allows to recover energy and optimized geometries from a QM calculation
 type EnergyGeo interface {
 
 	//Energy gets the last energy for a  calculation by parsing the
@@ -72,8 +72,8 @@ type EnergyGeo interface {
 	OptimizedGeometry(atoms chem.Atomer) (*v3.Matrix, error)
 }
 
-//Handle is an interface for a mostly-full functionality QM program
-//where "functionality" reflects it's degree of support in goChem
+// Handle is an interface for a mostly-full functionality QM program
+// where "functionality" reflects it's degree of support in goChem
 type Handle interface {
 	BuilderRunner
 	EnergyGeo
@@ -102,7 +102,7 @@ const (
 
 //errors
 
-//Error represents a decorable QM error.
+// Error represents a decorable QM error.
 type Error struct {
 	message    string
 	code       string //the name of the QM program giving the problem, or empty string if none
@@ -112,31 +112,31 @@ type Error struct {
 	critical   bool
 }
 
-//Error returns a string with an error message.
+// Error returns a string with an error message.
 func (err Error) Error() string {
 	return fmt.Sprintf("%s (%s/%s) Message: %s", err.message, err.inputname, err.code, err.additional)
 }
 
-//Decorate will add the dec string to the decoration slice of strings of the error,
-//and return the resulting slice.
+// Decorate will add the dec string to the decoration slice of strings of the error,
+// and return the resulting slice.
 func (err Error) Decorate(dec string) []string {
 	err.deco = append(err.deco, dec)
 	return err.deco
 }
 
-//Code returns the name of the program that ran/was meant to run the
-//calculation that caused the error.
+// Code returns the name of the program that ran/was meant to run the
+// calculation that caused the error.
 func (err Error) Code() string { return err.code } //May not be needed
 
-//InputName returns the name of the input file which processing caused the error
+// InputName returns the name of the input file which processing caused the error
 func (err Error) InputName() string { return err.inputname }
 
-//Critical return whether the error is critical or it can be ifnored
+// Critical return whether the error is critical or it can be ifnored
 func (err Error) Critical() bool { return err.critical }
 
-//errDecorate is a helper function that asserts that the error is
-//implements chem.Error and decorates the error with the caller's name before returning it.
-//if used with a non-chem.Error error, it will cause a panic.
+// errDecorate is a helper function that asserts that the error is
+// implements chem.Error and decorates the error with the caller's name before returning it.
+// if used with a non-chem.Error error, it will cause a panic.
 func errDecorate(err error, caller string) error {
 	err2 := err.(chem.Error) //I know that is the type returned byt initRead
 	err2.Decorate(caller)
@@ -145,7 +145,7 @@ func errDecorate(err error, caller string) error {
 
 //end errors
 
-//jobChoose is a structure where each QM handler has to provide a closure that makes the proper arrangements for each supported case.
+// jobChoose is a structure where each QM handler has to provide a closure that makes the proper arrangements for each supported case.
 type jobChoose struct {
 	opti    func()
 	forces  func()
@@ -154,11 +154,11 @@ type jobChoose struct {
 	charges func()
 }
 
-//Job is a structure that define a type of calculations.
-//The user should set one of these to true,
-//and goChem will see that the proper actions are taken. If the user sets more than one of the
-//fields to true, the priority will be Opti>Forces>SP (i.e. if Forces and SP are true,
-//only the function handling forces will be called).
+// Job is a structure that define a type of calculations.
+// The user should set one of these to true,
+// and goChem will see that the proper actions are taken. If the user sets more than one of the
+// fields to true, the priority will be Opti>Forces>SP (i.e. if Forces and SP are true,
+// only the function handling forces will be called).
 type Job struct {
 	Opti    bool
 	Forces  bool
@@ -167,8 +167,8 @@ type Job struct {
 	Charges bool
 }
 
-//Do sets the job set to true in J, according to the corresponding function in plan. A "nil" plan
-//means that the corresponding job is not supported by the QM handle and we will default to single point.
+// Do sets the job set to true in J, according to the corresponding function in plan. A "nil" plan
+// means that the corresponding job is not supported by the QM handle and we will default to single point.
 func (J *Job) Do(plan jobChoose) {
 	if J == nil {
 		return
@@ -204,14 +204,14 @@ func (J *Job) Do(plan jobChoose) {
 //	Atoms []int
 //}
 
-//PointCharge is a container for a point charge, such as those used in QM/MM
-//calculations
+// PointCharge is a container for a point charge, such as those used in QM/MM
+// calculations
 type PointCharge struct {
 	Charge float64
 	Coords *v3.Matrix
 }
 
-//IConstraint is a container for a constraint to internal coordinates
+// IConstraint is a container for a constraint to internal coordinates
 type IConstraint struct {
 	CAtoms []int
 	Val    float64
@@ -219,8 +219,8 @@ type IConstraint struct {
 	UseVal bool //if false, don't add any value to the constraint (which should leave it at the value in the starting structure. This migth not work on every program, but it works in ORCA.
 }
 
-//Calc is a structure for the general representation of a calculation
-//mostly independent of the QM program (although, of course, some methods will not work in some programs)
+// Calc is a structure for the general representation of a calculation
+// mostly independent of the QM program (although, of course, some methods will not work in some programs)
 type Calc struct {
 	Method       string
 	Basis        string
@@ -247,28 +247,29 @@ type Calc struct {
 	//	PCharges []PointCharge
 	Guess string //initial guess
 	Grid  int
-	OldMO bool //Try to look for a file with MO. The
+	OldMO bool //Try to look for a file with MO.
 	Job   *Job //NOTE: This should probably be a pointer: FIX!  NOTE2: Fixed it, but must check and fix whatever is now broken.
 	//The following 3 are only for MD simulations, will be ignored in every other case.
 	MDTime       int     //simulation time (whatever unit the program uses!)
 	MDTemp       float64 //simulation temperature (K)
 	MDPressure   int     //simulation pressure (whatever unit the program uses!)
-	SCFTightness int
+	SCFTightness int     //1,2 and 3. 0 means the default
+	OptTightness int
 	SCFConvHelp  int
 	ECP          string //The ECP to be used. It is the programmers responsibility to use a supported ECP (for instance, trying to use 10-electron core ECP for Carbon will fail)
 	Gimic        bool
 	Memory       int //Max memory to be used in MB (the effect depends on the QM program)
 }
 
-//Utilities here
+// Utilities here
 func (Q *Calc) SetDefaults() {
 	Q.RI = true
 	//	Q.BSSE = "gcp"
 	Q.Dispersion = "D3"
 }
 
-//isIn is a helper for the RamaList function,
-//returns true if test is in container, false otherwise.
+// isIn is a helper for the RamaList function,
+// returns true if test is in container, false otherwise.
 func isInInt(container []int, test int) bool {
 	if container == nil {
 		return false
@@ -281,7 +282,7 @@ func isInInt(container []int, test int) bool {
 	return false
 }
 
-//Same as the previous, but with strings.
+// Same as the previous, but with strings.
 func isInString(container []string, test string) bool {
 	if container == nil {
 		return false

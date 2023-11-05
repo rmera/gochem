@@ -229,7 +229,13 @@ func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q
 	}
 	jc := jobChoose{}
 	jc.opti = func() {
-		O.options = append(O.options, "-o normal")
+		add := "-o normal"
+		if Q.OptTightness == 2 {
+			add = "-o tight"
+		} else if Q.OptTightness > 2 {
+			add = "-o verytight"
+		}
+		O.options = append(O.options, add)
 	}
 	jc.forces = func() {
 		O.options = append(O.options, "--ohess")

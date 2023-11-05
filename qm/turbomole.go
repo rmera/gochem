@@ -162,11 +162,14 @@ func ReasonableSetting(k string, Q *Calc) string {
 	if strings.Contains(k, "$ricore      500") {
 		k = "$ricore      1000\n"
 	}
-	if Q.SCFConvHelp >= 1 {
-		if strings.Contains(k, "$scfdamp") {
-			k = "$scfdamp start=10 step=0.005 min=0.5\n"
-		}
+	if Q.SCFConvHelp >= 1 && strings.Contains(k, "$scfdamp") {
+		k = "$scfdamp start=10 step=0.005 min=0.5\n"
+
 	}
+	if Q.SCFTightness >= 1 && strings.Contains(k, "$scfconv") {
+		k = "$scfconv  8\n"
+	}
+
 	return k
 }
 
@@ -430,18 +433,21 @@ func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q 
 	}
 	jc := jobChoose{}
 	jc.opti = func() {
-		O.command = "jobex"
+		O.command = "jobex -c 200"
 		if Q.RI {
-			O.command = O.command + " -c 200 -ri"
-		} else {
-			O.command = O.command + " -c 200"
+			O.command = O.command + " -ri"
+			if Q.OptTightness >= 2 {
+				O.command = O.command + "-gcart 4"
+
+			}
 		}
 	}
 	jc.forces = func() {
-		O.command = "NumForce"
+		O.command = "NumForce -central"
 		if Q.RI {
 			O.command = O.command + " -ri"
 		}
+		O.addToControl([]string{" weight derivatives"}, Q, false, false, "$dft")
 	}
 	Q.Job.Do(jc)
 
@@ -476,6 +482,7 @@ func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q 
 		return errDecorate(err, "BuildInput")
 	}
 	return nil
+
 }
 
 var tMMethods = map[string]string{
@@ -497,6 +504,8 @@ var tMMethods = map[string]string{
 	"b-lyp":     "b-lyp",
 	"b97-3c":    "b97-3c",
 	"r2scan-3c": "r2scan-3c",
+	"PW6B95":    "pw6b95",
+	"pw6b95":    "pw6b95",
 }
 
 var tMDisp = map[string]string{
