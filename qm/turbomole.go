@@ -76,8 +76,13 @@ const noCosmoPrep = "goChem/QM: Unable to run cosmoprep"
 
 // SetName sets the name of the subdirectory, in the current directory
 // where the calculation will be ran
-func (O *TMHandle) SetName(name string) {
-	O.inputname = name
+func (O *TMHandle) Name(name ...string) string {
+	ret := O.inputname
+	if len(name) > 0 {
+		O.inputname = name[0]
+		ret = name[0]
+	}
+	return ret
 
 }
 
@@ -173,9 +178,73 @@ func ReasonableSetting(k string, Q *Calc) string {
 	return k
 }
 
+/*
+//Replaces the regular expression regex in the TM control file by replacement
+func (O *TMHandle) ReplaceInControl(regex, replacement string) error {
+    	//NOTE: This has repeated code. Refactor
+	re, err := regexp.Compile(regex)
+	if err != nil {
+		return fmt.Errorf("ReplaceInControl: Replacement failed: %s", err.Error())
+	}
+
+	path, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	dir := strings.Split(path, "/")
+	if dir[len(dir)-1] != O.inputname {
+		defer os.Chdir("../")
+		os.Chdir(O.inputname)
+	}
+
+	f, err := os.Open("control")
+	if err != nil {
+		return Error{ErrCantInput, Turbomole, O.inputname, "", []string{"os.Open", "addtoControl"}, true}
+	}
+	lines := make([]string, 0, 200) //200 is just a guess for the number of lines in the control file
+	c := bufio.NewReader(f)
+	for err == nil {
+		var line string
+		line, err = c.ReadString('\n')
+		lines = append(lines, line)
+	}
+	f.Close() //I cant defer it because I need it closed now.
+	out, err := os.Create("control")
+	if err != nil {
+		return Error{ErrCantInput, Turbomole, O.inputname, "", []string{"os.Create", "addtoControl"}, true}
+	}
+	defer out.Close()
+	for _, i := range lines {
+		k := i
+		if re.MatchString(i) {
+			k = replacement
+		}
+
+		if _, err := fmt.Fprintf(out, k); err != nil {
+			return Error{ErrCantInput, Turbomole, O.inputname, "", []string{"fmt.Fprintf", "ReplaceInControl"}, true}
+		}
+	}
+	return nil
+}
+*/
+
+//Adds the text strings given before or after the first line containing the where[0] string. By default the "target" is "$symmetry"
+func (O *TMHandle) AddToControl(toappend []string, before bool, where ...string) error {
+	c, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	dir := strings.Split(c, "/")
+	if dir[len(dir)-1] != O.inputname {
+		defer os.Chdir("../")
+		os.Chdir(O.inputname)
+	}
+	return O.addToControl(toappend, nil, before, where...)
+}
+
 // Adds all the strings in toapend to the control file, just before the $symmetry keyword
 // or just before the keyword specified in where.
-func (O *TMHandle) addToControl(toappend []string, Q *Calc, before, fix bool, where ...string) error {
+func (O *TMHandle) addToControl(toappend []string, Q *Calc, before bool, where ...string) error {
 	f, err := os.Open("control")
 	if err != nil {
 		return Error{ErrCantInput, Turbomole, O.inputname, "", []string{"os.Open", "addtoControl"}, true}
@@ -200,7 +269,7 @@ func (O *TMHandle) addToControl(toappend []string, Q *Calc, before, fix bool, wh
 	}
 	for _, i := range lines {
 		k = i //May not be too efficient
-		if fix {
+		if Q != nil {
 			k = ReasonableSetting(k, Q)
 		}
 		if strings.Contains(i, target) {
@@ -347,11 +416,17 @@ func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q 
 		log.Printf("no basis set assigned for TM calculation, will used the default %s, \n", O.defbasis)
 		Q.Basis = O.defbasis
 	}
-	//there is another check for this funcitonal below. I should try to make it that it only checks for this
+	//there is another check for these methods below. I should try to make it that it only checks for this
 	//once.
 	if Q.Method == "r2scan-3c" {
 		Q.Basis = "def2-mTZVPP"
 		Q.RI = true
+	} else if Q.Method == "b97-3c" {
+		Q.Basis = "def2-mTZVP"
+		Q.RI = true
+	} else if Q.Method == "hf-3c" {
+		Q.Basis = "minix"
+		Q.RI = false
 	}
 	defstring = defstring + "b all " + Q.Basis + "\n"
 	if Q.LowBasis != "" && len(Q.LBElements) > 0 {
@@ -392,7 +467,7 @@ func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q 
 	}
 	//We only support HF and DFT
 	O.command = "dscf"
-	if Q.Method != "hf" {
+	if Q.Method != "hf" && Q.Method != "hf-3c" {
 		grid := ""
 		if Q.Grid != 0 && Q.Grid <= 7 {
 			grid = fmt.Sprintf("grid\n m%d\n", Q.Grid)
@@ -447,7 +522,7 @@ func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q 
 		if Q.RI {
 			O.command = O.command + " -ri"
 		}
-		O.addToControl([]string{" weight derivatives"}, Q, false, false, "$dft")
+		O.addToControl([]string{" weight derivatives"}, nil, false, "$dft")
 	}
 	Q.Job.Do(jc)
 
@@ -458,13 +533,18 @@ func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q 
 		fmt.Fprintf(os.Stderr, "Dispersion correction requested not supported, will used the default: D3, \n")
 		args[0] = "$disp3"
 	}
+
+	if Q.Method == "hf-3c" {
+		args[0] = "$disp3 -bj -func hf-3c"
+	}
 	if Q.Method == "b97-3c" {
 		args[0] = "$disp3 -bj -abc"
 	}
+
 	if Q.Method == "r2scan-3c" {
 		args[0] = "$disp4"
 
-		if err := O.addToControl([]string{"    radsize   8"}, Q, false, false, "gridsize"); err != nil {
+		if err := O.addToControl([]string{"    radsize   8"}, nil, false, "gridsize"); err != nil {
 			return errDecorate(err, "BuildInput")
 		}
 	}
@@ -472,7 +552,7 @@ func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q 
 		O.command = "mpshift"
 		args = append(args, "$gimic")
 	}
-	if err := O.addToControl(args, Q, true, true); err != nil {
+	if err := O.addToControl(args, Q, true); err != nil {
 		return errDecorate(err, "BuildInput")
 	}
 
@@ -488,6 +568,8 @@ func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q 
 var tMMethods = map[string]string{
 	"HF":        "hf",
 	"hf":        "hf",
+	"hf-3c":     "hf-3c",
+	"HF-3c":     "hf-3c",
 	"b3lyp":     "b3-lyp",
 	"B3LYP":     "b3-lyp",
 	"b3-lyp":    "b3-lyp",
