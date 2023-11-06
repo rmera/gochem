@@ -457,7 +457,7 @@ func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q 
 	//Here we only produce singlet and doublet states (sorry). I will most certainly *not* deal with the "joys"
 	//of setting other multiplicities in define.
 	defstring = fmt.Sprintf("%seht\n%sy\ny\n%d\n\n", defstring, stupid, atoms.Charge()) //I add one additional "y\n"
-	method, ok := tMMethods[Q.Method]
+	method, ok := tMMethods[strings.ToLower(Q.Method)]
 	if !ok {
 		fmt.Fprintf(os.Stderr, "no method assigned for TM calculation, will used the default %s, \n", O.defmethod)
 		Q.Method = O.defmethod
@@ -530,7 +530,7 @@ func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q 
 	args := make([]string, 1, 2)
 	args[0], ok = tMDisp[Q.Dispersion]
 	if !ok {
-		fmt.Fprintf(os.Stderr, "Dispersion correction requested not supported, will used the default: D3, \n")
+		fmt.Fprintf(os.Stderr, "Dispersion correction requested %s not supported, will used the default: D3, \n", Q.Dispersion)
 		args[0] = "$disp3"
 	}
 
@@ -541,12 +541,14 @@ func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q 
 		args[0] = "$disp3 -bj -abc"
 	}
 
-	if Q.Method == "r2scan-3c" {
-		args[0] = "$disp4"
-
+	if strings.Contains(Q.Method, "r2scan") { // both r2scan and r2scan-3c get the extra grid
 		if err := O.addToControl([]string{"    radsize   8"}, nil, false, "gridsize"); err != nil {
 			return errDecorate(err, "BuildInput")
 		}
+		if Q.Method == "r2scan-3c" {
+			args[0] = "$disp4"
+		}
+
 	}
 	if Q.Gimic {
 		O.command = "mpshift"
@@ -566,27 +568,20 @@ func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q 
 }
 
 var tMMethods = map[string]string{
-	"HF":        "hf",
 	"hf":        "hf",
 	"hf-3c":     "hf-3c",
-	"HF-3c":     "hf-3c",
 	"b3lyp":     "b3-lyp",
-	"B3LYP":     "b3-lyp",
 	"b3-lyp":    "b3-lyp",
-	"PBE":       "pbe",
 	"pbe":       "pbe",
-	"TPSS":      "tpss",
-	"TPSSh":     "tpssh",
 	"tpss":      "tpss",
 	"tpssh":     "tpssh",
-	"BP86":      "b-p",
+	"bp86":      "b-p",
 	"b-p":       "b-p",
 	"blyp":      "b-lyp",
-	"BLYP":      "b-lyp",
 	"b-lyp":     "b-lyp",
 	"b97-3c":    "b97-3c",
 	"r2scan-3c": "r2scan-3c",
-	"PW6B95":    "pw6b95",
+	"r2scan":    "r2scan",
 	"pw6b95":    "pw6b95",
 }
 
