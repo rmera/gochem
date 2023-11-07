@@ -456,7 +456,7 @@ func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q 
 	}
 	//Here we only produce singlet and doublet states (sorry). I will most certainly *not* deal with the "joys"
 	//of setting other multiplicities in define.
-	defstring = fmt.Sprintf("%seht\n%sy\ny\n%d\n\n", defstring, stupid, atoms.Charge()) //I add one additional "y\n"
+	defstring = fmt.Sprintf("%seht\n%sy\ny\n%d\n\n\n\n\n", defstring, stupid, atoms.Charge()) //I add one additional "y\n"
 	method, ok := tMMethods[strings.ToLower(Q.Method)]
 	if !ok {
 		fmt.Fprintf(os.Stderr, "no method assigned for TM calculation, will used the default %s, \n", O.defmethod)
