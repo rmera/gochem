@@ -197,6 +197,7 @@ func (X *XTCObj) NextConc(frames []*v3.Matrix) ([]chan *v3.Matrix, error) {
 	used := false
 	for key, val := range frames {
 		//cCoords:=X.concBuffer[key]
+		fmt.Println(len(X.concBuffer), len(X.cBox), key, val.NVecs()) ///////////////////////////////
 		worked := C.get_coords(X.fp, &X.concBuffer[key][0], &X.cBox[0], cnatoms)
 		//Error handling
 		if worked == 11 {
