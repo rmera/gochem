@@ -27,8 +27,9 @@ package chemplot
 
 import (
 	"fmt"
-	"github.com/rmera/gochem"
 	"testing"
+
+	chem "github.com/rmera/gochem"
 )
 
 //TestRama tests the Ramachandran plot functionality.
@@ -42,7 +43,7 @@ func TestRama(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
-	ramalist2, index := chem.RamaResidueFilter(ramalist, []string{"HIS", "GLY", "ALA", "VAL", "LYS", "CYS"}, true)
+	ramalist2, index := chem.RamaResidueFilter(ramalist, []string{}, false) // []string{"HIS", "GLY", "ALA", "VAL", "LYS", "CYS"}, true)
 	rama, err := chem.RamaCalc(mol.Coords[0], ramalist2)
 	if err != nil {
 		Te.Error(err)

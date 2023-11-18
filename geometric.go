@@ -440,7 +440,8 @@ func DihedralAlt(a, b, c, d *v3.Matrix) float64 {
 }
 
 //Dihedral calculates the dihedral between the points a, b, c, d, where the first plane
-//is defined by abc and the second by bcd.
+//is defined by abc and the second by bcd. The ouputs are defined between 0 and pi, so
+//it shouldn't be used for Ramachandran angles. Use RamaDihedral for that.
 func Dihedral(a, b, c, d *v3.Matrix) float64 {
 	all := []*v3.Matrix{a, b, c, d}
 	for number, point := range all {
@@ -462,16 +463,14 @@ func Dihedral(a, b, c, d *v3.Matrix) float64 {
 	bmc.Sub(b, c)
 	dmc.Sub(d, c)
 	v1 := cross(amb, cmb)
-	v2 := cross(bmc, dmc)
+	v2 := cross(dmc, bmc)
 	dihedral := Angle(v1, v2)
 	//	dihedral := math.Atan2(first, second)
 	return dihedral
 }
 
-//dihedral calculates the dihedral between the points a, b, c, d, where the first plane
-//is defined by abc and the second by bcd.
-//This is an old implemntation which does not give correct results
-func dihedral(a, b, c, d *v3.Matrix) float64 {
+//Similar to the Dihedral funcion, obatins the dihedral angle between 2 points. The difference is that the outputs for this functions are defined between -pi and pi, while Dihedral's outputs are defined between 0 and pi.
+func DihedralRama(a, b, c, d *v3.Matrix) float64 {
 	all := []*v3.Matrix{a, b, c, d}
 	for number, point := range all {
 		pr, pc := point.Dims()

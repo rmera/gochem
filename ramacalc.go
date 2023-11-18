@@ -28,7 +28,6 @@ package chem
 
 import (
 	"fmt"
-	"math"
 	"strings"
 
 	v3 "github.com/rmera/gochem/v3"
@@ -63,9 +62,9 @@ func RamaCalc(M *v3.Matrix, dihedrals []RamaSet) ([][]float64, error) {
 		Ca := M.VecView(j.Ca)
 		C := M.VecView(j.C)
 		Npost := M.VecView(j.Npost)
-		phi := Dihedral(Cprev, N, Ca, C)
-		psi := Dihedral(N, Ca, C, Npost)
-		temp := []float64{phi * (180 / math.Pi), psi * (180 / math.Pi)}
+		phi := DihedralRama(Cprev, N, Ca, C)
+		psi := DihedralRama(N, Ca, C, Npost)
+		temp := []float64{phi * Rad2Deg, psi * Rad2Deg}
 		Rama = append(Rama, temp)
 	}
 	return Rama, nil
