@@ -147,12 +147,17 @@ func ConcMolRDF(traj chem.ConcTraj, mol *chem.Molecule, refindexes []int, residu
 	A := 1.0
 	B := 1.0
 	if mol.Len() > 1 {
-		elip, err := EllipsoidAxes(mol.Coords[0], epsilon, mol)
+		scoords := v3.Zeros(len(refindexes))
+		scoords.SomeVecs(mol.Coords[0], refindexes)
+		smol := chem.NewTopology(0, 1)
+		smol.SomeAtoms(mol, refindexes)
+		elip, err := EllipsoidAxes(scoords, epsilon, smol)
 		if err != nil {
 			return nil, nil, err
 		}
-		A = elip[2] / elip[0]
-		B = elip[1] / elip[0]
+		//fmt.Println(elip, elip[0]*elip[1]*elip[2]) /////////////////////////////////
+		A = elip[0] / elip[2]
+		B = elip[1] / elip[2]
 
 	}
 
@@ -207,6 +212,7 @@ func ConcMolRDF(traj chem.ConcTraj, mol *chem.Molecule, refindexes []int, residu
 			framesread++
 		}
 	}
+	//fmt.Println(A, B) /////////////
 	ret, ret2, err := MDFFromCDF(ret, framesread, A, B, o.step)
 	return ret, ret2, err
 }
@@ -271,8 +277,8 @@ reading:
 			if err != nil {
 				return nil, nil, err
 			}
-			A = elip[2] / elip[0]
-			B = elip[1] / elip[0]
+			A = elip[0] / elip[2]
+			B = elip[1] / elip[2]
 
 		}
 
