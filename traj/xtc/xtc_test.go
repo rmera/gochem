@@ -120,6 +120,7 @@ func TestFrameXTCConc(Te *testing.T) {
 			fmt.Println(res, frame, <-k)
 		}
 	}
+	traj.Close()
 }
 
 /*	for framebunch, j := range results {

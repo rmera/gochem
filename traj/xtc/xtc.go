@@ -101,18 +101,6 @@ func (X *XTCObj) initRead(name string) error {
 	return nil
 }
 
-func (X *XTCObj) Close() {
-	if !X.readable {
-		return //already closed
-	}
-	X.cCoords = nil
-	X.cBox = nil
-	X.concBuffer = nil
-	X.concBoxBuffer = nil
-	C.xtc_close(X.fp)
-	X.readable = false
-}
-
 //Next Reads the next frame in a XTCObj that has been initialized for read
 //With initread. If keep is true, returns a pointer to matrix.DenseMatrix
 //With the coordinates read, otherwiser, it discards the coordinates and
@@ -181,6 +169,19 @@ func (X *XTCObj) setConcBuffer(batchsize int) error {
 	return nil
 }
 
+//Close closes the underlying file and sets all fields in the object to their zero-value
+func (X *XTCObj) Close() {
+	if X.fp != nil {
+		C.xtc_close(X.fp) //we avoid closing it if it was closed already
+	}
+	X.readable = false
+	X.cCoords = nil
+	X.cBox = nil
+	X.concBuffer = nil
+	X.concBoxBuffer = nil
+	X.fp = nil
+}
+
 //NextConc takes a slice of bools and reads as many frames as elements the list has
 //form the trajectory. The frames are discarted if the corresponding elemetn of the slice
 //is false. The function returns a slice of channels through each of each of which
@@ -197,15 +198,16 @@ func (X *XTCObj) NextConc(frames []*v3.Matrix) ([]chan *v3.Matrix, error) {
 	used := false
 	for key, val := range frames {
 		//cCoords:=X.concBuffer[key]
-		fmt.Println(len(X.concBuffer), len(X.cBox), key, val.NVecs()) ///////////////////////////////
+		//	fmt.Println(len(X.concBuffer), len(X.cBox), key, val.NVecs()) ///////////////////////////////
 		worked := C.get_coords(X.fp, &X.concBuffer[key][0], &X.cBox[0], cnatoms)
 		//Error handling
 		if worked == 11 {
 			if used == false {
+				//X.readable = false
 				X.Close()
 				return nil, newlastFrameError(X.filename, "NextConc") //This is not really an error and
 			} else { //should be catched in the calling function
-				X.Close()
+				X.readable = false
 				return framechans, newlastFrameError(X.filename, "NextConc") //same
 			}
 		}
@@ -231,6 +233,7 @@ func (X *XTCObj) NextConc(frames []*v3.Matrix) ([]chan *v3.Matrix, error) {
 			pipe <- goCoords
 		}(X.natoms, X.concBuffer[key], val, framechans[key])
 	}
+
 	return framechans, nil
 }
 
