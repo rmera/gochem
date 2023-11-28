@@ -19,11 +19,11 @@
  *
 */
 
-
 package chem
 
 import (
 	"fmt"
+	"log"
 
 	v3 "github.com/rmera/gochem/v3"
 	"gonum.org/v1/gonum/mat"
@@ -37,12 +37,12 @@ func errorDec(err error, frame int) error {
 
 }
 
-//BackboneCGize takes a coord and a mol for a protein, and returns a new set of coordinates
-//each of which cooresponds to the center of mass of the backbone of the corresponding residue
-//in the original molecule. If top is true, it also returns a topology where each atom corrsponds
-//to the center of mass, with the name "BB", and the correct residue name and ID. Otherwise it returns
-//an empty topology.
-//In other words, it takes a protein and returns a CG model for its backbone, in the currect conformation.
+// BackboneCGize takes a coord and a mol for a protein, and returns a new set of coordinates
+// each of which cooresponds to the center of mass of the backbone of the corresponding residue
+// in the original molecule. If top is true, it also returns a topology where each atom corrsponds
+// to the center of mass, with the name "BB", and the correct residue name and ID. Otherwise it returns
+// an empty topology.
+// In other words, it takes a protein and returns a CG model for its backbone, in the currect conformation.
 func BackboneCGize(coord *v3.Matrix, mol Atomer, top bool) (*v3.Matrix, *Topology, error) {
 	topol := NewTopology(0, 1)
 	residues := countResidues(mol) //sorry
@@ -61,7 +61,13 @@ func BackboneCGize(coord *v3.Matrix, mol Atomer, top bool) (*v3.Matrix, *Topolog
 		if len(bbin) == 0 {
 			continue //not a protein residue, perhaps a ligand
 		}
-		fmt.Println(len(bbin)) /////////////////
+		//	fmt.Println(len(bbin), bbin) ////////////////
+		if len(bbin) != bb.NVecs() {
+			bb = v3.Zeros(len(bbin))
+			if len(bbin) != 4 {
+				log.Printf("Abnormal backbone detected in residue %s %d: %d atoms in backbone. Will obtain BB bead with the position of those atoms", atom.MolName, atom.MolID, len(bbin))
+			}
+		}
 		bb.SomeVecs(coord, bbin)
 		bbtop.SomeAtoms(mol, bbin)
 		mass, err := bbtop.Masses()
@@ -109,11 +115,11 @@ func countResidues(mol Atomer) int {
 
 }
 
-//molecules2BBAtoms returns the indexes for the BB atoms in a given set for residues
-//of course, it only works for aminoacidic residues.
+// molecules2BBAtoms returns the indexes for the BB atoms in a given set for residues
+// of course, it only works for aminoacidic residues.
 func molecules2BBAtoms(mol Atomer, residues []int, chains []string) []int {
 	atlist := make([]int, 0, len(residues)*3)
-	bb := []string{"N", "CA", "C", "O"}
+	bb := []string{"N", "CA", "C", "O", "OC1", "OC2"} //OC1 and OC2 are for C-terminal residues which have 2 O.
 	for key := 0; key < mol.Len(); key++ {
 		at := mol.Atom(key)
 		if isInInt(residues, at.MolID) && (isInString(chains, at.Chain) || len(chains) == 0) {
