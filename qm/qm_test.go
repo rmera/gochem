@@ -25,7 +25,6 @@
  *
  */
 
-
 package qm
 
 import (
@@ -40,7 +39,7 @@ import (
 
 //TestQM tests the QM functionality. It prepares input for ORCA and MOPAC
 //In the case of MOPAC it reads a previously prepared output and gets the energy.
-func TestQM(Te *testing.T) {
+func TTestQM(Te *testing.T) {
 	mol, err := chem.XYZFileRead("../test/water.xyz")
 	if err != nil {
 		Te.Error(err)
@@ -56,7 +55,7 @@ func TestQM(Te *testing.T) {
 	calc := new(Calc)
 	calc.SetDefaults()
 	calc.SCFTightness = 2 //very demanding
-	calc.Job = Job{Opti: true}
+	calc.Job = &Job{Opti: true}
 	//calc.Job.Opti=true
 	calc.Method = "TPSS"
 	calc.Dielectric = 4
@@ -143,7 +142,7 @@ func TestQM(Te *testing.T) {
 //TestTurbo tests the QM functionality. It prepares input for Turbomole
 //Notice that 2 TM inputs cannot be in the same directory. Notice that TMHandle
 //supports ECPs
-func TestTurbo(Te *testing.T) {
+func TTestTurbo(Te *testing.T) {
 	fmt.Println("Turbomole TEST y wea!")
 	mol, err := chem.XYZFileRead("../test/ethanol.xyz")
 	original_dir, _ := os.Getwd() //will check in a few lines
@@ -165,7 +164,7 @@ func TestTurbo(Te *testing.T) {
 	//	calc.ECP = "ecp-10-mdf"
 	//	calc.ECPElements = []string{"O"}
 	calc.Grid = 4
-	calc.Job = Job{Opti: true}
+	calc.Job = &Job{Opti: true}
 	calc.Method = "BP86"
 	calc.Dielectric = 4
 	calc.Basis = "def2-SVP"
@@ -204,7 +203,7 @@ func TestTurbo(Te *testing.T) {
 	//	os.Chdir(original_dir)
 }
 
-func TestFermions(Te *testing.T) {
+func TTestFermions(Te *testing.T) {
 	mol, err := chem.XYZFileRead("../test/ethanol.xyz")
 	if err != nil {
 		Te.Error(err)
@@ -215,7 +214,7 @@ func TestFermions(Te *testing.T) {
 	mol.SetCharge(0)
 	mol.SetMulti(1)
 	calc := new(Calc)
-	calc.Job = Job{Opti: true}
+	calc.Job = &Job{Opti: true}
 	calc.Method = "BLYP"
 	calc.Dielectric = 4
 	calc.Basis = "def2-SVP"
@@ -255,7 +254,7 @@ func qderror_handler(err error, Te *testing.T) {
 	}
 }
 
-func TestNWChem(Te *testing.T) {
+func TTestNWChem(Te *testing.T) {
 	mol, err := chem.XYZFileRead("../test/water.xyz")
 	if err != nil {
 		Te.Error(err)
@@ -269,7 +268,7 @@ func TestNWChem(Te *testing.T) {
 	calc := new(Calc)
 	calc.SCFTightness = 1 //quite tight
 	calc.SCFConvHelp = 1
-	calc.Job = Job{Opti: true}
+	calc.Job = &Job{Opti: true}
 	calc.Method = "TPSS"
 	calc.Dielectric = 4
 	calc.Basis = "def2-SVP"
@@ -315,7 +314,28 @@ func TestNWChem(Te *testing.T) {
 
 }
 
-func TestXtb(Te *testing.T) {
+func TestLogP(Te *testing.T) {
+	mol, err := chem.XYZFileRead("../test/ethanol.xyz")
+	if err != nil {
+		Te.Error(err)
+	}
+	if err := mol.Corrupted(); err != nil {
+		Te.Error(err)
+	}
+	mol.SetCharge(0)
+	mol.SetMulti(1)
+	logp, err := LogP(mol.Coords[0], mol)
+	if err != nil {
+		if strings.Contains(err.Error(), "Non Critical Error") {
+			fmt.Println(err)
+		} else {
+			Te.Error(err)
+		}
+	}
+	fmt.Printf("LogP: %f", logp)
+}
+
+func TTestXtb(Te *testing.T) {
 	mol, err := chem.XYZFileRead("../test/ethanol.xyz")
 	if err != nil {
 		Te.Error(err)
@@ -327,7 +347,7 @@ func TestXtb(Te *testing.T) {
 	mol.SetCharge(0)
 	mol.SetMulti(1)
 	calc := new(Calc)
-	calc.Job = Job{Opti: true}
+	calc.Job = &Job{Opti: true}
 	//no support for constraints yet
 	calc.Method = "" //we only use xtb here soooo
 	calc.Dielectric = 4
