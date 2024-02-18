@@ -34,9 +34,8 @@ or any program based on goChem (such as goMD and goAnalize)
 before such a publication is available,
 we ask you to support goChem by citing the library in your publication as:
 
-Domínguez, C., Jiménez, V, Savasci, G., Pesonen, J., Mera-Adasme, 
-"goChem: A library for computational 
-chemistry". https://www.gochem.org
+Domínguez, C., Jiménez, V, Savasci, G., Araya-Osorio, R., Pesonen, J., Mera-Adasme, 
+"goChem: A library for computational chemistry". https://www.gochem.org
 
 
 Currently, gochem is licensed under LGPL2.1. This might change 
@@ -47,7 +46,7 @@ of this for a BSD-licensed project, contact the developer.
 
 LICENSE
 
-Copyright 2012 Raul Mera rauldotmeraatusachdotcl 
+Copyright 2012 Raul Mera rmeraaatacademicosdotutadotcl
 
 
 This program, including its documentation, 
@@ -62,7 +61,7 @@ implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 PURPOSE.  See the GNU General Public License for more details.
 		    
 You should have received a copy of the GNU Lesser General 
-Public License along with this program.  If not, see 
+Public License along with this program. If not, see 
 <http://www.gnu.org/licenses/>. 
 
 
