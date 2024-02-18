@@ -140,35 +140,25 @@ func CrossCorrMem(c1, c2 []float64, c1pad, c2pad []complex128, dst ...[]float64)
 	}
 	//	println("partimos")
 	f := fourier.NewCmplxFFT(len(c1pad)) //(len(c1pad))
-	//	println("coefs1", len(c1pad), len(c1))
-	f.Coefficients(c1pad, c1pad) //(c1pad, c1pad)
-	//	println("coefs2")
-	f.Coefficients(c2pad, c2pad) //(c2pad, c2pad)
-	//	println("mul-conj")
+	f.Coefficients(c1pad, c1pad)         //(c1pad, c1pad)
+	f.Coefficients(c2pad, c2pad)         //(c2pad, c2pad)
 	cmplxMulConj(c1pad, c2pad)
-	//	println("ifft")
 	f.Sequence(c1pad, c1pad)
-	//	println("basicamente listos")
 
-	/*
-		for i, v := range c1pad {
-			j := FindClosestReal(c1pad, i)
-			fmt.Println(i, j, v)
-		}
-	*/
 	cmplxRealScale(c1pad, (1.0 / float64(len(c1pad)))) //normalization of the FFT
 
 	//c1pad = c1pad[0 : len(c1pad)-1]
 	center := len(c1pad) / 2
 
-	for i, v := range c1pad[:center] {
-		ret = append(ret, real(v)/float64(center-i-2))
+	for _, v := range c1pad[:center] {
+		ret = append(ret, real(v))
 	}
-	for i, v := range c1pad[center:] {
-		ret = append(ret, (real(v) / float64(i)))
+	for _, v := range c1pad[center:] {
+		ret = append(ret, (real(v))) // / float64(i)))
 	}
+	//	log.Println("LEN RET", len(ret)) ////////////////////
 	for i, v := range ret {
-		ret[i] = v / (c1std * c2std)
+		ret[i] = v / (c1std * c2std) / float64(len(c1))
 	}
 	//	fmt.Println(ret[:100])         ////////////
 	//	fmt.Println(ret[len(ret)-38:]) //////////
