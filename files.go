@@ -107,7 +107,7 @@ func symbolFromName(name string) (string, error) {
 		symbol = "Zn"
 	}
 	if symbol == "" {
-		return name, CError{"Couldn't guess symbol from PDB name. Will set the 'symbol' field to the name", []string{"symbolFromName"}}
+		return name, CError{fmt.Sprintf("Couldn't guess symbol from PDB name. Will set the 'symbol' field to the name %s", name), []string{"symbolFromName"}}
 	}
 	return symbol, nil
 }
