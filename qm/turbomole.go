@@ -78,7 +78,7 @@ const noCosmoPrep = "goChem/QM: Unable to run cosmoprep"
 // where the calculation will be ran
 func (O *TMHandle) Name(name ...string) string {
 	ret := O.inputname
-	if len(name) > 0 {
+	if len(name) > 0 && name[0] != "" {
 		O.inputname = name[0]
 		ret = name[0]
 	}

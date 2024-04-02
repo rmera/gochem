@@ -35,6 +35,13 @@ import (
 
 //import "runtime"
 
+func TestSymbolError(Te *testing.T) {
+	_, err := PDBFileRead("test/SymbolErrorTest.pdb")
+	if err != nil {
+		Te.Error(err)
+	}
+}
+
 func TestGROIO(Te *testing.T) {
 	mol, err := GroFileRead("test/test.gro")
 	if err != nil {
