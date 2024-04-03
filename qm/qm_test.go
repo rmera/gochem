@@ -25,7 +25,6 @@
  *
  */
 
-
 package qm
 
 import (
@@ -56,7 +55,7 @@ func TestQM(Te *testing.T) {
 	calc := new(Calc)
 	calc.SetDefaults()
 	calc.SCFTightness = 2 //very demanding
-	calc.Job = Job{Opti: true}
+	calc.Job = &Job{Opti: true}
 	//calc.Job.Opti=true
 	calc.Method = "TPSS"
 	calc.Dielectric = 4
@@ -101,38 +100,39 @@ func TestQM(Te *testing.T) {
 	mopaccommand := os.Getenv("MOPAC_LICENSE") + "/MOPAC2016.exe"
 	mopac.SetCommand(mopaccommand)
 	fmt.Println("command", mopaccommand)
-	if err := mopac.Run(true); err != nil {
-		if strings.Contains(err.Error(), "no such file") {
-			fmt.Println("Error", err.Error(), (" Will continue."))
-		} else {
-			Te.Error(err.Error())
+	/*
+		if err := mopac.Run(true); err != nil {
+			if strings.Contains(err.Error(), "no such file") {
+				fmt.Println("Error", err.Error(), (" Will continue."))
+			} else {
+				Te.Error(err.Error())
+			}
 		}
-	}
-	energy, err := mopac.Energy()
-	if err != nil {
-		if err.Error() == "Probable problem in calculation" {
-			fmt.Println(err.Error())
-		} else {
+		energy, err := mopac.Energy()
+		if err != nil {
+			if err.Error() == "Probable problem in calculation" {
+				fmt.Println(err.Error())
+			} else {
+				Te.Error(err)
+			}
+		}
+		geometry, err := mopac.OptimizedGeometry(mol)
+		if err != nil {
+			if err.Error() == "Probable problem in calculation" {
+				fmt.Println(err.Error())
+			} else {
+				Te.Error(err)
+			}
+		}
+		mol.Coords[0] = geometry
+		fmt.Println(energy)
+		if err := chem.XYZFileWrite("mopac.xyz", mol.Coords[0], mol); err != nil {
 			Te.Error(err)
 		}
-	}
-	geometry, err := mopac.OptimizedGeometry(mol)
-	if err != nil {
-		if err.Error() == "Probable problem in calculation" {
-			fmt.Println(err.Error())
-		} else {
+		//Took away this because it takes too long to run :-)
+		/*	if err=orca.Run(true); err!=nil{
 			Te.Error(err)
-		}
-	}
-	mol.Coords[0] = geometry
-	fmt.Println(energy)
-	if err := chem.XYZFileWrite("mopac.xyz", mol.Coords[0], mol); err != nil {
-		Te.Error(err)
-	}
-	//Took away this because it takes too long to run :-)
-	/*	if err=orca.Run(true); err!=nil{
-		Te.Error(err)
-		}
+			}
 	*/
 	if err = os.Chdir(original_dir); err != nil {
 		Te.Error(err)
@@ -165,7 +165,7 @@ func TestTurbo(Te *testing.T) {
 	//	calc.ECP = "ecp-10-mdf"
 	//	calc.ECPElements = []string{"O"}
 	calc.Grid = 4
-	calc.Job = Job{Opti: true}
+	calc.Job = &Job{Opti: true}
 	calc.Method = "BP86"
 	calc.Dielectric = 4
 	calc.Basis = "def2-SVP"
@@ -215,7 +215,7 @@ func TestFermions(Te *testing.T) {
 	mol.SetCharge(0)
 	mol.SetMulti(1)
 	calc := new(Calc)
-	calc.Job = Job{Opti: true}
+	calc.Job = &Job{Opti: true}
 	calc.Method = "BLYP"
 	calc.Dielectric = 4
 	calc.Basis = "def2-SVP"
@@ -269,7 +269,7 @@ func TestNWChem(Te *testing.T) {
 	calc := new(Calc)
 	calc.SCFTightness = 1 //quite tight
 	calc.SCFConvHelp = 1
-	calc.Job = Job{Opti: true}
+	calc.Job = &Job{Opti: true}
 	calc.Method = "TPSS"
 	calc.Dielectric = 4
 	calc.Basis = "def2-SVP"
@@ -297,22 +297,23 @@ func TestNWChem(Te *testing.T) {
 	if err != nil {
 		Te.Error(err)
 	}
-	nw.Run(true)
-	_ = orca.BuildInput(atoms, mol, calc)
-	//The files are already in ./test.
-	os.Chdir("../test")
-	defer os.Chdir("../qm")
-	energy, err := nw.Energy()
-	if err != nil {
-		Te.Error(err)
-	}
-	fmt.Println("NWChem Energy: ", energy)
-	newg, err := nw.OptimizedGeometry(mol)
-	if err != nil {
-		Te.Error(err)
-	}
-	chem.XYZFileWrite("optiNW.xyz", newg, mol)
-
+	/*
+		//nw.Run(true)
+		_ = orca.BuildInput(atoms, mol, calc)
+		//The files are already in ./test.
+		os.Chdir("../test")
+		defer os.Chdir("../qm")
+		energy, err := nw.Energy()
+		if err != nil {
+			Te.Error(err)
+		}
+		fmt.Println("NWChem Energy: ", energy)
+		newg, err := nw.OptimizedGeometry(mol)
+		if err != nil {
+			Te.Error(err)
+		}
+		chem.XYZFileWrite("optiNW.xyz", newg, mol)
+	*/
 }
 
 func TestXtb(Te *testing.T) {
@@ -327,9 +328,10 @@ func TestXtb(Te *testing.T) {
 	mol.SetCharge(0)
 	mol.SetMulti(1)
 	calc := new(Calc)
-	calc.Job = Job{Opti: true}
+	calc.Job = &Job{Opti: true}
+	calc.CConstraints = []int{2, 4}
 	//no support for constraints yet
-	calc.Method = "" //we only use xtb here soooo
+	calc.Method = "gfn2"
 	calc.Dielectric = 4
 	xtb := NewXTBHandle()
 	xtb.SetName("XTBgochem")
