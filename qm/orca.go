@@ -43,13 +43,14 @@ type OrcaHandle struct {
 	defmethod   string
 	defbasis    string
 	defauxbasis string
+	defguess    string
 	previousMO  string
 	bsse        string
 	command     string
 	inputname   string
 	wrkdir      string
 	nCPU        int
-	orca3       bool
+	orca4       bool
 }
 
 //NewOrcaHandle initializes and returns a new OrcaHandle.
@@ -91,8 +92,8 @@ func (O *OrcaHandle) SetWorkDir(d string) {
 
 //SetOrca3 sets the use of Orca3 to true or false. The default state
 //is false, meaning that Orca4 is used.
-func (O *OrcaHandle) SetOrca3(b bool) {
-	O.orca3 = b
+func (O *OrcaHandle) SetOrca4(b bool) {
+	O.orca4 = b
 }
 
 //SetDefaults Sets defaults for ORCA calculation. The default is
@@ -102,12 +103,13 @@ func (O *OrcaHandle) SetOrca3(b bool) {
 //unix.
 //The default is _not_ part of the API, it can change as new methods appear.
 func (O *OrcaHandle) SetDefaults() {
-	O.defmethod = "BLYP"
-	O.defbasis = "def2-SVP"
-	O.defauxbasis = "def2/J"
-	if O.orca3 {
-		O.defauxbasis = "def2-SVP/J"
-	}
+	O.defmethod = "r2scan-3c" //This is an API break, the default was BLYP/def2-SVP
+	O.defguess = "HUECKEL"
+	//	O.defbasis = "def2-SVP"
+	//	O.defauxbasis = "def2/J"
+	//	if O.orca3 {
+	//		O.defauxbasis = "def2-SVP/J"
+	//	}
 	O.command = os.ExpandEnv("${ORCA_PATH}/orca")
 	if O.command == "/orca" { //if ORCA_PATH was not defined
 		O.command = "./orca"
@@ -127,27 +129,28 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 	if atoms == nil || coords == nil {
 		return Error{ErrMissingCharges, Orca, O.inputname, "", []string{"BuildInput"}, true}
 	}
-	if Q.Basis == "" && !strings.Contains(Q.Method, "3c") {
+	if Q.Basis == "" && !strings.HasSuffix(Q.Method, "-3c") {
 		log.Printf("no basis set assigned for ORCA calculation, will used the default %s, \n", O.defbasis) //NOTE: This could be changed for a non-critical error
 		Q.Basis = O.defbasis
 	}
 	if Q.Method == "" {
 		log.Printf("no method assigned for ORCA calculation, will used the default %s, \n", O.defmethod)
 		Q.Method = O.defmethod
-		Q.auxColBasis = "" //makes no sense for pure functional
-		Q.auxBasis = fmt.Sprintf("%s/J", Q.Basis)
+		//	Q.auxColBasis = "" //makes no sense for pure functional
+		//	Q.auxBasis = fmt.Sprintf("%s/J", Q.Basis)
 	}
 
 	//Set RI or RIJCOSX if needed
-	ri := ""
-	if Q.RI && Q.RIJ {
-		return Error{"goChem/QM: RI and RIJ cannot be activated at the same time", Orca, O.inputname, "", []string{"BuildInput"}, true}
+	if Q.Guess == "" {
+		Q.Guess = O.defguess
 	}
+	ri := ""
+	//	if Q.RI && Q.RIJ {
+	//		return Error{"goChem/QM: RI and RIJ cannot be activated at the same time", Orca, O.inputname, "", []string{"BuildInput"}, true}
+	//	}
+	//Not needed in orca5, but doesn't harm either
 	if Q.RI || Q.RIJ {
 		Q.auxBasis = "def2/J" //Of course, this will only work with Karlsruhe basis.
-		if O.orca3 {
-			Q.auxBasis = Q.Basis + "/J"
-		}
 		//	if !strings.Contains(Q.Others," RI "){
 		ri = "RI"
 	}
@@ -159,21 +162,42 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 	if Q.Dispersion != "" {
 		disp = orcaDisp[Q.Dispersion]
 	}
+	if strings.HasSuffix(Q.Method, "-3c") || strings.HasSuffix(Q.Method, "MP2") {
+		disp = "" //Orca assigns dispersion automatically to the -3c methods. MP2 doesn't need dispersion.
+	}
 	opt := ""
-	trustradius := ""
+	optfreq := "" //stores all optimizations and frequencies flags
 	jc := jobChoose{}
 	jc.opti = func() {
 		opt = "Opt"
-		trustradius = "%geom trust 0.3\nend\n\n" //Orca uses a fixed trust radius by default. This goChem makes an input that activates variable trust radius.
+		if Q.OptTightness == 1 {
+			opt = "TightOpt"
+		} else if Q.OptTightness >= 2 {
+			opt = "VeryTightOpt"
+		}
+		//We change to variable trust radius, and also to XTB2 Hessian.
+		if O.orca4 {
+			optfreq += "%geom trust 0.3\nend\n\n"
+		} else {
+			optfreq += "%geom trust 0.3\n inhess XTB2\nend\n\n"
+		}
+	}
+	//TODO: NOTE" Add a flag for analytical Hessian.
+	jc.forces = func() {
+		optfreq += "%freq\n NumFreq true\n CentralDiff true\n QuasiRRho true\nend\n\n"
+		if O.orca4 {
+			strings.Replace(optfreq, " QuasiRRho true\n", "", -1) //AFAIK this is not supported in Orca 4
+		}
 	}
 	Q.Job.Do(jc)
-	//If this flag is set we'll look for a suitable MO file.
-	//If not found, we'll just use the default ORCA guess
 	hfuhf := "RHF"
 	if atoms.Multi() != 1 {
 		hfuhf = "UHF"
 	}
 	moinp := ""
+	//If this flag is set we'll look for a suitable MO file.
+	//If not found, we'll use our default guess (Hueckel), which is NOT Orca's default.
+	//This is not needed in Orca5, but it doesn't harm, and _I think_ it is needed in Orca 4, so we'll leave it for now.
 	if Q.OldMO == true {
 		dir, _ := os.Open("./")     //This should always work, hence ignoring the error
 		files, _ := dir.Readdir(-1) //Get all the files.
@@ -187,6 +211,7 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 			name := val.Name()
 			if strings.Contains(name, ".gbw") {
 				O.previousMO = name
+				Q.Guess = "" //Remove the default
 				break
 			}
 		}
@@ -216,12 +241,17 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 		pal = fmt.Sprintf("%%pal nprocs %d\n   end\n\n", O.nCPU) //fmt.Fprintf(os.Stderr, "CPU number of %d for ORCA calculations currently not supported, maximun 8", O.nCPU)
 	}
 	grid := ""
-	if Q.Grid > 0 && Q.Grid <= 9 {
-		final := ""
-		if Q.Grid > 3 {
-			final = "NoFinalGrid"
+	if Q.Grid >= 3 {
+		grid = fmt.Sprintf("DefGrid3")
+	}
+	if O.orca4 {
+		grid = ""
+		if Q.Grid > 2 && Q.Grid <= 9 {
+			grid = fmt.Sprintf("Grid%d", Q.Grid)
 		}
-		grid = fmt.Sprintf("Grid%d %s", Q.Grid, final)
+		if Q.Grid > 4 {
+			grid += " NoFinalGrid"
+		}
 	}
 	var err error
 	var bsse string
@@ -233,7 +263,7 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 		Q.Basis = ""
 		Q.auxBasis = ""
 		Q.auxColBasis = ""
-		Q.Guess = ""
+		//Q.Guess = ""
 		bsse = ""
 		disp = ""
 		HF3cAdditional = "%scf\n   MaxIter 200\n   MaxIntMem 2000\nend\n\n"
@@ -249,16 +279,15 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 	cosmo := ""
 	if Q.Dielectric > 0 {
 		method := "cpcm"
-		if O.orca3 {
-			method = "cosmo"
-		}
 		cosmo = fmt.Sprintf("%%%s epsilon %1.0f\n        refrac 1.30\n        end\n\n", method, Q.Dielectric)
 	}
 	mem := ""
 	if Q.Memory != 0 {
 		mem = fmt.Sprintf("%%MaxCore %d\n\n", Q.Memory)
 	}
+
 	ElementBasis := ""
+	/**************** Removed High Basis Elements. This is an API break.
 	if Q.HBElements != nil || Q.LBElements != nil {
 		elementbasis := make([]string, 0, len(Q.HBElements)+len(Q.LBElements)+2)
 		elementbasis = append(elementbasis, "%basis \n")
@@ -271,6 +300,7 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 		elementbasis = append(elementbasis, "         end\n\n")
 		ElementBasis = strings.Join(elementbasis, "")
 	}
+	*******************************/
 	//Now lets write the thing
 	if O.inputname == "" {
 		O.inputname = "gochem"
@@ -294,7 +324,7 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 	fmt.Fprint(file, mem)
 	fmt.Fprint(file, constraints)
 	fmt.Fprint(file, iconstraints)
-	fmt.Fprint(file, trustradius)
+	fmt.Fprint(file, optfreq)
 	fmt.Fprint(file, ElementBasis)
 	fmt.Fprint(file, cosmo)
 	fmt.Fprint(file, "\n")
@@ -302,13 +332,17 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 	fmt.Fprintf(file, "* xyz %d %d\n", atoms.Charge(), atoms.Multi())
 	//now the coordinates
 	//	fmt.Println(atoms.Len(), coords.Rows()) ///////////////
+
 	for i := 0; i < atoms.Len(); i++ {
+		//api break, removed support for "high" and "low" basis in a calculation.
 		newbasis := ""
+		/*********
 		if isInInt(Q.HBAtoms, i) == true {
 			newbasis = fmt.Sprintf("newgto \"%s\" end", Q.HighBasis)
 		} else if isInInt(Q.LBAtoms, i) == true {
 			newbasis = fmt.Sprintf("newgto \"%s\" end", Q.LowBasis)
 		}
+		**********/
 		//	fmt.Println(atoms.Atom(i).Symbol)
 		fmt.Fprintf(file, "%-2s  %8.3f%8.3f%8.3f %s\n", atoms.Atom(i).Symbol, coords.At(i, 0), coords.At(i, 1), coords.At(i, 2), newbasis)
 	}
@@ -447,6 +481,7 @@ var orcaDisp = map[string]string{
 	"D3ZERO": "D3ZERO",
 	"D3Zero": "D3ZERO",
 	"D3zero": "D3ZERO",
+	"D4":     "D4",
 	"VV10":   "NL", //for these methods only the default integration grid is supported.
 	"SCVV10": "SCNL",
 	"NL":     "NL",
@@ -472,11 +507,27 @@ func (O *OrcaHandle) OptimizedGeometry(atoms chem.Atomer) (*v3.Matrix, error) {
 	return mol.Coords[0], err //returns the coords, the error indicates whether the structure is trusty (normal calculation) or not
 }
 
+//Energy returns the free energy resulting from a frequencies calculation
+//Returns error if problem, and also if the energy returned that is product of an
+//abnormally-terminated ORCA calculation. (in this case error is "Probable problem
+//in calculation")
+func (O *OrcaHandle) FreeEnergy() (float64, error) {
+	templateline := "Final Gibbs free energy         .."
+	indexinline := 5
+	return O.energies(templateline, indexinline)
+}
+
 //Energy returns the energy of a previous Orca calculations.
 //Returns error if problem, and also if the energy returned that is product of an
 //abnormally-terminated ORCA calculation. (in this case error is "Probable problem
 //in calculation")
 func (O *OrcaHandle) Energy() (float64, error) {
+	templateline := "FINAL SINGLE POINT ENERGY"
+	position := 4
+	return O.energies(templateline, position)
+}
+
+func (O *OrcaHandle) energies(templateline string, indexinline int) (float64, error) {
 	var err error
 	err = Error{ErrProbableProblem, Orca, O.inputname, "", []string{"Energy"}, false}
 	f, err1 := os.Open(fmt.Sprintf("%s.out", O.wrkdir+O.inputname))
@@ -495,9 +546,9 @@ func (O *OrcaHandle) Energy() (float64, error) {
 		if strings.Contains(line, "**ORCA TERMINATED NORMALLY**") {
 			err = nil
 		}
-		if strings.Contains(line, "FINAL SINGLE POINT ENERGY") {
+		if strings.Contains(line, templateline) {
 			splitted := strings.Fields(line)
-			energy, err1 = strconv.ParseFloat(splitted[4], 64)
+			energy, err1 = strconv.ParseFloat(splitted[indexinline], 64)
 			if err1 != nil {
 				return 0.0, Error{ErrNoEnergy, Orca, O.inputname, err1.Error(), []string{"strconv.Parsefloat", "Energy"}, true}
 

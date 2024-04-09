@@ -39,7 +39,7 @@ import (
 
 //TestQM tests the QM functionality. It prepares input for ORCA and MOPAC
 //In the case of MOPAC it reads a previously prepared output and gets the energy.
-func TestQM(Te *testing.T) {
+func TestOrca(Te *testing.T) {
 	mol, err := chem.XYZFileRead("../test/water.xyz")
 	if err != nil {
 		Te.Error(err)
@@ -57,10 +57,10 @@ func TestQM(Te *testing.T) {
 	calc.SCFTightness = 2 //very demanding
 	calc.Job = &Job{Opti: true}
 	//calc.Job.Opti=true
-	calc.Method = "TPSS"
+	calc.Method = "r2scan-3c"
 	calc.Dielectric = 4
-	calc.Basis = "def2-SVP"
-	calc.HighBasis = "def2-TZVP"
+	//	calc.Basis = "def2-SVP"
+	//	calc.HighBasis = "def2-TZVP"
 	calc.Grid = 4
 	calc.Memory = 1000
 	//	calc.HBAtoms = []int{3, 10, 12}
@@ -68,7 +68,7 @@ func TestQM(Te *testing.T) {
 	calc.CConstraints = []int{0, 2}
 	calc.OldMO = true
 	orca := NewOrcaHandle()
-	orca.SetnCPU(1) /////////////////////
+	orca.SetnCPU(12) /////////////////////
 	orca.SetWorkDir("orca")
 	atoms := mol.Coords[0] //v3.Zeros(mol.Len())
 	//	mol.Next(atoms)
@@ -76,6 +76,9 @@ func TestQM(Te *testing.T) {
 	if err = os.Chdir("../test"); err != nil {
 		Te.Error(err)
 	}
+	_ = orca.BuildInput(atoms, mol, calc)
+	orca.SetName("gochemForces")
+	calc.Job = &Job{Forces: true}
 	_ = orca.BuildInput(atoms, mol, calc)
 	//Now anothertest with HF-3c
 	calc.HBAtoms = nil
