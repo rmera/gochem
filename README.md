@@ -1,4 +1,4 @@
-goChem is a library fro Computational Chemistry and Biochemistry
+goChem is a library for Computational Chemistry and Biochemistry
 written in the Go programming language. 
 
 Check out www.gochem.org for more information.
