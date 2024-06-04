@@ -19,8 +19,6 @@
  * <http://www.gnu.org/licenses/>.
  *
  *
- * goChem is currently developed at the Universidad de Santiago de Chile
- * (USACH)
  *
  */
 
@@ -334,8 +332,10 @@ func InWhichRing(at *Atom, rings []*Ring) int {
 }
 
 // Identifies and returns all rings in mol, by
-// searching for cyclic paths.
-func FindRings(coords *v3.Matrix, mol Atomer) []*Ring {
+// searching for cyclic paths. if at least 1 element is given for addHs
+//and the first element of those give is true, the Hs bound to the atoms in the rings
+//will also be added to the ring.
+func FindRings(coords *v3.Matrix, mol Atomer, addHs ..bool) []*Ring {
 	L := mol.Len()
 	var rings []*Ring
 	minplanarity := 95.0
@@ -349,7 +349,9 @@ func FindRings(coords *v3.Matrix, mol Atomer) []*Ring {
 			r := &Ring{Atoms: paths[0]}
 			p := r.Planarity(coords)
 			if p > minplanarity {
-				r.AddHs(mol)
+			    	if len(addHs)!=0 && addHs[0]{
+					r.AddHs(mol)
+			    	}
 				rings = append(rings, r)
 			}
 		}

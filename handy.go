@@ -104,7 +104,7 @@ func EasyShape(coords *v3.Matrix, epsilon float64, mol ...Masser) (float64, floa
 	var masses []float64
 	var err2 error
 	var err error
-	if len(mol) < 0 {
+	if len(mol) == 0 {
 		masses = nil
 	} else {
 		masses, err = mol[0].Masses()
