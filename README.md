@@ -71,4 +71,3 @@ The mascot is a modification by Sebastian Franchini of the
 Go language mascot by Renee French.
 
 
-To the long life of the Ven. Khenpo Phuntzok Tenzin Rinpoche.
