@@ -98,6 +98,7 @@ func (N *Atom) SetIndex(i int) {
 // Topology contains information about a molecule which is not expected to change in time (i.e. everything except for coordinates and b-factors)
 type Topology struct {
 	Atoms  []*Atom
+	Bonds  []*Bond //This field is new, for convenience.
 	charge int
 	multi  int
 }
@@ -312,7 +313,7 @@ func (T *Topology) AssignBonds(coord *v3.Matrix) error {
 	var at1, at2 *Atom
 	T.FillIndexes()
 	t3 := v3.Zeros(1)
-	bonds := make([]*Bond, 0, 10)
+	bonds := make([]*Bond, 0, T.Len())
 	tot := T.Len()
 	var nextIndex int
 	for i := 0; i < tot; i++ {
@@ -360,15 +361,42 @@ func (T *Topology) AssignBonds(coord *v3.Matrix) error {
 		//I am hoping this will remove bonds until len(at.Bonds) is not
 		//greater than max.
 		for i := len(at.Bonds); i > max; i = len(at.Bonds) {
-			err := at.Bonds[len(at.Bonds)-1].Remove() //we remove the longest bond
+			err := at.Bonds[len(at.Bonds)-1].Remove()                        //we remove the longest bond
+			bonds = bondsliceremoval(bonds, at.Bonds[len(at.Bonds)-1].Index) //we also remove it from the bonds slice
 			if err != nil {
 				return errDecorate(err, "AssignBonds")
 			}
 		}
 
 	}
-
+	T.Bonds = bonds
 	return nil
+}
+
+func bondsliceremovalMaybeCheaper(bonds []*Bond, RemIndex int) []*Bond {
+	indexrem := -1
+	ret := make([]*Bond, 0, len(bonds)-1)
+	for i, v := range bonds {
+		if v.Index == RemIndex {
+			indexrem = i
+		}
+	}
+	ret = append(ret, bonds[:indexrem]...)
+	if indexrem < len(bonds)-1 {
+		ret = append(ret, bonds[indexrem+1:]...)
+	}
+	return ret
+}
+
+func bondsliceremoval(bonds []*Bond, RemIndex int) []*Bond {
+	ret := make([]*Bond, 0, len(bonds)-1)
+	for _, v := range bonds {
+		if v.Index == RemIndex {
+			continue
+		}
+		ret = append(ret, v)
+	}
+	return ret
 }
 
 /**Type Molecule**/
