@@ -266,10 +266,14 @@ type Ring struct {
 	planarity float64
 }
 
-// IsIn returns true or false depending on whether
+// Contains returns true or false depending on whether
 // the atom with the given index is part of the ring
-func (R *Ring) IsIn(index int) bool {
+func (R *Ring) Contains(index int) bool {
 	return isInInt(R.Atoms, index)
+}
+
+func (R *Ring) IsIn(index int) bool {
+	return R.Contains(index)
 }
 
 // Size returns the number of atoms in the ring
