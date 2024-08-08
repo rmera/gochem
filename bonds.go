@@ -289,7 +289,7 @@ func (R *Ring) Planarity(coord *v3.Matrix) float64 {
 	if R.planarity != 0 {
 		return R.planarity
 	}
-	c := v3.Zeros(coord.NVecs())
+	c := v3.Zeros(len(R.Atoms))
 	c.SomeVecs(coord, R.Atoms)
 	_, plan, err := EasyShape(c, 0.01)
 	if err != nil {
@@ -337,8 +337,8 @@ func InWhichRing(at *Atom, rings []*Ring) int {
 
 // Identifies and returns all rings in mol, by
 // searching for cyclic paths. if at least 1 element is given for addHs
-//and the first element of those give is true, the Hs bound to the atoms in the rings
-//will also be added to the ring.
+// and the first element of those give is true, the Hs bound to the atoms in the rings
+// will also be added to the ring.
 func FindRings(coords *v3.Matrix, mol Atomer, addHs ...bool) []*Ring {
 	L := mol.Len()
 	var rings []*Ring
