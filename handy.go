@@ -308,6 +308,78 @@ func isInString(container []string, test string) bool {
 	return false
 }
 
+// "caps" the atom tocap (which must be part of mol) with an H atom.
+// The reference atom, if not nil, is employed to define the new bond as opposite to
+func CapWithH(mol *Molecule, tocap int, position *v3.Matrix, atomIndex, bondIndex int) *Molecule {
+	if atomIndex < 0 {
+		for i := 0; i < mol.Len(); i++ {
+			in := mol.Atom(i).Index()
+			if in > atomIndex {
+				atomIndex = in
+			}
+		}
+		atomIndex++ //one more than the last one
+	}
+	if bondIndex < 0 {
+		for _, v := range mol.Bonds {
+			in := v.Index
+			if in > bondIndex {
+				bondIndex = in
+			}
+		}
+		bondIndex++
+	}
+	for i := 0; i < mol.Len(); i++ {
+		if mol.Atom(i).Index() == tocap {
+			tocap = i
+			break
+		}
+	}
+	cp := &Atom{Symbol: "H", index: atomIndex, ID: mol.Len(), Name: "H"}
+	//We'll use a _very_ naive way of determining the position of the new atom, of not given.
+	//Hopefully it's good enough that it can be fixed by optimization.
+	if position == nil {
+		r := mol.Coords[0].VecView(tocap)
+		position = v3.Zeros(0)
+		position.Set(0, 0, r.At(0, 0))
+		position.Set(0, 1, r.At(0, 1))
+		position.Set(0, 2, r.At(0, 2)+CHDist)
+	}
+	bond := &Bond{At1: mol.Atom(tocap), At2: cp, Dist: CHDist, Index: bondIndex}
+	cp.Bonds = []*Bond{bond}
+	mol.Atoms = append(mol.Atoms, cp)
+	mol.Bonds = append(mol.Bonds, bond)
+	r := v3.Zeros(1)
+	r.Copy(mol.Coords[0].VecView(tocap))
+	ScaleBond(r, position, CHDist) //Check that this works.
+	ncoords := v3.Zeros(mol.Len())
+	ncoords.StackVec(mol.Coords[0], position)
+	mol.Coords[0] = ncoords
+	return mol
+}
+
+// ScaleBond  moves the atom at2 (in place) so the distance between it and a1 is the one given (newdist).
+// CAUTION: I have only tested it for the case where the original distance>bond, although I expect it to also work in the other case.
+func ScaleBond(a1, a2 *v3.Matrix, newdist float64) {
+	Odist := v3.Zeros(1)
+	Odist.Sub(a1, a2)
+	distance := Odist.Norm(2)
+	//	println("dists", distance, newdist) /////////////////////////
+	scaling := math.Abs(distance-newdist) / distance
+	if distance < newdist {
+		scaling = 1 / scaling
+	}
+	Odist.Scale(scaling, Odist)
+	a2b := v3.Zeros(1)
+	a2b.Copy(a2)
+	a2.Add(a2b, Odist)
+	//DEBUG
+	//	Odist.Sub(a1, a2)
+	//	distance = Odist.Norm(2)
+	//	println("distsfinal", distance, newdist) /////////////////////////
+
+}
+
 // MakeWater Creates a water molecule at distance Angstroms from a2, in a direction that is angle radians from the axis defined by a1 and a2.
 // Notice that the exact position of the water is not well defined when angle is not zero. One can always use the RotateAbout
 // function to move the molecule to the desired location. If oxygen is true, the oxygen will be pointing to a2. Otherwise,
@@ -607,16 +679,6 @@ func ScaleBonds(coords *v3.Matrix, mol Atomer, n1, n2 string, finallenght float6
 			}
 		}
 	}
-}
-
-// ScaleBond takes a C-H bond and moves the H (in place) so the distance between them is the one given (bond).
-// CAUTION: I have only tested it for the case where the original distance>bond, although I expect it to also work in the other case.
-func ScaleBond(C, H *v3.Matrix, bond float64) {
-	Odist := v3.Zeros(1)
-	Odist.Sub(H, C)
-	distance := Odist.Norm(2)
-	Odist.Scale((distance-bond)/distance, Odist)
-	H.Sub(H, Odist)
 }
 
 // Merges A and B in a single topology which is returned
