@@ -300,9 +300,17 @@ func (T *Topology) Masses() ([]float64, error) {
 	return mass, nil
 }
 
+func (T *Topology) RemoveBonds() {
+	T.Bonds = nil
+	for _, v := range T.Atoms {
+		v.Bonds = nil
+	}
+}
+
 // AssignBonds assigns bonds to a molecule based on a simple distance
 // criterium, similar to that described in DOI:10.1186/1758-2946-3-33
 func (T *Topology) AssignBonds(coord *v3.Matrix) error {
+	T.RemoveBonds()
 	// might get slow for
 	//large systems. It's really not thought
 	//for proteins or macromolecules.

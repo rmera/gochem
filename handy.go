@@ -347,6 +347,7 @@ func CapWithH(mol *Molecule, tocap int, position *v3.Matrix, atomIndex, bondInde
 	}
 	bond := &Bond{At1: mol.Atom(tocap), At2: cp, Dist: CHDist, Index: bondIndex}
 	cp.Bonds = []*Bond{bond}
+	mol.Atom(tocap).Bonds = append(mol.Atom(tocap).Bonds, bond)
 	mol.Atoms = append(mol.Atoms, cp)
 	mol.Bonds = append(mol.Bonds, bond)
 	r := v3.Zeros(1)
