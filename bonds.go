@@ -136,7 +136,7 @@ func (B *BondedOptions)SetAlreadyWalkedPath(p []int){
 // This can be useful if you want to save memory on a very intrincate molecule.
 func BondedPaths(at *Atom, targetIndex int, options ...*BondedOptions) [][]int {
 	if len(options) == 0 {
-		options = []*BondedOptions{&BondedOptions{OnlyShortest: false, path: nil}}
+		options = []*BondedOptions{{OnlyShortest: false, path: nil}}
 	}
 	onlyshortest := options[0].OnlyShortest
 	path := [][]int{options[0].path}
@@ -203,7 +203,7 @@ func BondedPaths(at *Atom, targetIndex int, options ...*BondedOptions) [][]int {
 // This can be useful if you want to save memory on a very intrincate molecule.
 func BondedPathsFunc(at *Atom, targetIndex int, f func(*Bond) bool, options ...*BondedOptions) [][]int {
 	if len(options) == 0 {
-		options = []*BondedOptions{&BondedOptions{OnlyShortest: false, path: nil}}
+		options = []*BondedOptions{{OnlyShortest: false, path: nil}}
 	}
 	onlyshortest := options[0].OnlyShortest
 	path := [][]int{options[0].path}
