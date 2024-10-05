@@ -47,26 +47,26 @@ import (
 	"sort"
 )
 
-//Matrix is a set of vectors in 3D space. The underlying implementation varies.
-//Within the package it is understood that a "vector" is a row vector, i.e. the
-//cartesian coordinates of a point in 3D space. The name of some functions in
-//the library reflect this.
+// Matrix is a set of vectors in 3D space. The underlying implementation varies.
+// Within the package it is understood that a "vector" is a row vector, i.e. the
+// cartesian coordinates of a point in 3D space. The name of some functions in
+// the library reflect this.
 type Matrix struct {
 	//The main container, must be able to implement most
 	//gonum interfaces
 	*mat.Dense
 }
 
-//Matrix2Dense returns the A Gonum Dense matrix
-//associated with A. Changes in one will
-//be reflected in t he other
+// Matrix2Dense returns the A Gonum Dense matrix
+// associated with A. Changes in one will
+// be reflected in t he other
 func Matrix2Dense(A *Matrix) *mat.Dense {
 	return A.Dense
 }
 
-//Dense2Matrix returns a *v3.Matrix
-//from a Gonum dense matrix, which has to be
-//Nx3
+// Dense2Matrix returns a *v3.Matrix
+// from a Gonum dense matrix, which has to be
+// Nx3
 func Dense2Matrix(A *mat.Dense) *Matrix {
 	r, c := A.Dims()
 	if c != 3 {
@@ -75,7 +75,7 @@ func Dense2Matrix(A *mat.Dense) *Matrix {
 	return &Matrix{A}
 }
 
-//NewMatrix creates and returns a Matrix with 3 columns from data.
+// NewMatrix creates and returns a Matrix with 3 columns from data.
 func NewMatrix(data []float64) (*Matrix, error) {
 	const cols int = 3
 	l := len(data)
@@ -87,28 +87,28 @@ func NewMatrix(data []float64) (*Matrix, error) {
 	return &Matrix{r}, nil
 }
 
-//RawSlice returns the underlying []float64 slice for the receiver.
-//Changes on either the []float64 or the receiver are expected to
-//reflect on the other.
+// RawSlice returns the underlying []float64 slice for the receiver.
+// Changes on either the []float64 or the receiver are expected to
+// reflect on the other.
 func (F *Matrix) RawSlice() []float64 {
 	return F.RawMatrix().Data
 }
 
-//Row fills the  dst slice of float64 with the ith row of matrix F and returns it.
-//The slice must have the correct size or be nil, in which case a new slice will be created.
-//This method is merely a frontend for the mat64.Row function of gonum.
+// Row fills the  dst slice of float64 with the ith row of matrix F and returns it.
+// The slice must have the correct size or be nil, in which case a new slice will be created.
+// This method is merely a frontend for the mat64.Row function of gonum.
 func (F *Matrix) Row(dst []float64, i int) []float64 {
 	return mat.Row(dst, i, F.Dense)
 }
 
-//Col fills the  dst slice of float64 with the ith col of matrix F and returns it.
-//The slice must have the correct size or be nil, in which case a new slice will be created.
-//This method is merely a frontend for the mat64.Col function of gonum.
+// Col fills the  dst slice of float64 with the ith col of matrix F and returns it.
+// The slice must have the correct size or be nil, in which case a new slice will be created.
+// This method is merely a frontend for the mat64.Col function of gonum.
 func (F *Matrix) Col(dst []float64, i int) []float64 {
 	return mat.Col(dst, i, F.Dense)
 }
 
-//ColSlice puts a view of the given col of the matrix on the receiver
+// ColSlice puts a view of the given col of the matrix on the receiver
 func (F *Matrix) ColSlice(i int) *Matrix {
 	//	r := new(mat64.Dense)
 	Fr, _ := F.Dims()
@@ -116,10 +116,10 @@ func (F *Matrix) ColSlice(i int) *Matrix {
 	return &Matrix{r}
 }
 
-//ColView a view of the given col of the matrix on the receiver.
-//This function is for compatibility with the gonum v1 API
-//The older one might be deleted in the future, but, if at all,
-//it will take time.
+// ColView a view of the given col of the matrix on the receiver.
+// This function is for compatibility with the gonum v1 API
+// The older one might be deleted in the future, but, if at all,
+// it will take time.
 func (F *Matrix) ColView(i int) *Matrix {
 	//	r := new(mat64.Dense)
 	Fr, _ := F.Dims()
@@ -127,7 +127,7 @@ func (F *Matrix) ColView(i int) *Matrix {
 	return &Matrix{r}
 }
 
-//VecView eturns view of the ith vector of the matrix in the receiver
+// VecView eturns view of the ith vector of the matrix in the receiver
 func (F *Matrix) VecView(i int) *Matrix {
 	//r := new(mat64.Dense)
 	/*	mr,mc:=F.Caps() /////////////////////////
@@ -158,46 +158,46 @@ func (F *Matrix) VecView(i int) *Matrix {
 	return &Matrix{r}
 }
 
-//VecSlice slice of the given vector of the matrix in the receiver
-//This function is to keep compatibility with the new gonum v1 API
+// VecSlice slice of the given vector of the matrix in the receiver
+// This function is to keep compatibility with the new gonum v1 API
 func (F *Matrix) VecSlice(i int) *Matrix {
 	//r := new(mat64.Dense)
 	r := F.Dense.Slice(i, i+1, 0, 3).(*mat.Dense)
 	return &Matrix{r}
 }
 
-//View returns a view of F starting from i,j and spanning r rows and
-//c columns. Changes in the view are reflected in F and vice-versa
-//This view has the wrong signature for the interface mat64.Viewer,
-//But the right signatur was not possible to implement. Notice that very little
-//memory allocation happens, only a couple of ints and pointers.
+// View returns a view of F starting from i,j and spanning r rows and
+// c columns. Changes in the view are reflected in F and vice-versa
+// This view has the wrong signature for the interface mat64.Viewer,
+// But the right signatur was not possible to implement. Notice that very little
+// memory allocation happens, only a couple of ints and pointers.
 func (F *Matrix) View(i, j, r, c int) *Matrix {
 	ret := F.Dense.Slice(i, i+r, j, j+c).(*mat.Dense)
 	return &Matrix{ret}
 }
 
-//Slice returns a view of F starting from i,j and spanning r rows and
-//c columns. Changes in the view are reflected in F and vice-versa
-//This function is to keep compatibility with the gonum v1 API.
+// Slice returns a view of F starting from i,j and spanning r rows and
+// c columns. Changes in the view are reflected in F and vice-versa
+// This function is to keep compatibility with the gonum v1 API.
 func (F *Matrix) Slice(i, r, j, c int) *Matrix {
 	ret := F.Dense.Slice(i, r, j, c).(*mat.Dense)
 	return &Matrix{ret}
 }
 
-//Sub puts the element-wise subtraction
-//of matrices A and B into the receiver
+// Sub puts the element-wise subtraction
+// of matrices A and B into the receiver
 func (F *Matrix) Sub(A, B *Matrix) {
 	F.Dense.Sub(A.Dense, B.Dense)
 }
 
-//Add puts the element-wise addition
-//of matrices A and B into the receiver
+// Add puts the element-wise addition
+// of matrices A and B into the receiver
 func (F *Matrix) Add(A, B *Matrix) {
 	F.Dense.Add(A.Dense, B.Dense)
 }
 
-//SetMatrix the matrix A in the received starting from the ith row and jth col
-//of the receiver.
+// SetMatrix the matrix A in the received starting from the ith row and jth col
+// of the receiver.
 func (F *Matrix) SetMatrix(i, j int, A *Matrix) {
 	b := F.RawMatrix()
 	ar, ac := A.Dims()
@@ -213,10 +213,10 @@ func (F *Matrix) SetMatrix(i, j int, A *Matrix) {
 	}
 }
 
-//Mul Wraps mat.Mul to take care of the case when one of the
-//arguments is also the received. Since the received is a Matrix,
-//the mat64 function could check A (mat64.Dense) vs F (Matrix) and
-//it would not know that internally F.Dense==A, hence the need for this function.
+// Mul Wraps mat.Mul to take care of the case when one of the
+// arguments is also the received. Since the received is a Matrix,
+// the mat64 function could check A (mat64.Dense) vs F (Matrix) and
+// it would not know that internally F.Dense==A, hence the need for this function.
 func (F *Matrix) Mul(A, B mat.Matrix) {
 	if F == A {
 		A := A.(*Matrix)
@@ -250,7 +250,7 @@ func stupidDot(A, B *Matrix) float64 {
 	return A.At(0, 0)*B.At(0, 0) + A.At(0, 1)*B.At(0, 1) + A.At(0, 2)*B.At(0, 2)
 }
 
-//Dot gets the dot product between the first row of F and the first row of A. It's a vector dot product,
+// Dot gets the dot product between the first row of F and the first row of A. It's a vector dot product,
 // to be used with 1-row matrices.
 func (F *Matrix) Dot(A *Matrix) float64 {
 	//The reason for making Dot ask for a v3.Matrix is that then we can call mat64.Dot with A.Dense, which should make things faster.
@@ -258,13 +258,13 @@ func (F *Matrix) Dot(A *Matrix) float64 {
 	return mat.Inner(F.Dense.RowView(0), id, A.Dense.RowView(0))
 }
 
-//Scale multiplies each element in the matrix A by
-//v
+// Scale multiplies each element in the matrix A by
+// v
 func (F *Matrix) Scale(v float64, A *Matrix) {
 	F.Dense.Scale(v, A.Dense)
 }
 
-//Norm acts as a front-end for the mat64 function.
+// Norm acts as a front-end for the mat64 function.
 func (F *Matrix) Norm(i float64) float64 {
 	//This used to always return Frobenius norm, no matter what you give as an argument.
 	//The argument is there for compatibility (Gonum used to have "0" as the Froebius norm
@@ -283,7 +283,7 @@ func (F *Matrix) Sum() float64{
 }
 */
 
-//Stack puts A stacked over B in the receiver
+// Stack puts A stacked over B in the receiver
 func (F *Matrix) Stack(A, B *Matrix) {
 	f := F.RawMatrix()
 	ar, _ := A.Dims()
@@ -324,8 +324,8 @@ func (F *Matrix) Stack(A, B *Matrix) {
 //This is a facility to sort Eigenvectors/Eigenvalues pairs
 //It satisfies the sort.Interface interface.
 
-//This is a temporal function. It returns the determinant of a 3x3 matrix. Panics if the matrix is not 3x3.
-//It is also defined in the chem package which is not-so-clean.
+// This is a temporal function. It returns the determinant of a 3x3 matrix. Panics if the matrix is not 3x3.
+// It is also defined in the chem package which is not-so-clean.
 func det(A mat.Matrix) float64 {
 	r, c := A.Dims()
 	if r != 3 || c != 3 {
@@ -353,13 +353,13 @@ func (E eigenpair) Len() int {
 	return len(E.evals)
 }
 
-//EigenWrap wraps the mat.Eigen structure in order to guarantee
-//That the eigenvectors and eigenvalues are sorted according to the eigenvalues
-//It also guarantees orthonormality and handness. I don't know how many of
-//these are already guaranteed by Eig(). Will delete the unneeded parts
-//And even this whole function when sure. The main reason for this function
-//Is the compatibiliy with go.matrix. This function should dissapear when we
-//have a pure Go blas.
+// EigenWrap wraps the mat.Eigen structure in order to guarantee
+// That the eigenvectors and eigenvalues are sorted according to the eigenvalues
+// It also guarantees orthonormality and handness. I don't know how many of
+// these are already guaranteed by Eig(). Will delete the unneeded parts
+// And even this whole function when sure. The main reason for this function
+// Is the compatibiliy with go.matrix. This function should dissapear when we
+// have a pure Go blas.
 func EigenWrap(in *Matrix, epsilon float64) (*Matrix, []float64, error) {
 	if epsilon < 0 {
 		epsilon = appzero
@@ -463,13 +463,13 @@ func (F *Matrix) Tr () *Matrix{
 }
 */
 
-//I know, premature optimization and so on. It's an internal thing, sue me.
+// I know, premature optimization and so on. It's an internal thing, sue me.
 var transposetmp float64
 
-//Tr performs an explicit, in-place tranpose of the receiver.
-//it relies in the fact that v3 matrix are all 3D. If the receiver has more than
-//3 rows, the square submatrix of the first 3 rows will be transposed (i.e. no panic or returned error).
-//it panics if the receiver has less than 3 rows.
+// Tr performs an explicit, in-place tranpose of the receiver.
+// it relies in the fact that v3 matrix are all 3D. If the receiver has more than
+// 3 rows, the square submatrix of the first 3 rows will be transposed (i.e. no panic or returned error).
+// it panics if the receiver has less than 3 rows.
 func (F *Matrix) Tr() {
 	//This function exists because I can't use the implicit tranpose provided by mat64.Dense.T()
 	//which returns a matrix that is not possible to cast into a mat64.Dense
@@ -482,12 +482,17 @@ func (F *Matrix) Tr() {
 	dataSwitch(R, 1, 2)
 }
 
-//Returns the transpose of F. Does not modify F.
-func (F *Matrix) TrRet() *Matrix {
+// Returns the transpose of F. Does not modify F.
+func (F *Matrix) TrRet(toret ...*Matrix) *Matrix {
 	if F.NVecs() < 3 {
 		panic("goChem/v3/TrRet: The receiver must have 3 rows or more")
 	}
-	r := Zeros(3)
+	var r *Matrix
+	if len(toret) > 0 && toret[0] != nil && toret[0].NVecs() == 3 {
+		r = toret[0]
+	} else {
+		r = Zeros(3)
+	}
 	for i := 0; i < 3; i++ {
 		for j := 0; j < 3; j++ {
 			r.Set(i, j, F.At(j, i))
@@ -496,7 +501,7 @@ func (F *Matrix) TrRet() *Matrix {
 	return r
 }
 
-//I can only hope this gets inlined
+// I can only hope this gets inlined
 func dataSwitch(R blas64.General, r, c int) {
 	transposetmp = R.Data[3*r+c]
 	R.Data[3*r+c] = R.Data[3*c+r]
@@ -505,46 +510,46 @@ func dataSwitch(R blas64.General, r, c int) {
 
 //Errors
 
-//the same as chem.Error but avoid circular import.
+// the same as chem.Error but avoid circular import.
 type errorInt interface {
 	Error() string
 	Critical() bool
 	Decorate(string) []string
 }
 
-//Error is an error on the v3 package. Compatible with goChem
+// Error is an error on the v3 package. Compatible with goChem
 type Error struct {
 	message  string
 	deco     []string
 	critical bool
 }
 
-//Error returns a string with an error message.
+// Error returns a string with an error message.
 func (err Error) Error() string {
 	return fmt.Sprintf("%s", err.message)
 }
 
-//Decorate will add the dec string to the decoration slice of strings of the error,
-//and return the resulting slice.
+// Decorate will add the dec string to the decoration slice of strings of the error,
+// and return the resulting slice.
 func (err Error) Decorate(dec string) []string {
 	err.deco = append(err.deco, dec)
 	return err.deco
 }
 
-//Critical return whether the error is critical or it can be ifnored
+// Critical return whether the error is critical or it can be ifnored
 func (err Error) Critical() bool { return err.critical }
 
-//errDecorate is a helper function that asserts that the error is
-//implements chem.Error and decorates the error with the caller's name before returning it.
-//if used with a non-chem.Error error, it will cause a panic.
+// errDecorate is a helper function that asserts that the error is
+// implements chem.Error and decorates the error with the caller's name before returning it.
+// if used with a non-chem.Error error, it will cause a panic.
 func errDecorate(err error, caller string) error {
 	err2 := err.(errorInt) //I know that is the type returned byt initRead
 	err2.Decorate(caller)
 	return err2
 }
 
-//PanicMsg is a message used for panics, even though it does satisfy the error interface.
-//for errors use Error.
+// PanicMsg is a message used for panics, even though it does satisfy the error interface.
+// for errors use Error.
 type PanicMsg string
 
 func (v PanicMsg) Error() string { return string(v) }

@@ -1,5 +1,3 @@
-// +build matrix
-
 /*
  * coord_test.go
  *
@@ -23,29 +21,49 @@
  *
  */
 
-package chem
+package v3
 
 import (
 	"fmt"
 	"testing"
 
-	v3 "github.com/rmera/gochem/v3"
+	"gonum.org/v1/gonum/mat"
 )
+
+// Returns an zero-filled Dense with the given dimensions
+// It is to be substituted by the Gonum function.
+func gnZeros(r, c int) *mat.Dense {
+	f := make([]float64, r*c, r*c)
+	return mat.NewDense(r, c, f)
+
+}
+
+// Returns an identity matrix spanning span cols and rows
+func gnEye(span int) *mat.Dense {
+	A := gnZeros(span, span)
+	for i := 0; i < span; i++ {
+		A.Set(i, i, 1.0)
+	}
+	return A
+}
 
 func TestGeo(Te *testing.T) {
 	a := []float64{1.0, 2.0, 3, 4, 5, 6, 7, 8, 9}
-	A, _ := v3.NewMatrix(a)
+	A, err := NewMatrix(a)
+	if err != nil {
+		Te.Error(err)
+	}
 	ar, ac := A.Dims()
-	T := v3.Zeros(ar)
-	T.T(A)
+	T := Zeros(ar)
+	T.Copy(A)
+	T.T()
 	B := gnEye(ar)
 	//B.Copy(A)
 	T.Mul(A, B)
-	E := v3.Zeros(ar)
+	E := Zeros(ar)
 	E.MulElem(A, B)
-	fmt.Println(T, "\n", T, "\n", A, "\n", B, "\n", ar, ac, A.Sum())
-	View := v3.Zeros(1)
-	View.VecView(A, 0)
+	fmt.Println(T, "\n", T, "\n", A, "\n", B, "\n", ar, ac)
+	View := A.VecView(1)
 	View.Set(0, 0, 100)
 	fmt.Println("View\n", A, "\n", View)
 
@@ -53,10 +71,13 @@ func TestGeo(Te *testing.T) {
 
 func TestSomeVecs(Te *testing.T) {
 	a := []float64{1.0, 2.0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18}
-	A := v3.NewMatrix(a)
-	B := v3.Zeros(3) //We should cause an error by modifying this.
+	A, err := NewMatrix(a)
+	if err != nil {
+		Te.Error(err)
+	}
+	B := Zeros(3) //We should cause an error by modifying this.
 	cind := []int{1, 3, 5}
-	err := B.SomeVecsSafe(A, cind)
+	err = B.SomeVecsSafe(A, cind)
 	if err != nil {
 		Te.Error(err)
 	}
@@ -72,31 +93,42 @@ func TestSomeVecs(Te *testing.T) {
 
 func TestScale(Te *testing.T) {
 	a := []float64{1.0, 2.0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18}
-	A := v3.NewMatrix(a)
-	B := v3.Zeros(6, 3)
+	A, err := NewMatrix(a)
+	if err != nil {
+		Te.Error(err)
+	}
+	B := Zeros(6)
 	A.Scale(3, A)
 	B.Scale(2, A)
 	fmt.Println(A, "\n", B)
-	Row := v3.NewMatrix([]float64{10, 20, 30})
+	Row, err := NewMatrix([]float64{10, 20, 30})
+	if err != nil {
+		Te.Error(err)
+	}
 	A.AddVec(A, Row)
 	fmt.Println("Additions")
 	fmt.Println(A)
 	A.SubVec(A, Row)
-	fmt.Println(A)
-	B.Pow(A, 2)
-	fmt.Println("Squared", A, "\n", B)
+	fmt.Println(A, A.NVecs(), B.NVecs())
+	//	B.Pow(A, 2)
+	//	fmt.Println("Squared", A, "\n", B)
 	b := []float64{1.0, 2.0, 3, 4, 5, 6, 7, 8, 9}
-	S := v3.NewMatrix(b)
-	row := v3.NewMatrix([]float64{2, 2, 3})
+	S, err := NewMatrix(b)
+	if err != nil {
+		Te.Error(err)
+	}
+	row, err := NewMatrix([]float64{2, 2, 3})
+	if err != nil {
+		Te.Error(err)
+	}
 	fmt.Println("Before scale", S, "\n", row)
 	S.ScaleByVec(S, row)
 	fmt.Println("Scaled by row", S)
-	col := v3.Zeros(3, 1)
-	col.T(row)
+	col := row.T()
 	fmt.Println("Transpose", col)
 	S.ScaleByCol(S, col)
 	fmt.Println("Scaled by col", S)
-	rows2 := v3.NewMatrix([]float64{2, 2, 2, 3, 3, 3})
+	rows2, _ := NewMatrix([]float64{2, 2, 2, 3, 3, 3})
 	fmt.Println("Before adding 4", rows2)
 	rows2.AddFloat(rows2, 4)
 	fmt.Println("After adding 4", rows2)
@@ -104,12 +136,18 @@ func TestScale(Te *testing.T) {
 
 func TestRowMod(Te *testing.T) {
 	a := []float64{1.0, 2.0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18}
-	A := v3.NewMatrix(a)
-	B := v3.Zeros(5, 3)
+	A, err := NewMatrix(a)
+	if err != nil {
+		Te.Error(err)
+	}
+	B := Zeros(5)
 	B.DelVec(A, 3)
 	fmt.Println("with and wihout row 3\n", A, "\n", B)
 	fmt.Println("test for Unit")
-	row := v3.NewMatrix([]float64{2, 2, 3})
+	row, err := NewMatrix([]float64{2, 2, 3})
+	if err != nil {
+		Te.Error(err)
+	}
 	fmt.Println("Original vector", row)
 	row.Unit(row)
 	fmt.Println("Unitarized", row)
@@ -118,10 +156,10 @@ func TestRowMod(Te *testing.T) {
 
 func TestEigen(Te *testing.T) {
 	a := []float64{1, 2, 0, 2, 1, 0, 0, 0, 1}
-	A := v3.NewMatrix(a)
-	evecs, evals, err := gnEigen(A, -1)
+	A, err := NewMatrix(a)
+	if err != nil {
+		Te.Error(err)
+	}
+	evecs, evals, err := EigenWrap(A, -1)
 	fmt.Println(evecs, "\n", evals, "\n", err)
-	U, s, V, err := gnSVD(A)
-	fmt.Println("U\n", U, "\nsigma\n", s, "V\n", V, "\n", err)
-
 }

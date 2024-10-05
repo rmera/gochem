@@ -39,7 +39,7 @@ import (
 const appzero float64 = 0.000000000001 //used to correct floating point
 //errors. Everything equal or less than this is considered zero. This probably sucks.
 
-//Zeros returns a zero-filled Matrix with vecs vectors and 3 in the other dimension.
+// Zeros returns a zero-filled Matrix with vecs vectors and 3 in the other dimension.
 func Zeros(vecs int) *Matrix {
 	const cols int = 3
 	f := make([]float64, cols*vecs, cols*vecs)
@@ -48,7 +48,7 @@ func Zeros(vecs int) *Matrix {
 
 //METHODS
 
-//SwapVecs swaps the vectors i and j in the receiver
+// SwapVecs swaps the vectors i and j in the receiver
 func (F *Matrix) SwapVecs(i, j int) {
 	if i >= F.NVecs() || j >= F.NVecs() {
 		panic(ErrIndexOutOfRange)
@@ -61,9 +61,9 @@ func (F *Matrix) SwapVecs(i, j int) {
 	}
 }
 
-//AddVec adds a vector to the  coordmatrix A putting the result on the received.
-//depending on whether the underlying matrix to coordmatrix
-//is col or row major, it could add a col or a row vector.
+// AddVec adds a vector to the  coordmatrix A putting the result on the received.
+// depending on whether the underlying matrix to coordmatrix
+// is col or row major, it could add a col or a row vector.
 func (F *Matrix) AddVec(A, vec *Matrix) {
 	ar, ac := A.Dims()
 	rr, rc := vec.Dims()
@@ -85,14 +85,14 @@ func (F *Matrix) AddVec(A, vec *Matrix) {
 	}
 }
 
-//DelRow deletes a row in matrix A, placing the results
-//in the receiver. Equivalent to DelVec for compatibility.
+// DelRow deletes a row in matrix A, placing the results
+// in the receiver. Equivalent to DelVec for compatibility.
 func (F *Matrix) DelRow(A *Matrix, i int) {
 	F.DelVec(A, i)
 }
 
-//DelVec deletes a (row) vector in matrix A, placing the results
-//in the receiver.
+// DelVec deletes a (row) vector in matrix A, placing the results
+// in the receiver.
 func (F *Matrix) DelVec(A *Matrix, i int) {
 	ar, ac := A.Dims()
 	fr, fc := F.Dims()
@@ -112,7 +112,7 @@ func (F *Matrix) DelVec(A *Matrix, i int) {
 	}
 }
 
-//NVecs return the number of (row) vectors in F.
+// NVecs return the number of (row) vectors in F.
 func (F *Matrix) NVecs() int {
 	r, c := F.Dims()
 	if c != 3 {
@@ -122,20 +122,20 @@ func (F *Matrix) NVecs() int {
 
 }
 
-//Len return the number of (row) vectors in F.
-//Equivalent to NVecs, but more in line with Go APIS.
+// Len return the number of (row) vectors in F.
+// Equivalent to NVecs, but more in line with Go APIS.
 func (F *Matrix) Len() int {
 	return F.NVecs()
 }
 
-//ScaleByRow scales each coordinates in the  A by the coordinate in the row-vector coord.
-//The result is put in F. This is the old name fo the function, now called ScaleByVec. It is kept for compatibility
+// ScaleByRow scales each coordinates in the  A by the coordinate in the row-vector coord.
+// The result is put in F. This is the old name fo the function, now called ScaleByVec. It is kept for compatibility
 func (F *Matrix) ScaleByRow(A, coord *Matrix) {
 	F.ScaleByVec(A, coord)
 }
 
-//SetVecs sets the vector F[clist[i]] to the vector A[i], for all indexes i in clist.
-//nth vector of A. Indexes i must be positive or 0
+// SetVecs sets the vector F[clist[i]] to the vector A[i], for all indexes i in clist.
+// nth vector of A. Indexes i must be positive or 0
 func (F *Matrix) SetVecs(A *Matrix, clist []int) {
 	ar, ac := A.Dims()
 	fr, fc := F.Dims()
@@ -149,9 +149,9 @@ func (F *Matrix) SetVecs(A *Matrix, clist []int) {
 	}
 }
 
-//SomeVecs Returns a matrix contaning a copy of the ith rows of matrix A,
-//where i are the numbers in clist. The rows are in the same order
-//than the clist. The numbers in clist must be positive or zero.
+// SomeVecs Returns a matrix contaning a copy of the ith rows of matrix A,
+// where i are the numbers in clist. The rows are in the same order
+// than the clist. The numbers in clist must be positive or zero.
 func (F *Matrix) SomeVecs(A *Matrix, clist []int) {
 	ar, ac := A.Dims()
 	fr, fc := F.Dims()
@@ -165,9 +165,9 @@ func (F *Matrix) SomeVecs(A *Matrix, clist []int) {
 	}
 }
 
-//SomeVecsSafe returns a matrix contaning all the ith vectors of matrix A,
-//where i are the numbers in clist. The vectors are in the same order
-//than the clist. It will try to recover so it returns an error instead of panicking.
+// SomeVecsSafe returns a matrix contaning all the ith vectors of matrix A,
+// where i are the numbers in clist. The vectors are in the same order
+// than the clist. It will try to recover so it returns an error instead of panicking.
 func (F *Matrix) SomeVecsSafe(A *Matrix, clist []int) error {
 	var err error
 	defer func() {
@@ -186,12 +186,12 @@ func (F *Matrix) SomeVecsSafe(A *Matrix, clist []int) error {
 	return err
 }
 
-//StackVec puts in F a matrix consistent of A over B or A to the left of B.
+// StackVec puts in F a matrix consistent of A over B or A to the left of B.
 func (F *Matrix) StackVec(A, B *Matrix) {
 	F.Stack(A, B)
 }
 
-//String returns a neat string representation of a Matrix
+// String returns a neat string representation of a Matrix
 func (F *Matrix) String() string {
 	r, c := F.Dims()
 	v := make([]string, r+2, r+2)
@@ -214,16 +214,16 @@ func (F *Matrix) String() string {
 	return strings.Join(v, "")
 }
 
-//SubVec subtracts the vector  to each vector of the matrix A, putting
-//the result on the receiver. Panics if matrices are mismatched.  It will not
-//work if A and row reference to the same Matrix.
+// SubVec subtracts the vector  to each vector of the matrix A, putting
+// the result on the receiver. Panics if matrices are mismatched.  It will not
+// work if A and row reference to the same Matrix.
 func (F *Matrix) SubVec(A, vec *Matrix) {
 	vec.Scale(-1, vec)
 	F.AddVec(A, vec)
 	vec.Scale(-1, vec)
 }
 
-//Cross puts the cross product of the first vecs of a and b in the first vec of F. Panics if error.
+// Cross puts the cross product of the first vecs of a and b in the first vec of F. Panics if error.
 func (F *Matrix) Cross(a, b *Matrix) {
 	if a.NVecs() < 1 || b.NVecs() < 1 || F.NVecs() < 1 {
 		panic(ErrNoCrossProduct)
@@ -238,8 +238,8 @@ func (F *Matrix) Cross(a, b *Matrix) {
 
 //METHODS Not Vec specific.
 
-//AddFloat puts in the receiver a matrix which elements are
-//those of matrix A plus the float B.
+// AddFloat puts in the receiver a matrix which elements are
+// those of matrix A plus the float B.
 func (F *Matrix) AddFloat(A *Matrix, B float64) {
 	ar, ac := A.Dims()
 	if F != A {
@@ -252,15 +252,15 @@ func (F *Matrix) AddFloat(A *Matrix, B float64) {
 	}
 }
 
-//AddRow adds the row vector row to each row of the matrix A, putting
-//the result on the receiver. Panics if matrices are mismatched. It will not work if A and row
-//reference to the same Matrix.
+// AddRow adds the row vector row to each row of the matrix A, putting
+// the result on the receiver. Panics if matrices are mismatched. It will not work if A and row
+// reference to the same Matrix.
 func (F *Matrix) AddRow(A, row *Matrix) {
 	F.AddVec(A, row)
 }
 
-//ScaleByCol scales each column of matrix A by Col, putting the result
-//in the received.
+// ScaleByCol scales each column of matrix A by Col, putting the result
+// in the received.
 func (F *Matrix) ScaleByCol(A, Col mat.Matrix) {
 	ar, ac := A.Dims()
 	cr, cc := Col.Dims()
@@ -279,8 +279,8 @@ func (F *Matrix) ScaleByCol(A, Col mat.Matrix) {
 
 }
 
-//ScaleByVec scales each column of matrix A by Vec, putting the result
-//in the received.
+// ScaleByVec scales each column of matrix A by Vec, putting the result
+// in the received.
 func (F *Matrix) ScaleByVec(A, Vec *Matrix) {
 	ar, ac := A.Dims()
 	rr, rc := Vec.Dims()
@@ -297,21 +297,21 @@ func (F *Matrix) ScaleByVec(A, Vec *Matrix) {
 	}
 }
 
-//RowView puts a view of the given row of the matrix in the receiver
-//Equivalent to VecView
+// RowView puts a view of the given row of the matrix in the receiver
+// Equivalent to VecView
 func (F *Matrix) RowView(i int) *Matrix {
 	return F.VecView(i)
 }
 
-//SubRow subtracts the row vector row to each row of the matrix A, putting
-//the result on the receiver. Panics if matrices are mismatched.  It will not
-//work if A and row reference to the same Matrix.
+// SubRow subtracts the row vector row to each row of the matrix A, putting
+// the result on the receiver. Panics if matrices are mismatched.  It will not
+// work if A and row reference to the same Matrix.
 func (F *Matrix) SubRow(A, row *Matrix) {
 	F.SubVec(A, row)
 }
 
-//Unit puts in the receiver the unit vector pointing in the same
-//direction as the vector A (A divided by its norm).
+// Unit puts in the receiver the unit vector pointing in the same
+// direction as the vector A (A divided by its norm).
 func (F *Matrix) Unit(A *Matrix) {
 	if A.Dense != F.Dense {
 		F.Copy(A)
@@ -320,7 +320,7 @@ func (F *Matrix) Unit(A *Matrix) {
 	F.Scale(norm, F)
 }
 
-//KronekerDelta is a naive implementation of the kroneker delta function.
+// KronekerDelta is a naive implementation of the kroneker delta function.
 func KronekerDelta(a, b, epsilon float64) float64 {
 	if epsilon < 0 {
 		epsilon = appzero
