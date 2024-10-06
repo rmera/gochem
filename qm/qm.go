@@ -258,6 +258,7 @@ type Calc struct {
 	SCFConvHelp  int
 	ECP          string //The ECP to be used. It is the programmers responsibility to use a supported ECP (for instance, trying to use 10-electron core ECP for Carbon will fail)
 	Gimic        bool
+	NBO          bool
 	Memory       int //Max memory to be used in MB (the effect depends on the QM program)
 }
 

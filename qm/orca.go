@@ -36,9 +36,9 @@ import (
 	v3 "github.com/rmera/gochem/v3"
 )
 
-//OrcaHandle represents an Orca calculation.
-//Note that the default methods and basis vary with each program, and even
-//for a given program they are NOT considered part of the API, so they can always change.
+// OrcaHandle represents an Orca calculation.
+// Note that the default methods and basis vary with each program, and even
+// for a given program they are NOT considered part of the API, so they can always change.
 type OrcaHandle struct {
 	defmethod   string
 	defbasis    string
@@ -53,7 +53,7 @@ type OrcaHandle struct {
 	orca4       bool
 }
 
-//NewOrcaHandle initializes and returns a new OrcaHandle.
+// NewOrcaHandle initializes and returns a new OrcaHandle.
 func NewOrcaHandle() *OrcaHandle {
 	run := new(OrcaHandle)
 	run.SetDefaults()
@@ -62,46 +62,46 @@ func NewOrcaHandle() *OrcaHandle {
 
 //OrcaHandle methods
 
-//SetnCPU sets the number of CPU to be used.
+// SetnCPU sets the number of CPU to be used.
 func (O *OrcaHandle) SetnCPU(cpu int) {
 	O.nCPU = cpu
 }
 
-//SetName sets the name of the job, which will reflect in the
-//name fo the input and output files.
+// SetName sets the name of the job, which will reflect in the
+// name fo the input and output files.
 func (O *OrcaHandle) SetName(name string) {
 	O.inputname = name
 }
 
-//SetCommand sets the name and path of the Orca excecutable
+// SetCommand sets the name and path of the Orca excecutable
 func (O *OrcaHandle) SetCommand(name string) {
 	O.command = name
 }
 
-//SetMOName sets the name of the file containing molecular
-//orbitales (in the corresponding Orca format) to be
-//used as initial guess.
+// SetMOName sets the name of the file containing molecular
+// orbitales (in the corresponding Orca format) to be
+// used as initial guess.
 func (O *OrcaHandle) SetMOName(name string) {
 	O.previousMO = name
 }
 
-//SetWorkDir sets the name of the working directory for the calculation
+// SetWorkDir sets the name of the working directory for the calculation
 func (O *OrcaHandle) SetWorkDir(d string) {
 	O.wrkdir = d
 }
 
-//SetOrca3 sets the use of Orca3 to true or false. The default state
-//is false, meaning that Orca4 is used.
+// SetOrca3 sets the use of Orca3 to true or false. The default state
+// is false, meaning that Orca4 is used.
 func (O *OrcaHandle) SetOrca4(b bool) {
 	O.orca4 = b
 }
 
-//SetDefaults Sets defaults for ORCA calculation. The default is
-//currently a single-point at
-//revPBE/def2-SVP with RI, and all the available CPU with a max of
-//8. The ORCA command is set to $ORCA_PATH/orca, at least in
-//unix.
-//The default is _not_ part of the API, it can change as new methods appear.
+// SetDefaults Sets defaults for ORCA calculation. The default is
+// currently a single-point at
+// revPBE/def2-SVP with RI, and all the available CPU with a max of
+// 8. The ORCA command is set to $ORCA_PATH/orca, at least in
+// unix.
+// The default is _not_ part of the API, it can change as new methods appear.
 func (O *OrcaHandle) SetDefaults() {
 	O.defmethod = "r2scan-3c" //This is an API break, the default was BLYP/def2-SVP
 	O.defguess = "HUECKEL"
@@ -116,11 +116,10 @@ func (O *OrcaHandle) SetDefaults() {
 	}
 	cpu := runtime.NumCPU() / 2
 	O.nCPU = cpu
-
 }
 
-//BuildInput builds an input for ORCA based int the data in atoms, coords and C.
-//returns only error.
+// BuildInput builds an input for ORCA based int the data in atoms, coords and C.
+// returns only error.
 func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q *Calc) error {
 	if O.wrkdir != "" {
 		O.wrkdir = O.wrkdir + "/"
@@ -269,7 +268,13 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 		HF3cAdditional = "%scf\n   MaxIter 200\n   MaxIntMem 2000\nend\n\n"
 
 	}
-	MainOptions := []string{"!", hfuhf, Q.Method, Q.Basis, Q.auxBasis, Q.auxColBasis, tight, disp, conv, Q.Guess, opt, Q.Others, grid, ri, bsse, "\n\n"}
+	NBO := ""
+	nbostr := ""
+	if Q.NBO {
+		NBO = "NBO"
+		nbostr = "%nbo\nNBOKEYLIST=\"$NBO STERIC  $END\"\nend"
+	}
+	MainOptions := []string{"!", hfuhf, Q.Method, Q.Basis, Q.auxBasis, Q.auxColBasis, tight, disp, conv, Q.Guess, opt, Q.Others, grid, ri, bsse, NBO, "\n\n"}
 	mainline := strings.Join(MainOptions, " ")
 	constraints := O.buildCConstraints(Q.CConstraints)
 	iconstraints, err := O.buildIConstraints(Q.IConstraints)
@@ -312,12 +317,11 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 	}
 	defer file.Close()
 	_, err = fmt.Fprint(file, mainline)
-	//With this check its assumed that the file is ok.https://www.reddit.com/
+	//With this check its assumed that the file is ok
 	if err != nil {
 		return Error{ErrCantInput, Orca, O.inputname, err.Error(), []string{"fmt.Printf", "BuildInput"}, true}
 
 	}
-	//	fmt.Println("Ta wena la wea... chupa la callampa, uh uh uuuh", moinp) ///////////////
 	fmt.Fprint(file, HF3cAdditional)
 	fmt.Fprint(file, pal)
 	fmt.Fprint(file, moinp)
@@ -327,6 +331,7 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 	fmt.Fprint(file, optfreq)
 	fmt.Fprint(file, ElementBasis)
 	fmt.Fprint(file, cosmo)
+	fmt.Fprint(file, nbostr)
 	fmt.Fprint(file, "\n")
 	//Now the type of coords, charge and multiplicity
 	fmt.Fprintf(file, "* xyz %d %d\n", atoms.Charge(), atoms.Multi())
@@ -350,10 +355,10 @@ func (O *OrcaHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, 
 	return nil
 }
 
-//Run runs the command given by the string O.command
-//it waits or not for the result depending on wait.
-//Not waiting for results works
-//only for unix-compatible systems, as it uses bash and nohup.
+// Run runs the command given by the string O.command
+// it waits or not for the result depending on wait.
+// Not waiting for results works
+// only for unix-compatible systems, as it uses bash and nohup.
 func (O *OrcaHandle) Run(wait bool) (err error) {
 	if wait == true {
 		out, err := os.Create(fmt.Sprintf("%s.out", O.inputname))
@@ -377,8 +382,8 @@ func (O *OrcaHandle) Run(wait bool) (err error) {
 	return err
 }
 
-//buildIConstraints transforms the list of cartesian constrains in the QMCalc structre
-//into a string with ORCA-formatted internal constraints.
+// buildIConstraints transforms the list of cartesian constrains in the QMCalc structre
+// into a string with ORCA-formatted internal constraints.
 func (O *OrcaHandle) buildIConstraints(C []*IConstraint) (string, error) {
 	if C == nil {
 		return "\n", nil //no constraints
@@ -421,8 +426,8 @@ var iConstraintOrder = map[byte]int{
 	'D': 4,
 }
 
-//buildCConstraints transforms the list of cartesian constrains in the QMCalc structre
-//into a string with ORCA-formatted cartesian constraints
+// buildCConstraints transforms the list of cartesian constrains in the QMCalc structre
+// into a string with ORCA-formatted cartesian constraints
 func (O *OrcaHandle) buildCConstraints(C []int) string {
 	if C == nil {
 		return "\n" //no constraints
@@ -439,8 +444,8 @@ func (O *OrcaHandle) buildCConstraints(C []int) string {
 	return final
 }
 
-//Only DFT is supported. Also, only Karlsruhe's basis sets. If you are using Pople's,
-//let us know so we can send a mission to rescue you from the sixties :-)
+// Only DFT is supported. Also, only Karlsruhe's basis sets. If you are using Pople's,
+// let us know so we can send a mission to rescue you from the sixties :-)
 func (O *OrcaHandle) buildgCP(Q *Calc) (string, error) {
 	ret := ""
 	var err error
@@ -488,10 +493,11 @@ var orcaDisp = map[string]string{
 	"SCNL":   "SCNL",
 }
 
-//OptimizedGeometry reads the latest geometry from an ORCA optimization. Returns the
-//  geometry or error. Returns the geometry AND error if the geometry read
-//  is not the product of a correctly ended ORCA calculation. In this case
-//  the error is "probable problem in calculation"
+// OptimizedGeometry reads the latest geometry from an ORCA optimization. Returns the
+//
+//	geometry or error. Returns the geometry AND error if the geometry read
+//	is not the product of a correctly ended ORCA calculation. In this case
+//	the error is "probable problem in calculation"
 func (O *OrcaHandle) OptimizedGeometry(atoms chem.Atomer) (*v3.Matrix, error) {
 	var err error
 	geofile := fmt.Sprintf("%s.xyz", O.wrkdir+O.inputname)
@@ -507,20 +513,20 @@ func (O *OrcaHandle) OptimizedGeometry(atoms chem.Atomer) (*v3.Matrix, error) {
 	return mol.Coords[0], err //returns the coords, the error indicates whether the structure is trusty (normal calculation) or not
 }
 
-//Energy returns the free energy resulting from a frequencies calculation
-//Returns error if problem, and also if the energy returned that is product of an
-//abnormally-terminated ORCA calculation. (in this case error is "Probable problem
-//in calculation")
+// Energy returns the free energy resulting from a frequencies calculation
+// Returns error if problem, and also if the energy returned that is product of an
+// abnormally-terminated ORCA calculation. (in this case error is "Probable problem
+// in calculation")
 func (O *OrcaHandle) FreeEnergy() (float64, error) {
 	templateline := "Final Gibbs free energy         .."
 	indexinline := 5
 	return O.energies(templateline, indexinline)
 }
 
-//Energy returns the energy of a previous Orca calculations.
-//Returns error if problem, and also if the energy returned that is product of an
-//abnormally-terminated ORCA calculation. (in this case error is "Probable problem
-//in calculation")
+// Energy returns the energy of a previous Orca calculations.
+// Returns error if problem, and also if the energy returned that is product of an
+// abnormally-terminated ORCA calculation. (in this case error is "Probable problem
+// in calculation")
 func (O *OrcaHandle) Energy() (float64, error) {
 	templateline := "FINAL SINGLE POINT ENERGY"
 	position := 4
@@ -563,7 +569,7 @@ func (O *OrcaHandle) energies(templateline string, indexinline int) (float64, er
 	return energy * chem.H2Kcal, err
 }
 
-//Gets previous line of the file f
+// Gets previous line of the file f
 func getTailLine(f *os.File) (line string, err error) {
 	var i int64 = 1
 	buf := make([]byte, 1)
@@ -591,8 +597,8 @@ func getTailLine(f *os.File) (line string, err error) {
 	return string(bufF), nil
 }
 
-//This checks that an ORCA calculation has terminated normally
-//I know this duplicates code, I wrote this one first and then the other one.
+// This checks that an ORCA calculation has terminated normally
+// I know this duplicates code, I wrote this one first and then the other one.
 func (O *OrcaHandle) orcaNormalTermination() bool {
 	var ini int64 = 0
 	var end int64 = 0

@@ -37,8 +37,8 @@ import (
 	v3 "github.com/rmera/gochem/v3"
 )
 
-//TestQM tests the QM functionality. It prepares input for ORCA and MOPAC
-//In the case of MOPAC it reads a previously prepared output and gets the energy.
+// TestQM tests the QM functionality. It prepares input for ORCA and MOPAC
+// In the case of MOPAC it reads a previously prepared output and gets the energy.
 func TestOrca(Te *testing.T) {
 	mol, err := chem.XYZFileRead("../test/water.xyz")
 	if err != nil {
@@ -143,9 +143,9 @@ func TestOrca(Te *testing.T) {
 	fmt.Println("end mopac and orca test!")
 }
 
-//TestTurbo tests the QM functionality. It prepares input for Turbomole
-//Notice that 2 TM inputs cannot be in the same directory. Notice that TMHandle
-//supports ECPs
+// TestTurbo tests the QM functionality. It prepares input for Turbomole
+// Notice that 2 TM inputs cannot be in the same directory. Notice that TMHandle
+// supports ECPs
 func TestTurbo(Te *testing.T) {
 	fmt.Println("Turbomole TEST y wea!")
 	mol, err := chem.XYZFileRead("../test/ethanol.xyz")
@@ -364,4 +364,37 @@ func TestXtb(Te *testing.T) {
 	}
 	chem.XYZFileWrite("optiXTB.xyz", newg, mol)
 
+}
+
+func TestNBO(Te *testing.T) {
+	f, err := os.Open("../test/nbo/etmetoh.out")
+	if err != nil {
+		Te.Error(err)
+	}
+	defer f.Close()
+
+	props, err := NBOProps(f)
+
+	if err != nil {
+		Te.Error(err)
+	}
+	fmt.Println("Electronic Configuration")
+	for _, v := range props.EConfs {
+		fmt.Println(v)
+	}
+
+	fmt.Println("Charges")
+	for _, v := range props.Charges {
+		fmt.Println(v)
+	}
+
+	fmt.Println("Delocalizations")
+	for _, v := range props.Delocs {
+		fmt.Println(v)
+	}
+
+	fmt.Println("Steric Energies")
+	for _, v := range props.Steric {
+		fmt.Println(v)
+	}
 }
