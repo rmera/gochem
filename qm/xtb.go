@@ -150,7 +150,7 @@ func (O *XTBHandle) seticonstraints(Q *Calc, xcontrol []string) []string {
 // only unconstrained optimizations and single-points.
 func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q *Calc) error {
 	//Now lets write the thing
-	if O.wrkdir != "" {
+	if O.wrkdir != "" && !strings.HasSuffix(O.wrkdir, "/") {
 		O.wrkdir += "/"
 	}
 	w := O.wrkdir

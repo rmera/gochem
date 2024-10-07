@@ -398,3 +398,71 @@ func TestNBO(Te *testing.T) {
 		fmt.Println(v)
 	}
 }
+
+func TestCrest(Te *testing.T) {
+	mol, err := chem.XYZFileRead("../test/crest/etoh.xyz")
+	if err != nil {
+		Te.Error(err)
+	}
+	if err := mol.Corrupted(); err != nil {
+		Te.Error(err)
+	}
+	q := new(Calc)
+	q.Method = "gfn0"
+	q.Dielectric = 80
+	o := NewCrestHandle()
+	o.EThres = 10
+	o.RMSDThres = 0.25
+	o.SetWorkDir("../test/crest")
+	o.BuildInput(mol.Coords[0], mol, q)
+	err = o.Run(true)
+	if err != nil {
+		Te.Error(err)
+	}
+	m, _, err := o.Conformers(true)
+	if err != nil {
+		Te.Error(err)
+	}
+	for i, v := range m.Coords {
+		fmt.Println("First line in coordinates", i, v.VecView(0))
+	}
+	o.RunType = "entropy"
+	o.BuildInput(mol.Coords[0], mol, q)
+	err = o.Run(true)
+	if err != nil {
+		Te.Error(err)
+	}
+	sconf, svib, err := o.Entropy()
+	if err != nil {
+		Te.Error(err)
+	}
+	fmt.Println("T=298. TS(conf)=", sconf*298.0, "TSvib=", svib*298, "All in kcal/mol")
+}
+
+func TestCrestConstraint(Te *testing.T) {
+	mol, err := chem.XYZFileRead("../test/crest/etoh.xyz")
+	if err != nil {
+		Te.Error(err)
+	}
+	if err := mol.Corrupted(); err != nil {
+		Te.Error(err)
+	}
+	q := new(Calc)
+	q.Method = "gfnff"
+	q.Dielectric = 80
+	q.CConstraints = []int{1, 2}
+	o := NewCrestHandle()
+	o.SetWorkDir("../test/crest")
+	o.RunType = "entropy"
+	o.BuildInput(mol.Coords[0], mol, q)
+	err = o.Run(true)
+	if err != nil {
+		Te.Error(err)
+	}
+	sconf, svib, err := o.Entropy()
+	if err != nil {
+		Te.Error(err)
+	}
+	fmt.Println("T=298. TS(conf)=", sconf*298.0, "TSvib=", svib*298, "All in kcal/mol")
+
+}

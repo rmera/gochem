@@ -54,7 +54,6 @@ type CrestHandle struct {
 	nCPU           int
 	options        []string
 	relconstraints bool
-	force          float64
 	wrkdir         string
 	inputfile      string
 	RunType        string     //entropy, protonate, deprotonate, search (default)
@@ -100,24 +99,11 @@ func (O *CrestHandle) SetWorkDir(d string) {
 	O.wrkdir = d
 }
 
-// RelConstraints sets the use of relative contraints
-// instead of absolute position restraints
-// with the force force constant. If force is
-// less than 0, the default value is employed.
-func (O *CrestHandle) RelConstraints(force float64) {
-	if force > 0 {
-		//goChem units (Kcal/A^2) to xtb units (Eh/Bohr^2)
-		O.force = force * (chem.Kcal2H / (chem.A2Bohr * chem.A2Bohr))
-	}
-	O.relconstraints = true
-
-}
-
 // SetDefaults sets calculations parameters to their defaults.
 // Defaults might change
 // as new methods appear, so they are not part of the API.
 func (O *CrestHandle) SetDefaults() {
-	O.command = os.ExpandEnv("xtb")
+	O.command = os.ExpandEnv("crest")
 	//	if O.command == "/xtb" { //if CrestHOME was not defined
 	//		O.command = "./xtb"
 	//	}
@@ -131,7 +117,7 @@ func (O *CrestHandle) SetDefaults() {
 func (O *CrestHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q *Calc) error {
 	errid := "CrestHandle/BuildInput"
 	//Now lets write the thing
-	if O.wrkdir != "" {
+	if O.wrkdir != "" && !strings.HasSuffix(O.wrkdir, "/") {
 		O.wrkdir += "/"
 	}
 	w := O.wrkdir
@@ -149,7 +135,7 @@ func (O *CrestHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger,
 	//	mem := ""
 
 	O.options = make([]string, 0, 6)
-	O.options = append(O.options, O.command)
+	//	O.options = append(O.options, O.command)
 	O.options = append(O.options, fmt.Sprintf("--chrg %d", atoms.Charge()))
 	O.options = append(O.options, fmt.Sprintf("--uhf %d", (atoms.Multi()-1)))
 	if O.nCPU > 1 {
@@ -157,10 +143,9 @@ func (O *CrestHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger,
 	}
 	//Added new things to select a method in xtb
 	if !isInString([]string{"gfn1", "gfn2", "gfn0", "gfnff"}, Q.Method) {
-		O.options = append(O.options, "--gfn 2") //default method
-	} else if Q.Method != "gfnff" {
-		m := strings.ReplaceAll(Q.Method, "gfn", "") //so m should be "0", "1" or "2"
-		O.options = append(O.options, "--gfn "+m)    //default method
+		O.options = append(O.options, "--gfn2") //default method
+	} else {
+		O.options = append(O.options, "--"+Q.Method) //default method
 	}
 	if Q.Dielectric > 0 && Q.Method != "gfn0" { //as of the current version, gfn0 doesn't support implicit solvation
 		solvent, ok := dielectric2Solvent[int(Q.Dielectric)]
@@ -209,7 +194,7 @@ func (O *CrestHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger,
 	if ts == [3]float64{0, 0, 0} {
 		ts = [3]float64{298.15, 299.15, 1}
 	}
-	O.options = append(O.options, fmt.Sprintf("--trange %4.1f %4.1f %4.1f", ts[0], ts[1], ts[2]))
+	O.options = append(O.options, fmt.Sprintf("--trange %5.2f %5.2f %5.2f", ts[0], ts[1], ts[2]))
 
 	if O.EThres > 0 { //crest expect this options in kcal, so no conversion needed
 		O.options = append(O.options, fmt.Sprintf("--ewin %4.1f", O.EThres))
@@ -218,17 +203,18 @@ func (O *CrestHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger,
 		O.options = append(O.options, fmt.Sprintf("--rthr %4.1f", O.RMSDThres))
 	}
 
-	O.options = append(O.options, fmt.Sprintf("--temp %4.1f", ts[0]))
+	O.options = append(O.options, fmt.Sprintf("--temp %5.2f", ts[0]))
 
 	if Q.CConstraints != nil || Q.IConstraints != nil {
 		xtbh := NewXTBHandle()
-		constraintsfile := "constraints.inp"
+		constraintsfile := "constraints"
 		xtbh.SetName(constraintsfile)
+		xtbh.SetWorkDir(O.wrkdir)
 		err = xtbh.BuildInput(coords, atoms, Q)
 		if err != nil {
 			return fmt.Errorf("%s: Couldn't produce the constraints file: %w", errid, err)
 		}
-		O.options = append(O.options, "--cinp "+constraintsfile)
+		O.options = append(O.options, "--cinp "+constraintsfile+".inp")
 	}
 	O.options = append(O.options, O.inputname+".xyz")
 
@@ -318,12 +304,21 @@ func (O *CrestHandle) ConformerEnergies() ([]float64, error) {
 	return energies, err
 }
 
-func (O *CrestHandle) Conformers() (*chem.Molecule, *chem.XYZTraj, error) {
+// Returns conformers from CREST as a trajectory, returning also the first one as a molecule.
+// if asmolecule is given and true, then it returns the whole trajectory in the molecule, and nil
+// for the trajectory.
+func (O *CrestHandle) Conformers(asmolecule ...bool) (*chem.Molecule, *chem.XYZTraj, error) {
 	ei := "CrestHandle/Conformers"
 	if !O.normalTermination() {
 		return nil, nil, fmt.Errorf("%s: CREST run didn't finish normally", ei)
 	}
-
+	if len(asmolecule) > 0 && asmolecule[0] {
+		mol, err := chem.XYZFileRead(O.wrkdir + "crest_conformers.xyz")
+		if err != nil {
+			err = fmt.Errorf("%s: Failed to retrieve conformers: %w", ei, err)
+		}
+		return mol, nil, err
+	}
 	mol, traj, err := chem.XYZFileAsTraj(O.wrkdir + "crest_conformers.xyz")
 	if err != nil {
 		err = fmt.Errorf("%s: Failed to retrieve conformers: %w", ei, err)
