@@ -337,7 +337,6 @@ func (O *XTBHandle) normalTermination() bool {
 	if searchBackwards("normal termination of x", fmt.Sprintf("%s.out", inp)) != "" || searchBackwards("abnormal termination of x", fmt.Sprintf("%s.out", inp)) == "" {
 		return true
 	}
-	//	fmt.Println(fmt.Sprintf("%s.out", O.inputname), searchBackwards("normal termination of x",fmt.Sprintf("%s.out", O.inputname))) ////////////////////
 	return false
 }
 
