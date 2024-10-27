@@ -213,7 +213,7 @@ func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q
 			for _, v := range Q.CConstraints {
 				fixed = fixed + strconv.Itoa(v+1) + ", " //1-based indexes
 			}
-			strings.TrimRight(fixed, ",")
+			fixed = strings.TrimRight(fixed, ", ")
 			fixed = fixed + "\n"
 			xcontroltxt = append(xcontroltxt, fixed)
 		}
@@ -289,10 +289,10 @@ func (O *XTBHandle) Run(wait bool) (err error) {
 	}
 
 	if O.gfnff {
-		com = fmt.Sprintf(" --gfnff %s.xyz   %s  %s > %s.out  2>&1", O.inputname, inputfile, extraoptions, O.inputname)
+		com = fmt.Sprintf(" --gfnff %s.xyz   %s  %s -v > %s.out  2>&1", O.inputname, inputfile, extraoptions, O.inputname)
 	} else {
 
-		com = fmt.Sprintf(" %s.xyz  %s  %s > %s.out  2>&1", O.inputname, inputfile, extraoptions, O.inputname)
+		com = fmt.Sprintf(" %s.xyz  %s  %s -v > %s.out  2>&1", O.inputname, inputfile, extraoptions, O.inputname)
 	}
 	if wait {
 		//It would be nice to have this logging as an option.
