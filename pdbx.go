@@ -372,22 +372,33 @@ func PDBxFileWrite(name string, coords []*v3.Matrix, mol Atomer, bfact [][]float
 		return fmt.Errorf("PDBxFileWrite: %w", err)
 	}
 	defer pdb.Close()
-	return PDBxWrite(pdb, coords, mol, bfact, strings.Replace(name, ".pdb", "", -1))
+	return PDBxWrite(pdb, coords, mol, bfact, false, strings.Replace(name, ".pdb", "", -1))
 }
 
-func PDBxWrite(out io.Writer, coords []*v3.Matrix, mol Atomer, bfact [][]float64, name ...string) error {
+func PDBxCompactFileWrite(name string, coords []*v3.Matrix, mol Atomer, bfact [][]float64) error {
+	pdb, err := os.Create(name)
+	if err != nil {
+		return fmt.Errorf("PDBxFileWrite: %w", err)
+	}
+	defer pdb.Close()
+	return PDBxWrite(pdb, coords, mol, bfact, true, strings.Replace(name, ".pdb", "", -1))
+}
+
+func PDBxWrite(out io.Writer, coords []*v3.Matrix, mol Atomer, bfact [][]float64, save bool, name ...string) error {
 	n := "gochem"
 	if len(name) > 0 && name[0] != "" {
 		n = name[0]
 	}
+	out.Write([]byte(fmt.Sprintf("data_%s\n#\n", n)))
 	for i, v := range coords {
 		cr, _ := v.Dims()
 		if cr != mol.Len() {
 			return fmt.Errorf("pdbxWrite: Reference (%d) and Coords (%d) don't have the same number of atoms", mol.Len(), cr)
 		}
-		out.Write([]byte(fmt.Sprintf("data_%s\n#\n", n)))
-		out.Write([]byte("loop_\n"))
 		model := i + 1
+		if model == 1 || save {
+			out.Write([]byte("loop_\n"))
+		}
 		if model == 1 {
 			out.Write([]byte("_atom_site.type_symbol\n"))
 			out.Write([]byte("_atom_site.auth_atom_id\n"))
@@ -400,16 +411,17 @@ func PDBxWrite(out io.Writer, coords []*v3.Matrix, mol Atomer, bfact [][]float64
 			out.Write([]byte("_atom_site.pdbx_formal_charge\n"))
 			out.Write([]byte("_atom_site.group_PDB\n"))
 		}
-
-		out.Write([]byte("_atom_site.pdbx_PDB_model_num\n"))
-		out.Write([]byte("_atom_site.Cartn_x\n_atom_site.Cartn_y\n_atom_site.Cartn_z\n"))
-		if len(bfact) > i && len(bfact[i]) > mol.Len() {
-			out.Write([]byte("_atom_site.B_iso_or_equiv\n"))
+		if model == 1 || save {
+			out.Write([]byte("_atom_site.pdbx_PDB_model_num\n"))
+			out.Write([]byte("_atom_site.Cartn_x\n_atom_site.Cartn_y\n_atom_site.Cartn_z\n"))
+			if len(bfact) > i && len(bfact[i]) > mol.Len() {
+				out.Write([]byte("_atom_site.B_iso_or_equiv\n"))
+			}
 		}
 
 		for j := 0; j < mol.Len(); j++ {
 			line := ""
-			if model == 1 {
+			if model == 1 || !save {
 				a := mol.Atom(j)
 				het := "ATOM"
 				if a.Het {
@@ -426,6 +438,9 @@ func PDBxWrite(out io.Writer, coords []*v3.Matrix, mol Atomer, bfact [][]float64
 
 			}
 			out.Write([]byte(line))
+		}
+		if save {
+			out.Write([]byte("#\n"))
 		}
 	}
 	out.Write([]byte("#\n\n"))

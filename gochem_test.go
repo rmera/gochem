@@ -42,6 +42,9 @@ func TestPDBxIO(Te *testing.T) {
 	}
 	fmt.Println(":O", mol.Len(), len(mol.Coords))
 	fmt.Println(mol.Atom(3), mol.Coords[0].VecView(3))
+	c := v3.Zeros(mol.Len())
+	c.Copy(mol.Coords[0])
+	mol.Coords = append(mol.Coords, c) //simulating 2 states
 	err = PDBxFileWrite("test/test.cif", mol.Coords, mol, mol.Bfactors)
 	if err != nil {
 		Te.Error(err)
@@ -51,6 +54,16 @@ func TestPDBxIO(Te *testing.T) {
 		Te.Error(err)
 	}
 	fmt.Println(":O", mol.Len(), len(mol.Coords))
+	fmt.Println(mol.Atom(3), mol.Coords[0].VecView(3))
+	err = PDBxCompactFileWrite("test/testcompact.cif", mol.Coords, mol, mol.Bfactors)
+	if err != nil {
+		Te.Error(err)
+	}
+	mol, err = PDBxFileRead("test/testcompact.cif")
+	if err != nil {
+		Te.Error(err)
+	}
+	fmt.Println("Compact!", mol.Len(), len(mol.Coords))
 	fmt.Println(mol.Atom(3), mol.Coords[0].VecView(3))
 
 }
