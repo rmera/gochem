@@ -35,6 +35,26 @@ import (
 
 //import "runtime"
 
+func TestPDBxIO(Te *testing.T) {
+	mol, err := PDBxFileRead("test/2c9v.cif")
+	if err != nil {
+		Te.Error(err)
+	}
+	fmt.Println(":O", mol.Len(), len(mol.Coords))
+	fmt.Println(mol.Atom(3), mol.Coords[0].VecView(3))
+	err = PDBxFileWrite("test/test.cif", mol.Coords, mol, mol.Bfactors)
+	if err != nil {
+		Te.Error(err)
+	}
+	mol, err = PDBxFileRead("test/test.cif")
+	if err != nil {
+		Te.Error(err)
+	}
+	fmt.Println(":O", mol.Len(), len(mol.Coords))
+	fmt.Println(mol.Atom(3), mol.Coords[0].VecView(3))
+
+}
+
 func TestSymbolError(Te *testing.T) {
 	_, err := PDBFileRead("test/SymbolErrorTest.pdb")
 	if err != nil {
@@ -60,7 +80,7 @@ func TestGROIO(Te *testing.T) {
 
 }
 
-//TestMultiXYZ tests that multi-XYZ files are opened and read correctly.
+// TestMultiXYZ tests that multi-XYZ files are opened and read correctly.
 func TestXYZIO(Te *testing.T) {
 	mol, err := XYZFileRead("test/sample.xyz")
 	if err != nil {
@@ -84,11 +104,11 @@ func TestPDBIO(Te *testing.T) {
 	//for the 3 residue  I should get -131.99, 152.49.
 }
 
-//TestChangeAxis reads the PDB 2c9v.pdb from the test directory, collects
-//The CA and CB of residue D124 of the chain A, and uses Clifford algebra to rotate the
-//whole molecule such as the vector defined by these 2 atoms is
-//aligned with the Z axis. The new molecule is written
-//as 2c9v_aligned.pdb to the test folder.
+// TestChangeAxis reads the PDB 2c9v.pdb from the test directory, collects
+// The CA and CB of residue D124 of the chain A, and uses Clifford algebra to rotate the
+// whole molecule such as the vector defined by these 2 atoms is
+// aligned with the Z axis. The new molecule is written
+// as 2c9v_aligned.pdb to the test folder.
 func TestChangeAxis(Te *testing.T) {
 	//runtime.GOMAXPROCS(2) ///////////////////////////
 	mol, err := PDBFileRead("test/2c9v.pdb", true)
@@ -147,11 +167,11 @@ func TestMolidNameChain2Index(Te *testing.T) {
 
 }
 
-//TestOldChangeAxis reads the PDB 2c9v.pdb from the test directory, collects
-//The CA and CB of residue D124 of the chain A, and rotates the
-//whole molecule such as the vector defined by these 2 atoms is
-//aligned with the Z axis. The new molecule is written
-//as 2c9v_aligned.pdb to the test folder.
+// TestOldChangeAxis reads the PDB 2c9v.pdb from the test directory, collects
+// The CA and CB of residue D124 of the chain A, and rotates the
+// whole molecule such as the vector defined by these 2 atoms is
+// aligned with the Z axis. The new molecule is written
+// as 2c9v_aligned.pdb to the test folder.
 func TestOldChangeAxis(Te *testing.T) {
 	viej, _ := os.Open("test/2c9v.pdb")
 	mol, err := PDBRead(viej, true)
@@ -190,8 +210,8 @@ func TestOldChangeAxis(Te *testing.T) {
 	fmt.Println("bench2")
 }
 
-//Aligns the main plane of a molecule with the XY-plane.
-//Here XYZRead and XYZWrite are tested
+// Aligns the main plane of a molecule with the XY-plane.
+// Here XYZRead and XYZWrite are tested
 func TestPutInXYPlane(Te *testing.T) {
 	myxyz, _ := os.Open("test/sample_plane.xyz")
 	mol, err := XYZRead(myxyz)
@@ -299,7 +319,7 @@ func TesstFixPDB(Te *testing.T) {
 	fmt.Println("DoneTestFixPDB")
 }
 
-//will fail if reduce is not installed!
+// will fail if reduce is not installed!
 func TTTestReduce(Te *testing.T) { //silenced
 	fmt.Println("Start TestReduce")
 	mol, err := PDBFileRead("test/2c9v.pdb", true)
@@ -414,7 +434,7 @@ func TTestShape(Te *testing.T) {
 
 }
 
-//Here PDBRead and PDBWrite are tested
+// Here PDBRead and PDBWrite are tested
 func TTestSuper(Te *testing.T) {
 	backbone := []string{"CA", "C", "N"} //The PDB name of the atoms in the backbone.
 	myhandle, _ := os.Open("test/2c9v.pdb")
