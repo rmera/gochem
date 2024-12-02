@@ -267,6 +267,7 @@ func (Q *Calc) SetDefaults() {
 	Q.RI = true
 	//	Q.BSSE = "gcp"
 	Q.Dispersion = "D3"
+	Q.Memory = 3000
 }
 
 // isIn is a helper for the RamaList function,

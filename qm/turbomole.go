@@ -160,9 +160,11 @@ func ReasonableSetting(k string, Q *Calc) string {
 	if strings.Contains(k, "$scfiterlimit") {
 		k = "$scfiterlimit   100\n"
 	}
-
+	if strings.Contains(k, "$scfdump") {
+		k = ""
+	}
 	if strings.Contains(k, "$maxcor    500 MiB  per_core") {
-		k = "$maxcor    3000 MiB  per_core\n"
+		k = fmt.Sprintf("$maxcor    %d MiB  per_core\n", Q.Memory)
 	}
 	if strings.Contains(k, "$ricore      500") {
 		k = "$ricore      1000\n"
@@ -228,7 +230,7 @@ func (O *TMHandle) ReplaceInControl(regex, replacement string) error {
 }
 */
 
-//Adds the text strings given before or after the first line containing the where[0] string. By default the "target" is "$symmetry"
+// Adds the text strings given before or after the first line containing the where[0] string. By default the "target" is "$symmetry"
 func (O *TMHandle) AddToControl(toappend []string, before bool, where ...string) error {
 	c, err := os.Getwd()
 	if err != nil {
