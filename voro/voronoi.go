@@ -56,8 +56,8 @@ const (
 	defAngleStep float64 = 5
 )
 
-//AngleScan contains options to perform angle scans to see if there is an angle in which 2 atoms
-//are in direct contact (i.e. if part of the plane bisecting them is part of the Voronoi polihedra for the system).
+// AngleScan contains options to perform angle scans to see if there is an angle in which 2 atoms
+// are in direct contact (i.e. if part of the plane bisecting them is part of the Voronoi polihedra for the system).
 type AngleScan struct {
 	VdwFactor float64
 	Offset    float64
@@ -66,7 +66,7 @@ type AngleScan struct {
 	Test      bool      //for debugging
 }
 
-//DefaultAngleScan returns the default setting for an AngleScan
+// DefaultAngleScan returns the default setting for an AngleScan
 func DefaultAngleScan() *AngleScan {
 	return &AngleScan{Offset: defOffset, VdwFactor: defVdwFactor, Angles: []float64{defMaxAngle, defAngleStep}}
 }
@@ -74,8 +74,8 @@ func DefaultAngleScan() *AngleScan {
 //This is a naive, unoptimal, simple and incomplete implementation
 //of 3D Voronoi polihedra.
 
-//The plane bisecting 2 atoms
-//With all the info we might want from it.
+// The plane bisecting 2 atoms
+// With all the info we might want from it.
 type VPlane struct {
 	Atoms      []int   //indexes of the 2 atoms.
 	Distance   float64 //The plane is equidistant from both atoms, so there is only one distance
@@ -84,7 +84,7 @@ type VPlane struct {
 	NotContact bool //true if this plane is a confirmed non-contact
 }
 
-//OtherAtom, given the index of one of the atoms bisected by the plane,returns the index of the other atom.
+// OtherAtom, given the index of one of the atoms bisected by the plane,returns the index of the other atom.
 func (V *VPlane) OtherAtom(i int) int {
 	if V.Atoms[0] == i {
 		return V.Atoms[1]
@@ -94,8 +94,8 @@ func (V *VPlane) OtherAtom(i int) int {
 	panic(fmt.Sprintf("Plane is not related to atom %d", i)) //I think this is fair enough. This should always be a bug in the program.
 }
 
-//DistanceInterVector  obtains the distance from a point o to the plane in the direction of d.
-//It returns -1 if the vector never intersects the plane.
+// DistanceInterVector  obtains the distance from a point o to the plane in the direction of d.
+// It returns -1 if the vector never intersects the plane.
 func (V *VPlane) DistanceInterVector(o, d *v3.Matrix) float64 {
 	p := v3.Zeros(1)
 	p.Sub(d, o)
@@ -119,10 +119,10 @@ func (V *VPlane) DistanceInterVector(o, d *v3.Matrix) float64 {
 	return p2.Norm(2)
 }
 
-//VPSlice contains a slice to pointers to VPlane.
+// VPSlice contains a slice to pointers to VPlane.
 type VPSlice []*VPlane
 
-//AtomPlanes returns all the planes that bisect the atom with index i, and any other atom.
+// AtomPlanes returns all the planes that bisect the atom with index i, and any other atom.
 func (P VPSlice) AtomPlanes(i int) VPSlice {
 	ret := make([]*VPlane, 0, len(P)/10) //the cap value is just a wild guess
 	for _, v := range P {
@@ -133,7 +133,7 @@ func (P VPSlice) AtomPlanes(i int) VPSlice {
 	return VPSlice(ret)
 }
 
-//PairPlane returns the plane bisecting the atoms with indexes i and j.
+// PairPlane returns the plane bisecting the atoms with indexes i and j.
 func (P VPSlice) PairPlane(i, j int) *VPlane {
 	for _, v := range P {
 		if (v.Atoms[0] == i && v.Atoms[1] == j) || (v.Atoms[0] == j && v.Atoms[1] == i) {
@@ -143,8 +143,8 @@ func (P VPSlice) PairPlane(i, j int) *VPlane {
 	return nil
 }
 
-//Determines whether 2 atoms are in contact, using the sum of their vdW radii (multiplied by an optional
-//factor, 1.2 by default), as a cutoff.
+// Determines whether 2 atoms are in contact, using the sum of their vdW radii (multiplied by an optional
+// factor, 1.2 by default), as a cutoff.
 func (P VPSlice) VdwContact(coords *v3.Matrix, mol chem.Atomer, i, j int, scan ...*AngleScan) bool {
 	if len(scan) <= 0 {
 		scan = append(scan, DefaultAngleScan()) //1.4 is the vdW radius of water
@@ -219,8 +219,8 @@ func (P VPSlice) Contact(coords *v3.Matrix, i, j int, anglest ...*AngleScan) boo
 	return true
 }
 
-//returns a crappy xyz string from the slice of 1x3 vectors provided
-//for testing purposes only
+// returns a crappy xyz string from the slice of 1x3 vectors provided
+// for testing purposes only
 func writetestxyzstring(vec ...*v3.Matrix) string {
 	form := fmt.Sprintf
 	elem := []string{"O", "C", "N", "H", "P", "F", "I", "Br", "Zn", "Cu"}
@@ -232,11 +232,11 @@ func writetestxyzstring(vec ...*v3.Matrix) string {
 
 }
 
-//Test if the path between ati and the ref plane is blocked by the test plane
-//it will scan cones at increasing angles from the ati-atj vector(from 0 to angles[0] degrees, where angles[0] should be <90)
-//in angle[1] steps.
-//This is a brute-force, very slow and clumsy system. But hey, I'm a chemist. I'll change it when a) there is a pure Go 3D-Voronoi
-//library or b) I find the time to study computational geometry.
+// Test if the path between ati and the ref plane is blocked by the test plane
+// it will scan cones at increasing angles from the ati-atj vector(from 0 to angles[0] degrees, where angles[0] should be <90)
+// in angle[1] steps.
+// This is a brute-force, very slow and clumsy system. But hey, I'm a chemist. I'll change it when a) there is a pure Go 3D-Voronoi
+// library or b) I find the time to study computational geometry.
 func ConeBlock(ref, test *VPlane, ati, atj *v3.Matrix, cutoff float64, angles []float64, testname ...string) bool {
 	var xyz string
 	refdist := ref.Distance
@@ -289,7 +289,7 @@ func ConeBlock(ref, test *VPlane, ati, atj *v3.Matrix, cutoff float64, angles []
 
 }
 
-//debug function, to be called on testing.
+// debug function, to be called on testing.
 func writetest(xyz string, name []string) {
 	if len(name) > 0 {
 		f, err := os.Create(name[0])
@@ -303,7 +303,6 @@ func writetest(xyz string, name []string) {
 
 }
 
-//
 func PlaneBetweenAtoms(at1, at2 *v3.Matrix, i, j int) *VPlane {
 	ret := &VPlane{}
 	ret.Atoms = []int{i, j}
@@ -316,8 +315,8 @@ func PlaneBetweenAtoms(at1, at2 *v3.Matrix, i, j int) *VPlane {
 	return ret
 }
 
-//get all planes between all possible pairs of atoms
-//which are not farther away from each other than cutoff
+// get all planes between all possible pairs of atoms
+// which are not farther away from each other than cutoff
 func GetPlanes(atoms *v3.Matrix, mol chem.Atomer, cutoff float64, noHs ...bool) VPSlice {
 	var noH bool //false by default (it's zero-value)
 	if len(noHs) != 0 {

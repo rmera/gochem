@@ -844,20 +844,14 @@ func (err CError) Decorate(dec string) []string {
 	return err.deco
 }
 
-// errDecorate will decorate a chem.Error, or use the message of the error
-// and the name of the called to produce a new chem.Error (if the original error does not
-// implement chem.Error
-func errDecorate(err error, caller string) Error {
+// errDecorate predates the Go "errors" package, so it implemented
+// a way to add informations to errors. It has been now modified to just
+// use the %w directive under the hood.
+func errDecorate(err error, caller string) error {
 	if err == nil {
 		return nil
 	}
-	err2, ok := err.(Error) //I know that is the type returned byt initRead
-	if ok {
-		err2.Decorate(caller)
-		return err2
-	}
-	err3 := CError{err.Error(), []string{caller}}
-	return err3
+	return fmt.Errorf("%s: %w", caller, err)
 }
 
 // PanicMsg is the type used for all the panics raised in the chem package

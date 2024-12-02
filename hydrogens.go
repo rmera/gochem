@@ -29,6 +29,7 @@ package chem
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"os/exec"
 	"strings"
@@ -38,11 +39,11 @@ import (
 	//	"fmt" ///////////
 )
 
-//Reduce uses the Reduce program (Word, et. al. (1999) J. Mol. Biol. 285,
-//1735-1747. For more information see http://kinemage.biochem.duke.edu)
-//To protonate a protein and flip residues. It writes the report from Reduce
-//to a file called Reduce.err in the current dir. The Reduce executable can be given,
-//in "executable", otherwise it will be assumed that it is a file called "reduce" and it is in the PATH.
+// Reduce uses the Reduce program (Word, et. al. (1999) J. Mol. Biol. 285,
+// 1735-1747. For more information see http://kinemage.biochem.duke.edu)
+// To protonate a protein and flip residues. It writes the report from Reduce
+// to a file called Reduce.err in the current dir. The Reduce executable can be given,
+// in "executable", otherwise it will be assumed that it is a file called "reduce" and it is in the PATH.
 func Reduce(mol Atomer, coords *v3.Matrix, build int, report *os.File, executable string) (*Molecule, error) {
 	//runtime.GOMAXPROCS(2) ////////////////////
 	flip := "-NOFLIP"
@@ -109,7 +110,7 @@ func Reduce(mol Atomer, coords *v3.Matrix, build int, report *os.File, executabl
 	for {
 		s, err := bufiopdb.ReadString('\n')
 		if err != nil {
-			return nil, errDecorate(err, "Reduce")
+			return nil, fmt.Errorf("Reduce: %w", err)
 		}
 		reportBuffer = append(reportBuffer, s)
 
@@ -123,7 +124,7 @@ func Reduce(mol Atomer, coords *v3.Matrix, build int, report *os.File, executabl
 
 	mol2, err := pdbBufIORead(bufiopdb, false)
 	if err != nil {
-		return nil, errDecorate(err, "Reduce")
+		return nil, fmt.Errorf("Reduce: %w", err)
 	}
 	out.Close()
 	err = <-stder_ready

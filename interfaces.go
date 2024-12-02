@@ -33,7 +33,7 @@ import v3 "github.com/rmera/gochem/v3"
  * methods. Then one must implements objects for Xtc trajs that are more or less equivalent to molecules and set up an interface so many analyses can be carried out exactly the same from
  * multiPDB or XTC or (eventually) DCD*/
 
-//Traj is an interface for any trajectory object, including a Molecule Object
+// Traj is an interface for any trajectory object, including a Molecule Object
 type Traj interface {
 
 	//Is the trajectory ready to be read?
@@ -47,7 +47,7 @@ type Traj interface {
 	Len() int
 }
 
-//ConcTraj is an interface for a trajectory that can be read concurrently.
+// ConcTraj is an interface for a trajectory that can be read concurrently.
 type ConcTraj interface {
 
 	//Is the trajectory ready to be read?
@@ -63,7 +63,7 @@ type ConcTraj interface {
 	Len() int
 }
 
-//Atomer is the basic interface for a topology.
+// Atomer is the basic interface for a topology.
 type Atomer interface {
 
 	//Atom returns the Atom corresponding to the index i
@@ -74,8 +74,8 @@ type Atomer interface {
 	Len() int
 }
 
-//AtomChargerMultier is atomer but also gives a
-//charge and multiplicity
+// AtomChargerMultier is atomer but also gives a
+// charge and multiplicity
 type AtomMultiCharger interface {
 	Atomer
 
@@ -86,7 +86,7 @@ type AtomMultiCharger interface {
 	Multi() int
 }
 
-//Masser can  return a slice with the masses of each atom in the reference.
+// Masser can  return a slice with the masses of each atom in the reference.
 type Masser interface {
 
 	//Returns a column vector with the massess of all atoms
@@ -95,15 +95,18 @@ type Masser interface {
 
 //Errors
 
-//Error is the interface for errors that all packages in this library implement. The Decorate method allows to add and retrieve info from the
-//error, without changing it's type or wrapping it around something else.
+//This error predates the "wrapping" error system of Go (i.e. the "%w" directive and the errors package). We should avoid
+//using the Decorate method and/or make it use the "%w" directive internally.
+
+// Error is the interface for errors that all packages in this library implement. The Decorate method allows to add and retrieve info from the
+// error, without changing it's type or wrapping it around something else.
 type Error interface {
 	Error() string
 	Decorate(string) []string //This is the new thing for errors. It allows you to add information when you pass it up. Each call also returns the "decoration" slice of strins resulting from the current call. If passed an empty string, it should just return the current value, not add the empty string to the slice.
 	//The decorate slice should contain a list of functions in the calling stack, plus, for each function any relevant information, or nothing. If information is to be added to an element of the slice, it should be in this format: "FunctionName: Extra info"
 }
 
-//TrajError is the nterface for errors in trajectories
+// TrajError is the nterface for errors in trajectories
 type TrajError interface {
 	Error
 	Critical() bool
@@ -111,8 +114,8 @@ type TrajError interface {
 	Format() string
 }
 
-//LastFrameError has a useless function to distinguish the harmless errors (i.e. last frame) so  they can be
-//filtered in a typeswith that looks for this interface.
+// LastFrameError has a useless function to distinguish the harmless errors (i.e. last frame) so  they can be
+// filtered in a typeswith that looks for this interface.
 type LastFrameError interface {
 	TrajError
 	NormalLastFrameTermination() //does nothing, just to separate this interface from other TrajError's

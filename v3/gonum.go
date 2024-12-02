@@ -81,7 +81,7 @@ func NewMatrix(data []float64) (*Matrix, error) {
 	l := len(data)
 	rows := l / cols
 	if l%cols != 0 {
-		return nil, Error{fmt.Sprintf("Input slice lenght %d not divisible by %d: %d", rows, cols, rows%cols), []string{"NewMatrix"}, true}
+		return nil, Error(fmt.Errorf("NewMatrix: Input slice lenght %d not divisible by %d: %d", rows, cols, rows%cols))
 	}
 	r := mat.NewDense(rows, cols, data)
 	return &Matrix{r}, nil
@@ -367,7 +367,7 @@ func EigenWrap(in *Matrix, epsilon float64) (*Matrix, []float64, error) {
 	eigen := new(mat.Eigen)
 	ok := eigen.Factorize(mat.DenseCopyOf(in.Dense), mat.EigenRight) //Not sure if that DenseCopy is still needed.
 	if !ok {
-		return nil, nil, Error{"", []string{"mat.Eigen.Factorize", "EigenWrap"}, true}
+		return nil, nil, Error(fmt.Errorf("error in EigenWrap: mat.Eigen.Factorize"))
 	}
 	evals_cmp := make([]complex128, 3)  //We only deal with 3-column matrixes in this package
 	TempVec := mat.NewCDense(3, 3, nil) /// An allocation. We have to see whether I should try to minimize these. Also, see comment above.
@@ -379,7 +379,7 @@ func EigenWrap(in *Matrix, epsilon float64) (*Matrix, []float64, error) {
 		for j := 0; j < 3; j++ {
 			scalar := TempVec.At(i, j)
 			if imag(scalar) != 0 {
-				return nil, nil, Error{"Found a complex Eigenvector", []string{"mat.Eigen.Factorize", "EigenWrap"}, true}
+				return nil, nil, Error(fmt.Errorf("mat.EigenFactorize: Found a complex Eigenvector"))
 			}
 			evecsprev.Set(i, j, real(scalar))
 		}
@@ -393,7 +393,7 @@ func EigenWrap(in *Matrix, epsilon float64) (*Matrix, []float64, error) {
 	fn := func() { evecs.Copy(evecsprev.T()) }
 	err := mat.Maybe(fn)
 	if err != nil {
-		return nil, nil, Error{err.Error(), []string{"mat.Copy/math.T", "EigenWrap"}, true}
+		return nil, nil, Error(fmt.Errorf("EigenWrap: mat.Copy/math.T"))
 
 	}
 	//evecs.TCopy(evecs.Dense)
@@ -409,7 +409,7 @@ func EigenWrap(in *Matrix, epsilon float64) (*Matrix, []float64, error) {
 			//	vectorj := eig.evecs.VecView(j)
 			if math.Abs(eig.evecs.RowView(i).Dot(eig.evecs.RowView(j))) > epsilon && i != j {
 				fmt.Println("Dot should be", stupidDot(eig.evecs.RowView(i), eig.evecs.RowView(j)))
-				reterr := Error{fmt.Sprintln("Eigenvectors ", i, "and", j, " not orthogonal. v", i, ":", eig.evecs.Dense.RowView(i), "\nv", j, ":", eig.evecs.Dense.RowView(j), "\nDot:", math.Abs(eig.evecs.RowView(i).Dot(eig.evecs.RowView(j))), "eigmatrix:", eig.evecs), []string{"EigenWrap"}, true}
+				reterr := fmt.Errorf("EigenWrap: Eigenvectors %d and %d nor orthogonal: %v %v. Dot: %5.3f. EigMatrix: %v", i, j, eig.evecs.Dense.RowView(i), eig.evecs.Dense.RowView(j), math.Abs(eig.evecs.RowView(i).Dot(eig.evecs.RowView(j))), eig.evecs)
 				return eig.evecs, evals[:], reterr
 			}
 		}
@@ -508,45 +508,7 @@ func dataSwitch(R blas64.General, r, c int) {
 	R.Data[3*c+r] = transposetmp
 }
 
-//Errors
-
-// the same as chem.Error but avoid circular import.
-type errorInt interface {
-	Error() string
-	Critical() bool
-	Decorate(string) []string
-}
-
-// Error is an error on the v3 package. Compatible with goChem
-type Error struct {
-	message  string
-	deco     []string
-	critical bool
-}
-
-// Error returns a string with an error message.
-func (err Error) Error() string {
-	return fmt.Sprintf("%s", err.message)
-}
-
-// Decorate will add the dec string to the decoration slice of strings of the error,
-// and return the resulting slice.
-func (err Error) Decorate(dec string) []string {
-	err.deco = append(err.deco, dec)
-	return err.deco
-}
-
-// Critical return whether the error is critical or it can be ifnored
-func (err Error) Critical() bool { return err.critical }
-
-// errDecorate is a helper function that asserts that the error is
-// implements chem.Error and decorates the error with the caller's name before returning it.
-// if used with a non-chem.Error error, it will cause a panic.
-func errDecorate(err error, caller string) error {
-	err2 := err.(errorInt) //I know that is the type returned byt initRead
-	err2.Decorate(caller)
-	return err2
-}
+type Error error
 
 // PanicMsg is a message used for panics, even though it does satisfy the error interface.
 // for errors use Error.

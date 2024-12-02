@@ -174,9 +174,9 @@ func (F *Matrix) SomeVecsSafe(A *Matrix, clist []int) error {
 		if r := recover(); r != nil {
 			switch e := r.(type) {
 			case PanicMsg:
-				err = Error{fmt.Sprintf("%s: %s", ErrGonum, e), []string{"SomeVecsSafe"}, true}
+				err = fmt.Errorf("SomeVecSafe: %s: %s", ErrGonum, e)
 			case mat.Error:
-				err = Error{fmt.Sprintf("%%goChem/v3: gonum/matrix.Error: %s", e), []string{"SomeVecsSafe"}, true}
+				err = fmt.Errorf("SomeVecsSafe: %s", e)
 			default:
 				panic(r)
 			}
