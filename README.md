@@ -1,3 +1,6 @@
+To the long life of the Ven. Khenpo Phuntsok Tenzin Rinpoche
+
+
 goChem is a library for Computational Chemistry and Biochemistry
 written in the Go programming language. 
 
@@ -20,13 +23,10 @@ See the Wiki por goChem's current capabilities
 (https://github.com/rmera/gochem/wiki)
 
 
-There is no publication on goChem yet. If you use goChem, or 
-or any program based on goChem (such as goMD and goAnalize) 
-before such a publication is available,
-we ask you to support goChem by citing the library in your publication as:
+If you use goChem, or a program based on goChem (such as goMD and goAnalize) 
+we ask you to support the library by citing goChem's paper:
 
-Domínguez, C., Jiménez, V, Savasci, G., Araya-Osorio, R., Pesonen, J., Mera-Adasme, 
-"goChem: A library for computational chemistry". https://www.gochem.org
+Domínguez, M., A. Jiménez, V., Savasci, G., Araya-Osorio, R., Pesonen, J. and Mera-Adasme, R. (2025), goChem: A Composable Library for Multi-Scale Computational Chemistry Data Analysis. J Comput Chem, 46: e70004. https://doi.org/10.1002/jcc.70004
 
 
 Currently, gochem is licensed under LGPL2.1. This might change 
