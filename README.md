@@ -1,8 +1,7 @@
 To the long life of the Ven. Khenpo Phuntsok Tenzin Rinpoche
 
 
-## goChem is a library for Computational Chemistry and Biochemistry
-## written in the Go programming language. 
+## goChem: a Library for Computational Chemistry written in the Go programming language. 
 
 Check out www.gochem.org for more information.
 
