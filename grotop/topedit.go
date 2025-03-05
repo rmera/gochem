@@ -40,11 +40,167 @@ import (
 	"strings"
 )
 
+// Utility functions
+
+func qerr(err error) {
+	if err != nil {
+		panic(err.Error())
+	}
+}
+
+func delcomment(line string) string {
+	if strings.HasPrefix(line, ";") {
+		return ""
+	}
+	return strings.Split(line, ";")[0] //remove comments
+}
+
 // yeah, yeah, it's ugly. If it makes you feel better, it's supposed to be temporary,
 // while I'm still figuring out which commands do I need.
 func runcq(command string, a ...interface{}) {
 	w := exec.Command("sh", "-c", fmt.Sprintf(command, a...))
 	w.Run()
+}
+
+func parseints(s ...string) ([]int, error) {
+	r := make([]int, 0, len(s))
+	for _, v := range s {
+		i, err := strconv.Atoi(v)
+		if err != nil {
+			return nil, err
+		}
+		r = append(r, i)
+	}
+	return r, nil
+}
+
+func parsefloats(s ...string) ([]float64, error) {
+	r := make([]float64, 0, len(s))
+	for _, v := range s {
+		i, err := strconv.ParseFloat(v, 64)
+		if err != nil {
+			return nil, err
+		}
+		r = append(r, i)
+	}
+	return r, nil
+}
+
+type Atom struct {
+	ID      int
+	MolID   int
+	Name    string
+	PDBName string
+	MolName string
+	Charge  float64
+}
+
+func ReadAtom(s string) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("%s", r)
+		}
+	}()
+	A := new(Atom)
+	l := strings.Fields(delcomment(s))
+	A.ID, err = strconv.Atoi(l[0])
+	qerr(err)
+	A.Name = l[1]
+	A.MolID, err = strconv.Atoi(l[2])
+	qerr(err)
+	A.MolName = l[3]
+	A.PDBName = l[4]
+	A.Charge, err = strconv.ParseFloat(l[6], 64)
+	qerr(err)
+	return nil
+}
+
+func (A *Atom) String() string {
+	return fmt.Sprintf("    %5d  %4s %5d  %4s  %4s %5d  %6.4f \n", A.ID, A.Name, A.MolID, A.MolName, A.PDBName, A.ID, A.Charge)
+}
+
+type Term struct {
+	Functype   uint
+	Atoms      []int
+	OneBased   bool
+	K          float64
+	Eq         float64
+	Constraint bool
+	Vsite      bool
+	RB         []float64
+}
+
+func ReadTerm(s string) (T *Term, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("%s", r)
+		}
+	}()
+	T = new(Term)
+	l := strings.Fields(delcomment(s))
+	if len(l) == 11 {
+		// Ryckaert-Bellemans entonces
+		T.Atoms, err = parseints(l[:4]...)
+		qerr(err)
+		T.Functype = 3
+		T.RB, err = parsefloats(l[5:]...)
+		qerr(err)
+		if len(T.RB) != 6 {
+			err = fmt.Errorf("R-B term detected but read %d parameters instead of the 6 expected", len(T.RB))
+			T = nil
+			return
+		}
+		return
+
+	}
+	if len(l) == 3 {
+		//constraints
+		T.Atoms, err = parseints(l[:2]...)
+		T.Constraint = true
+		T.Eq, err = strconv.ParseFloat(l[2], 64) //could be 3 if there is a function type but I don't think there is. Check
+		qerr(err)
+		return
+	}
+	//Gotta add vsite support
+
+	//now the 'regular' cases
+
+	return
+}
+
+func (T *Term) writeAtoms() string {
+	add := 0
+	if !T.OneBased {
+		add++
+	}
+	r := make([]string, 0, len(T.Atoms))
+	for _, v := range T.Atoms {
+		r = append(r, fmt.Sprintf("%4d", v+add))
+	}
+	return strings.Join(r, " ")
+
+}
+
+func (T *Term) String() string {
+	ret := make([]string, 0, 4)
+	ret = append(ret, T.writeAtoms())
+	if T.Vsite {
+		return "" //placeholder
+	}
+	if !T.Constraint {
+		ret = append(ret, fmt.Sprintf("%1d", T.Functype))
+	}
+	ret = append(ret, fmt.Sprintf("%6.4f", T.Eq))
+	if !T.Constraint && len(T.RB) == 0 {
+		ret = append(ret, fmt.Sprintf("%6.4f", T.K))
+	}
+	if len(T.RB) > 0 && len(T.RB) < 6 {
+		panic(fmt.Sprintf("grotop/Term.String: R-B potential must have 6 parameters, got %d", len(T.RB)))
+	}
+	for _, v := range T.RB {
+		ret = append(ret, fmt.Sprintf("%6.4f", v))
+	}
+	return strings.Join(ret, " ")
 }
 
 //The following is to be removed and placed in a separate "utils" module
@@ -85,10 +241,7 @@ func (T *topHeader) Set() {
 }
 
 func (T *topHeader) delcomments(line string) string {
-	if strings.HasPrefix(line, ";") {
-		return ""
-	}
-	return strings.Split(line, ";")[0] //remove comments
+	return delcomment(line)
 }
 
 // Returns true if the line is a Gromacs header. It discards comments.
@@ -122,18 +275,6 @@ func (T *topHeader) Which(line string) string {
 	return ""
 }
 
-func parseints(s ...string) ([]int, error) {
-	r := make([]int, 0, len(s))
-	for _, v := range s {
-		i, err := strconv.Atoi(v)
-		if err != nil {
-			return nil, err
-		}
-		r = append(r, i)
-	}
-	return r, nil
-}
-
 type TermSelect struct {
 	m map[string]func(string) (string, error)
 }
@@ -151,6 +292,11 @@ func NewTermSelect() TermSelect {
 	m["default"] = nil
 	return TermSelect{m: m}
 }
+
+func (T TermSelect) NTerms() int {
+	return len(T.m)
+}
+
 func (T TermSelect) GetErr(s string) (func(string) (string, error), error) {
 	val, ok := T.m[s]
 	if !ok {
@@ -215,22 +361,28 @@ func (T TermSelect) SetMany(headers []string, s []func(string) (string, error)) 
 	return err
 }
 
-// Set all headers to a dummy function
+// Set all headers to a do-nothing function
 func (t TermSelect) SelectAll() {
 	for k, _ := range t.m {
-		t.m[k] = func(string) (string, error) { return "\n", nil }
+		t.m[k] = func(s string) (string, error) { return s, nil }
 	}
 
 }
 
-// Returns all the header that are not assigned nil.
-func (T TermSelect) AllSelected() []string {
+// Returns all the headers sorted. If onlySelected is given and true,
+// only the headers that have associated a non-nil function are returned.
+func (T TermSelect) Headers(onlySelected ...bool) []string {
+	var sel bool
+	if len(onlySelected) > 0 {
+		sel = onlySelected[0]
+	}
 	ret := make([]string, 0, 2)
 	for k, v := range T.m {
-		if v != nil {
+		if !sel || (v != nil) {
 			ret = append(ret, k)
 		}
 	}
+	slices.Sort(ret)
 	return ret
 }
 
@@ -240,6 +392,10 @@ type TopInMem struct {
 	i int
 }
 
+// Returns a new TopInMem, with the topology
+// represented by the given slice of strings (each
+// string must correspond to one line of the file, including
+// the respective '\n'.
 func NewTopInMem(t []string) *TopInMem {
 	return &TopInMem{t: t, i: 0}
 }
@@ -283,11 +439,53 @@ func (t *TopInMem) WriteToFile(name string) error {
 *
 *************************************************/
 
+// Returns the same function that will delete lines that have been already
+// seen in the file. This will use a fair bit of memory as all lines have to be
+// kept in memory for comparison with the next ones.
+func DelRepeatedFunctions(T TermSelect) {
+	lines := make([]string, 0, 200)
+	f := func(s string) (string, error) {
+		if slices.Contains(lines, s) {
+			return "", nil
+		}
+		lines = append(lines, s)
+		return s, nil
+	}
+	fns := make([]func(string) (string, error), T.NTerms())
+	for i, _ := range fns {
+		fns[i] = f
+	}
+	h := T.Headers()
+	T.SetMany(h, fns)
+}
+
+// Returns the same function that will delete lines that are identical to the previous non-repeated
+// line in the file. So, if 2 lines are repeated, but there are lines in between them, the repeated
+// ones will _not_ be deleted. For that, see DelRepeatedFunctions. The reason for adding this function
+// is that it requires less memory.
+func DelDuplicatedFunctions(T TermSelect) {
+	prevline := "2@@$)(/^*9HhL.Goは最高のプログラミング言語です" //just a line that is unlikely to be found in a topology file
+	f := func(s string) (string, error) {
+		if s == prevline {
+			return "", nil
+		}
+		prevline = s
+		return s, nil
+	}
+	fns := make([]func(string) (string, error), T.NTerms())
+	for i, _ := range fns {
+		fns[i] = f
+	}
+	h := T.Headers()
+	T.SetMany(h, fns)
+}
+
 // The terms string must be already formatted in Gromacs format for each term.
-// and given in the alphabetical order of the headers they want to be
-// added to.
+// The slice of slices must contain one slice per header (which can be empty).
+// in the alphabetical order of the headers.
+// and each slice contains a term to be added for that type.
 func AddTermFunctions(T TermSelect, terms2add [][]string) {
-	sel := T.AllSelected()
+	sel := T.Headers(true)
 	slices.Sort(sel)
 	for i, k := range sel {
 		call := 0
@@ -378,7 +576,7 @@ func AddOrDelAtomFunctions(add bool, after, toadd int) TermSelect {
 }
 
 // Merges the '[]' sections of two topologies. The sections in both must be in the same order.
-// doesn't merge #includes, keeping only the ones in the first topology.
+// It adds all
 func MergeTopologies(top1, top2 StringReader, target io.StringWriter) error {
 	header := NewTopHeader()
 	var fl string
@@ -402,6 +600,10 @@ func MergeTopologies(top1, top2 StringReader, target io.StringWriter) error {
 				l2 := ls2[0]
 				if header.Is(l2) && header.Which(l2) == h1 {
 					writing2 = true
+					continue
+				}
+				if strings.HasPrefix(l2, "#") {
+					target.WriteString(fl2)
 					continue
 				}
 				if next_header2 == h1 || writing2 {
