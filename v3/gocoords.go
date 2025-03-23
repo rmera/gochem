@@ -149,8 +149,8 @@ func (F *Matrix) SetVecs(A *Matrix, clist []int) {
 	}
 }
 
-// SomeVecs Returns a matrix contaning a copy of the ith rows of matrix A,
-// where i are the numbers in clist. The rows are in the same order
+// SomeVecs  puts in the receiver copy of the ith rows of matrix A,
+// where i-s are the numbers in clist. The rows are in the same order
 // than the clist. The numbers in clist must be positive or zero.
 func (F *Matrix) SomeVecs(A *Matrix, clist []int) {
 	ar, ac := A.Dims()
@@ -165,9 +165,10 @@ func (F *Matrix) SomeVecs(A *Matrix, clist []int) {
 	}
 }
 
-// SomeVecsSafe returns a matrix contaning all the ith vectors of matrix A,
-// where i are the numbers in clist. The vectors are in the same order
-// than the clist. It will try to recover so it returns an error instead of panicking.
+// SomeVecsSafe puts in the receiver  a copy of the ith vectors of matrix A,
+// where i-s are the numbers in clist. The vectors are in the same order
+// than the clist. It will return on error in case of most problems, but it
+// could panic in corner cases.
 func (F *Matrix) SomeVecsSafe(A *Matrix, clist []int) error {
 	var err error
 	defer func() {
