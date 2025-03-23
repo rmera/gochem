@@ -29,6 +29,7 @@ Set of functions to automate some simple editing of top files
 package gro
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"io"
@@ -130,7 +131,7 @@ type Term struct {
 	RB         []float64
 }
 
-func ReadTerm(s string) (T *Term, err error) {
+func ReadTerm(s, header string) (T *Term, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("%s", r)
@@ -138,28 +139,31 @@ func ReadTerm(s string) (T *Term, err error) {
 	}()
 	T = new(Term)
 	l := strings.Fields(delcomment(s))
-	if len(l) == 11 {
-		// Ryckaert-Bellemans entonces
-		T.Atoms, err = parseints(l[:4]...)
-		qerr(err)
-		T.Functype = 3
-		T.RB, err = parsefloats(l[5:]...)
-		qerr(err)
-		if len(T.RB) != 6 {
-			err = fmt.Errorf("R-B term detected but read %d parameters instead of the 6 expected", len(T.RB))
-			T = nil
+	switch header {
+	case "dihedrals":
+		if len(l) == 11 {
+			// Ryckaert-Bellemans entonces
+			T.Atoms, err = parseints(l[:4]...)
+			qerr(err)
+			T.Functype = 3
+			T.RB, err = parsefloats(l[5:]...)
+			qerr(err)
+			if len(T.RB) != 6 {
+				err = fmt.Errorf("R-B term detected but read %d parameters instead of the 6 expected", len(T.RB))
+				T = nil
+				return
+			}
 			return
-		}
-		return
 
-	}
-	if len(l) == 3 {
+		}
+	case "constraints":
 		//constraints
 		T.Atoms, err = parseints(l[:2]...)
 		T.Constraint = true
 		T.Eq, err = strconv.ParseFloat(l[2], 64) //could be 3 if there is a function type but I don't think there is. Check
 		qerr(err)
 		return
+
 	}
 	//Gotta add vsite support
 
@@ -224,17 +228,18 @@ func (T *topHeader) Set() {
 	T.wany = regexp.MustCompile(`\[\p{Zs}*.*\p{Zs}*\]`)
 	T.vsitesany = regexp.MustCompile(`\[\p{Zs}*virtual_sites[01234n]?\p{Zs}*\]`)
 	T.spec = map[string]*regexp.Regexp{
-		"atoms":       regexp.MustCompile(`\[\p{Zs}*atoms\p{Zs}*\]`),
-		"constraints": regexp.MustCompile(`\[\p{Zs}*constraints\p{Zs}*\]`),
-		"bonds":       regexp.MustCompile(`\[\p{Zs}*bonds\p{Zs}*\]`),
-		"angles":      regexp.MustCompile(`\[\p{Zs}*angles\p{Zs}*\]`),
-		"vsites1":     regexp.MustCompile(`\[\p{Zs}*virtual_sites1\p{Zs}*\]`),
-		"vsites2":     regexp.MustCompile(`\[\p{Zs}*virtual_sites2\p{Zs}*\]`),
-		"vsites3":     regexp.MustCompile(`\[\p{Zs}*virtual_sites3\p{Zs}*\]`),
-		"vsitesn":     regexp.MustCompile(`\[\p{Zs}*virtual_sitesn\p{Zs}*\]`),
-		"exclusions":  regexp.MustCompile(`\[\p{Zs}*exclusions\p{Zs}*\]`),
-		"molecules":   regexp.MustCompile(`\[\p{Zs}*molecules\p{Zs}*\]`),
-		"dihedrals":   regexp.MustCompile(`\[\p{Zs}*dihedrals\p{Zs}*\]`),
+		"atoms":        regexp.MustCompile(`\[\p{Zs}*atoms\p{Zs}*\]`),
+		"constraints":  regexp.MustCompile(`\[\p{Zs}*constraints\p{Zs}*\]`),
+		"bonds":        regexp.MustCompile(`\[\p{Zs}*bonds\p{Zs}*\]`),
+		"angles":       regexp.MustCompile(`\[\p{Zs}*angles\p{Zs}*\]`),
+		"vsites1":      regexp.MustCompile(`\[\p{Zs}*virtual_sites1\p{Zs}*\]`),
+		"vsites2":      regexp.MustCompile(`\[\p{Zs}*virtual_sites2\p{Zs}*\]`),
+		"vsites3":      regexp.MustCompile(`\[\p{Zs}*virtual_sites3\p{Zs}*\]`),
+		"vsitesn":      regexp.MustCompile(`\[\p{Zs}*virtual_sitesn\p{Zs}*\]`),
+		"exclusions":   regexp.MustCompile(`\[\p{Zs}*exclusions\p{Zs}*\]`),
+		"molecules":    regexp.MustCompile(`\[\p{Zs}*molecules\p{Zs}*\]`),
+		"dihedrals":    regexp.MustCompile(`\[\p{Zs}*dihedrals\p{Zs}*\]`),
+		"moleculetype": regexp.MustCompile(`\[\p{Zs}moleculetype\p{Zs}*\]`),
 	}
 	T.set = true
 
@@ -297,18 +302,34 @@ func (T TermSelect) NTerms() int {
 	return len(T.m)
 }
 
-func (T TermSelect) GetErr(s string) (func(string) (string, error), error) {
-	val, ok := T.m[s]
+func (T TermSelect) GetErr(header string) (func(string) (string, error), error) {
+	val, ok := T.m[header]
 	if !ok {
-		return nil, fmt.Errorf("TermSelect.Get: Attempted to get unsuported value: %s", s)
+		return nil, fmt.Errorf("TermSelect.Get: Attempted to get unsuported value: %s", header)
+	}
+	if val == nil {
+		return val, fmt.Errorf("Warning: Function set to nil")
 	}
 
 	return val, nil
 }
-func (T TermSelect) Get(s string) func(string) (string, error) {
-	val, ok := T.m[s]
+
+// gets the function set to a header. Panics if the heeader is not present
+func (T TermSelect) Get(header string) func(string) (string, error) {
+	val, ok := T.m[header]
 	if !ok {
-		panic(fmt.Sprintf("grotop/TermSelect/MustGet: Attempted to get unsuported value: %s", s))
+		panic(fmt.Sprintf("grotop/TermSelect/MustGet: Attempted to get unsuported header: %s", header))
+	}
+	return val
+}
+
+func (T TermSelect) GetOrDefault(header string) func(string) (string, error) {
+	val, ok := T.m[header]
+	if !ok {
+		panic(fmt.Sprintf("grotop/TermSelect/MustGet: Attempted to get unsuported header: %s", header))
+	}
+	if val == nil {
+		return func(s string) (string, error) { return s, nil }
 	}
 	return val
 }
@@ -361,10 +382,16 @@ func (T TermSelect) SetMany(headers []string, s []func(string) (string, error)) 
 	return err
 }
 
-// Set all headers to a do-nothing function
-func (t TermSelect) SelectAll() {
+// Set all headers to a do-nothing function. Only the first given functionw
+// will be used to set all headers. If nothing is given, a 'do nothing' function
+// which returns the same string given, will be used.
+func (t TermSelect) SetAll(f ...func(string) (string, error)) {
+	fu := func(s string) (string, error) { return s, nil }
+	if len(f) > 0 && f[0] != nil {
+		fu = f[0]
+	}
 	for k, _ := range t.m {
-		t.m[k] = func(s string) (string, error) { return s, nil }
+		t.m[k] = fu
 	}
 
 }
@@ -400,6 +427,44 @@ func NewTopInMem(t []string) *TopInMem {
 	return &TopInMem{t: t, i: 0}
 }
 
+func TopInMemFromFile(fname string) (*TopInMem, error) {
+	T := new(TopInMem)
+	T.t = make([]string, 0, 10)
+	f, err := os.Open(fname)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	re := bufio.NewReader(f)
+	var l string
+	for l, err = re.ReadString('\n'); err == nil; l, err = re.ReadString('\n') {
+		ll := strings.TrimSuffix(l, "\n")
+		T.t = append(T.t, ll)
+	}
+	if err != nil && errors.Is(err, io.EOF) {
+		err = nil
+	}
+	//	fmt.Println(T.t) ////////////////////////////////////
+	return T, err
+}
+
+// Returns a deep copy of the topology
+func (t *TopInMem) Copy() *TopInMem {
+	s := make([]string, len(t.t))
+	copy(s, t.t)
+	return NewTopInMem(s)
+}
+
+// Resets the reader to start from the first line
+func (t *TopInMem) Reset() {
+	t.i = 0
+}
+
+// Resets the reader to start from the first line
+func (t *TopInMem) Len() int {
+	return len(t.t)
+}
+
 // Adds a string to the topology
 func (t *TopInMem) WriteString(s string) (int, error) {
 	t.t = append(t.t, s)
@@ -407,10 +472,15 @@ func (t *TopInMem) WriteString(s string) (int, error) {
 
 }
 
+// Replaces the last-read string in the topology for s
+func (t *TopInMem) ReplaceString(s string) {
+	t.t[t.i-1] = s
+}
+
 // Returns the next line in the topology. Note that the byte argument is
 // not used, you can't choose how much you want to read, it's always the
 // full next line (unlike in the bufio.Reader ReadString method).
-func (t *TopInMem) Readstring(byte) (string, error) {
+func (t *TopInMem) ReadString(byte) (string, error) {
 	if t.i >= len(t.t) {
 		t.i = 0 //you can re-start reading it.
 		return "", io.EOF
@@ -425,7 +495,7 @@ func (t *TopInMem) WriteToFile(name string) error {
 		return fmt.Errorf("grotop/TopInMem.WriteToFile: %w", err)
 	}
 	for i, v := range t.t {
-		_, err = f.WriteString(v)
+		_, err = f.WriteString(v + "\n")
 		if err != nil {
 			return fmt.Errorf("grotop/TopInMem.WriteToFile: Couldn't write %d-th line to file: %w", i+1, err)
 		}
@@ -433,217 +503,48 @@ func (t *TopInMem) WriteToFile(name string) error {
 	return nil
 }
 
-/************************************************
-*
-*      The actual utility functions
-*
-*************************************************/
-
-// Returns the same function that will delete lines that have been already
-// seen in the file. This will use a fair bit of memory as all lines have to be
-// kept in memory for comparison with the next ones.
-func DelRepeatedFunctions(T TermSelect) {
-	lines := make([]string, 0, 200)
-	f := func(s string) (string, error) {
-		if slices.Contains(lines, s) {
-			return "", nil
-		}
-		lines = append(lines, s)
-		return s, nil
-	}
-	fns := make([]func(string) (string, error), T.NTerms())
-	for i, _ := range fns {
-		fns[i] = f
-	}
-	h := T.Headers()
-	T.SetMany(h, fns)
-}
-
-// Returns the same function that will delete lines that are identical to the previous non-repeated
-// line in the file. So, if 2 lines are repeated, but there are lines in between them, the repeated
-// ones will _not_ be deleted. For that, see DelRepeatedFunctions. The reason for adding this function
-// is that it requires less memory.
-func DelDuplicatedFunctions(T TermSelect) {
-	prevline := "2@@$)(/^*9HhL.Goは最高のプログラミング言語です" //just a line that is unlikely to be found in a topology file
-	f := func(s string) (string, error) {
-		if s == prevline {
-			return "", nil
-		}
-		prevline = s
-		return s, nil
-	}
-	fns := make([]func(string) (string, error), T.NTerms())
-	for i, _ := range fns {
-		fns[i] = f
-	}
-	h := T.Headers()
-	T.SetMany(h, fns)
-}
-
-// The terms string must be already formatted in Gromacs format for each term.
-// The slice of slices must contain one slice per header (which can be empty).
-// in the alphabetical order of the headers.
-// and each slice contains a term to be added for that type.
-func AddTermFunctions(T TermSelect, terms2add [][]string) {
-	sel := T.Headers(true)
-	slices.Sort(sel)
-	for i, k := range sel {
-		call := 0
-		T.m[k] = func(string) (string, error) {
-			if call == 0 {
-				call++ //I _think_ each 'version' of the variable call will be 'closured' in each function
-				//so each function will only work once.
-				//I admit it's not very efficient, but I find it way clearer than dealing with it at
-				//the function applier level.
-				return strings.Join(terms2add[i], ""), nil
-			}
-			return "", nil
-		}
-	}
-}
-
-// Returns a set of functions that will add (if add is true) or subtract toadd to every atom index greater
-// than after, in lines belonging to supported records of an itp file (as of now: atoms, bonds, constraints, angles, dihedrals,
-// exclusions, virtual_sitesn
-func AddOrDelAtomFunctions(add bool, after, toadd int) TermSelect {
-	fi := strings.Fields
-	sf := fmt.Sprintf
-	//	rep := strings.Replace
-	change := func(i int) int {
-		if add {
-			return i + toadd
-		} else {
-			return i - toadd
-		}
-	}
-	T := NewTermSelect()
-	donothing := func(s string) (string, error) { return s, nil }
-
-	adder := func(atoms int) func(s string) (string, error) {
-		return func(s string) (string, error) {
-			st := fi(s)
-			if atoms <= 0 || atoms > len(st) {
-				atoms = len(st) //all fields are atoms
-			}
-			///		fmt.Println(len(st), atoms, st, s) ////////////////////////////////
-			ats, err := parseints(st[:atoms]...)
-			if err != nil {
-				return "", fmt.Errorf("Can't parse numbers in line %s %w", s, err)
-			}
-			for i, v := range ats {
-				if v <= after {
-					continue
-				}
-				at2 := change(v)
-				st[i] = sf("%3d", at2)
-			}
-			return strings.Join(st, " "), nil
-		}
-	}
-
-	vsitesn := func(s string) (string, error) {
-		st := fi(s)
-		ats, err := parseints(st...)
-		if err != nil {
-			return "", fmt.Errorf("Can't parse numbers in line %s %w", s, err)
-		}
-		if ats[0] > after {
-			at2 := change(ats[0])
-			st[0] = sf("%3d", at2)
-
-		}
-		for i, v := range ats[2:] {
-			if v <= after {
+// Removes unneeded whitelines (including lines containing only a ';') from t.
+// it allocates a new []string of the same size as the original to do the change
+// so not very memory efficient.
+func (t *TopInMem) Clean() {
+	newt := make([]string, 0, len(t.t))
+	header := NewTopHeader() //will probably move thise to the structure
+	//so it's not re-created every time you call this function.
+	for i, v := range t.t {
+		if strings.Trim(v, "\t; \n") == "" { //if the string is nothing but white spaces and linejumps
+			if i < len(t.t)-1 && !header.Is(t.t[i+1]) {
 				continue
 			}
-			at2 := change(v)
-			st[i+2] = sf("%3d", at2)
 		}
-		return strings.Join(st, " "), nil
+		newt = append(newt, v)
 	}
-
-	T.Set("atoms", adder(1))
-	T.Set("bonds", adder(2))
-	T.Set("angles", adder(3))
-	T.Set("constraints", T.Get("bonds"))
-	T.Set("dihedrals", adder(4))
-	T.Set("exclusions", adder(-1))
-	T.Set("vsitesn", vsitesn)
-	T.Set("nonskiplines", donothing)
-	T.Set("default", donothing)
-
-	return T
-}
-
-// Merges the '[]' sections of two topologies. The sections in both must be in the same order.
-// It adds all
-func MergeTopologies(top1, top2 StringReader, target io.StringWriter) error {
-	header := NewTopHeader()
-	var fl string
-	var err error
-	for fl, err = top1.ReadString('\n'); err == nil; fl, err = top1.ReadString('\n') {
-		writing2 := false
-		ls := strings.Split(fl, ";") //remove comments
-		l := ls[0]
-		target.WriteString(fl)
-		//every time we reach a header in top1, we start looking for the header in top2
-		//if we reach a header, or we have previously reached a header (next_header),
-		//and it's the same we read in top2, then we start inserting
-		//whatever is in top2 after that header, until we encounter the next header.
-		next_header2 := ""
-		if header.Is(l) {
-			h1 := header.Which(l)
-			var err2 error
-			var fl2 string
-			for fl2, err2 = top2.ReadString('\n'); err2 == nil; fl, err2 = top2.ReadString('\n') {
-				ls2 := strings.Split(fl2, ";") //remove comments
-				l2 := ls2[0]
-				if header.Is(l2) && header.Which(l2) == h1 {
-					writing2 = true
-					continue
-				}
-				if strings.HasPrefix(l2, "#") {
-					target.WriteString(fl2)
-					continue
-				}
-				if next_header2 == h1 || writing2 {
-					if header.Is(l2) {
-						next_header2 = header.Which(l2)
-						writing2 = false
-						break
-					}
-					target.WriteString(fl2)
-				}
-			}
-			if !errors.Is(err2, io.EOF) {
-				return err2
-			}
-		}
-	}
-	if !errors.Is(err, io.EOF) {
-		return err
-	}
-	return nil
+	t.t = newt
 }
 
 type StringReader interface {
 	ReadString(byte) (string, error)
 }
+type StringReplacer interface {
+	ReplaceString(string)
+}
+type StringReaderReplacer interface {
+	StringReader
+	StringReplacer
+}
 
 // Transforms each supported section of an Gromacs itp/top file with corresponding function in the
-// given map. Writes the modified trajectory to a StringWriter, and returns an error or nil.
-func FuncApplier(top StringReader, target io.StringWriter, T TermSelect) error {
+// given TermSelect. Writes the modified trajectory to a StringWriter, and returns an error or nil.
+// if a function in the TermSelect map is nil, FuncApplier will apply a 'do nothing' function, that
+// returns the same string given, instead.
+func FuncApplier(top StringReaderReplacer, T TermSelect) error {
 	header := NewTopHeader()
-	currentfunc := T.Get("default")
+	currentfunc := T.GetOrDefault("default")
 	currentheader := ""
 	var fl string
 	var err error
 	for fl, err = top.ReadString('\n'); err == nil; fl, err = top.ReadString('\n') {
 		if strings.HasPrefix(fl, ";") {
-			_, err = target.WriteString(fl)
-			if err != nil {
-				return err
-			}
+			top.ReplaceString(fl)
 			continue
 		}
 		ls := strings.Split(fl, ";") //remove comments
@@ -654,19 +555,15 @@ func FuncApplier(top StringReader, target io.StringWriter, T TermSelect) error {
 			//	co = strings.Replace(co, "\n", "", 1)
 		}
 		if len(strings.Fields(l)) == 0 {
-			li, err := T.Get("nonskiplines")(l)
+			li, err := T.GetOrDefault("nonskiplines")(l)
 			if err != nil {
 				return err
 			}
-			_, err = target.WriteString(li + co)
-			if err != nil {
-				return err
-			}
-
+			top.ReplaceString(li + co)
 			continue
 		}
 		if strings.Contains(l, "#") {
-			_, err = target.WriteString(l + co)
+			top.ReplaceString(l + co)
 			if err != nil {
 				return err
 			}
@@ -681,26 +578,18 @@ func FuncApplier(top StringReader, target io.StringWriter, T TermSelect) error {
 				//return "", fmt.Errorf("couldn't find function %s in map", l)
 			}
 
-			_, err = target.WriteString(l + co)
-			if err != nil {
-				return err
-			}
-
+			top.ReplaceString(l + co)
 			continue
 		}
 		li, err := currentfunc(l)
 		if err != nil {
 			return fmt.Errorf("Problem with header %s: %w", currentheader, err)
 		}
-		_, err = target.WriteString(li + co)
-		if err != nil {
-			return err
-		}
+		top.ReplaceString(li + co)
 
 	}
 	if errors.Is(err, io.EOF) {
 		err = nil
 	}
 	return nil
-
 }
