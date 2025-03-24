@@ -462,14 +462,10 @@ func NewMolecule(coords []*v3.Matrix, ats Atomer, bfactors [][]float64) (*Molecu
 func (M *Molecule) DelCoord(i int) error {
 	//note: Maybe this shouldn't be exported. Unexporting it could be a reasonable API change.
 	r, _ := M.Coords[0].Dims()
-	var err error
 	for j := 0; j < len(M.Coords); j++ {
 		tmp := v3.Zeros(r - 1)
 		tmp.DelVec(M.Coords[j], i)
 		M.Coords[j] = tmp
-		if err != nil {
-			return err
-		}
 	}
 	return nil
 }
@@ -691,7 +687,7 @@ func (M *Molecule) Less(i, j int) bool {
 // It returns false otherwise.
 // The coordinates could still be empty
 func (M *Molecule) Readable() bool {
-	if M != nil || M.Coords != nil || M.current < len(M.Coords) {
+	if M != nil && M.Coords != nil && M.current < len(M.Coords) {
 
 		return true
 	}
