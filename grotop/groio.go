@@ -8,7 +8,19 @@ import (
 	chem "github.com/rmera/gochem"
 )
 
-func GroTopAtom2Atom(s string, mol chem.Atomer, index ...int) (err error) {
+// Returns a string without gromacs comments (sequences starting with ';'),
+// trailing and leading spaces, tabs and newlines
+func cleanString(s string) string {
+	f := strings.Split(s, ";")[0]
+	return strings.Trim(f, "\n\t ")
+
+}
+
+// Adds the data in the gromacs-topology atom-section string to the atom with index index[0] in the
+// molecule in ff. IF index is not given, the function will search the molecule to add the data to the
+// atom that matches the ID on the topology string.
+func (F *FF) GroTopAtom2Atom(s string, index ...int) (err error) {
+	s = cleanString(s)
 	var at *chem.Atom
 	defer func() {
 		if r := recover(); r != nil {
@@ -21,11 +33,11 @@ func GroTopAtom2Atom(s string, mol chem.Atomer, index ...int) (err error) {
 	}
 	l := fi(s)
 	ID, err := strconv.Atoi(l[0])
-	if ix > 0 && mol.Atom(ix).ID == ID {
-		at = mol.Atom(ix)
+	if ix > 0 && F.Mol.Atom(ix).ID == ID {
+		at = F.Mol.Atom(ix)
 	} else {
-		for i := 0; i < mol.Len(); i++ {
-			a := mol.Atom(i)
+		for i := 0; i < F.Mol.Len(); i++ {
+			a := F.Mol.Atom(i)
 			if a.ID == ID {
 				at = a
 			}
@@ -46,11 +58,14 @@ func GroTopAtom2Atom(s string, mol chem.Atomer, index ...int) (err error) {
 	return nil
 }
 
-func Atom2GroTop(mol chem.Atomer, i int) string {
-	A := mol.Atom(i)
+// Writes the ith (0-based) atom in the FF molecule to a Gromacs sopology line
+func (F *FF) Atom2GroTop(i int) string {
+	A := F.Mol.Atom(i)
 	return fmt.Sprintf("    %5d  %4s %5d  %4s  %4s %5d  %6.4f \n", A.ID, A.Symbol, A.MolID, A.MolName, A.Name, A.ID, A.Charge)
 }
 
+// Returns a term containing the information in the GromacsTop-formatted string s,
+// given that the string is part of the header header.
 func TermFromGroTop(s, header string) (T *Term, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -58,7 +73,7 @@ func TermFromGroTop(s, header string) (T *Term, err error) {
 		}
 	}()
 	T = new(Term)
-	l := strings.Fields(delcomment(s))
+	l := strings.Fields(cleanString(s))
 	switch header {
 	case "dihedrals":
 		if len(l) == 11 {
@@ -102,6 +117,7 @@ func (T *Term) writeAtoms() string {
 
 }
 
+// Writes the term to a string in Gromacs top format.
 func (T *Term) ToGroTop() string {
 	ret := make([]string, 0, 4)
 	ret = append(ret, T.writeAtoms())
@@ -122,4 +138,95 @@ func (T *Term) ToGroTop() string {
 		ret = append(ret, fmt.Sprintf("%6.4f", v))
 	}
 	return strings.Join(ret, " ")
+}
+
+// Returns a *VSite witht he information in
+// the string s containing a virtual_sitesn line
+func VSitesNFromGroTop(s string) (vsit *VSite, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("%s", r)
+		}
+	}()
+	vsit = new(VSite)
+	f := strings.Fields(cleanString(s))
+	id, err := strconv.Atoi(f[0])
+	qerr(err)
+	typ, err := strconv.Atoi(f[1])
+	qerr(err)
+	if id < 0 || typ < 0 {
+		return nil, fmt.Errorf("ill-formatted vsiten string: %s", s)
+	}
+	vsit.ID = id
+	vsit.FuncType = typ
+	vsit.N = 0 //marks a vsitesn
+	var ids []int
+	if typ != 3 {
+		ids = make([]int, 0, len(f[2:]))
+		for i, v := range f[2:] {
+			if i >= typ {
+				break //we don't try to read too many atoms
+			}
+			num, err := strconv.Atoi(v)
+			if err != nil && num < 0 {
+				return nil, fmt.Errorf("ill-formatted vsiten string: %s Error: %w", s, err)
+			}
+			ids = append(ids, num)
+		}
+	} else {
+		terms := len(f[2:])
+		if terms%2 != 0 {
+			return nil, fmt.Errorf("ill-formatted vsiten string for site with weights: %s Error: %w", s, err)
+		}
+		ws := make([]float64, 0, len(f[2:])/2)
+		for i := 0; i < (terms - 1); i++ {
+			num, err := strconv.Atoi(f[2+i])
+			if err != nil && num < 0 {
+				return nil, fmt.Errorf("ill-formatted vsiten string: %s Error: %w", s, err)
+			}
+			weight, err := strconv.ParseFloat(f[3+i], 64)
+			if err != nil && num < 0 {
+				return nil, fmt.Errorf("ill-formatted vsiten string: %s Error: %w", s, err)
+			}
+			ids = append(ids, num)
+			ws = append(ws, weight)
+		}
+		vsit.Factors = ws
+	}
+	vsit.Atoms = ids
+	return vsit, err
+}
+
+// Returns a Gromacstop-formatted virtual_siteX string with the information in the receiver
+// 'X' depends on the information in the receiver (the field 'N').
+func (V *VSite) ToGro() (string, error) {
+	ret := make([]string, 0, 4)
+	ret = append(ret, sf("%5d", V.ID))
+	ret = append(ret, sf("%2d", V.FuncType))
+	if V.N == 0 { //vsites_n
+		if V.FuncType == 3 && len(V.Factors) != len(V.Atoms) {
+			return "", fmt.Errorf("virtual_site n with weights detected, but weights don't mach atoms")
+		}
+		for i, v := range V.Atoms {
+			if V.FuncType == 3 {
+				ret = append(ret, sf("%5d %5.3f", v, V.Factors[i])) //each couple is an atom and a weight
+			} else {
+				ret = append(ret, sf("%5d", v)) //each couple is an atom and a weight
+			}
+		}
+	} else {
+		for _, v := range V.Atoms {
+			ret = append(ret, sf("%5d", v)) //each couple is an atom and a weight
+		}
+		//NOTE:Right now I'm assuming factors are just in Gromacs units, which
+		//is not consistent with 'regular' goChem units.
+		//Support for vsites other than 'n' is not quite there yet.
+		for _, v := range V.Factors {
+			ret = append(ret, sf("%5.3f", v)) //each couple is an atom and a weight
+		}
+
+	}
+	ret = append(ret, "\n")
+	return strings.Join(ret, " "), nil //I'm not sure about the separator. Just "" could be enough.
+
 }

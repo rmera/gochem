@@ -6,8 +6,12 @@ import (
 	chem "github.com/rmera/gochem"
 )
 
-func sigmaepsilon2c6c2(sigma, epsilon float64) (c6 float64, c12 float64) {
-	return 4 * sigma * math.Pow(epsilon, 6), sigma * 4 * (math.Pow(epsilon, 12))
+func sigmaepsilonToc6c2(sigma, e float64) (c6 float64, c12 float64) {
+	return 4 * e * math.Pow(sigma, 6), e * 4 * (math.Pow(sigma, 12))
+}
+
+func c6c12ToSigmaepsilon(c6, c12 float64) (sigma float64, epsilon float64) {
+	return math.Pow(c6/c12, (1 / 6)), math.Pow(c6, 2) / (4 * c12)
 }
 
 type FF struct {
@@ -22,23 +26,27 @@ type FF struct {
 }
 
 type AtomType struct {
-	Sigma   float64
-	Epsilon float64
-	C6      float64
-	C12     float64
-	AtNum   int
-	Mass    float64
-	Charge  float64
-	Ptype   string
+	C6     float64
+	C12    float64
+	AtNum  int
+	Mass   float64
+	Charge float64
+	Ptype  string
 }
 
 type LJPair struct {
-	IDs     []int
-	Names   []string
-	Sigma   float64
-	Epsilon float64
-	C6      float64
-	C12     float64
+	IDs   []int
+	Names []string
+	C6    float64
+	C12   float64
+}
+
+type VSite struct {
+	ID       int
+	N        int //0 for virtual_sistesn
+	FuncType int
+	Atoms    []int
+	Factors  []float64
 }
 
 type Term struct {

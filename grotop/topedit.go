@@ -49,13 +49,6 @@ func qerr(err error) {
 	}
 }
 
-func delcomment(line string) string {
-	if strings.HasPrefix(line, ";") {
-		return ""
-	}
-	return strings.Split(line, ";")[0] //remove comments
-}
-
 // yeah, yeah, it's ugly. If it makes you feel better, it's supposed to be temporary,
 // while I'm still figuring out which commands do I need.
 func runcq(command string, a ...interface{}) {
@@ -135,7 +128,7 @@ func (T *topHeader) Set() {
 }
 
 func (T *topHeader) delcomments(line string) string {
-	return delcomment(line)
+	return cleanString(line)
 }
 
 // Returns true if the line is a Gromacs header. It discards comments.
