@@ -122,6 +122,9 @@ func (T *topHeader) Set() {
 		"molecules":    regexp.MustCompile(`\[\p{Zs}*molecules\p{Zs}*\]`),
 		"dihedrals":    regexp.MustCompile(`\[\p{Zs}*dihedrals\p{Zs}*\]`),
 		"moleculetype": regexp.MustCompile(`\[\p{Zs}moleculetype\p{Zs}*\]`),
+		"atomtypes":    regexp.MustCompile(`\[\p{Zs}moleculetype\p{Zs}*\]`),
+		"nonbond":      regexp.MustCompile(`\[\p{Zs}nonbond_params\p{Zs}*\]`),
+		"defaults":     regexp.MustCompile(`\[\p{Zs}*defaults\p{Zs}*\]`),
 	}
 	T.set = true
 

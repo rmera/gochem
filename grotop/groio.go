@@ -1,12 +1,118 @@
 package gro
 
 import (
+	"bufio"
+	"errors"
 	"fmt"
+	"io"
+	"os"
 	"strconv"
 	"strings"
 
 	chem "github.com/rmera/gochem"
 )
+
+//The high-level functions
+
+// FillFF will fill the receiver with data from the given StringReader which must be
+// in Gromacs itp/top format. If non bonded (Lennard-Jones) terms are present it
+// will interpret them as sigma/epsilon if sigmaep is true, as C6/C12 otherwise
+// if followIncludes values are given, the first one will determine whether #include
+// statements will trigger opening and reading the included file(s).
+// NOTE: Many Gromacs headers are supported, but not all. Notably, virtual_sitesX
+// headers, where X is between 1-4 are currently _not_ supported.
+// Only the generic virtual_sitesn are.
+func (F *FF) FillFF(r StringReader, sigmaep bool, followIncludes ...bool) error {
+	follow := false
+	if len(followIncludes) > 0 {
+		follow = followIncludes[0]
+	}
+	var err error
+	var s string
+	h := NewTopHeader()
+	if F.Mol == nil {
+		return fmt.Errorf("Can't read topology if no molecule is loaded on the FF object")
+	}
+	for s, err = r.ReadString('\n'); err == nil; s, err = r.ReadString('\n') {
+		s = cleanString(s)
+		//This should allow us to 'follow' include files. Probably a risky thing to use.
+		if strings.Contains(s, "#include") && follow {
+			f := fi(s)
+			fname := strings.Trim(f[len(f)-1], "\"'")
+			file, err := os.Open(fname)
+			if err != nil {
+				return fmt.Errorf("Failed to include file: %s. Error: %w", file, err)
+			}
+			defer file.Close()
+			reader := bufio.NewReader(file)
+			err = F.FillFF(reader, sigmaep, follow)
+			if err != nil {
+				return fmt.Errorf("Failed to include file: %s. Error: %w", file, err)
+			}
+			continue
+		}
+		if h.Is(s) {
+			F.currentHeader = h.Which(s)
+			continue
+		}
+		var T *Term
+		var vs *VSite
+		var att *AtomType
+		var LJ *LJPair
+
+		switch F.currentHeader {
+
+		case "atoms":
+			err = F.AtomDataFromGro(s)
+		case "bonds":
+			T, err = TermFromGro(s, F.currentHeader)
+			F.Bonds = append(F.Bonds, T)
+		case "constraints":
+			T, err = TermFromGro(s, F.currentHeader)
+			F.Constraints = append(F.Constraints, T)
+		case "angles":
+			T, err = TermFromGro(s, F.currentHeader)
+			F.Angles = append(F.Angles, T)
+		case "impropers":
+			T, err = TermFromGro(s, F.currentHeader)
+			F.Impropers = append(F.Impropers, T)
+		case "dihedrals":
+			T, err = TermFromGro(s, F.currentHeader)
+			F.Dihedrals = append(F.Dihedrals, T)
+		//note that I don't support other vsites right now.
+		case "vsitesn":
+			vs, err = VSitesNFromGro(s)
+			F.VSites = append(F.VSites, vs)
+		case "exclusions":
+			err = F.ExclusionsFromGro(s)
+		case "atomtypes":
+			att, err = AtomTypeFromGro(s, sigmaep)
+			F.ATypes = append(F.ATypes, att)
+		case "nonbond":
+			LJ, err = LJPairFromGro(s, sigmaep)
+			F.LJ = append(F.LJ, LJ)
+		case "defaults":
+			f := fi(s)
+			if f[0] == "1" && f[1] == "2" {
+				sigmaep = true
+			} else {
+				sigmaep = false
+			}
+		default:
+			continue
+
+		}
+
+		if err != nil {
+			return fmt.Errorf("Couldn't read header %s. Line: %s. Error: %w", F.currentHeader, s, err)
+		}
+
+	}
+	if errors.Is(err, io.EOF) {
+		err = nil
+	}
+	return err
+}
 
 // Returns a string without gromacs comments (sequences starting with ';'),
 // trailing and leading spaces, tabs and newlines
@@ -16,10 +122,20 @@ func cleanString(s string) string {
 
 }
 
+func (F *FF) ExclusionsFromGro(s string) error {
+	ex, err := parseints(fi(s)...)
+	if err != nil {
+		return err
+	}
+	F.Exclusions = append(F.Exclusions, ex)
+	return nil
+
+}
+
 // Adds the data in the gromacs-topology atom-section string to the atom with index index[0] in the
 // molecule in ff. IF index is not given, the function will search the molecule to add the data to the
 // atom that matches the ID on the topology string.
-func (F *FF) GroTopAtom2Atom(s string, index ...int) (err error) {
+func (F *FF) AtomDataFromGro(s string, index ...int) (err error) {
 	s = cleanString(s)
 	var at *chem.Atom
 	defer func() {
@@ -59,14 +175,14 @@ func (F *FF) GroTopAtom2Atom(s string, index ...int) (err error) {
 }
 
 // Writes the ith (0-based) atom in the FF molecule to a Gromacs sopology line
-func (F *FF) Atom2GroTop(i int) string {
+func (F *FF) Atom2Gro(i int) string {
 	A := F.Mol.Atom(i)
 	return fmt.Sprintf("    %5d  %4s %5d  %4s  %4s %5d  %6.4f \n", A.ID, A.Symbol, A.MolID, A.MolName, A.Name, A.ID, A.Charge)
 }
 
 // Returns a term containing the information in the GromacsTop-formatted string s,
 // given that the string is part of the header header.
-func TermFromGroTop(s, header string) (T *Term, err error) {
+func TermFromGro(s, header string) (T *Term, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("%s", r)
@@ -118,7 +234,7 @@ func (T *Term) writeAtoms() string {
 }
 
 // Writes the term to a string in Gromacs top format.
-func (T *Term) ToGroTop() string {
+func (T *Term) ToGro() string {
 	ret := make([]string, 0, 4)
 	ret = append(ret, T.writeAtoms())
 	if T.Vsite {
@@ -142,7 +258,7 @@ func (T *Term) ToGroTop() string {
 
 // Returns a *VSite witht he information in
 // the string s containing a virtual_sitesn line
-func VSitesNFromGroTop(s string) (vsit *VSite, err error) {
+func VSitesNFromGro(s string) (vsit *VSite, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("%s", r)
@@ -228,5 +344,89 @@ func (V *VSite) ToGro() (string, error) {
 	}
 	ret = append(ret, "\n")
 	return strings.Join(ret, " "), nil //I'm not sure about the separator. Just "" could be enough.
+
+}
+
+// Reads a string with the appropriate gromacs topology format
+// to return a pointer to AtomType. If sigmaep is true, it transforms
+// the data in the string from sigma/epsilon to c6/c12
+func AtomTypeFromGro(s string, sigmaep bool) (ret *AtomType, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Couldn't read atom type from string. Error: %s String:%s", r, s)
+		}
+	}()
+	s = cleanString(s)
+	f := fi(s)
+	ret = new(AtomType)
+	ret.Name = f[0]
+	ret.Mass, err = strconv.ParseFloat(f[1], 64)
+	qerr(err)
+	ret.Charge, err = strconv.ParseFloat(f[2], 64)
+	qerr(err)
+	ret.Ptype = f[3]
+
+	ret.C6, ret.C12, err = c6c12OrSigmaEpsilon(f[4], f[5], sigmaep)
+	qerr(err)
+	return ret, err
+}
+
+func (A *AtomType) ToGro(sigmaep bool) string {
+	var c6, c12 float64
+	if sigmaep {
+		c6, c12 = c6c12ToSigmaepsilon(A.C6, A.C12)
+
+	} else {
+		c6, c12 = A.C6, A.C12
+	}
+	return sf("%5s %5.3f %5.3f %1s %6.4e %6.4ef", A.Name, A.Mass, A.Charge, A.Ptype, c6, c12)
+}
+
+func LJPairFromGro(s string, sigmaep bool) (ret *LJPair, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("Couldn't read atom type from string. Error: %s String:%s", r, s)
+		}
+	}()
+	s = cleanString(s)
+	f := fi(s)
+	ret = new(LJPair)
+	ret.Names[0] = f[0]
+	ret.Names[1] = f[1]
+	ret.FuncType, err = strconv.Atoi(f[2])
+	qerr(err)
+	ret.C6, ret.C12, err = c6c12OrSigmaEpsilon(f[4], f[5], sigmaep)
+	qerr(err)
+	return ret, err
+
+}
+
+func (L *LJPair) ToGro(sigmaep bool) string {
+	var c6, c12 float64
+	if sigmaep {
+		c6, c12 = c6c12ToSigmaepsilon(L.C6, L.C12)
+
+	} else {
+		c6, c12 = L.C6, L.C12
+	}
+	return sf("%5s %5s %1d %6.4e %6.4e", L.Names[0], L.Names[1], L.FuncType, c6, c12)
+}
+
+func c6c12OrSigmaEpsilon(num1, num2 string, sigmaepsilon bool) (float64, float64, error) {
+	var c6, c12 float64
+	var err error
+	c6, err = strconv.ParseFloat(num1, 64)
+	if err != nil {
+		return -1, -1, err
+	}
+	c12, err = strconv.ParseFloat(num2, 64)
+	if err != nil {
+		return -1, -1, err
+	}
+	if sigmaepsilon {
+		c6, c12 = sigmaepsilonToc6c2(c6, c12)
+
+	}
+	return c6, c12, nil
 
 }

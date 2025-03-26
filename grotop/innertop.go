@@ -15,17 +15,33 @@ func c6c12ToSigmaepsilon(c6, c12 float64) (sigma float64, epsilon float64) {
 }
 
 type FF struct {
-	Mol         *chem.Topology
-	Bonds       []*Term
-	Constraints []*Term
-	Angles      []*Term
-	Impropers   []*Term
-	Dihedrals   []*Term
-	Types       []*AtomType
-	LJ          []*LJPair
+	SigmaEpsilon  bool //are LJ terms using sigma/epsilon, or C6/C12?
+	currentHeader string
+	Mol           *chem.Topology
+	Bonds         []*Term
+	Constraints   []*Term
+	Angles        []*Term
+	Impropers     []*Term
+	Dihedrals     []*Term
+	VSites        []*VSite
+	ATypes        []*AtomType
+	LJ            []*LJPair
+	Exclusions    [][]int
+}
+
+func NewFF(mol *chem.Topology, SigmaEpsilon ...bool) *FF {
+	se := true //sigma-epsilon true is the form used by Martini3.
+	if len(SigmaEpsilon) > 0 {
+		se = SigmaEpsilon[0]
+	}
+	ret := new(FF)
+	ret.Mol = mol
+	ret.SigmaEpsilon = se
+	return ret
 }
 
 type AtomType struct {
+	Name   string
 	C6     float64
 	C12    float64
 	AtNum  int
@@ -35,10 +51,11 @@ type AtomType struct {
 }
 
 type LJPair struct {
-	IDs   []int
-	Names []string
-	C6    float64
-	C12   float64
+	//	IDs   []int
+	Names    []string
+	FuncType int
+	C6       float64
+	C12      float64
 }
 
 type VSite struct {
