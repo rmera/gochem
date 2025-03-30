@@ -62,8 +62,7 @@ type Atom struct {
 
 //Atom methods
 
-// Copy returns a copy of the Atom object.
-// puts the copy into the
+// Copy puts in the receiver a copy of A
 func (N *Atom) Copy(A *Atom) {
 	if A == nil || N == nil {
 		panic(ErrNilAtom)

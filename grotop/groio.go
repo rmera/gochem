@@ -6,11 +6,45 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 
 	chem "github.com/rmera/gochem"
 )
+
+type cond struct {
+	reading bool
+}
+
+func newCond() *cond {
+	c := new(cond)
+	c.reading = true
+	return c
+}
+
+// a function to read conditional parts of gromacs topologies
+// depending on the defined flags that should be in 'defines'
+func (c *cond) read(line string, defines []string) bool {
+	if strings.HasPrefix(line, "#ifdef") {
+		if slices.Contains(defines, fi(line)[0]) {
+			c.reading = true
+			return false
+		} else {
+			c.reading = false
+			return false
+		}
+	}
+	if strings.HasPrefix(line, "#else") {
+		c.reading = !c.reading
+		return false
+	}
+	if strings.HasPrefix(line, "#endif") {
+		c.reading = true
+		return false
+	}
+	return c.reading
+}
 
 //The high-level functions
 
@@ -22,19 +56,23 @@ import (
 // NOTE: Many Gromacs headers are supported, but not all. Notably, virtual_sitesX
 // headers, where X is between 1-4 are currently _not_ supported.
 // Only the generic virtual_sitesn are.
-func (F *FF) FillFF(r StringReader, sigmaep bool, followIncludes ...bool) error {
-	follow := false
-	if len(followIncludes) > 0 {
-		follow = followIncludes[0]
-	}
+func (F *FF) Fill(r StringReader, followIncludes bool, defines ...string) error {
+	follow := followIncludes
 	var err error
 	var s string
+	read := newCond()
 	h := NewTopHeader()
 	if F.Mol == nil {
 		return fmt.Errorf("Can't read topology if no molecule is loaded on the FF object")
 	}
 	for s, err = r.ReadString('\n'); err == nil; s, err = r.ReadString('\n') {
 		s = cleanString(s)
+		if s == "" {
+			continue
+		}
+		if !read.read(s, defines) {
+			continue
+		}
 		//This should allow us to 'follow' include files. Probably a risky thing to use.
 		if strings.Contains(s, "#include") && follow {
 			f := fi(s)
@@ -45,7 +83,7 @@ func (F *FF) FillFF(r StringReader, sigmaep bool, followIncludes ...bool) error 
 			}
 			defer file.Close()
 			reader := bufio.NewReader(file)
-			err = F.FillFF(reader, sigmaep, follow)
+			err = F.Fill(reader, follow)
 			if err != nil {
 				return fmt.Errorf("Failed to include file: %s. Error: %w", file, err)
 			}
@@ -86,17 +124,17 @@ func (F *FF) FillFF(r StringReader, sigmaep bool, followIncludes ...bool) error 
 		case "exclusions":
 			err = F.ExclusionsFromGro(s)
 		case "atomtypes":
-			att, err = AtomTypeFromGro(s, sigmaep)
+			att, err = AtomTypeFromGro(s, F.SigmaEpsilon)
 			F.ATypes = append(F.ATypes, att)
 		case "nonbond":
-			LJ, err = LJPairFromGro(s, sigmaep)
+			LJ, err = LJPairFromGro(s, F.SigmaEpsilon)
 			F.LJ = append(F.LJ, LJ)
 		case "defaults":
 			f := fi(s)
 			if f[0] == "1" && f[1] == "2" {
-				sigmaep = true
+				F.SigmaEpsilon = true
 			} else {
-				sigmaep = false
+				F.SigmaEpsilon = false
 			}
 		default:
 			continue
@@ -106,12 +144,107 @@ func (F *FF) FillFF(r StringReader, sigmaep bool, followIncludes ...bool) error 
 		if err != nil {
 			return fmt.Errorf("Couldn't read header %s. Line: %s. Error: %w", F.currentHeader, s, err)
 		}
-
 	}
 	if errors.Is(err, io.EOF) {
 		err = nil
 	}
 	return err
+}
+
+func (F *FF) AllToGro(r io.StringWriter) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("%s", r)
+		}
+	}()
+
+	if len(F.ATypes) > 0 {
+		_, err = r.WriteString("[ atomtypes ]\n")
+		qerr(err)
+		printGro(r, F.ATypes)
+	}
+	if len(F.LJ) > 0 {
+		_, err = r.WriteString("\n[ nonbond_params ]\n")
+		qerr(err)
+		printGro(r, F.LJ)
+	}
+	_, err = r.WriteString("\n[ atoms ]\n")
+	qerr(err)
+	for i := 0; i < F.Mol.Len(); i++ {
+		_, err = r.WriteString(F.Atom2Gro(i))
+		qerr(err)
+	}
+	_, err = r.WriteString("\n[ bonds ]\n")
+	printGro(r, F.Bonds)
+	_, err = r.WriteString("\n[ constraints ]\n")
+	printGro(r, F.Constraints)
+	_, err = r.WriteString("\n[ exclusions ]\n")
+	printExcluGro(r, F.Exclusions)
+	_, err = r.WriteString("\n[ angles ]\n")
+	printGro(r, F.Angles)
+	_, err = r.WriteString("\n[ impropers ]\n")
+	printGro(r, F.Impropers)
+	_, err = r.WriteString("\n[ dihedrals ]\n")
+	printGro(r, F.Dihedrals)
+	_, err = r.WriteString("\n[ virtual_sitesn ]\n")
+	//while the ToGro() signature for the interface
+	//printGo takes requires returning an error, the only
+	//implementation that actually has an error to return
+	//is that of VSites.
+	err = printGro(r, F.VSites)
+	qerr(err)
+
+	return nil
+}
+
+/*
+type FF struct {
+	SigmaEpsilon  bool //are LJ terms using sigma/epsilon, or C6/C12?
+	currentHeader string
+	Mol           *chem.Topology
+	Bonds         []*Term
+	Constraints   []*Term
+	Angles        []*Term
+	Impropers     []*Term
+	Dihedrals     []*Term
+	VSites        []*VSite
+	ATypes        []*AtomType
+	LJ            []*LJPair
+	Exclusions    [][]int
+}
+*/
+
+type groer interface {
+	ToGro() (string, error)
+}
+
+func printGro[G ~[]E, E groer](r io.StringWriter, g G) error {
+	for _, v := range g {
+		m, e := v.ToGro()
+		if e != nil {
+			return e
+		}
+		_, e = r.WriteString(m)
+		if e != nil {
+			return e
+		}
+	}
+	return nil
+}
+
+func printExcluGro(r io.StringWriter, g [][]int) error {
+	for _, v := range g {
+		v1 := exclusion(v)
+		m, e := v1.ToGro()
+		if e != nil {
+			return e
+		}
+		_, e = r.WriteString(m)
+		if e != nil {
+			return e
+		}
+	}
+	return nil
 }
 
 // Returns a string without gromacs comments (sequences starting with ';'),
@@ -129,6 +262,18 @@ func (F *FF) ExclusionsFromGro(s string) error {
 	}
 	F.Exclusions = append(F.Exclusions, ex)
 	return nil
+
+}
+
+type exclusion []int
+
+func (e exclusion) ToGro() (string, error) {
+	ret := make([]string, 0, len(e)+1)
+	for _, v := range e {
+		ret = append(ret, sf("%4d", v))
+	}
+	ret = append(ret, "\n")
+	return strings.Join(ret, " "), nil
 
 }
 
@@ -190,37 +335,63 @@ func TermFromGro(s, header string) (T *Term, err error) {
 	}()
 	T = new(Term)
 	l := strings.Fields(cleanString(s))
-	switch header {
-	case "dihedrals":
-		if len(l) == 11 {
-			// Ryckaert-Bellemans entonces
-			T.IDs, err = parseints(l[:4]...)
-			qerr(err)
-			T.Functype = 3
-			T.RB, err = parsefloats(l[5:]...)
-			qerr(err)
-			if len(T.RB) != 6 {
-				err = fmt.Errorf("R-B term detected but read %d parameters instead of the 6 expected", len(T.RB))
-				T = nil
-				return
-			}
-			return
+	T.OneBased = 0
 
+	//first the 'special' cases.
+
+	//r-b terms. don't have equilibrium values or force constants.
+	if header == "dihedrals" && len(l) == 11 {
+		// Ryckaert-Bellemans entonces
+		T.IDs, err = parseints(l[:4]...)
+		qerr(err)
+		T.FuncType = 3
+		T.RB, err = parsefloats(l[5:]...)
+		qerr(err)
+		if len(T.RB) != 6 {
+			err = fmt.Errorf("R-B term detected but read %d parameters instead of the 6 expected", len(T.RB))
+			T = nil
+			return
 		}
-	case "constraints":
-		//constraints
+		return
+	}
+	//constraints are especial because they lack force constants.
+	if header == "constraints" {
 		T.IDs, err = parseints(l[:2]...)
+		qerr(err)
 		T.Constraint = true
-		T.Eq, err = strconv.ParseFloat(l[2], 64) //could be 3 if there is a function type but I don't think there is. Check
+		var ft int
+		ft, err = strconv.Atoi(l[2])
+		qerr(err)
+		T.FuncType = uint(ft)
+		T.Eq, err = strconv.ParseFloat(l[3], 64) //could be 3 if there is a function type but I don't think there is. Check
 		qerr(err)
 		return
-
 	}
-	//Gotta add vsite support
+	//everything else is: atom1 ... atom(ats) functype eqval fconst
+	var ats int = -1
+	switch header {
+	case "bonds":
+		ats = 2
+	case "angles":
+		ats = 3
+	case "impropers":
+		ats = 4
+	case "dihedrals":
+		ats = 4
+	}
 
-	//now the 'regular' cases
-
+	T.IDs, err = parseints(l[:ats]...)
+	T.Constraint = false
+	var ft int
+	ft, err = strconv.Atoi(l[ats])
+	qerr(err)
+	T.FuncType = uint(ft)
+	T.Eq, err = strconv.ParseFloat(l[ats+1], 64) //could be 3 if there is a function type but I don't think there is. Check
+	qerr(err)
+	T.K, err = strconv.ParseFloat(l[ats+2], 64) //could be 3 if there is a function type but I don't think there is. Check
+	qerr(err)
 	return
+
 }
 
 func (T *Term) writeAtoms() string {
@@ -234,14 +405,14 @@ func (T *Term) writeAtoms() string {
 }
 
 // Writes the term to a string in Gromacs top format.
-func (T *Term) ToGro() string {
-	ret := make([]string, 0, 4)
+func (T *Term) ToGro() (string, error) {
+	ret := make([]string, 0, 15)
 	ret = append(ret, T.writeAtoms())
 	if T.Vsite {
-		return "" //placeholder
+		return "", nil //placeholder
 	}
 	if !T.Constraint {
-		ret = append(ret, fmt.Sprintf("%1d", T.Functype))
+		ret = append(ret, fmt.Sprintf("%1d", T.FuncType))
 	}
 	ret = append(ret, fmt.Sprintf("%6.4f", T.Eq))
 	if !T.Constraint && len(T.RB) == 0 {
@@ -253,7 +424,9 @@ func (T *Term) ToGro() string {
 	for _, v := range T.RB {
 		ret = append(ret, fmt.Sprintf("%6.4f", v))
 	}
-	return strings.Join(ret, " ")
+	ret = append(ret, "\n")
+
+	return strings.Join(ret, " "), nil
 }
 
 // Returns a *VSite witht he information in
@@ -279,10 +452,7 @@ func VSitesNFromGro(s string) (vsit *VSite, err error) {
 	var ids []int
 	if typ != 3 {
 		ids = make([]int, 0, len(f[2:]))
-		for i, v := range f[2:] {
-			if i >= typ {
-				break //we don't try to read too many atoms
-			}
+		for _, v := range f[2:] {
 			num, err := strconv.Atoi(v)
 			if err != nil && num < 0 {
 				return nil, fmt.Errorf("ill-formatted vsiten string: %s Error: %w", s, err)
@@ -316,7 +486,7 @@ func VSitesNFromGro(s string) (vsit *VSite, err error) {
 // Returns a Gromacstop-formatted virtual_siteX string with the information in the receiver
 // 'X' depends on the information in the receiver (the field 'N').
 func (V *VSite) ToGro() (string, error) {
-	ret := make([]string, 0, 4)
+	ret := make([]string, 0, 8)
 	ret = append(ret, sf("%5d", V.ID))
 	ret = append(ret, sf("%2d", V.FuncType))
 	if V.N == 0 { //vsites_n
@@ -367,19 +537,20 @@ func AtomTypeFromGro(s string, sigmaep bool) (ret *AtomType, err error) {
 	ret.Ptype = f[3]
 
 	ret.C6, ret.C12, err = c6c12OrSigmaEpsilon(f[4], f[5], sigmaep)
+	ret.SigmaEpsilon = sigmaep
 	qerr(err)
 	return ret, err
 }
 
-func (A *AtomType) ToGro(sigmaep bool) string {
+func (A *AtomType) ToGro() (string, error) {
 	var c6, c12 float64
-	if sigmaep {
+	if A.SigmaEpsilon {
 		c6, c12 = c6c12ToSigmaepsilon(A.C6, A.C12)
 
 	} else {
 		c6, c12 = A.C6, A.C12
 	}
-	return sf("%5s %5.3f %5.3f %1s %6.4e %6.4ef", A.Name, A.Mass, A.Charge, A.Ptype, c6, c12)
+	return sf("%5s %5.3f %5.3f %1s %6.4e %6.4ef", A.Name, A.Mass, A.Charge, A.Ptype, c6, c12), nil
 }
 
 func LJPairFromGro(s string, sigmaep bool) (ret *LJPair, err error) {
@@ -397,19 +568,20 @@ func LJPairFromGro(s string, sigmaep bool) (ret *LJPair, err error) {
 	qerr(err)
 	ret.C6, ret.C12, err = c6c12OrSigmaEpsilon(f[4], f[5], sigmaep)
 	qerr(err)
+	ret.SigmaEpsilon = sigmaep
 	return ret, err
 
 }
 
-func (L *LJPair) ToGro(sigmaep bool) string {
+func (L *LJPair) ToGro() (string, error) {
 	var c6, c12 float64
-	if sigmaep {
+	if L.SigmaEpsilon {
 		c6, c12 = c6c12ToSigmaepsilon(L.C6, L.C12)
 
 	} else {
 		c6, c12 = L.C6, L.C12
 	}
-	return sf("%5s %5s %1d %6.4e %6.4e", L.Names[0], L.Names[1], L.FuncType, c6, c12)
+	return sf("%5s %5s %1d %6.4e %6.4e\n", L.Names[0], L.Names[1], L.FuncType, c6, c12), nil
 }
 
 func c6c12OrSigmaEpsilon(num1, num2 string, sigmaepsilon bool) (float64, float64, error) {
