@@ -29,6 +29,9 @@ type FF struct {
 	Exclusions    [][]int
 }
 
+// returns a new and empty (but with some values set to defaults)
+// FF object. SigmaEpsilon is true if LJ terms are expressed as sigma/epsilon,
+// false for C6/C12
 func NewFF(mol *chem.Topology, SigmaEpsilon ...bool) *FF {
 	se := true //sigma-epsilon true is the form used by Martini3.
 	if len(SigmaEpsilon) > 0 {
@@ -41,9 +44,12 @@ func NewFF(mol *chem.Topology, SigmaEpsilon ...bool) *FF {
 	return ret
 }
 
+// Returns the nummber of atoms in the topology.
 func (F *FF) Len() int {
 	return F.Mol.Len()
 }
+
+// Returns a copy of the receiver
 func (F *FF) Copy() *FF {
 	F2 := new(FF)
 	mol := chem.NewTopology(0, 1)
@@ -85,7 +91,6 @@ func (F *FF) Copy() *FF {
 		F2.VSites = append(F2.VSites, a)
 	}
 	return F2
-
 }
 
 func copyTerms(T []*Term) []*Term {
@@ -138,8 +143,10 @@ type LJPair struct {
 // Copies B into the receiver
 func (A *LJPair) Copy(B *LJPair) {
 	A.SigmaEpsilon = B.SigmaEpsilon
-	B.Names = make([]string, len(A.Names))
-	copy(B.Names, A.Names)
+	if len(A.Names) != len(B.Names) {
+		A.Names = make([]string, len(B.Names))
+	}
+	copy(A.Names, B.Names)
 	A.C6 = B.C6
 	A.C12 = B.C12
 	A.FuncType = B.FuncType
@@ -165,9 +172,13 @@ func (A *VSite) Copy(B *VSite) {
 	A.ID = B.ID
 	A.N = B.N
 	A.FuncType = B.FuncType
-	A.Atoms = make([]int, len(B.Atoms))
+	if len(A.Atoms) != len(B.Atoms) {
+		A.Atoms = make([]int, len(B.Atoms))
+	}
 	copy(A.Atoms, B.Atoms)
-	A.Factors = make([]float64, len(B.Factors))
+	if len(A.Factors) != len(B.Factors) {
+		A.Factors = make([]float64, len(B.Factors))
+	}
 	copy(A.Factors, B.Factors)
 
 }
@@ -184,7 +195,9 @@ type Term struct {
 }
 
 func (A *Term) Copy(B *Term) {
-	A.IDs = make([]int, len(B.IDs))
+	if len(A.IDs) != len(B.IDs) {
+		A.IDs = make([]int, len(B.IDs))
+	}
 	copy(A.IDs, B.IDs)
 	A.OneBased = B.OneBased
 	A.FuncType = B.FuncType
@@ -192,6 +205,8 @@ func (A *Term) Copy(B *Term) {
 	A.Eq = B.Eq
 	A.Constraint = B.Constraint
 	A.Vsite = B.Vsite
-	A.RB = make([]float64, len(B.RB))
+	if len(A.RB) != len(B.RB) {
+		A.RB = make([]float64, len(B.RB))
+	}
 	copy(A.RB, B.RB)
 }

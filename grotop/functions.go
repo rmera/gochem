@@ -151,6 +151,8 @@ func containsSame[T ~[]E, E comparable](C1, C2 T) bool {
 // given is considered).
 // 'r' (reverse, both the given order and its reverse are accepted)
 // 'a' (any, any order is accepted)
+// it only returns error if an invalid term is given, so, if that is
+// hardcoded, you may safely omit the error check.
 func FindTerm(T []*Term, IDs []int, order byte) (int, error) {
 	j := -1
 	rev := make([]int, 0, len(IDs))
