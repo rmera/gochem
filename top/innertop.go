@@ -1,10 +1,16 @@
-package gro
+package top
 
 import (
+	"fmt"
 	"math"
+	"strings"
 
 	chem "github.com/rmera/gochem"
 )
+
+// just to make things a bit shorter.
+var fi func(string) []string = strings.Fields
+var sf func(string, ...any) string = fmt.Sprintf
 
 func sigmaepsilonToc6c2(sigma, e float64) (c6 float64, c12 float64) {
 	return 4 * e * math.Pow(sigma, 6), e * 4 * (math.Pow(sigma, 12))
