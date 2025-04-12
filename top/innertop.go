@@ -12,7 +12,7 @@ import (
 var fi func(string) []string = strings.Fields
 var sf func(string, ...any) string = fmt.Sprintf
 
-func sigmaepsilonToc6c2(sigma, e float64) (c6 float64, c12 float64) {
+func sigmaepsilonToc6c12(sigma, e float64) (c6 float64, c12 float64) {
 	return 4 * e * math.Pow(sigma, 6), e * 4 * (math.Pow(sigma, 12))
 }
 
@@ -53,6 +53,34 @@ func NewFF(mol *chem.Topology, SigmaEpsilon ...bool) *FF {
 // Returns the nummber of atoms in the topology.
 func (F *FF) Len() int {
 	return F.Mol.Len()
+}
+
+// Returns the epsilon value for the LJ potential of the given
+// atom type, if available. Returns zero if the atomtype is defined
+// but no LJ potential is assigned to it (normally, if the potentials are
+// defined for pair, rather than separately for atoms) and -1 if the type
+// is not found.
+func (F *FF) VdWForType(t string) float64 {
+	for _, v := range F.ATypes {
+		if v.Name == t {
+			return v.Epsilon
+		}
+	}
+	return -1
+}
+
+// Returns the epsilon value for the LJ potential of the given
+// atom type, if available. Returns zero if the pair is found
+// but no LJ potential is assigned to it and -1 if the pair
+// is not found.
+func (F *FF) VdWForPair(t1, t2 string) float64 {
+	for _, v := range F.LJ {
+		w := v.Names
+		if (t1 == w[0] && t2 == w[1]) || (t1 == w[1] && t2 == w[0]) {
+			return v.Epsilon
+		}
+	}
+	return -1
 }
 
 // Returns a copy of the receiver
@@ -110,8 +138,10 @@ func copyTerms(T []*Term) []*Term {
 }
 
 type AtomType struct {
-	SigmaEpsilon bool
+	SigmaEpsilon bool //NOTE: might unexport this.
 	Name         string
+	Sigma        float64
+	Epsilon      float64
 	C6           float64
 	C12          float64
 	AtNum        int
@@ -126,6 +156,8 @@ func (A *AtomType) Copy(B *AtomType) {
 	A.Name = B.Name
 	A.C6 = B.C6
 	A.C12 = B.C12
+	A.Sigma = B.Sigma
+	A.Epsilon = B.Epsilon
 	A.AtNum = B.AtNum
 	A.Mass = B.Mass
 	A.Charge = B.Charge
@@ -137,6 +169,15 @@ func (A *AtomType) equal(B any) bool {
 	return A.Name == b.Name
 }
 
+func (A *AtomType) ToC6C12() {
+	A.SigmaEpsilon = false
+	A.C6, A.C12 = sigmaepsilonToc6c12(A.Sigma, A.Epsilon)
+}
+func (A *AtomType) ToSigmaEpsilon() {
+	A.SigmaEpsilon = true
+	A.C6, A.C12 = c6c12ToSigmaepsilon(A.Sigma, A.Epsilon)
+}
+
 type LJPair struct {
 	//	IDs   []int
 	SigmaEpsilon bool
@@ -144,6 +185,8 @@ type LJPair struct {
 	FuncType     int
 	C6           float64
 	C12          float64
+	Sigma        float64
+	Epsilon      float64
 }
 
 // Copies B into the receiver
@@ -155,7 +198,18 @@ func (A *LJPair) Copy(B *LJPair) {
 	copy(A.Names, B.Names)
 	A.C6 = B.C6
 	A.C12 = B.C12
+	A.Sigma = B.Sigma
+	A.Epsilon = B.Epsilon
 	A.FuncType = B.FuncType
+}
+
+func (A *LJPair) ToC6C12() {
+	A.SigmaEpsilon = false
+	A.C6, A.C12 = sigmaepsilonToc6c12(A.Sigma, A.Epsilon)
+}
+func (A *LJPair) ToSigmaEpsilon() {
+	A.SigmaEpsilon = true
+	A.C6, A.C12 = c6c12ToSigmaepsilon(A.Sigma, A.Epsilon)
 }
 
 func (A *LJPair) equal(B any) bool {
