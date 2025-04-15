@@ -567,15 +567,14 @@ func LJPairFromGro(s string, sigmaep bool) (ret *LJPair, err error) {
 	s = cleanString(s)
 	f := fi(s)
 	ret = new(LJPair)
-	ret.Names[0] = f[0]
-	ret.Names[1] = f[1]
+	ret.Names = []string{f[0], f[1]}
 	ret.FuncType, err = strconv.Atoi(f[2])
 	qerr(err)
 	if sigmaep {
-		ret.Sigma, ret.Epsilon, err = c6c12OrSigmaEpsilon(f[4], f[5], sigmaep)
+		ret.Sigma, ret.Epsilon, err = c6c12OrSigmaEpsilon(f[3], f[4], sigmaep)
 	} else {
 
-		ret.C6, ret.C12, err = c6c12OrSigmaEpsilon(f[4], f[5], sigmaep)
+		ret.C6, ret.C12, err = c6c12OrSigmaEpsilon(f[3], f[4], sigmaep)
 	}
 	ret.SigmaEpsilon = sigmaep
 	return ret, err
