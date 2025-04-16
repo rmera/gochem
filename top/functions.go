@@ -151,7 +151,7 @@ func containsSame[T ~[]E, E comparable](C1, C2 T) bool {
 // given is considered).
 // 'r' (reverse, both the given order and its reverse are accepted)
 // 'a' (any, any order is accepted)
-// it only returns error if an invalid term is given, so, if that is
+// it only returns error if an invalid order is given, so, if that is
 // hardcoded, you may safely omit the error check.
 func FindTerm(T []*Term, IDs []int, order byte) (int, error) {
 	j := -1
@@ -204,3 +204,59 @@ func DeleteAtomsAndVSites(F *FF, todel []int) *FF {
 	F.VSites = vsites
 	return F
 }
+
+func termHole(T []*Term, after, size int) []*Term {
+	for i, v := range T {
+		for j, w := range v.IDs {
+			if w > after {
+				T[i].IDs[j] += size
+			}
+		}
+	}
+	return T
+}
+
+// not ready
+/*
+func MakeHole(after int, size int, F *FF) {
+	F.Bonds = termHole(F.Bonds, after, size)
+	F.Angles = termHole(F.Angles, after, size)
+
+	for i, v := range F.Exclusions {
+		for j, w := range v {
+			if w > after {
+				F.Exclusions[i][j] += size
+			}
+		}
+	}
+
+	for i, v := range F.VSites {
+		if v.ID > after {
+			F.VSites[i].ID += size
+		}
+		for j, w := range v.Atoms {
+			if w > after {
+				F.Bonds[i].IDs[j] += size
+			}
+		}
+	}
+
+}
+*/
+
+/*
+type FF struct {
+	SigmaEpsilon  bool //are LJ terms using sigma/epsilon, or C6/C12?
+	currentHeader string
+	Mol           *chem.Topology
+	Bonds         []*Term
+	Constraints   []*Term
+	Angles        []*Term
+	Impropers     []*Term
+	Dihedrals     []*Term
+	VSites        []*VSite
+	ATypes        []*AtomType
+	LJ            []*LJPair
+	Exclusions    [][]int
+}
+*/

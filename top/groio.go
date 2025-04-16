@@ -535,17 +535,22 @@ func AtomTypeFromGro(s string, sigmaep bool) (ret *AtomType, err error) {
 	ret.Charge, err = strconv.ParseFloat(f[2], 64)
 	qerr(err)
 	ret.Ptype = f[3]
-
-	ret.C6, ret.C12, err = c6c12OrSigmaEpsilon(f[4], f[5], sigmaep)
+	//sigmaep is checked twice because there used to be just one pair of values to keep both
+	//c6/c12 and sigma epsilon. I tried to add a separate sigma epsilong without changing the
+	//code much.
+	if sigmaep {
+		ret.Sigma, ret.Epsilon, err = c6c12OrSigmaEpsilon(f[4], f[5], sigmaep)
+	} else {
+		ret.C6, ret.C12, err = c6c12OrSigmaEpsilon(f[4], f[5], sigmaep)
+	}
 	ret.SigmaEpsilon = sigmaep
-	qerr(err)
 	return ret, err
 }
 
 func (A *AtomType) ToGro() (string, error) {
 	var c6, c12 float64
 	if A.SigmaEpsilon {
-		c6, c12 = c6c12ToSigmaepsilon(A.C6, A.C12)
+		c6, c12 = A.Sigma, A.Epsilon
 
 	} else {
 		c6, c12 = A.C6, A.C12
@@ -562,12 +567,15 @@ func LJPairFromGro(s string, sigmaep bool) (ret *LJPair, err error) {
 	s = cleanString(s)
 	f := fi(s)
 	ret = new(LJPair)
-	ret.Names[0] = f[0]
-	ret.Names[1] = f[1]
+	ret.Names = []string{f[0], f[1]}
 	ret.FuncType, err = strconv.Atoi(f[2])
 	qerr(err)
-	ret.C6, ret.C12, err = c6c12OrSigmaEpsilon(f[4], f[5], sigmaep)
-	qerr(err)
+	if sigmaep {
+		ret.Sigma, ret.Epsilon, err = c6c12OrSigmaEpsilon(f[3], f[4], sigmaep)
+	} else {
+
+		ret.C6, ret.C12, err = c6c12OrSigmaEpsilon(f[3], f[4], sigmaep)
+	}
 	ret.SigmaEpsilon = sigmaep
 	return ret, err
 
@@ -576,7 +584,7 @@ func LJPairFromGro(s string, sigmaep bool) (ret *LJPair, err error) {
 func (L *LJPair) ToGro() (string, error) {
 	var c6, c12 float64
 	if L.SigmaEpsilon {
-		c6, c12 = c6c12ToSigmaepsilon(L.C6, L.C12)
+		c6, c12 = L.Sigma, L.Epsilon
 
 	} else {
 		c6, c12 = L.C6, L.C12
@@ -596,8 +604,7 @@ func c6c12OrSigmaEpsilon(num1, num2 string, sigmaepsilon bool) (float64, float64
 		return -1, -1, err
 	}
 	if sigmaepsilon {
-		c6, c12 = sigmaepsilonToc6c2(c6, c12)
-
+		c6, c12 = sigmaepsilonToc6c12(c6, c12)
 	}
 	return c6, c12, nil
 
