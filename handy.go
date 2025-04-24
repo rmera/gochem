@@ -237,6 +237,41 @@ func RotateAbout(coordsorig, ax1, ax2 *v3.Matrix, angle float64) (*v3.Matrix, er
 	return Rot, nil
 }
 
+// MatchAxes returns a rotated version of mol such that the vectors ax1 and ax2 are superimposed
+// mol is, by default, centered on center (which should be the origin of both ax1 and ax2)
+// unless recenter is given and true, in which case, it is not modified.
+func MatchAxes(mol, ax1, ax2, center *v3.Matrix, recenter ...bool) (*v3.Matrix, error) {
+	r2, c2 := ax2.Dims()
+	if c2 != 3 || r2 != 1 {
+		panic("Wrong ax2 vector")
+	}
+
+	r1, c1 := ax1.Dims()
+	if c1 != 3 || r1 != 1 {
+		panic("Wrong ax1 vector")
+	}
+	//let's center all in 'center'
+	ax1.Sub(ax1, center)
+	ax2.Sub(ax2, center)
+	mol.Sub(mol, center)
+	normal := v3.Zeros(1)
+	normal.Cross(ax1, ax2) //this vector should be the axis of rotation.
+	angle := Angle(ax1, ax2)
+	zero := v3.Zeros(1)
+	rot, err := RotateAbout(mol, normal, zero, angle)
+	if err != nil {
+		return nil, err
+	}
+	//we now undo the centering for all of our vectors
+	ax1.Add(ax1, center)
+	ax2.Add(ax2, center)
+	if len(recenter) > 0 && recenter[0] {
+		mol.Add(mol, center)
+	}
+	rot.Add(rot, center)
+	return rot, nil
+}
+
 // EulerRotateAbout uses Euler angles to rotate the coordinates in coordsorig around by angle
 // radians around the axis given by the vector axis. It returns the rotated coordsorig,
 // since the original is not affected. It seems more clunky than the RotateAbout, which uses Clifford algebra.
