@@ -49,18 +49,19 @@ type Traj interface {
 
 // ConcTraj is an interface for a trajectory that can be read concurrently.
 type ConcTraj interface {
-
-	//Is the trajectory ready to be read?
-	Readable() bool
+	Traj
 
 	/*NextConc takes a slice of bools and reads as many frames as elements the list has
 	form the trajectory. The frames are discarted if the corresponding elemetn of the slice
 	is false. The function returns a slice of channels through each of each of which
 	a *matrix.DenseMatrix will be transmited*/
 	NextConc(frames []*v3.Matrix) ([]chan *v3.Matrix, error)
+}
 
-	//Returns the number of atoms per frame
-	Len() int
+// TrjWrite is a trajectory to which new frames can be written
+type TrjWrite interface {
+	WNext(*v3.Matrix, ...[]float64) error
+	Close()
 }
 
 // Atomer is the basic interface for a topology.

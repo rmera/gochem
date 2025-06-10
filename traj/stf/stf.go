@@ -14,6 +14,7 @@ import (
 	"strings"
 	"unsafe"
 
+	"github.com/klauspost/compress/s2"
 	"github.com/klauspost/compress/zstd"
 	chem "github.com/rmera/gochem"
 	v3 "github.com/rmera/gochem/v3"
@@ -24,7 +25,7 @@ const (
 	lzwLitwidth int = 8
 )
 
-//Write!
+// Write!
 type StfW struct {
 	f           *os.File
 	h           io.WriteCloser
@@ -52,7 +53,7 @@ func (S *StfW) Len() int {
 	return S.natoms
 }
 
-//compatibility with Gonum
+// compatibility with Gonum
 func (S *StfW) WNextDense(dcoord *mat.Dense) error {
 	coord := v3.Dense2Matrix(dcoord)
 	err := S.WNext(coord)
@@ -67,6 +68,10 @@ func (S *StfW) WNext(coord *v3.Matrix, box ...[]float64) error {
 	//if err == nil {
 	//	coord = S.framebuffer //we won't say anything in case of error, sorry.
 	//}
+
+	if S == nil {
+		return Error{"Nil trajectory", "", []string{"WNext"}, true}
+	}
 
 	if !S.writeable {
 		return Error{TrajUnIniWrite, S.filename, []string{"WNext"}, true}
@@ -113,11 +118,47 @@ func (S *StfW) WNext(coord *v3.Matrix, box ...[]float64) error {
 	return nil
 }
 
-//Only the first map will be read!
-func NewWriter(name string, natoms int, header map[string]string, compressionLevel ...int) (*StfW, error) {
-	var level int = 11 //For python compatibility
-	if len(compressionLevel) > 0 {
-		level = compressionLevel[0]
+/*
+   1 =   zstd.SpeedFastest
+   2 = zstd.SpeedDefault
+   3 = zstd.SpeedBetterCompression
+   4 = zstd.SpeedBestCompression
+*/
+
+type WriterOptions struct {
+	//	Precision        int //How many decimals for each coordinate, in Angstroms
+	CompressionLevel int // 1: Fastest/Worst compression to 4: Slowest/Best compression
+}
+
+func DefaultWriterOptions() *WriterOptions {
+	O := new(WriterOptions)
+	//	O.Precision = 1
+	O.CompressionLevel = 1 // 1 to 4 from fastest/larger file to slower/smaller file
+	return O
+}
+
+func (O *WriterOptions) Fix() {
+	//	if O.Precision < 1 {
+	//		O.Precision = 1
+	//		log.Printf("Invalid precision for trajectory. Will use the default")
+
+	//	}
+	if O.CompressionLevel < 1 || O.CompressionLevel > 4 {
+		O.CompressionLevel = 1
+	}
+
+}
+
+// For zstandard (stf) compression levels are progressively slower but offering better compression
+// as compressionLevel increases from 1 to 4 (other numbers will result in '1' or fastest compression).
+// If the precision is specified in the header, that overwrites whatever is in the options.
+func NewWriter(name string, natoms int, header map[string]string, Opts ...*WriterOptions) (*StfW, error) {
+	var O *WriterOptions
+	if len(Opts) > 0 {
+		O = Opts[1]
+		O.Fix()
+	} else {
+		O = DefaultWriterOptions()
 	}
 	S := new(StfW)
 	var err error
@@ -128,14 +169,15 @@ func NewWriter(name string, natoms int, header map[string]string, compressionLev
 	S.framebuffer = v3.Zeros(natoms)
 	format := strings.ToLower(name)[len(name)-1]
 	zwriter := func(a io.Writer) (io.WriteCloser, error) {
-		r, err := flate.NewWriter(a, level)
+		r, err := flate.NewWriter(a, O.CompressionLevel)
 		return r, err
 	}
-	gzipwriter := func(a io.Writer) (io.WriteCloser, error) { return gzip.NewWriterLevel(a, level) }
+	//	zl := newzlevs()
+	gzipwriter := func(a io.Writer) (io.WriteCloser, error) { return gzip.NewWriterLevel(a, O.CompressionLevel) }
 	zstdwriter := func(a io.Writer) (io.WriteCloser, error) {
-		return zstd.NewWriter(a, zstd.WithEncoderLevel(zstd.SpeedBestCompression))
+		return zstd.NewWriter(a, zstd.WithEncoderLevel(zstd.EncoderLevel(O.CompressionLevel))) //zstd.SpeedBetterCompression))
 	}
-	//	snappywriter := func(a io.Writer) (io.WriteCloser, error) { return snappy.NewBufferedWriter(a), nil }
+	s2writer := func(a io.Writer) (io.WriteCloser, error) { return s2.NewWriter(a), nil } //s2.WriterSnappyCompat()), nil }
 
 	var AnyNewWriter func(io.Writer) (io.WriteCloser, error)
 	switch format {
@@ -146,46 +188,41 @@ func NewWriter(name string, natoms int, header map[string]string, compressionLev
 	case 'z':
 		AnyNewWriter = gzipwriter
 	case 's':
-		AnyNewWriter = zstdwriter
+		AnyNewWriter = s2writer
 	case 'r':
 		AnyNewWriter = zwriter
-
 	default:
 		AnyNewWriter = zstdwriter
-
 	}
 
 	S.h, err = AnyNewWriter(S.f)
 	if err != nil {
 		return nil, Error{"Can't read header " + err.Error(), S.filename, []string{"NewWriter"}, true}
-
 	}
 
 	//	S.h = AnyNewWriter(S.f)
 	S.natoms = natoms
 	S.filename = name
 	S.writeable = true
-	S.prec = 2 //the default
-	if header != nil && len(header) != 0 {
-		if p, ok := header["prec"]; ok && p != "2" {
-			prec, err := strconv.Atoi(p)
-			if err != nil {
-				S.prec = prec
-			} else {
-				log.Printf("Invalid precision for trajectory %s. Will use the default", S.filename)
-			}
-		}
-		headerstr := ""
-		for k, v := range header {
-			headerstr += fmt.Sprintf("%s=%v\n", k, v)
-		}
-		S.h.Write([]byte(headerstr))
+	const DEFAULT_PRECISION int = 1
+	S.prec = DEFAULT_PRECISION
+	if header == nil {
+		header = make(map[string]string)
 	}
+	if _, ok := header["prec"]; !ok {
+		header["prec"] = fmt.Sprintf("%d", S.prec)
+	}
+	headerstr := ""
+	for k, v := range header {
+		headerstr += fmt.Sprintf("%s=%v\n", k, v)
+	}
+	S.h.Write([]byte(headerstr))
+
 	S.h.Write([]byte(fmt.Sprintf("** %d\n", S.natoms)))
 	return S, nil
 }
 
-//Read!
+// Read!
 type StfR struct {
 	f            *os.File
 	lzw          io.ReadCloser
@@ -198,35 +235,48 @@ type StfR struct {
 	readable bool
 }
 
-//This will cause additional indirections
-//but I suppose it won't matter, as each call will
-//take enough time to make those delays irrelevant.
-//Also, why couldn't *zstd.Decoder implement io.ReadCloser? :-(
+// This will cause additional indirections
+// but I suppose it won't matter, as each call will
+// take enough time to make those delays irrelevant.
+// Also, why couldn't *zstd.Decoder implement io.ReadCloser? :-(
 type stdql struct {
 	closeql func() //The things I have to do xD
 	*zstd.Decoder
 }
 
-//Close Closes the object. It can not be used after this call
+// Close Closes the object. It can not be used after this call
 func (s stdql) Close() error {
+	s.closeql()
+	return nil
+}
+
+// same, but for s2/snappy.
+type s2ql struct {
+	closeql func() //The things I have to do xD
+	*s2.Reader
+}
+
+// Close Closes the object. It can not be used after this call
+func (s s2ql) Close() error {
 	s.closeql()
 	return nil
 }
 
 func coordsEncode(f [3]float64, temp [3]int, prec int) string {
 	p := 100.0
-	if prec > 0 && prec != 2 { //2 is the current value, so we do nothign in that case
+	if prec > 0 {
 		p = math.Pow(10.0, float64(prec))
 	}
+	//	fmt.Println("ori", f) ///////////////////////////////////////////////////////////////////////
 	for i, v := range f {
 		temp[i] = int(math.RoundToEven(v * p))
 	}
 	return fmt.Sprintf("%d %d %d\n", temp[0], temp[1], temp[2])
 }
 
-//New opens a STF trajectory for reading, and returns a pointer
-//to the handle, a map with the metadata (or nil, if no metadata is found)
-//and error or nil.
+// New opens a STF trajectory for reading, and returns a pointer
+// to the handle, a map with the metadata (or nil, if no metadata is found)
+// and error or nil.
 func New(name string) (*StfR, map[string]string, error) {
 	S := new(StfR)
 	S.natoms = -1 //just so we know if things don't work
@@ -243,13 +293,27 @@ func New(name string) (*StfR, map[string]string, error) {
 		return r, nil
 	}
 	zstdreader := func(a io.Reader) (io.ReadCloser, error) {
-		r, err := zstd.NewReader(a)
+		r, err := zstd.NewReader(a, zstd.WithDecoderConcurrency(0))
 		var ql *stdql
 		ql = &stdql{r.Close, r}
 
 		return ql, err
+	}
+	s2reader := func(a io.Reader) (io.ReadCloser, error) {
+		r := s2.NewReader(a)
+		var ql *s2ql
+		//will try to close the file
+		cl := func() {
+			if ac, ok := a.(io.ReadCloser); ok {
+				ac.Close()
+			}
+		}
+		ql = &s2ql{cl, r}
+
+		return ql, err
 
 	}
+
 	gzreader := func(a io.Reader) (io.ReadCloser, error) { return gzip.NewReader(a) }
 	switch strings.ToLower(name)[len(name)-1] {
 	case 'l':
@@ -259,7 +323,7 @@ func New(name string) (*StfR, map[string]string, error) {
 	case 'z':
 		AnyNewReader = gzreader
 	case 's':
-		AnyNewReader = zstdreader
+		AnyNewReader = s2reader
 	case 'r':
 		AnyNewReader = zreader
 
@@ -302,8 +366,9 @@ func New(name string) (*StfR, map[string]string, error) {
 	}
 	//	S.framebuffer = v3.Zeros(S.natoms)
 	S.readable = true
+	S.prec = 1
 	if len(m) != 0 {
-		if p, ok := m["prec"]; ok && p != "2" {
+		if p, ok := m["prec"]; ok {
 			prec, err := strconv.Atoi(p)
 			if err != nil {
 				S.prec = prec
@@ -316,14 +381,14 @@ func New(name string) (*StfR, map[string]string, error) {
 	return S, m, nil
 }
 
-//Readabe returns true if the handle is readable (if it is possible to call Next on it)
+// Readabe returns true if the handle is readable (if it is possible to call Next on it)
 func (S *StfR) Readable() bool {
 	return S.readable
 }
 
 func coordsDecode(str string, temp *[3]float64, prec int) error {
 	p := 100.0
-	if prec > 0 && prec != 2 { //2 is just the current value, so we can save the operation
+	if prec > 0 {
 		p = math.Pow(10.0, float64(prec))
 
 	}
@@ -344,10 +409,10 @@ func coordsDecode(str string, temp *[3]float64, prec int) error {
 	return nil
 }
 
-//Next puts in the given matrix (c) the coordinates for the next frame of the trajectory
-//and, if given, and the information is present, puts the box vector information in box
-//Returns error if the operation is not successful. If the error is EOF, the end of the
-//trajectory has been reached, not an actual error.
+// Next puts in the given matrix (c) the coordinates for the next frame of the trajectory
+// and, if given, and the information is present, puts the box vector information in box
+// Returns error if the operation is not successful. If the error is EOF, the end of the
+// trajectory has been reached, not an actual error.
 func (S *StfR) Next(c *v3.Matrix, box ...[]float64) error {
 	//	var tmpstr string
 	//	var prec int = 2
@@ -418,7 +483,7 @@ func (S *StfR) Next(c *v3.Matrix, box ...[]float64) error {
 	return nil
 }
 
-//Close closes the object, and marks it as unreadable
+// Close closes the object, and marks it as unreadable
 func (S *StfR) Close() {
 	if !S.readable {
 		return
@@ -428,14 +493,14 @@ func (S *StfR) Close() {
 	return
 }
 
-//Len returns the number of atoms in each frame of the trajectory.
+// Len returns the number of atoms in each frame of the trajectory.
 func (S *StfR) Len() int {
 	return S.natoms
 }
 
-//NextConc takes a slice of bools and reads as many frames as elements the list has
-//form the trajectory. The frames are discarted if the corresponding elemetn of the slice
-//is false. The function returns a slice of channels through each of each of which
+// NextConc takes a slice of bools and reads as many frames as elements the list has
+// form the trajectory. The frames are discarted if the corresponding elemetn of the slice
+// is false. The function returns a slice of channels through each of each of which
 // a *matrix.DenseMatrix will be transmited
 func (D *StfR) NextConc(frames []*v3.Matrix) ([]chan *v3.Matrix, error) {
 	if !D.Readable() {
@@ -458,16 +523,16 @@ func (D *StfR) NextConc(frames []*v3.Matrix) ([]chan *v3.Matrix, error) {
 
 //Errors
 
-//errDecorate is a helper function that asserts that the error is
-//implements chem.Error and decorates the error with the caller's name before returning it.
-//if used with a non-chem.Error error, it will cause a panic.
+// errDecorate is a helper function that asserts that the error is
+// implements chem.Error and decorates the error with the caller's name before returning it.
+// if used with a non-chem.Error error, it will cause a panic.
 func errDecorate(err error, caller string) error {
 	err2 := err.(chem.Error) //I know that is the type returned byt initRead
 	err2.Decorate(caller)
 	return err2
 }
 
-//Error is the general structure for DCD trajectory errors. It fullfills  chem.Error and chem.TrajError
+// Error is the general structure for DCD trajectory errors. It fullfills  chem.Error and chem.TrajError
 type Error struct {
 	message  string
 	filename string //the input file that has problems, or empty string if none.
@@ -479,7 +544,7 @@ func (err Error) Error() string {
 	return fmt.Sprintf("stf file %s error: %s", err.filename, err.message)
 }
 
-//Decorate Adds new information to the error
+// Decorate Adds new information to the error
 func (E Error) Decorate(deco string) []string {
 	//Even thought this method does not use a pointer as a receiver, and tries to alter the received,
 	//it should work, since E.deco is a slice, and hence a pointer itself.
@@ -490,13 +555,13 @@ func (E Error) Decorate(deco string) []string {
 	return E.deco
 }
 
-//Filename returns the file to which the failing trajectory was associated
+// Filename returns the file to which the failing trajectory was associated
 func (err Error) FileName() string { return err.filename }
 
-//Format returns the format of the file (always "dcd") associated to the error
+// Format returns the format of the file (always "dcd") associated to the error
 func (err Error) Format() string { return "dcd" }
 
-//Critical returns true if the error is critical, false otherwise
+// Critical returns true if the error is critical, false otherwise
 func (err Error) Critical() bool { return err.critical }
 
 const (
@@ -511,13 +576,13 @@ const (
 	EOF                 = "EOF"
 )
 
-//lastFrameError implements chem.LastFrameError
+// lastFrameError implements chem.LastFrameError
 type lastFrameError struct {
 	deco     []string
 	fileName string
 }
 
-//lastFrameError does nothing
+// lastFrameError does nothing
 func (E lastFrameError) NormalLastFrameTermination() {}
 
 func (E lastFrameError) FileName() string { return E.fileName }

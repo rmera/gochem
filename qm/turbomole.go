@@ -60,6 +60,7 @@ type TMHandle struct {
 	gimic        bool
 	marij        bool
 	dryrun       bool
+	basicInput   bool
 }
 
 // Creates and initializes a new instance of TMRuner, with values set

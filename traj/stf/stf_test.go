@@ -40,7 +40,7 @@ var rootdirtest string = "../../test"
 
 //var rootdirtest string = "/run/media/rmera/Fondecyt1TB"
 
-//Tests the writing capabilities.
+// Tests the writing capabilities.
 func TestSTFWrite(Te *testing.T) {
 	var err error
 	fmt.Println("STF write test!")
@@ -79,12 +79,46 @@ func TestSTFWrite(Te *testing.T) {
 		}
 	}
 	wtraj.Close()
+	//now let's see if the whole thing actually worked by producing something I can easily read in pymol
 	fmt.Println("Over! frames read and written:", i)
+	rrtraj, _, err := New("../../test/test_stf.stf")
+	if err != nil {
+		Te.Error(err)
+	}
+	wwtraj, err := dcd.NewWriter(rootdirtest+"/test_stf_read.dcd", rrtraj.Len())
+	if err != nil {
+		Te.Error(err)
+	}
+	defer rtraj.Close()
+
+	i = 0
+	mat = v3.Zeros(rrtraj.Len())
+	box = make([]float64, 9)
+	for ; ; i++ {
+		if i%1 == 0 {
+			err = rrtraj.Next(mat, box)
+		} else {
+			err = rrtraj.Next(nil)
+		}
+		if err != nil {
+			if _, ok := err.(chem.LastFrameError); ok {
+				break
+			}
+			Te.Error(err)
+			break
+		}
+		//	fmt.Println(box) //////////////////////////
+		if i%1 == 0 {
+			wwtraj.WNext(mat, box)
+		}
+	}
+	wwtraj.Close()
+	fmt.Println("Wrote the trajectory for analysis")
 }
 
 var readfromtest string = "./python"
 
-//Now the read
+// Now the read
 func TestSTF(Te *testing.T) {
 	fmt.Println("STF read test!")
 
@@ -119,7 +153,7 @@ func TestSTF(Te *testing.T) {
 	fmt.Println("Over! frames read:", i)
 }
 
-func TestConc(Te *testing.T) {
+func TestSTFConc(Te *testing.T) {
 	fmt.Println("Concurrency test!")
 	traj, _, err := New(rootdirtest + "/test_stf.stf")
 	if err != nil {
@@ -171,62 +205,4 @@ func LastRow(channelin, channelout chan *v3.Matrix, current, other int) {
 		channelout <- nil
 	}
 	return
-}
-
-func BenchmarkWriteDCD(B *testing.B) {
-	fmt.Println("DCD write bench!")
-	mol, err := chem.PDBFileRead("../../test/test_stf.pdb", false)
-	if err != nil {
-		B.Error(err)
-	}
-	rtraj, err := xtc.New("../../test/test_stf.xtc")
-	if err != nil {
-		B.Error(err)
-	}
-	wtraj, err := dcd.NewWriter("../../test/test_stf_b.dcd", mol.Len())
-	if err != nil {
-		B.Error(err)
-	}
-	i := 0
-	mat := v3.Zeros(mol.Len())
-	for ; ; i++ {
-		err := rtraj.Next(mat)
-		if err != nil {
-			if _, ok := err.(chem.LastFrameError); ok {
-				break
-			}
-			B.Error(err)
-			break
-		}
-		wtraj.WNext(mat)
-	}
-}
-
-func BenchmarkWriteSTF(B *testing.B) {
-	fmt.Println("STF write bench!")
-	mol, err := chem.PDBFileRead("../../test/test_stf.pdb", false)
-	if err != nil {
-		B.Error(err)
-	}
-	rtraj, err := xtc.New("../../test/test_stf.xtc")
-	if err != nil {
-		B.Error(err)
-	}
-	wtraj, err := NewWriter("../../test/test_stf_b.stf", mol.Len(), nil)
-	if err != nil {
-		B.Error(err)
-	}
-	i := 0
-	mat := v3.Zeros(mol.Len())
-	for ; ; i++ {
-		err := rtraj.Next(mat)
-		if err != nil {
-			if _, ok := err.(chem.LastFrameError); ok {
-				break
-			}
-			B.Error(err)
-			break
-		}
-		wtraj.WNext(mat)
-	}
 }

@@ -108,21 +108,27 @@ class rtraj:
 #And natoms, the number of atoms per frame
 #d is a dictionary of strings.
 class wtraj:
-    def __init__(self, filename,natoms,compressionlevel=9,d=None,precision=2):
+    def __init__(self, filename,natoms,compressionlevel=9,d=None):
+        def_prec=1
+        # Precision is always written to the file, so if no dictionary is given,
+        # a dictionary containing only the precision is made. If a dictionary
+        # _is_ given but the "prec"
+        # key is not present, it's added. Same if the key is present, but not 
+        # a positive integer. In all these cases, the default value def_prec is
+        # used.
+        if not d:
+            d={"prec":str(def_prec)}
+        elif not "prec" in d or not d["prec"].isdigit():
+            d["prec"]=str(def_prec)
+        precision=int(d["prec"])
         self.prec=pow(10,precision)
         self.natoms=natoms
         self.file=open(filename,'wb')
         self.cctx=zstd.ZstdCompressor(level=compressionlevel)
         self.traj=self.cctx.stream_writer(self.file)
-        if precision!=2:
-            if not d:
-                d={"prec":str(precision)}
-            else:
-                d["prec"]=str(precision)
-        if d:
-            for k,v in d.items():
-                self.traj.write(b"%s=%s\n"%(str(k).encode("utf-8"),str(v).encode("utf-8"))) #I'll attempt converting things to string, but it's your responsibility to ensure that is possible.
-            self.traj.write(b"** %d\n"%natoms)
+        for k,v in d.items():
+            self.traj.write(b"%s=%s\n"%(str(k).encode("utf-8"),str(v).encode("utf-8"))) #I'll attempt converting things to string, but it's your responsibility to ensure that is possible.
+        self.traj.write(b"** %d\n"%natoms)
     #Writes the next frame from data, which needs to be an Nx3 numpy array.
     def wnext(self, data, box=[0]):
         if len(data)<self.natoms or len(data[0])<3:
