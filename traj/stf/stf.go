@@ -63,6 +63,7 @@ func (S *StfW) WNextDense(dcoord *mat.Dense) error {
 	return err
 }
 
+// Writes a frame to the trajectory. Will panic if the trjectory is nil or closed.
 func (S *StfW) WNext(coord *v3.Matrix, box ...[]float64) error {
 	//centroid, err := chem.MassCenterMem(coord, coord, S.framebuffer) //not actually the CoM, but the geometric center.
 	//if err == nil {
@@ -73,7 +74,7 @@ func (S *StfW) WNext(coord *v3.Matrix, box ...[]float64) error {
 		return Error{"Nil trajectory", "", []string{"WNext"}, true}
 	}
 
-	if !S.writeable {
+	if S == nil || !S.writeable {
 		return Error{TrajUnIniWrite, S.filename, []string{"WNext"}, true}
 	}
 	if coord == nil {
