@@ -36,8 +36,8 @@ import (
 //NOTE: For many of these functions we could ask for a buffer vector in the arguments in order to reduce
 //memory allocation.
 
-//Angle takes 2 vectors and calculate the angle in radians between them
-//It does not check for correctness or return errors!
+// Angle takes 2 vectors and calculate the angle in radians between them
+// It does not check for correctness or return errors!
 func Angle(v1, v2 *v3.Matrix) float64 {
 	normproduct := v1.Norm(2) * v2.Norm(2)
 	dotprod := v1.Dot(v2)
@@ -56,10 +56,10 @@ func Angle(v1, v2 *v3.Matrix) float64 {
 	return angle
 }
 
-//RotatorAroundZToNewY takes a set of coordinates (mol) and a vector (y). It returns
-//a rotation matrix that, when applied to mol, will rotate it around the Z axis
-//in such a way that the projection of newy in the XY plane will be aligned with
-//the Y axis.
+// RotatorAroundZToNewY takes a set of coordinates (mol) and a vector (y). It returns
+// a rotation matrix that, when applied to mol, will rotate it around the Z axis
+// in such a way that the projection of newy in the XY plane will be aligned with
+// the Y axis.
 func RotatorAroundZToNewY(newy *v3.Matrix) (*v3.Matrix, error) {
 	nr, nc := newy.Dims()
 	if nc != 3 || nr != 1 {
@@ -79,8 +79,8 @@ func RotatorAroundZToNewY(newy *v3.Matrix) (*v3.Matrix, error) {
 
 }
 
-//RotatorAroundZ returns an operator that will rotate a set of
-//coordinates by gamma radians around the z axis.
+// RotatorAroundZ returns an operator that will rotate a set of
+// coordinates by gamma radians around the z axis.
 func RotatorAroundZ(gamma float64) (*v3.Matrix, error) {
 	singamma := math.Sin(gamma)
 	cosgamma := math.Cos(gamma)
@@ -91,9 +91,9 @@ func RotatorAroundZ(gamma float64) (*v3.Matrix, error) {
 
 }
 
-//RotatorToNewZ takes a matrix a row vector (newz).
-//It returns a linear operator such that, when applied to a matrix mol ( with the operator on the right side)
-//it will rotate mol such that the z axis is aligned with newz.
+// RotatorToNewZ takes a matrix a row vector (newz).
+// It returns a linear operator such that, when applied to a matrix mol ( with the operator on the right side)
+// it will rotate mol such that the z axis is aligned with newz.
 func RotatorToNewZ(newz *v3.Matrix) *v3.Matrix {
 	r, c := newz.Dims()
 	if c != 3 || r != 1 {
@@ -117,13 +117,13 @@ func RotatorToNewZ(newz *v3.Matrix) *v3.Matrix {
 
 }
 
-//RotatorTranslatorToSuper superimposes the set of cartesian coordinates given as the rows of the matrix test on the gnOnes of the rows
-//of the matrix templa. Returns the transformed matrix, the rotation matrix, 2 translation row vectors
-//For the superposition plus an error. In order to perform the superposition, without using the transformed
-//the first translation vector has to be added first to the moving matrix, then the rotation must be performed
-//and finally the second translation has to be added.
-//This is a low level function, although one can use it directly since it returns the transformed matrix.
-//The math for this function is by Prof. Veronica Jimenez-Curihual, UNAB, Chile.
+// RotatorTranslatorToSuper superimposes the set of cartesian coordinates given as the rows of the matrix test on the gnOnes of the rows
+// of the matrix templa. Returns the transformed matrix, the rotation matrix, 2 translation row vectors
+// For the superposition plus an error. In order to perform the superposition, without using the transformed
+// the first translation vector has to be added first to the moving matrix, then the rotation must be performed
+// and finally the second translation has to be added.
+// This is a low level function, although one can use it directly since it returns the transformed matrix.
+// The math for this function is by Prof. Veronica Jimenez-Curihual, UNAB, Chile.
 func RotatorTranslatorToSuper(test, templa *v3.Matrix) (*v3.Matrix, *v3.Matrix, *v3.Matrix, *v3.Matrix, error) {
 	tmr, tmc := templa.Dims()
 	tsr, tsc := test.Dims()
@@ -222,13 +222,13 @@ func rmsd_fail(test, template *matrix.DenseMatrix) (float64, error) {
 }
 */
 
-//RMSD calculates the RMSD between test and template, considering only the atoms
-//present in the slices of int slices indexes. The first indexes slices will
-//be assumed to contain test indexes and the second, template indexes.
-//If you give only one, it will be assumed to correspondo to whatever molecule
-//that has more atoms than the elements in the slice. The same number of atoms
-//has to be considered for superposition in both systems.
-//The objects are not superimposed before the calculation.
+// RMSD calculates the RMSD between test and template, considering only the atoms
+// present in the slices of int slices indexes. The first indexes slices will
+// be assumed to contain test indexes and the second, template indexes.
+// If you give only one, it will be assumed to correspondo to whatever molecule
+// that has more atoms than the elements in the slice. The same number of atoms
+// has to be considered for superposition in both systems.
+// The objects are not superimposed before the calculation.
 func RMSD(test, templa *v3.Matrix, indexes ...[]int) (float64, error) {
 	var L int
 	if len(indexes) == 0 || indexes[0] == nil || len(indexes[0]) == 0 {
@@ -242,19 +242,19 @@ func RMSD(test, templa *v3.Matrix, indexes ...[]int) (float64, error) {
 	return rmsd, err
 }
 
-//MemRMSD calculates the RMSD between test and template, considering only the atoms
-//present in the slices of int slices indexes. The first indexes slices will
-//be assumed to contain test indexes and the second, template indexes.
-//If you give only one (it must be the first one), it will be assumed to correspond to whatever molecule
-//that has more atoms than the elements in the slice.  Giving a nil or 0-lenght first slice and a non-nil second
-//slice will cause MemRMSD to not consider neither of them.
-//The same number of atoms
-//has to be considered for the calculation in both systems.
-//It does not superimpose the objects.
-//To save memory, it asks for the temporary matrix it needs to be supplied:
-//tmp must be Nx3 where N is the number
-//of elements in testlst and templalst
-//NOTE: This function should ask for 3 tmp matrices, not just 1
+// MemRMSD calculates the RMSD between test and template, considering only the atoms
+// present in the slices of int slices indexes. The first indexes slices will
+// be assumed to contain test indexes and the second, template indexes.
+// If you give only one (it must be the first one), it will be assumed to correspond to whatever molecule
+// that has more atoms than the elements in the slice.  Giving a nil or 0-lenght first slice and a non-nil second
+// slice will cause MemRMSD to not consider neither of them.
+// The same number of atoms
+// has to be considered for the calculation in both systems.
+// It does not superimpose the objects.
+// To save memory, it asks for the temporary matrix it needs to be supplied:
+// tmp must be Nx3 where N is the number
+// of elements in testlst and templalst
+// NOTE: This function should ask for 3 tmp matrices, not just 1
 func MemRMSD(test, templa, tmp *v3.Matrix, indexes ...[]int) (float64, error) {
 	var ctest *v3.Matrix
 	var ctempla *v3.Matrix
@@ -287,10 +287,10 @@ func MemRMSD(test, templa, tmp *v3.Matrix, indexes ...[]int) (float64, error) {
 
 }
 
-//MemMSD calculates the MSDs between test and templa, considering only the atoms
-//present in the slices of int slices indexes. If given. If only one set of indexes
-//is given, it will be assumed to beling to test, if it has less elements than that
-//system, or to templa,otherwise.
+// MemMSD calculates the MSDs between test and templa, considering only the atoms
+// present in the slices of int slices indexes. If given. If only one set of indexes
+// is given, it will be assumed to beling to test, if it has less elements than that
+// system, or to templa,otherwise.
 func MemPerAtomRMSD(test, templa, ctest, ctempla, tmp *v3.Matrix, indexes ...[]int) ([]float64, error) {
 	if len(indexes) == 0 || indexes[0] == nil || len(indexes[0]) == 0 {
 		ctest = test
@@ -320,9 +320,9 @@ func MemPerAtomRMSD(test, templa, ctest, ctempla, tmp *v3.Matrix, indexes ...[]i
 	return msds, nil
 }
 
-//rMSD returns the RSMD (root of the mean square deviation) for the sets of cartesian
-//coordinates in test and template, only considering the template and test atoms in
-//the lists testlst and templalst, respectively. Since it is very explicit I leave it here for testing.
+// rMSD returns the RSMD (root of the mean square deviation) for the sets of cartesian
+// coordinates in test and template, only considering the template and test atoms in
+// the lists testlst and templalst, respectively. Since it is very explicit I leave it here for testing.
 func rMSD(test, template *v3.Matrix, testlst, templalst []int) (float64, error) {
 	//This is a VERY naive implementation.
 	lists := [][]int{testlst, templalst}
@@ -363,7 +363,7 @@ func rMSD(test, template *v3.Matrix, testlst, templalst []int) (float64, error) 
 	return RMSD, nil
 }
 
-//ImproperAlt calculates the improper dihedral between the points a, b,c,d
+// ImproperAlt calculates the improper dihedral between the points a, b,c,d
 // as the angle between the plane defined by a,b,c and the cd vector
 func ImproperAlt(a, b, c, d *v3.Matrix) float64 {
 	all := []*v3.Matrix{a, b, c, d}
@@ -396,7 +396,7 @@ func ImproperAlt(a, b, c, d *v3.Matrix) float64 {
 	*/
 }
 
-//Improper calculates the improper dihedral between the points a, b,c,d
+// Improper calculates the improper dihedral between the points a, b,c,d
 // as the angle between the plane defined by a,b,c and that defined by the plane bcd
 func Improper(a, b, c, d *v3.Matrix) float64 {
 	all := []*v3.Matrix{a, b, c, d}
@@ -432,16 +432,16 @@ func Improper(a, b, c, d *v3.Matrix) float64 {
 	*/
 }
 
-//DihedralAlt calculates the dihedral between the points a, b, c, d, where the first plane
-//is defined by abc and the second by bcd.
-//It is exactly the same as Dihedral, only kept for API stability.
+// DihedralAlt calculates the dihedral between the points a, b, c, d, where the first plane
+// is defined by abc and the second by bcd.
+// It is exactly the same as Dihedral, only kept for API stability.
 func DihedralAlt(a, b, c, d *v3.Matrix) float64 {
 	return Dihedral(a, b, c, d)
 }
 
-//Dihedral calculates the dihedral between the points a, b, c, d, where the first plane
-//is defined by abc and the second by bcd. The ouputs are defined between 0 and pi, so
-//it shouldn't be used for Ramachandran angles. Use RamaDihedral for that.
+// Dihedral calculates the dihedral between the points a, b, c, d, where the first plane
+// is defined by abc and the second by bcd. The ouputs are defined between 0 and pi, so
+// it shouldn't be used for Ramachandran angles. Use RamaDihedral for that.
 func Dihedral(a, b, c, d *v3.Matrix) float64 {
 	all := []*v3.Matrix{a, b, c, d}
 	for number, point := range all {
@@ -469,7 +469,7 @@ func Dihedral(a, b, c, d *v3.Matrix) float64 {
 	return dihedral
 }
 
-//Similar to the Dihedral funcion, obatins the dihedral angle between 2 points. The difference is that the outputs for this functions are defined between -pi and pi, while Dihedral's outputs are defined between 0 and pi.
+// Similar to the Dihedral funcion, obatins the dihedral angle between 2 points. The difference is that the outputs for this functions are defined between -pi and pi, while Dihedral's outputs are defined between 0 and pi.
 func DihedralRama(a, b, c, d *v3.Matrix) float64 {
 	all := []*v3.Matrix{a, b, c, d}
 	for number, point := range all {
@@ -504,10 +504,10 @@ func DihedralRama(a, b, c, d *v3.Matrix) float64 {
 
 //point comparisons
 
-//RhoShapeIndexes Get shape indices based on the axes of the elipsoid of inertia.
-//linear and circular distortion, in that order, and error or nil.
-//Based on the work of Taylor et al., .(1983), J Mol Graph, 1, 30
-//This function has NOT been tested thoroughly in the sense of the appropiateness of the indexes definitions.
+// RhoShapeIndexes Get shape indices based on the axes of the elipsoid of inertia.
+// linear and circular distortion, in that order, and error or nil.
+// Based on the work of Taylor et al., .(1983), J Mol Graph, 1, 30
+// This function has NOT been tested thoroughly in the sense of the appropiateness of the indexes definitions.
 func RhoShapeIndexes(rhos []float64) (float64, float64, error) {
 	if rhos == nil || len(rhos) < 3 {
 		return -1, -1, CError{"goChe: Not enough or nil rhos", []string{"RhoShapeIndexes"}}
@@ -519,7 +519,7 @@ func RhoShapeIndexes(rhos []float64) (float64, float64, error) {
 	return linear_distortion, circular_distortion, nil
 }
 
-//Rhos returns the semiaxis of the elipoid of inertia given the the moment of inertia tensor.
+// Rhos returns the semiaxis of the elipoid of inertia given the the moment of inertia tensor.
 func Rhos(momentTensor *v3.Matrix, epsilon ...float64) ([]float64, error) {
 	var e float64
 	if len(epsilon) == 0 {
@@ -546,10 +546,10 @@ func Rhos(momentTensor *v3.Matrix, epsilon ...float64) ([]float64, error) {
 
 /**Other geometrical**/
 
-//BestPlaneP takes sorted evecs, according to the eval,s and returns a row vector that is normal to the
-//Plane that best contains the molecule. Notice that the function can't possibly check
-//that the vectors are sorted. The P at the end of the name is for Performance. If
-//That is not an issue it is safer to use the BestPlane function that wraps this one.
+// BestPlaneP takes sorted evecs, according to the eval,s and returns a row vector that is normal to the
+// Plane that best contains the molecule. Notice that the function can't possibly check
+// that the vectors are sorted. The P at the end of the name is for Performance. If
+// That is not an issue it is safer to use the BestPlane function that wraps this one.
 func BestPlaneP(evecs *v3.Matrix) (*v3.Matrix, error) {
 	evr, evc := evecs.Dims()
 	if evr != 3 || evc != 3 {
@@ -562,9 +562,9 @@ func BestPlaneP(evecs *v3.Matrix) (*v3.Matrix, error) {
 	return normal, nil
 }
 
-//BestPlane returns a row vector that is normal to the plane that best contains the molecule
-//if passed a nil Masser, it will simply set all masses to 1. If more than one Masser is passed
-//Only the first will be considered
+// BestPlane returns a row vector that is normal to the plane that best contains the molecule
+// if passed a nil Masser, it will simply set all masses to 1. If more than one Masser is passed
+// Only the first will be considered
 func BestPlane(coords *v3.Matrix, mol ...Masser) (*v3.Matrix, error) {
 	var err error
 	var Mmass []float64
@@ -596,7 +596,7 @@ func BestPlane(coords *v3.Matrix, mol ...Masser) (*v3.Matrix, error) {
 	return normal, err
 }
 
-//returns a float64 slice of the size requested filed with ones
+// returns a float64 slice of the size requested filed with ones
 func ones(size int) []float64 {
 	slice := make([]float64, size, size)
 	for k, _ := range slice {
@@ -605,8 +605,8 @@ func ones(size int) []float64 {
 	return slice
 }
 
-//CenterOfMass returns the center of mass the atoms represented by the coordinates in geometry
-//and the masses in mass, and an error. If no mass is given, it calculates the geometric center
+// CenterOfMass returns the center of mass the atoms represented by the coordinates in geometry
+// and the masses in mass, and an error. If no mass is given, it calculates the geometric center
 func CenterOfMass(geometry *v3.Matrix, massS ...*mat.Dense) (*v3.Matrix, error) {
 	var mass *mat.Dense
 	if geometry == nil {
@@ -630,8 +630,8 @@ func CenterOfMass(geometry *v3.Matrix, massS ...*mat.Dense) (*v3.Matrix, error) 
 	return ref2, nil
 }
 
-//MassCenterMem centers in in the center of mass of oref, putting the result in ret. Mass must be
-//A column vector. Returns the centered matrix and the displacement matrix.
+// MassCenterMem centers in in the center of mass of oref, putting the result in ret. Mass must be
+// A column vector. Returns the centered matrix and the displacement matrix.
 func MassCenterMem(in, oref, ret *v3.Matrix, massS ...*mat.Dense) (*v3.Matrix, error) {
 	or, _ := oref.Dims()
 	var mass *mat.Dense
@@ -665,8 +665,8 @@ func MassCenterMem(in, oref, ret *v3.Matrix, massS ...*mat.Dense) (*v3.Matrix, e
 	return ref2, nil
 }
 
-//MassCenter centers in in the center of mass of oref. Mass must be
-//A column vector. Returns the centered matrix and the displacement matrix.
+// MassCenter centers in in the center of mass of oref. Mass must be
+// A column vector. Returns the centered matrix and the displacement matrix.
 func MassCenter(in, oref *v3.Matrix, massS ...*mat.Dense) (*v3.Matrix, *v3.Matrix, error) {
 	or, _ := oref.Dims()
 	ir, _ := in.Dims()
@@ -702,8 +702,8 @@ func MassCenter(in, oref *v3.Matrix, massS ...*mat.Dense) (*v3.Matrix, *v3.Matri
 	return returned, ref2, nil
 }
 
-//MomentTensor returns the moment tensor for a matrix A of coordinates and a column
-//vector mass with the respective massess.
+// MomentTensor returns the moment tensor for a matrix A of coordinates and a column
+// vector mass with the respective massess.
 func MomentTensor(A *v3.Matrix, massslice ...[]float64) (*v3.Matrix, error) {
 	ar, ac := A.Dims()
 	var err error
@@ -732,7 +732,7 @@ func MomentTensor(A *v3.Matrix, massslice ...[]float64) (*v3.Matrix, error) {
 	return v3.Dense2Matrix(moment), nil
 }
 
-//Projection returns the projection of test in ref.
+// Projection returns the projection of test in ref.
 func Projection(test, ref *v3.Matrix) *v3.Matrix {
 	rr, _ := ref.Dims()
 	Uref := v3.Zeros(rr)
@@ -742,9 +742,9 @@ func Projection(test, ref *v3.Matrix) *v3.Matrix {
 	return Uref
 }
 
-//AntiProjection returns a vector in the direction of ref with the magnitude of
-//a vector A would have if |test| was the magnitude of its projection
-//in the direction of test.
+// AntiProjection returns a vector in the direction of ref with the magnitude of
+// a vector A would have if |test| was the magnitude of its projection
+// in the direction of test.
 func AntiProjection(test, ref *v3.Matrix) *v3.Matrix {
 	rr, _ := ref.Dims()
 	testnorm := test.Norm(2)

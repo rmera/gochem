@@ -209,7 +209,8 @@ func (D *DCDWObj) initWrite(name string) error {
 }
 
 //WNext rites the next frame to the trajectory.
-func (D *DCDWObj) WNext(towrite *v3.Matrix) error {
+//the box isn't actually used, so far. It's only there for compatibility.
+func (D *DCDWObj) WNext(towrite *v3.Matrix, box ...[]float64) error {
 	if !D.writable {
 		return Error{TrajUnIni, D.filename, []string{"WNext"}, true}
 	}

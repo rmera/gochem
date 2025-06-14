@@ -27,6 +27,7 @@ import (
 	"math"
 	"runtime"
 	"sort"
+	"slices"
 	"strings"
 
 	//	"sort"
@@ -534,7 +535,7 @@ func DistRank(coord *v3.Matrix, mol chem.Atomer, refindexes []int, residues []st
 				distance = MolShortestDist(test, ref)
 			}
 			if distance <= cutoff {
-				ranks = append(ranks, &molDist{Distance: distance, MolID: id})
+				ranks = append(ranks, &molDist{Distance: distance, MolID: id, Chain:chain})
 			}
 			molid_skip = id
 			chain_skip = chain
@@ -548,6 +549,7 @@ func DistRank(coord *v3.Matrix, mol chem.Atomer, refindexes []int, residues []st
 // A structure for the distance from a residue to a particular point
 type molDist struct {
 	Distance float64
+	Chain    string
 	MolID    int
 }
 
@@ -610,6 +612,31 @@ func (M MolDistList) MolIDs() []int {
 	}
 	return ret
 }
+
+// MolIDs returns a slice with all the chains present, and, for a given chain, all the residue IDs.
+func (M MolDistList) MolIDsByChain() ([][]int,[]string){
+	ids:=make([][]int,0,1)
+	chains := make([]string, 0,1)
+	for i,v := range M {
+		if !slices.Contains(chains,v.Chain){
+			ch:=v.Chain
+			chains=append(chains,ch)
+			id:=make([]int,0,10)
+			for _,w:=range M[i+1:]{
+				if w.Chain==ch{
+					id=append(id,w.MolID)
+				}
+			}
+			ids=append(ids,id)
+		}
+	}
+	return  ids,chains
+}
+
+
+
+
+
 
 // Data returns a list with all the MolIDs and a list with all the distances
 // in the set

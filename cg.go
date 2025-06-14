@@ -43,7 +43,8 @@ func errorDec(err error, frame int) error {
 // to the center of mass, with the name "BB", and the correct residue name and ID. Otherwise it returns
 // an empty topology.
 // In other words, it takes a protein and returns a CG model for its backbone, in the currect conformation.
-func BackboneCGize(coord *v3.Matrix, mol Atomer, top bool) (*v3.Matrix, *Topology, error) {
+// If centroid is given and true, the geometric center is used instead of the center of mass.
+func BackboneCGize(coord *v3.Matrix, mol Atomer, top bool, centroid ...bool) (*v3.Matrix, *Topology, error) {
 	topol := NewTopology(0, 1)
 	residues := countResidues(mol) //sorry
 	res4vec := 0
@@ -70,9 +71,18 @@ func BackboneCGize(coord *v3.Matrix, mol Atomer, top bool) (*v3.Matrix, *Topolog
 		}
 		bb.SomeVecs(coord, bbin)
 		bbtop.SomeAtoms(mol, bbin)
-		mass, err := bbtop.Masses()
-		if err != nil {
-			return nil, nil, errorDec(err, i)
+		var mass []float64
+		if len(centroid) > 0 && centroid[0] {
+			mass = make([]float64, 0, bbtop.Len())
+			for i := 0; i < bbtop.Len(); i++ {
+				mass = append(mass, 1)
+			}
+		} else {
+			var err error
+			mass, err = bbtop.Masses()
+			if err != nil {
+				return nil, nil, errorDec(err, i)
+			}
 		}
 		com, err := CenterOfMass(bb, mat.NewDense(len(mass), 1, mass))
 		if err != nil {
