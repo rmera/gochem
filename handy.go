@@ -59,9 +59,18 @@ const allchains = "*ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 func FixGromacsPDB(mol Atomer) {
 	//	fmt.Println("FIXING!")
 	previd := 999999
+	const pdbmaxresidue = 9999
 	lastchain := "*"
+	j := 1
 	for i := 0; i < mol.Len(); i++ {
 		at := mol.Atom(i)
+		if at.MolID > pdbmaxresidue {
+			at.MolID = j
+			if j == pdbmaxresidue {
+				j = 0
+			}
+			j++
+		}
 		if at.Chain == " " {
 			if previd > at.MolID {
 				index := strings.Index(allchains, lastchain) + 1
@@ -74,6 +83,12 @@ func FixGromacsPDB(mol Atomer) {
 			lastchain = at.Chain
 		}
 		previd = at.MolID
+
+		//a fix for Martini Waters
+		if at.MolName == "WN" || at.MolName == "WN " || at.MolName == " WN" {
+			at.MolName = "WNN"
+		}
+
 	}
 }
 
