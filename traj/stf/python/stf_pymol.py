@@ -17,16 +17,16 @@ def loadstf(filename,objname="",skip=0,begin=0):
     skip=int(skip)
     d={}
     while True:
-        read=True
+        bskip=False
         if fr%(skip+1)!=0 or fr+1<int(begin):
-            read=False
+            bskip=True
         fr+=1
         try:
-            f=t.next(read)
+            f=t.next(bskip)
         except EOFError: #not an actual error
             t.close()
             break
-        if not read:
+        if bskip:
             continue
         b=cmd.get_model(objname)
         #For _some_ reason, PyMOL changes the order of a system when it reads it
