@@ -49,20 +49,15 @@ class rtraj:
         self.headerdict={}
         self.readable=True
         for i in self.traj:
-#            i=i.decode("utf-8")
             if "**" in i:
                 self.natoms=int(i.split()[-1])
                 self.frame=np.zeros((self.natoms,3))
+                p=self.headerdict["prec"]
+                self.prec=pow(10,int(p))
                 return
             self.header+=" "+i.rstrip("\n")
-        for i in self.header.split():
             k,v=i.split("=")
             self.headerdict[k]=v
-        try:
-            p=self.headerdic["prec"]
-        except KeyError:
-            p="2"
-        self.prec=pow(10,int(p))
     #each call returns the next frame
     #when there are no more frames left, it raises an EOFError
     #This reads every frame to the same array
@@ -73,7 +68,7 @@ class rtraj:
             raise EOFError #I guess not the best one, but I hate exceptions.
         r=0
         for i in self.traj:
-  #          i=i.decode("utf-8")
+  #         i=i.decode("utf-8")
             if "*" in i:
                 if len(box)>=9:
                     line=i.rstrip().split()
