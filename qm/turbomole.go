@@ -407,10 +407,10 @@ func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q 
 	//	go copy2pipe(stdout, coord, end)
 	//	<-end
 	io.Copy(coord, stdout)
-	coord.Close()                           //not defearable
-	defstring := "\n\n\na coord\nired\n*\n" //reduntant internals
+	coord.Close()                                 //not defearable
+	defstring := "\n\n\na coord\nired\ndesy\n*\n" //reduntant internals
 	if Q.CartesianOpt {
-		defstring = "\n\n\na coord\n*\nno\n"
+		defstring = "\n\n\na coord\ndesy\n*\nno\n"
 	}
 	if atoms == nil || coords == nil {
 		return Error{ErrMissingCharges, Turbomole, O.inputname, "", []string{"BuildInput"}, true}
