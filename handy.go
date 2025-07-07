@@ -813,3 +813,30 @@ func SelCone(B, selection *v3.Matrix, angle, distance, thickness, initial float6
 	}
 	return selected
 }
+
+func ext(s string) string {
+	s2 := strings.Split(s, ".")
+	return strings.ToLower(s2[len(s2)-1])
+}
+
+// Attemps to open a using the file extension
+// to guess the format among the supported molecule file format. Returns a Molecule
+// and an error which will be non nil if the reading fails or if the extension does not
+// belong to a supported format.
+func MoleculeFileRead(name string) (mol *Molecule, err error) {
+	switch ext(name) {
+	case "pdb":
+		mol, err = PDBFileRead(name, true)
+	case "gro":
+		mol, err = GroFileRead(name)
+	case "pdbx":
+		mol, err = PDBxFileRead(name)
+	case "cif":
+		mol, err = PDBxFileRead(name)
+	case "xyz":
+		mol, err = XYZFileRead(name)
+	default:
+		err = fmt.Errorf("goChem/MoleculeFileRead: Extension %s not supported", ext(name))
+	}
+	return
+}
