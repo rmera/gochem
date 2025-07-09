@@ -35,6 +35,26 @@ type FF struct {
 	Exclusions    [][]int
 }
 
+// AssignBonds assigns bonds to a molecule based on a simple distance
+// criterium, similar to that described in DOI:10.1186/1758-2946-3-33
+func (F *FF) MolecularBonds(constraints ...bool) error {
+	F.Mol.RemoveBonds()
+	fakedistance := 0.0
+	list := F.Bonds
+	if len(constraints) > 0 && constraints[0] {
+		list = append(list, F.Constraints...)
+	}
+	for i, v := range list {
+		at1 := F.Mol.Atom(v.IDs[0] - v.OneBased)
+		at2 := F.Mol.Atom(v.IDs[1] - v.OneBased)
+		b := &chem.Bond{Index: i, Dist: fakedistance, At1: at1, At2: at2}
+		at1.Bonds = append(at1.Bonds, b)
+		at2.Bonds = append(at2.Bonds, b)
+	}
+	return nil
+
+}
+
 // returns a new and empty (but with some values set to defaults)
 // FF object. SigmaEpsilon is true if LJ terms are expressed as sigma/epsilon,
 // false for C6/C12
@@ -246,7 +266,7 @@ func (A *VSite) Copy(B *VSite) {
 type Term struct {
 	FuncType   uint
 	IDs        []int
-	OneBased   int //1 if the indexes in Atom are 0-based, 0 if it's 1-based.
+	OneBased   int //0 if the indexes in Atom are 0-based, 1 if it's 1-based.
 	K          float64
 	Eq         float64
 	Constraint bool
