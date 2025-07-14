@@ -335,14 +335,30 @@ func InWhichRing(at *Atom, rings []*Ring) int {
 
 }
 
+type RingOptions struct {
+	AddHs        bool
+	MinPlanarity float64
+	Coords       *v3.Matrix
+}
+
+func DefaultRingOptions() *RingOptions {
+	return &RingOptions{MinPlanarity: -1, Coords: nil, AddHs: false}
+
+}
+
 // Identifies and returns all rings in mol, by
 // searching for cyclic paths. if at least 1 element is given for addHs
 // and the first element of those give is true, the Hs bound to the atoms in the rings
 // will also be added to the ring.
-func FindRings(coords *v3.Matrix, mol Atomer, addHs ...bool) []*Ring {
+func FindRings(mol Atomer, Opts ...*RingOptions) []*Ring {
+	var o *RingOptions
+	if len(Opts) > 0 {
+		o = Opts[0]
+	} else {
+		o = DefaultRingOptions()
+	}
 	L := mol.Len()
 	var rings []*Ring
-	minplanarity := 95.0
 	for i := 0; i < L; i++ {
 		at := mol.Atom(i)
 		if InWhichRing(at, rings) == -1 {
@@ -351,9 +367,8 @@ func FindRings(coords *v3.Matrix, mol Atomer, addHs ...bool) []*Ring {
 				continue
 			}
 			r := &Ring{Atoms: paths[0]}
-			p := r.Planarity(coords)
-			if p > minplanarity {
-				if len(addHs) != 0 && addHs[0] {
+			if o.Coords == nil || o.MinPlanarity < 0 || r.Planarity(o.Coords) > o.MinPlanarity {
+				if o.AddHs {
 					r.AddHs(mol)
 				}
 				rings = append(rings, r)
