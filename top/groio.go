@@ -35,6 +35,16 @@ func (c *cond) read(line string, defines []string) bool {
 			return false
 		}
 	}
+	if strings.HasPrefix(line, "#ifndef") {
+		if !slices.Contains(defines, fi(line)[0]) {
+			c.reading = true
+			return false
+		} else {
+			c.reading = false
+			return false
+		}
+	}
+
 	if strings.HasPrefix(line, "#else") {
 		c.reading = !c.reading
 		return false
@@ -62,6 +72,10 @@ func (F *FF) Fill(r StringReader, followIncludes bool, defines ...string) error 
 	var s string
 	read := newCond()
 	h := NewTopHeader()
+	var atindex []int
+	if F.Mol.Len() == 0 {
+		atindex = append(atindex, -1) //mark that atoms need to be added.
+	}
 	if F.Mol == nil {
 		return fmt.Errorf("Can't read topology if no molecule is loaded on the FF object")
 	}
@@ -101,7 +115,7 @@ func (F *FF) Fill(r StringReader, followIncludes bool, defines ...string) error 
 		switch F.currentHeader {
 
 		case "atoms":
-			err = F.AtomDataFromGro(s)
+			err = F.AtomDataFromGro(s, atindex...)
 		case "bonds":
 			T, err = TermFromGro(s, F.currentHeader)
 			F.Bonds = append(F.Bonds, T)
@@ -111,12 +125,17 @@ func (F *FF) Fill(r StringReader, followIncludes bool, defines ...string) error 
 		case "angles":
 			T, err = TermFromGro(s, F.currentHeader)
 			F.Angles = append(F.Angles, T)
-		case "impropers":
-			T, err = TermFromGro(s, F.currentHeader)
-			F.Impropers = append(F.Impropers, T)
+			//		case "impropers":
+			//			T, err = TermFromGro(s, F.currentHeader)
+			//			F.Impropers = append(F.Impropers, T)
 		case "dihedrals":
 			T, err = TermFromGro(s, F.currentHeader)
-			F.Dihedrals = append(F.Dihedrals, T)
+			if T.FuncType == 2 {
+				F.Impropers = append(F.Impropers, T)
+			} else {
+				F.Dihedrals = append(F.Dihedrals, T)
+			}
+
 		//note that I don't support other vsites right now.
 		case "vsitesn":
 			vs, err = VSitesNFromGro(s)
@@ -182,10 +201,10 @@ func (F *FF) AllToGro(r io.StringWriter) (err error) {
 	printExcluGro(r, F.Exclusions)
 	_, err = r.WriteString("\n[ angles ]\n")
 	printGro(r, F.Angles)
-	_, err = r.WriteString("\n[ impropers ]\n")
-	printGro(r, F.Impropers)
 	_, err = r.WriteString("\n[ dihedrals ]\n")
 	printGro(r, F.Dihedrals)
+	_, err = r.WriteString("; Impropers\n")
+	printGro(r, F.Impropers)
 	_, err = r.WriteString("\n[ virtual_sitesn ]\n")
 	//while the ToGro() signature for the interface
 	//printGo takes requires returning an error, the only
@@ -279,7 +298,8 @@ func (e exclusion) ToGro() (string, error) {
 
 // Adds the data in the gromacs-topology atom-section string to the atom with index index[0] in the
 // molecule in ff. IF index is not given, the function will search the molecule to add the data to the
-// atom that matches the ID on the topology string.
+// atom that matches the ID on the topology string. If a negative index is given, AtomDataFromGro will
+// create a new atom and append it to FF.Mol
 func (F *FF) AtomDataFromGro(s string, index ...int) (err error) {
 	s = cleanString(s)
 	var at *chem.Atom
@@ -291,11 +311,16 @@ func (F *FF) AtomDataFromGro(s string, index ...int) (err error) {
 	ix := -1
 	if len(index) > 0 {
 		ix = index[0]
+		if index[0] < 0 {
+			F.Mol.AppendAtom(&chem.Atom{})
+			ix = F.Mol.Len() - 1
+		}
 	}
 	l := fi(s)
 	ID, err := strconv.Atoi(l[0])
-	if ix > 0 && F.Mol.Atom(ix).ID == ID {
+	if ix >= 0 {
 		at = F.Mol.Atom(ix)
+		at.ID = ID
 	} else {
 		for i := 0; i < F.Mol.Len(); i++ {
 			a := F.Mol.Atom(i)
@@ -305,6 +330,7 @@ func (F *FF) AtomDataFromGro(s string, index ...int) (err error) {
 		}
 	}
 	if at == nil {
+		println("index:", ix) //////////////////////////////////
 		err = fmt.Errorf("Couldn't find atom with ID %d", ID)
 		return
 	}
@@ -335,7 +361,7 @@ func TermFromGro(s, header string) (T *Term, err error) {
 	}()
 	T = new(Term)
 	l := strings.Fields(cleanString(s))
-	T.OneBased = 0
+	T.OneBased = 1
 
 	//first the 'special' cases.
 
