@@ -93,7 +93,9 @@ func HighestOverlap(test, clash *v3.Matrix, testtop, clashtop chem.Atomer, FF *t
 	return
 }
 
-// Returns the smallest distance
+// Returns the smallest distance between any point in test and any point in clash.
+// The index of the atoms in both coordiante sets corresponding to that minimum
+// distance are also returned.
 func SmallestDist(test, clash *v3.Matrix) (dist float64, indexes [2]int) {
 	dist = 999999999999999
 	dvec := v3.Zeros(1)
@@ -118,11 +120,14 @@ func SmallestDist(test, clash *v3.Matrix) (dist float64, indexes [2]int) {
 	return
 }
 
-// a q&d brute-force central-difference
-func AngleFuncGrad(test, clash *v3.Matrix, axes, rotated [][]int, f func(*v3.Matrix, *v3.Matrix) (float64, [2]int), epsilon ...float64) ([]float64, error) {
+// a q&d brute-force central-difference for the clash between test and clash
+// as the sets of atoms in rotated are rotated around the respective axis of rotations
+// with the same index in axes, when the clash is calculated with the function f
+// step is the rotation step, which is 2 degrees by default.
+func AngleFuncGrad(test, clash *v3.Matrix, axes, rotated [][]int, f func(*v3.Matrix, *v3.Matrix) (float64, [2]int), step ...float64) ([]float64, error) {
 	var e float64 = 2 * chem.Deg2Rad
-	if len(epsilon) > 0 {
-		e = epsilon[0]
+	if len(step) > 0 {
+		e = step[0]
 	}
 	clone := v3.Zeros(test.Len())
 	grad := make([]float64, 0, len(axes))
