@@ -60,6 +60,9 @@ func zero(d *v3.Matrix) {
 	d.Set(0, 2, 0)
 }
 
+// HighestOverlap calculates the highest atomic overlap between two molecular structures,
+// `test` and `clash` (coordinates), and `testtop` and `clashtop` (atomic properties),
+// with LJ interactions for each atom (or, CG bead) in FF.
 func HighestOverlap(test, clash *v3.Matrix, testtop, clashtop chem.Atomer, FF *top.FF) (over float64, indexes [2]int) {
 	dvec := v3.Zeros(1)
 	dt := 0.0
@@ -90,7 +93,8 @@ func HighestOverlap(test, clash *v3.Matrix, testtop, clashtop chem.Atomer, FF *t
 	return
 }
 
-func LowestDist(test, clash *v3.Matrix) (dist float64, indexes [2]int) {
+// Returns the smallest distance
+func SmallestDist(test, clash *v3.Matrix) (dist float64, indexes [2]int) {
 	dist = 999999999999999
 	dvec := v3.Zeros(1)
 	dt := 0.0
@@ -186,9 +190,6 @@ func DeClash(test, clash *v3.Matrix, axes, rotated [][]int, mindist float64, f f
 			break
 		}
 		prev = m * cs
-
 	}
-
 	return test, nil
-
 }
