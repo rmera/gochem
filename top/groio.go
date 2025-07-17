@@ -389,6 +389,7 @@ func TermFromGro(s, header string) (T *Term, err error) {
 		ft, err = strconv.Atoi(l[2])
 		qerr(err)
 		T.FuncType = uint(ft)
+		//		println(T.FuncType, "CONSTRAINTTYPE")    ///////////////////////////////////
 		T.Eq, err = strconv.ParseFloat(l[3], 64) //could be 3 if there is a function type but I don't think there is. Check
 		qerr(err)
 		return
@@ -434,21 +435,26 @@ func (T *Term) writeAtoms() string {
 func (T *Term) ToGro() (string, error) {
 	ret := make([]string, 0, 15)
 	ret = append(ret, T.writeAtoms())
+	//	T.K = 678.99 //////////////////
 	if T.Vsite {
 		return "", nil //placeholder
 	}
-	if !T.Constraint {
-		ret = append(ret, fmt.Sprintf("%1d", T.FuncType))
+
+	flf := "%6.2f" //float format
+	ret = append(ret, fmt.Sprintf("%1d", T.FuncType))
+
+	if len(T.RB) == 0 {
+		ret = append(ret, fmt.Sprintf(flf, T.Eq))
 	}
-	ret = append(ret, fmt.Sprintf("%6.4f", T.Eq))
 	if !T.Constraint && len(T.RB) == 0 {
-		ret = append(ret, fmt.Sprintf("%6.4f", T.K))
+		ret = append(ret, fmt.Sprintf(flf, T.K))
 	}
-	if len(T.RB) > 0 && len(T.RB) < 6 {
+	if len(T.RB) > 0 && len(T.RB) != 6 {
 		panic(fmt.Sprintf("grotop/Term.String: R-B potential must have 6 parameters, got %d", len(T.RB)))
 	}
 	for _, v := range T.RB {
-		ret = append(ret, fmt.Sprintf("%6.4f", v))
+		//	ret = append(ret, "nowe", fmt.Sprintf("****%6.4f****", v)) ///////////////////////
+		ret = append(ret, fmt.Sprintf(flf, v))
 	}
 	ret = append(ret, "\n")
 
