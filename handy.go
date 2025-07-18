@@ -113,8 +113,9 @@ func Molecules2Atoms(mol Atomer, residues []int, chains []string) []int {
 // zero, the closer, the more
 // strict the orthogonality requriements are) and an (optative) masser and returns
 // two shape indicators based on the elipsoid of inertia (or it massless equivalent)
-// a linear and circular distortion indicators, and an error or nil (in that order).
-// if you give a negative number as epsilon, the default (quite strict) will be used.
+// a linear and circular distortion indicators, as percentages, and an error or
+// nil (in that order). If you give a negative number as epsilon, the default
+// (quite strict) will be used.
 func EasyShape(coords *v3.Matrix, epsilon float64, mol ...Masser) (float64, float64, error) {
 	var masses []float64
 	var err2 error
