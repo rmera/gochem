@@ -50,6 +50,19 @@ type Bond struct {
 	Order float64 //Order 0 means undetermined
 }
 
+// Copies B into the receiver
+func (b *Bond) Copy(B *Bond) {
+	b.Index = B.Index
+	b.At1 = B.At1
+	b.At2 = B.At2
+	b.Dist = B.Dist
+	b.Energy = B.Energy //One might prefer to use energy insteaf of order.
+	//NOTE
+	//I'm not sure if I leave just the order and let the user "Abuse" that field for energy
+	//or anything else they want, or if I keep this extra field.
+	b.Order = B.Order //Order 0 means undetermined
+}
+
 // Cross returns the atom bonded to the origin atom
 // bond in the receiver.
 func (B *Bond) Cross(origin *Atom) *Atom {
