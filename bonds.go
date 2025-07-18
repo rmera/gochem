@@ -118,8 +118,13 @@ func takefromslice(bonds []*Bond, id int) []*Bond {
 
 // BondedOptions contains options for the BondePaths function
 type BondedOptions struct {
-	OnlyShortest bool  //Only return the shortest path between the atoms
-	path         []int //
+	OnlyShortest bool             //Only return the shortest path between the atoms
+	F            func(*Bond) bool //Only bonds for which this function returns true are considered
+	path         []int            //
+}
+
+func DefaultBondedOptions() *BondedOptions {
+	return &BondedOptions{OnlyShortest: false, F: func(*Bond) bool { return true }}
 }
 
 /******
@@ -137,6 +142,7 @@ func (B *BondedOptions)SetAlreadyWalkedPath(p []int){
 }
 ******/
 
+/*
 // BondedPaths determines the paths between at and the atom with
 // Index targetIndex. It returns a slice of slices of int, where each sub-slice contains all the atoms
 // in between at and the target (including the index of at)
@@ -202,8 +208,8 @@ func BondedPaths(at *Atom, targetIndex int, options ...*BondedOptions) [][]int {
 	return rets2
 
 }
+*/
 
-// If this works, we could replace BondedPaths by just a call to this function with f=func(*Bond)bool{return true}
 // BondedPaths determines the paths between at and the atom with
 // Index targetIndex. It returns a slice of slices of int, where each sub-slice contains all the atoms
 // in between at and the target (including the index of at)
@@ -214,16 +220,18 @@ func BondedPaths(at *Atom, targetIndex int, options ...*BondedOptions) [][]int {
 // of len 0, the function will search for a cyclic path back to the initial atom.
 // if onlyshortest is true, only the shortest path will be returned (the other elements of the slice will be nil)
 // This can be useful if you want to save memory on a very intrincate molecule.
-func BondedPathsFunc(at *Atom, targetIndex int, f func(*Bond) bool, options ...*BondedOptions) [][]int {
+// Only bonds for which the function in options returns true are considered for the search (in the default options,
+// this function always returns true, so all bonds are consiered).
+func BondedPaths(at *Atom, targetIndex int, options ...*BondedOptions) [][]int {
 	if len(options) == 0 {
-		options = []*BondedOptions{{OnlyShortest: false, path: nil}}
+		options = append(options, DefaultBondedOptions())
 	}
 	onlyshortest := options[0].OnlyShortest
 	path := [][]int{options[0].path}
-	//I am not completely sure about this function signature. It is a candidate for API change.
 	if len(path) > 0 && len(path[0]) > 1 && path[0][len(path[0])-2] == at.index {
 		return nil //We are back to the atom we just had visited, not a valid path. We have to check this before checking if we completed the "quest"
 		//or, by just going back via the same bond, it would seem like we are at the finishing line.
+		//This really shouldn't happen, but I'm paranoid.
 	}
 	if len(path) == 0 {
 		path = append(path, []int{at.index})
@@ -249,12 +257,12 @@ func BondedPathsFunc(at *Atom, targetIndex int, f func(*Bond) bool, options ...*
 	}
 	rets := make([][]int, 0, len(at.Bonds))
 	for _, v := range at.Bonds {
-		if !f(v) {
+		if !options[0].F(v) {
 			continue
 		}
 		path2 := make([]int, len(path[0]))
 		copy(path2, path[0])
-		rets = append(rets, BondedPathsFunc(v.Cross(at), targetIndex, f, &BondedOptions{OnlyShortest: onlyshortest, path: path2})...) //scary stuff
+		rets = append(rets, BondedPaths(v.Cross(at), targetIndex, &BondedOptions{OnlyShortest: onlyshortest, path: path2, F: options[0].F})...) //scary stuff
 	}
 	rets2 := make([][]int, 0, len(at.Bonds))
 	for _, v := range rets {
@@ -351,11 +359,14 @@ func InWhichRing(at *Atom, rings []*Ring) int {
 type RingOptions struct {
 	AddHs        bool
 	MinPlanarity float64
+	MaxRing      int //maximum ring size
 	Coords       *v3.Matrix
+	F            func(*Bond) bool
 }
 
 func DefaultRingOptions() *RingOptions {
-	return &RingOptions{MinPlanarity: -1, Coords: nil, AddHs: false}
+	f := func(*Bond) bool { return true }
+	return &RingOptions{MinPlanarity: -1, Coords: nil, AddHs: false, MaxRing: 6, F: f}
 
 }
 
@@ -375,11 +386,13 @@ func FindRings(mol Atomer, Opts ...*RingOptions) []*Ring {
 	for i := 0; i < L; i++ {
 		at := mol.Atom(i)
 		if InWhichRing(at, rings) == -1 {
-			paths := BondedPaths(at, at.index, &BondedOptions{OnlyShortest: true})
-			if len(paths) == 0 || len(paths[0][1:]) > 6 {
+			paths := BondedPaths(at, at.index, &BondedOptions{OnlyShortest: true, F: o.F})
+			if len(paths) == 0 || len(paths[0][1:]) > o.MaxRing {
 				continue
 			}
-			r := &Ring{Atoms: paths[0]}
+			r := &Ring{Atoms: paths[0][1:]} //NOTE: it was originally paths[0], so, if something breaks
+			//look here. I think the previous behavior was buggy, since the first atom of the ring will be repeated
+			//as the last atom, giving a wrong number for the ring's length.
 			if o.Coords == nil || o.MinPlanarity < 0 || r.Planarity(o.Coords) > o.MinPlanarity {
 				if o.AddHs {
 					r.AddHs(mol)
