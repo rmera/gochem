@@ -306,11 +306,16 @@ func (R *Ring) Size() int {
 // coords is the set of coordinates for the _entire_ molecule of which
 // the ring is part. Planarity does not check that coords indeed corresponds
 // to the correct molecule, so, doing so is the user's responsibility.
-func (R *Ring) Planarity(coord *v3.Matrix) float64 {
+func (R *Ring) Planarity(coord *v3.Matrix, temp ...*v3.Matrix) float64 {
 	if R.planarity != 0 {
 		return R.planarity
 	}
-	c := v3.Zeros(len(R.Atoms))
+	var c *v3.Matrix
+	if len(temp) > 0 && temp[0] != nil && temp[0].Len() == len(R.Atoms) {
+		c = temp[0]
+	} else {
+		c = v3.Zeros(len(R.Atoms))
+	}
 	c.SomeVecs(coord, R.Atoms)
 	_, plan, err := EasyShape(c, 0.01)
 	if err != nil {
@@ -341,18 +346,20 @@ func (R *Ring) AddHs(mol Atomer) {
 	R.Atoms = append(R.Atoms, newind...)
 }
 
-// InWhichRing returns the index of the first ring found to which the
-// at atom belongs, or -1 if the atom is not part of any ring.
-func InWhichRing(at *Atom, rings []*Ring) int {
+// API CHANGE
+// InWhichRing returns the indexes of all rings top which at belongs
+// or nil if it doesn't belong to any ring.
+func InWhichRing(at *Atom, rings []*Ring) []int {
 	if len(rings) == 0 {
-		return -1
+		return nil
 	}
+	var ret []int
 	for i, v := range rings {
 		if v.IsIn(at.index) {
-			return i
+			ret = append(ret, i)
 		}
 	}
-	return -1
+	return ret
 
 }
 
@@ -385,7 +392,7 @@ func FindRings(mol Atomer, Opts ...*RingOptions) []*Ring {
 	var rings []*Ring
 	for i := 0; i < L; i++ {
 		at := mol.Atom(i)
-		if InWhichRing(at, rings) == -1 {
+		if InWhichRing(at, rings) == nil {
 			paths := BondedPaths(at, at.index, &BondedOptions{OnlyShortest: true, F: o.F})
 			if len(paths) == 0 || len(paths[0][1:]) > o.MaxRing {
 				continue
