@@ -296,6 +296,9 @@ func (e exclusion) ToGro() (string, error) {
 
 }
 
+//NOTE: It's a pain in the neck, but I should return errors in these cases instead of panicking.
+// Go, I love you, but I do wish I wouldn't have to write a gazillion 'if err!=nil {return err}'12
+
 // Adds the data in the gromacs-topology atom-section string to the atom with index index[0] in the
 // molecule in ff. IF index is not given, the function will search the molecule to add the data to the
 // atom that matches the ID on the topology string. If a negative index is given, AtomDataFromGro will
@@ -408,6 +411,7 @@ func TermFromGro(s, header string) (T *Term, err error) {
 	}
 
 	T.IDs, err = parseints(l[:ats]...)
+	qerr(err)
 	T.Constraint = false
 	var ft int
 	ft, err = strconv.Atoi(l[ats])
@@ -422,10 +426,16 @@ func TermFromGro(s, header string) (T *Term, err error) {
 }
 
 func (T *Term) writeAtoms() string {
-	add := T.OneBased
+	add := func(i int) int {
+		//	return i + T.OneBased
+		if T.OneBased == 0 {
+			return i + 1
+		}
+		return i
+	}
 	r := make([]string, 0, len(T.IDs))
 	for _, v := range T.IDs {
-		r = append(r, fmt.Sprintf("%4d", v+add))
+		r = append(r, fmt.Sprintf("%4d", add(v)))
 	}
 	return strings.Join(r, " ")
 
