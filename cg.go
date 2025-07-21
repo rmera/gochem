@@ -37,6 +37,27 @@ func errorDec(err error, frame int) error {
 
 }
 
+// returns a slice with the masses and an error or nil. If usecom is not given,
+// a slice of 1s and nil will be returned (i.e. a slice that can be
+// used to calculate the COG).
+// if the usecom IS given, but the masses are not found, a slice of 1s
+// and an error will be returned.
+func masses(top *Topology, usecom ...bool) ([]float64, error) {
+	var err error
+	var mass []float64
+	if len(usecom) > 0 && usecom[0] {
+		mass, err = top.Masses()
+		if err == nil {
+			return mass, nil
+		}
+	}
+	mass = make([]float64, 0, top.Len())
+	for i := 0; i < top.Len(); i++ {
+		mass = append(mass, 1)
+	}
+	return mass, err
+}
+
 // BackboneCGize takes a coord and a mol for a protein, and returns a new set of coordinates
 // each of which cooresponds to the center of mass of the backbone of the corresponding residue
 // in the original molecule. If top is true, it also returns a topology where each atom corrsponds
@@ -44,7 +65,7 @@ func errorDec(err error, frame int) error {
 // an empty topology.
 // In other words, it takes a protein and returns a CG model for its backbone, in the currect conformation.
 // If centroid is given and true, the geometric center is used instead of the center of mass.
-func BackboneCGize(coord *v3.Matrix, mol Atomer, top bool, centroid ...bool) (*v3.Matrix, *Topology, error) {
+func BackboneCGize(coord *v3.Matrix, mol Atomer, top bool, com ...bool) (*v3.Matrix, *Topology, error) {
 	topol := NewTopology(0, 1)
 	residues := countResidues(mol) //sorry
 	res4vec := 0
@@ -71,18 +92,12 @@ func BackboneCGize(coord *v3.Matrix, mol Atomer, top bool, centroid ...bool) (*v
 		}
 		bb.SomeVecs(coord, bbin)
 		bbtop.SomeAtoms(mol, bbin)
-		var mass []float64
-		if len(centroid) > 0 && centroid[0] {
-			mass = make([]float64, 0, bbtop.Len())
-			for i := 0; i < bbtop.Len(); i++ {
-				mass = append(mass, 1)
-			}
-		} else {
-			var err error
-			mass, err = bbtop.Masses()
-			if err != nil {
-				return nil, nil, errorDec(err, i)
-			}
+		if len(com) != 0 {
+			com = append(com, true)
+		}
+		var mass, err = masses(bbtop, com...)
+		if err != nil {
+			return nil, nil, errorDec(err, i)
 		}
 		com, err := CenterOfMass(bb, mat.NewDense(len(mass), 1, mass))
 		if err != nil {
@@ -139,5 +154,26 @@ func molecules2BBAtoms(mol Atomer, residues []int, chains []string) []int {
 		}
 	}
 	return atlist
+}
 
+// Returns COM or COG (default) coordinates for the beads constructed each from the atoms
+// with indexes (in mol) given in the respective slice of beads, and with coordinates coords.
+func At2CGCoords(coords *v3.Matrix, mol *Topology, beads [][]int, usecom ...bool) (*v3.Matrix, error) {
+	ret := v3.Zeros(len(beads))
+	for i, v := range beads {
+		tmp := v3.Zeros(len(v))
+		tmpt := NewTopology(0, 1)
+		tmp.SomeVecs(coords, v)
+		tmpt.SomeAtoms(mol, v)
+		mass, err := masses(tmpt, usecom...)
+		if err != nil {
+			return nil, fmt.Errorf("Error assigning masses: %w", err)
+		}
+		com, err := CenterOfMass(tmp, mat.NewDense(len(mass), 1, mass))
+		if err != nil {
+			return nil, fmt.Errorf("Couldn't obtain the COM or centroid: %w", err)
+		}
+		ret.SetVecs(com, []int{i})
+	}
+	return ret, nil
 }

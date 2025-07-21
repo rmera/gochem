@@ -39,7 +39,7 @@ import (
 
 //PDB_read family
 
-//A map between 3-letters name for aminoacidic residues to the corresponding 1-letter names.
+// A map between 3-letters name for aminoacidic residues to the corresponding 1-letter names.
 var three2OneLetter = map[string]byte{
 	"SER": 'S',
 	"THR": 'T',
@@ -64,8 +64,8 @@ var three2OneLetter = map[string]byte{
 	"GLU": 'E',
 }
 
-//This tries to guess a chemical element symbol from a PDB atom name. Mostly based on AMBER names.
-//It only deals with some common bio-elements.
+// This tries to guess a chemical element symbol from a PDB atom name. Mostly based on AMBER names.
+// It only deals with some common bio-elements.
 func symbolFromName(name string) (string, error) {
 	symbol := ""
 	if len(name) == 1 {
@@ -184,7 +184,7 @@ func read_full_pdb_line(line string, read_additional bool, contlines int) (*Atom
 	return atom, coords, bfactor, symbolerr
 }
 
-//read_onlycoords_pdb_line parses an ATOM/HETATM PDB line returning only the coordinates and b-factors
+// read_onlycoords_pdb_line parses an ATOM/HETATM PDB line returning only the coordinates and b-factors
 func read_onlycoords_pdb_line(line string, contlines int) ([]float64, float64, error) {
 	coords := make([]float64, 3, 3)
 	err := make([]error, 4, 4)
@@ -203,17 +203,17 @@ func read_onlycoords_pdb_line(line string, contlines int) ([]float64, float64, e
 	return coords, bfactor, nil
 }
 
-//PDBRRead reads a pdb file from an io.Reader. Returns a Molecule. If there is one frame in the PDB
+// PDBRRead reads a pdb file from an io.Reader. Returns a Molecule. If there is one frame in the PDB
 // the coordinates array will be of lenght 1. It also returns an error which is not
 // really well set up right now.
-//read_additional is now "deprecated", it will be set to true regardless. I have made it into
+// read_additional is now "deprecated", it will be set to true regardless. I have made it into
 func PDBRead(pdb io.Reader, read_additional ...bool) (*Molecule, error) {
 	bufiopdb := bufio.NewReader(pdb)
 	mol, err := pdbBufIORead(bufiopdb, read_additional...)
 	return mol, errDecorate(err, "PDBReaderREad")
 }
 
-//PDBFileRead reads a pdb file from an io.Reader. Returns a Molecule. If there is one frame in the PDB
+// PDBFileRead reads a pdb file from an io.Reader. Returns a Molecule. If there is one frame in the PDB
 // the coordinates array will be of lenght 1. It also returns an error which is not
 // really well set up right now. read_additional is now deprecated. The reader will just read
 func PDBFileRead(pdbname string, read_additional ...bool) (*Molecule, error) {
@@ -228,12 +228,12 @@ func PDBFileRead(pdbname string, read_additional ...bool) (*Molecule, error) {
 	return mol, err
 }
 
-//pdbBufIORead reads the atomic entries for a PDB bufio.IO, reads a pdb file from an io.Reader.
-//Returns a Molecule. If there is one frame in the PDB the coordinates array will be of lenght 1.
-//It also returns an error which is not really well set up right now.
-//The read_additional_opt allows not reading the last fields of a PDB, if you know they are wrong.
-//if true (the default), the fields are read if they are available. Otherwise we attempt to figure
-//out the symbol from the atom name, which doesn't always work.
+// pdbBufIORead reads the atomic entries for a PDB bufio.IO, reads a pdb file from an io.Reader.
+// Returns a Molecule. If there is one frame in the PDB the coordinates array will be of lenght 1.
+// It also returns an error which is not really well set up right now.
+// The read_additional_opt allows not reading the last fields of a PDB, if you know they are wrong.
+// if true (the default), the fields are read if they are available. Otherwise we attempt to figure
+// out the symbol from the atom name, which doesn't always work.
 func pdbBufIORead(pdb *bufio.Reader, read_additional_opt ...bool) (*Molecule, error) {
 	read_additional := true
 	if len(read_additional_opt) > 0 {
@@ -326,7 +326,7 @@ func pdbBufIORead(pdb *bufio.Reader, read_additional_opt ...bool) (*Molecule, er
 
 //End PDB_read family
 
-//correctBfactors check that coords and bfactors have the same number of elements.
+// correctBfactors check that coords and bfactors have the same number of elements.
 func correctBfactors(coords []*v3.Matrix, bfactors [][]float64) bool {
 	if len(coords) != len(bfactors) || bfactors == nil {
 		return false
@@ -341,8 +341,8 @@ func correctBfactors(coords []*v3.Matrix, bfactors [][]float64) bool {
 	return true
 }
 
-//writePDBLine writes a line in PDB format from the data passed as a parameters. It takes the chain of the previous atom
-//and returns the written line, the chain of the just-written atom, and error or nil.
+// writePDBLine writes a line in PDB format from the data passed as a parameters. It takes the chain of the previous atom
+// and returns the written line, the chain of the just-written atom, and error or nil.
 func writePDBLine(atom *Atom, coord *v3.Matrix, bfact float64, chainprev string) (string, string, error) {
 	var ter string
 	var out string
@@ -369,7 +369,7 @@ func writePDBLine(atom *Atom, coord *v3.Matrix, bfact float64, chainprev string)
 	return out, chainprev, nil
 }
 
-//PDBFileWrite writes a PDB for the molecule mol and the coordinates Coords to a file name pdbname.
+// PDBFileWrite writes a PDB for the molecule mol and the coordinates Coords to a file name pdbname.
 func PDBFileWrite(pdbname string, coords *v3.Matrix, mol Atomer, Bfactors []float64) error {
 	out, err := os.Create(pdbname)
 	if err != nil {
@@ -384,7 +384,7 @@ func PDBFileWrite(pdbname string, coords *v3.Matrix, mol Atomer, Bfactors []floa
 	return nil
 }
 
-//PDBWrite writes a PDB formatted sequence of bytes to an io.Writer for a given reference, coordinate set and bfactor set, which must match each other. Returns error or nil.
+// PDBWrite writes a PDB formatted sequence of bytes to an io.Writer for a given reference, coordinate set and bfactor set, which must match each other. Returns error or nil.
 func PDBWrite(out io.Writer, coords *v3.Matrix, mol Atomer, bfact []float64) error {
 	err := pdbWrite(out, coords, mol, bfact)
 	if err != nil {
@@ -434,8 +434,8 @@ func pdbWrite(out io.Writer, coords *v3.Matrix, mol Atomer, bfact []float64) err
 	return nil
 }
 
-//PDBStringWrite writes a string in PDB format for a given reference, coordinate set and bfactor set, which must match each other
-//returns the written string and error or nil.
+// PDBStringWrite writes a string in PDB format for a given reference, coordinate set and bfactor set, which must match each other
+// returns the written string and error or nil.
 func PDBStringWrite(coords *v3.Matrix, mol Atomer, bfact []float64) (string, error) {
 	if bfact == nil {
 		bfact = make([]float64, mol.Len())
@@ -463,10 +463,10 @@ func PDBStringWrite(coords *v3.Matrix, mol Atomer, bfact []float64) (string, err
 	return outstring, nil
 }
 
-//MultiPDBWrite writes a multiPDB  for the molecule mol and the various coordinate sets in CandB, to the io.Writer given.
-//CandB is a list of lists of *matrix.DenseMatrix. If it has 2 elements or more, the second will be used as
-//Bfactors. If it has one element, all b-factors will be zero.
-//Returns an error if fails, or nil if succeeds.
+// MultiPDBWrite writes a multiPDB  for the molecule mol and the various coordinate sets in CandB, to the io.Writer given.
+// CandB is a list of lists of *matrix.DenseMatrix. If it has 2 elements or more, the second will be used as
+// Bfactors. If it has one element, all b-factors will be zero.
+// Returns an error if fails, or nil if succeeds.
 func MultiPDBWrite(out io.Writer, Coords []*v3.Matrix, mol Atomer, Bfactors [][]float64) error {
 	if !correctBfactors(Coords, Bfactors) {
 		Bfactors = make([][]float64, len(Coords), len(Coords))
@@ -506,7 +506,7 @@ func MultiPDBWrite(out io.Writer, Coords []*v3.Matrix, mol Atomer, Bfactors [][]
 
 /***End of PDB part***/
 
-//XYZFileRead Reads an xyz or multixyz file (as produced by Turbomole). Returns a Molecule and error or nil.
+// XYZFileRead Reads an xyz or multixyz file (as produced by Turbomole). Returns a Molecule and error or nil.
 func XYZFileRead(xyzname string) (*Molecule, error) {
 	xyzfile, err := os.Open(xyzname)
 	if err != nil {
@@ -522,7 +522,7 @@ func XYZFileRead(xyzname string) (*Molecule, error) {
 
 }
 
-//XYZRead Reads an xyz or multixyz formatted bufio.Reader (as produced by Turbomole). Returns a Molecule and error or nil.
+// XYZRead Reads an xyz or multixyz formatted bufio.Reader (as produced by Turbomole). Returns a Molecule and error or nil.
 func XYZRead(xyzp io.Reader) (*Molecule, error) {
 	snaps := 1
 	xyz := bufio.NewReader(xyzp)
@@ -569,17 +569,18 @@ func XYZRead(xyzp io.Reader) (*Molecule, error) {
 	return returned, errDecorate(err, "XYZRead")
 }
 
-//XYZTraj is a trajectory-like representation of an XYZ File.
+// XYZTraj is a trajectory-like representation of an XYZ File.
 type XYZTraj struct {
 	natoms     int
 	xyz        *bufio.Reader //The DCD file
 	frames     int
 	xyzfile    *os.File
 	readable   bool
+	comments   []string
 	firstframe *v3.Matrix
 }
 
-//Readable returns true if the trajectory is fit to be read, false otherwise.
+// Readable returns true if the trajectory is fit to be read, false otherwise.
 func (X *XYZTraj) Readable() bool {
 	return X.readable
 }
@@ -588,8 +589,16 @@ func (X *XYZTraj) Len() int {
 	return X.natoms
 }
 
-//xyztrajerror returns a LastFrameError if the given error message contains certain keywords.
-//otherwise, returns the original error.
+func (X *XYZTraj) NComments(i int) int {
+	return len(X.comments)
+}
+
+func (X *XYZTraj) Comment(i int) string {
+	return X.comments[i]
+}
+
+// xyztrajerror returns a LastFrameError if the given error message contains certain keywords.
+// otherwise, returns the original error.
 func (X *XYZTraj) xyztrajerror(err error) error {
 	errm := err.Error()
 	X.xyzfile.Close()
@@ -602,9 +611,9 @@ func (X *XYZTraj) xyztrajerror(err error) error {
 
 }
 
-//Next reads the next snapshot of the trajectory into coords, or discards it, if coords
-//is nil. It can take a box slice of floats, but won't do anything with it
-//(only for compatibility with the Traj interface.
+// Next reads the next snapshot of the trajectory into coords, or discards it, if coords
+// is nil. It can take a box slice of floats, but won't do anything with it
+// (only for compatibility with the Traj interface.
 func (X *XYZTraj) Next(coords *v3.Matrix, box ...[]float64) error {
 	if coords == nil {
 		_, _, _, err := xyzReadSnap(X.xyz, coords, false)
@@ -621,17 +630,18 @@ func (X *XYZTraj) Next(coords *v3.Matrix, box ...[]float64) error {
 		X.firstframe = nil
 		return nil
 	}
-	_, _, _, err := xyzReadSnap(X.xyz, coords, false)
+	_, _, data, err := xyzReadSnap(X.xyz, coords, false)
 	if err != nil {
 		//An error here probably means that there are no more snapshots
 		return X.xyztrajerror(err)
 	}
 
+	X.comments = append(X.comments, data)
 	X.frames++
 	return err
 }
 
-//Reads a multi-xyz file. Returns the first snapshot as a molecule, and the other ones as a XYZTraj
+// Reads a multi-xyz file. Returns the first snapshot as a molecule, and the other ones as a XYZTraj
 func XYZFileAsTraj(xyzname string) (*Molecule, *XYZTraj, error) {
 	xyzfile, err := os.Open(xyzname)
 	if err != nil {
@@ -655,8 +665,8 @@ func XYZFileAsTraj(xyzname string) (*Molecule, *XYZTraj, error) {
 	return returned, traj, nil
 }
 
-//xyzReadSnap reads an xyz file snapshot from a bufio.Reader, returns a slice of Atom
-//objects, which will be nil if ReadTopol is false,
+// xyzReadSnap reads an xyz file snapshot from a bufio.Reader, returns a slice of Atom
+// objects, which will be nil if ReadTopol is false,
 // a slice of matrix.DenseMatrix and an error or nil.
 func xyzReadSnap(xyz *bufio.Reader, toplace *v3.Matrix, ReadTopol bool) (*v3.Matrix, []*Atom, string, error) {
 	line, err := xyz.ReadString('\n')
@@ -721,8 +731,8 @@ func xyzReadSnap(xyz *bufio.Reader, toplace *v3.Matrix, ReadTopol bool) (*v3.Mat
 	return mcoords, molecule, data, errDecorate(err, "xyzReadSnap")
 }
 
-//XYZWrite writes the mol Ref and the Coord coordinates in an XYZ file with name xyzname which will
-//be created fot that. If the file exist it will be overwritten.
+// XYZWrite writes the mol Ref and the Coord coordinates in an XYZ file with name xyzname which will
+// be created fot that. If the file exist it will be overwritten.
 func XYZFileWrite(xyzname string, Coords *v3.Matrix, mol Atomer) error {
 	out, err := os.Create(xyzname)
 	if err != nil {
@@ -736,7 +746,7 @@ func XYZFileWrite(xyzname string, Coords *v3.Matrix, mol Atomer) error {
 	return nil
 }
 
-//XYZStringWrite writes the mol Ref and the Coord coordinates in an XYZ-formatted string.
+// XYZStringWrite writes the mol Ref and the Coord coordinates in an XYZ-formatted string.
 func XYZStringWrite(Coords *v3.Matrix, mol Atomer) (string, error) {
 	var out string
 	if mol.Len() != Coords.NVecs() {
@@ -754,7 +764,7 @@ func XYZStringWrite(Coords *v3.Matrix, mol Atomer) (string, error) {
 	return out, nil
 }
 
-//XYZWrite writes the mol Ref and the Coords coordinates to a io.Writer, in the XYZ format.
+// XYZWrite writes the mol Ref and the Coords coordinates to a io.Writer, in the XYZ format.
 func XYZWrite(out io.Writer, Coords *v3.Matrix, mol Atomer) error {
 	iowriterError := func(err error) error {
 		return CError{"Failed to write in io.Writer" + err.Error(), []string{"io.Writer.Write", "XYZWrite"}}
@@ -780,7 +790,7 @@ func XYZWrite(out io.Writer, Coords *v3.Matrix, mol Atomer) error {
 	return nil
 }
 
-//GroFileRead reads a file in the Gromacs gro format, returning a molecule.
+// GroFileRead reads a file in the Gromacs gro format, returning a molecule.
 func GroFileRead(groname string) (*Molecule, error) {
 	grofile, err := os.Open(groname)
 	if err != nil {
@@ -897,7 +907,7 @@ func groReadSnap(gro *bufio.Reader, ReadTopol bool) (*v3.Matrix, []*Atom, error)
 	return mcoords, molecule, nil
 }
 
-//read_gro_line Parses a valid ATOM or HETATM line of a PDB file, returns an Atom
+// read_gro_line Parses a valid ATOM or HETATM line of a PDB file, returns an Atom
 // object with the info except for the coordinates and b-factors, which  are returned
 // separately as an array of 3 float64 and a float64, respectively
 func read_gro_line(line string) (*Atom, []float64, error) {
@@ -929,8 +939,8 @@ func read_gro_line(line string) (*Atom, []float64, error) {
 	return atom, coords, nil
 }
 
-//GoFileWrite writes the molecule described by mol and Coords into a file in the Gromacs
-//gro format. If Coords has more than one elements, it will write a multi-state file.
+// GoFileWrite writes the molecule described by mol and Coords into a file in the Gromacs
+// gro format. If Coords has more than one elements, it will write a multi-state file.
 func GroFileWrite(outname string, Coords []*v3.Matrix, mol Atomer) error {
 	out, err := os.Create(outname)
 	if err != nil {
@@ -946,7 +956,7 @@ func GroFileWrite(outname string, Coords []*v3.Matrix, mol Atomer) error {
 	return nil
 }
 
-//GroSnapWrite writes a single snapshot of a molecule to an io.Writer, in the Gro format.
+// GroSnapWrite writes a single snapshot of a molecule to an io.Writer, in the Gro format.
 func GroSnapWrite(coords *v3.Matrix, mol Atomer, out io.Writer) error {
 	A2nm := 0.1
 	iowriterError := func(err error) error {

@@ -152,6 +152,11 @@ func (T *Topology) FillMasses() {
 
 // FillsIndexes sets the Index value of each atom to that cooresponding to its
 // place in the molecule.
+
+func (T *Topology) SetIndexes() {
+	T.FillIndexes()
+}
+
 func (T *Topology) FillIndexes() {
 	for key, val := range T.Atoms {
 		val.index = key
