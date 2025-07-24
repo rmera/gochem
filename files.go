@@ -593,7 +593,11 @@ func (X *XYZTraj) NComments(i int) int {
 	return len(X.comments)
 }
 
+// Returns the 'comment' (second line) for the ith (zero-based) frame, or for the last frame if i<0
 func (X *XYZTraj) Comment(i int) string {
+	if i < 0 {
+		i = len(X.comments) - 1
+	}
 	return X.comments[i]
 }
 
@@ -613,14 +617,15 @@ func (X *XYZTraj) xyztrajerror(err error) error {
 
 // Next reads the next snapshot of the trajectory into coords, or discards it, if coords
 // is nil. It can take a box slice of floats, but won't do anything with it
-// (only for compatibility with the Traj interface.
+// (only for compatibility with the Traj interface).
 func (X *XYZTraj) Next(coords *v3.Matrix, box ...[]float64) error {
 	if coords == nil {
-		_, _, _, err := xyzReadSnap(X.xyz, coords, false)
+		_, _, data, err := xyzReadSnap(X.xyz, coords, false)
 		if err != nil {
 			//An error here probably means that there are no more snapshots
 			return X.xyztrajerror(err)
 		}
+		X.comments = append(X.comments, data)
 		X.frames++
 		return nil
 	}
@@ -630,12 +635,12 @@ func (X *XYZTraj) Next(coords *v3.Matrix, box ...[]float64) error {
 		X.firstframe = nil
 		return nil
 	}
+
 	_, _, data, err := xyzReadSnap(X.xyz, coords, false)
 	if err != nil {
 		//An error here probably means that there are no more snapshots
 		return X.xyztrajerror(err)
 	}
-
 	X.comments = append(X.comments, data)
 	X.frames++
 	return err
@@ -650,7 +655,7 @@ func XYZFileAsTraj(xyzname string) (*Molecule, *XYZTraj, error) {
 	}
 	xyz := bufio.NewReader(xyzfile)
 	//the molecule first
-	coords, atoms, _, err := xyzReadSnap(xyz, nil, true)
+	coords, atoms, data, err := xyzReadSnap(xyz, nil, true)
 	top := NewTopology(0, 1, atoms)
 	bfactors := make([][]float64, 1, 1)
 	bfactors[0] = make([]float64, top.Len())
@@ -662,6 +667,7 @@ func XYZFileAsTraj(xyzname string) (*Molecule, *XYZTraj, error) {
 	traj.natoms = returned.Len()
 	traj.readable = true
 	traj.firstframe = coords
+	traj.comments = append(traj.comments, data)
 	return returned, traj, nil
 }
 
