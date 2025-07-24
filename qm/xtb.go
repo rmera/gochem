@@ -51,6 +51,7 @@ type XTBHandle struct {
 	nCPU           int
 	options        []string
 	gfnff          bool
+	metad          string
 	relconstraints bool
 	force          float64
 	wrkdir         string
@@ -92,6 +93,18 @@ func (O *XTBHandle) SetCommand(name string) {
 // SetWorkDir sets the name of the working directory for the calculations
 func (O *XTBHandle) SetWorkDir(d string) {
 	O.wrkdir = d
+}
+
+func (O *XTBHandle) SetMetaD(set ...string) {
+	if len(set) == 0 || !strings.Contains(set[0], "$") {
+		O.metad = "\n$metadyn\n   save=10\n   kpush=1.0\n   alp=0.2\n$end\n"
+	} else {
+		O.metad = set[0]
+	}
+}
+
+func (O *XTBHandle) UnSetMetaD(set ...string) {
+	O.metad = ""
 }
 
 // RelConstraints sets the use of relative contraints
@@ -251,6 +264,7 @@ func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q
 		} else {
 			xcontroltxt = append(xcontroltxt, fmt.Sprintf("$md\n temp=%5.3f\n time=%d\n velo=false\n nvt=true\n restart=false\n$end", Q.MDTemp, Q.MDTime))
 		}
+		xcontroltxt = append(xcontroltxt, O.metad) //this should be either an empty string, or everything you need for metad.
 
 	}
 	//	O.options = append(O.options, "--input xcontrol")
@@ -512,6 +526,27 @@ func (O *XTBHandle) FreeEnergy() (float64, error) {
 	}
 
 	return energy * chem.H2Kcal, err //err should be nil at this point.
+}
+
+// XTB trajectories are multi-xyz files with the energy, gradient norm and program version in the
+// 'comment' line of each frame (i.e. the second line, after the number of atoms). This function
+// parses that line and returns the energy and gradient norm, the first is in kcal/mol, the second in
+// atomic units.
+func (O *XTBHandle) ParseFrameMetaData(data string) (energy, gnorm float64, err error) {
+	fi := strings.Fields(data)
+	e := fi[1]
+	energy, err = strconv.ParseFloat(e, 64)
+	if err != nil {
+		return energy, gnorm, err
+	}
+	gnorm, err = strconv.ParseFloat(e, 64)
+	if err != nil {
+		return energy, gnorm, err
+	}
+	return energy, gnorm, nil //I'll just leave the gradient in its original units
+
+	//I expect the line to be:
+	//energy: -11.394330344820 gnorm: 0.001049679542 xtb: 6.7.1 (edcfbbe)
 }
 
 // MDAverageEnergy gets the average potential and kinetic energy along a trajectory.
