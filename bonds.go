@@ -26,6 +26,7 @@ package chem
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 
 	v3 "github.com/rmera/gochem/v3"
@@ -366,6 +367,7 @@ func InWhichRing(at *Atom, rings []*Ring) []int {
 type RingOptions struct {
 	AddHs        bool
 	MinPlanarity float64
+	FusedRings   bool
 	MaxRing      int //maximum ring size
 	Coords       *v3.Matrix
 	F            func(*Bond) bool
@@ -392,22 +394,66 @@ func FindRings(mol Atomer, Opts ...*RingOptions) []*Ring {
 	var rings []*Ring
 	for i := 0; i < L; i++ {
 		at := mol.Atom(i)
-		if InWhichRing(at, rings) == nil {
-			paths := BondedPaths(at, at.index, &BondedOptions{OnlyShortest: true, F: o.F})
-			if len(paths) == 0 || len(paths[0][1:]) > o.MaxRing {
+		//Here I nullified the requirement that at is not in a previous ring, if fused rings are wanted.
+		//This is because, say you have 2 fused rings, A and B, with the 'metaring', the fusing of both, named C.
+		//you detect first A and its 'metaring' C, but then you don't detect B as all its atoms are part of C,
+		//and thys gets excluded byt the (InWhichRing(at, rings) == nil) condition
+		if o.FusedRings || (InWhichRing(at, rings) == nil) {
+			paths := BondedPaths(at, at.index, &BondedOptions{OnlyShortest: !o.FusedRings, F: o.F})
+			if len(paths) == 0 || (len(paths[0][1:]) > o.MaxRing && o.MaxRing > 0) {
 				continue
 			}
-			r := &Ring{Atoms: paths[0][1:]} //NOTE: it was originally paths[0], so, if something breaks
-			//look here. I think the previous behavior was buggy, since the first atom of the ring will be repeated
-			//as the last atom, giving a wrong number for the ring's length.
-			if o.Coords == nil || o.MinPlanarity < 0 || r.Planarity(o.Coords) > o.MinPlanarity {
-				if o.AddHs {
-					r.AddHs(mol)
+
+			//NOTE: I added an additional loop here
+			//to allow for 'fused rings' i.e. longer paths connecting the same atoms.
+			//it should only matter if o.FusedRings is set to true, as, otherwise, len(paths)==1
+			for _, p := range paths {
+				r := &Ring{Atoms: p[1:]} //NOTE: it was originally paths[0], so, if something breaks
+				//look here. I think the previous behavior was buggy, since the first atom of the ring will be repeated
+				//as the last atom, giving a wrong number for the ring's length.
+				if o.Coords == nil || o.MinPlanarity < 0 || r.Planarity(o.Coords) > o.MinPlanarity {
+					if o.AddHs {
+						r.AddHs(mol)
+					}
+					rings = append(rings, r)
 				}
-				rings = append(rings, r)
 			}
 		}
 
 	}
-	return rings
+
+	return removeRepeatedRings(rings)
+}
+
+// 2 rings are equal if they contain the same atoms, whether in the same
+// order, or not.
+func ringIsEqual(a, b *Ring) bool {
+	if len(a.Atoms) != len(b.Atoms) {
+		return false
+	}
+	hasall := true
+	for _, v := range a.Atoms {
+		if !slices.Contains(b.Atoms, v) {
+			hasall = false
+			break
+		}
+	}
+	return hasall
+}
+
+func removeRepeatedRings(set []*Ring) []*Ring {
+	ret := make([]*Ring, 0, 1)
+	for _, v := range set {
+		rep := false
+		for _, w := range ret {
+			if ringIsEqual(v, w) {
+				rep = true
+				break
+			}
+		}
+		if !rep {
+			ret = append(ret, v)
+		}
+	}
+	return ret
 }
