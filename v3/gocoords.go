@@ -153,11 +153,11 @@ func (F *Matrix) SetVecs(A *Matrix, clist []int) {
 // where i-s are the numbers in clist. The rows are in the same order
 // than the clist. The numbers in clist must be positive or zero.
 func (F *Matrix) SomeVecs(A *Matrix, clist []int) {
-	ar, ac := A.Dims()
-	fr, fc := F.Dims()
-	if ac != fc || fr != len(clist) || ar < len(clist) {
-		panic(ErrShape)
-	}
+	_, ac := A.Dims()
+	//	fr, fc := F.Dims()
+	//	if ac != fc || fr != len(clist) || ar < len(clist) {
+	//		panic(ErrShape)
+	//	}
 	for key, val := range clist {
 		for j := 0; j < ac; j++ {
 			F.Set(key, j, A.At(val, j))
