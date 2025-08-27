@@ -30,6 +30,7 @@ package chem
 import (
 	"fmt"
 	"math"
+	"slices"
 	"strings"
 
 	v3 "github.com/rmera/gochem/v3"
@@ -840,4 +841,59 @@ func MoleculeFileRead(name string) (mol *Molecule, err error) {
 		err = fmt.Errorf("goChem/MoleculeFileRead: Extension %s not supported", ext(name))
 	}
 	return
+}
+
+// Switches atoms from the original posiions to the new positions in mol
+// The IDs and Indexes of the atoms are modified.
+// panics if oripos and newpos are not of the same lenght, as well as if one of the
+// indexes in newpos is out of range. If the indexes are badly constructed,
+// It could happen that atoms are orverwritten (say, if oripos=[0,1,2],newpos=[3,2,1]
+// the position 0 would end up empty/nil and 3 overwritten) The function does
+// check for empty/nil elements in the final topology and panics if one is found
+func SwitchAtoms(oripos, newpos []int, mol Atomer) *Topology {
+	if len(oripos) != len(newpos) {
+		panic(fmt.Sprintf("oripos (%d) and newpos (%d) must have the same lenght", oripos, newpos))
+	}
+	ret := NewTopology(0, 1)
+	ret.Atoms = make([]*Atom, mol.Len())
+	for i := 0; i < mol.Len(); i++ {
+		at := mol.Atom(i)
+		j := i
+		s := slices.Index(oripos, i)
+		if s >= 0 {
+			j = s
+		}
+		ret.Atoms[j] = at
+	}
+	for i, v := range ret.Atoms {
+		if v == nil {
+			panic(fmt.Sprintf("The indexes were such that position %d ended up empty/nil", i))
+		}
+	}
+	ret.FillIndexes()
+	ret.ResetIDs()
+	return ret
+}
+
+func SwitchCoords(oripos, newpos []int, vec *v3.Matrix) *v3.Matrix {
+	if len(oripos) != len(newpos) {
+		panic(fmt.Sprintf("oripos (%d) and newpos (%d) must have the same lenght", oripos, newpos))
+	}
+	ret := v3.Zeros(vec.Len())
+	m := make(map[int]int)
+	for i, v := range oripos {
+		m[v] = newpos[i]
+	}
+	finalpos := make([]int, ret.Len())
+	for i, _ := range finalpos {
+		n, ok := m[i]
+		if ok {
+			finalpos[i] = n
+		} else {
+			finalpos[i] = i
+		}
+
+	}
+	ret.SetVecs(vec, finalpos)
+	return ret
 }

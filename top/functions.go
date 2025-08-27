@@ -205,6 +205,86 @@ func DeleteAtomsAndVSites(F *FF, todel []int) *FF {
 	return F
 }
 
+// Returns FF like F but removing all atoms, bonded terms and exclusions that _only_
+// contain terms in todel or, if removecontaining[0] is given and true, all
+// bonded terms and exclusions that contains at least one of the terms in todel.
+func DeleteTermsForAtomsAndVSites(F *FF, todel []int, removeallcontaining ...bool) *FF {
+	var dodel func([]int) bool
+	//here we decide what to delete
+	dodel = func(ids []int) bool {
+		//this one only deletes if ids ONLY contains atoms that
+		//are in todel
+		if len(ids) > len(todel) {
+			return false
+		}
+		for _, v := range ids {
+			if !slices.Contains(todel, v) {
+				return false
+			}
+		}
+		return true
+	}
+	if len(removeallcontaining) > 0 && removeallcontaining[0] {
+		dodel = func(ids []int) bool {
+			//this one only deletes if ids has _any_ atom in todel
+			for _, v := range ids {
+				if slices.Contains(todel, v) {
+					return true
+				}
+			}
+			return false
+		}
+
+	}
+	//now a function to delete terms, since we'll do that a few times
+	var DelTerms func([]*Term) []*Term = func(ts []*Term) []*Term {
+		ret := make([]*Term, 0, len(ts))
+		for _, v := range ts {
+			if dodel(v.IDs) {
+				continue
+			}
+			t2 := new(Term)
+			t2.Copy(v)
+			ret = append(ret, t2)
+
+		}
+		return ret
+	}
+
+	//Well, that was a lot, but now just sit back
+	//and enjoy.
+
+	//Copy the basic data. It's all deep copy as we dont' want
+	//to alter the original.
+	mol := chem.NewTopology(0, 1)
+	mol.CopyAtoms(F.Mol)
+	F2 := NewFF(mol, F.SigmaEpsilon)
+	F2.currentHeader = F.currentHeader
+	F2.VSites = F.VSites
+	F2 = DeleteAtomsAndVSites(F2, todel)
+
+	//Now we just apply the functions we worked hard for
+	//above.
+	F2.Bonds = DelTerms(F.Bonds)
+	F2.Angles = DelTerms(F.Angles)
+	F2.Constraints = DelTerms(F.Constraints)
+	F2.Impropers = DelTerms(F.Impropers)
+	F2.Dihedrals = DelTerms(F.Dihedrals)
+
+	//And the exclusions. We still get to recycle the dodel function.
+	F2.Exclusions = make([][]int, 0, len(F.Exclusions))
+	for _, v := range F.Exclusions {
+		if dodel(v) {
+			continue
+		}
+		ex := make([]int, len(v))
+		copy(ex, v)
+		F2.Exclusions = append(F2.Exclusions, ex)
+	}
+
+	return F2
+}
+
 func termHole(T []*Term, after, size int) []*Term {
 	for i, v := range T {
 		for j, w := range v.IDs {
@@ -214,6 +294,90 @@ func termHole(T []*Term, after, size int) []*Term {
 		}
 	}
 	return T
+}
+
+// Returns FF like F but removing all atoms, bonded terms and exclusions that _only_
+// contain terms in todel or, if removecontaining[0] is given and true, all
+// bonded terms and exclusions that contains at least one of the terms in todel.
+func Shift(F *FF, shift int, shiftAtoms bool) {
+	//here we decide what to delete
+	//now a function to delete terms, since we'll do that a few times
+	var ShiftTerms func([]*Term) = func(ts []*Term) {
+		for _, v := range ts {
+			for j, _ := range v.IDs {
+				v.IDs[j] += shift
+			}
+
+		}
+	}
+	ShiftTerms(F.Bonds)
+	ShiftTerms(F.Angles)
+	ShiftTerms(F.Constraints)
+	ShiftTerms(F.Impropers)
+	ShiftTerms(F.Dihedrals)
+	for i, v := range F.Exclusions {
+		for j, _ := range v {
+			F.Exclusions[i][j] += shift
+		}
+	}
+
+	if shiftAtoms {
+		for i := 0; i < F.Len(); i++ {
+			at := F.Mol.Atom(i)
+			at.ID += shift
+			at.SetIndex(at.Index() + shift)
+		}
+	}
+	//Vsites get shifted even if atoms don't.
+	for i, _ := range F.VSites {
+		F.VSites[i].ID += shift
+
+	}
+}
+
+// Changes all ids in the given terms according to the given map
+// modifies the terms and returns them.
+func switchterms(m map[int]int, te []*Term) []*Term {
+	for i, v := range te {
+		for j, w := range v.IDs {
+			te[i].IDs[j] = m[w]
+		}
+	}
+	return te
+}
+
+func SwitchMap(oripos, newpos []int, fulllen int) map[int]int {
+	m := make(map[int]int)
+	for i := 0; i < fulllen; i++ {
+		m[i] = i
+	}
+	for i, v := range oripos {
+		m[v] = newpos[i]
+	}
+	return m
+}
+
+// Switches atoms from originalposition to newposition
+func Switch(originalposition, newposition []int, F *FF) *FF {
+	o := originalposition
+	n := newposition
+	m := SwitchMap(o, n, F.Mol.Len())
+	switchterms(m, F.Bonds)
+	switchterms(m, F.Angles)
+	switchterms(m, F.Constraints)
+	switchterms(m, F.Impropers)
+	switchterms(m, F.Dihedrals)
+	F.Mol = chem.SwitchAtoms(o, n, F.Mol)
+	for i, v := range F.Exclusions {
+		for j, w := range v {
+			F.Exclusions[i][j] = m[w]
+		}
+	}
+	//Vsites get shifted even if atoms don't.
+	for i, _ := range F.VSites {
+		F.VSites[i].ID += m[F.VSites[i].ID]
+	}
+	return F
 }
 
 // not ready
