@@ -57,15 +57,22 @@ func mergeTerms[T ~[]E, E any](T1, T2 T) T {
 }
 
 // Merges F2 into F, and _after_ F. F2 is modified, as all atom indexes are set to start
-// from the last atom of F. AType and LJ are merged by preserving all
-// elements in the receiver plus the non-repeated elements of F2, if keepours is true
-// or preserving all elements in F2 plus the non-repeated elements in the receiver,
-// otherwise. Note that 2 LJ elements could be repeated (i.e. refer to the same atoms)
-// but have different values, so the choice between keepours true or false is important.
-func (F *FF) Merge(F2 *FF, keepours bool) {
+// from the last atom of F, unless moveindexes is given and false. AType and LJ are
+// merged by preserving all elements in the receiver plus the non-repeated elements of
+// F2, if keepours is true or preserving all elements in F2 plus the non-repeated
+// elements in the receiver, otherwise. Note that 2 LJ elements could be repeated
+// (i.e. refer to the same atoms) but have different values, so the choice between
+// keepours true or false is important.
+func (F *FF) Merge(F2 *FF, keepours bool, moveindexes ...bool) {
 	disp := F.Mol.Len()
 	sum := func(i int) int {
 		return i + disp
+	}
+	if len(moveindexes) > 0 || !moveindexes[0] {
+		sum = func(i int) int {
+			return i
+		}
+
 	}
 	if keepours {
 		F2.ATypes = deleteRepeated(F.ATypes, F2.ATypes)
@@ -196,6 +203,7 @@ func DeleteAtomsAndVSites(F *FF, todel []int) *FF {
 	//Now the same for the VSites
 	vsites := make([]*VSite, 0, len(F.VSites)) //we don't know how many vsites we'll delete
 	for _, v := range F.VSites {
+		//	fmt.Println(v.ID, todel) ///////////////////////
 		if !slices.Contains(todel, v.ID) {
 			vsites = append(vsites, v)
 		}

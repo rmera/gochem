@@ -35,6 +35,43 @@ type FF struct {
 	Exclusions    [][]int
 }
 
+// Returns a string with the terms and the virtual sites
+func (F *FF) SmallString() string {
+	r := make([]string, 0, 30)
+	r = append(r, "Bonds")
+	for _, v := range F.Bonds {
+		r = append(r, v.String())
+	}
+	r = append(r, "Angles")
+	for _, v := range F.Angles {
+		r = append(r, v.String())
+	}
+	r = append(r, "Impropers")
+	for _, v := range F.Impropers {
+		r = append(r, v.String())
+	}
+	r = append(r, "Dihedrals")
+	for _, v := range F.Dihedrals {
+		r = append(r, v.String())
+	}
+	r = append(r, "Virtual Sites")
+	for _, v := range F.VSites {
+		r = append(r, v.String())
+	}
+	return strings.Join(r, "\n")
+}
+
+// Returns the ith set of exclusions in 1-based notation
+// NOTE: Right now it doesn't work as exclusions _are_ 1 based.
+func (F *FF) Exclusions1(i int) []int {
+	s := F.Exclusions[i]
+	r := make([]int, len(s))
+	for i, v := range s {
+		r[i] = v + 1
+	}
+	return r
+}
+
 // AssignBonds assigns bonds to a molecule based on a simple distance
 // criterium, similar to that described in DOI:10.1186/1758-2946-3-33
 func (F *FF) MolecularBonds(constraints ...bool) error {
@@ -240,11 +277,21 @@ func (A *LJPair) equal(B any) bool {
 }
 
 type VSite struct {
-	ID       int
+	ID       int //1-based, NOTE: will probably delete when transitioned to Index
+	Index    int //0-based
 	N        int //0 for virtual_sistesn
 	FuncType int
 	Atoms    []int
 	Factors  []float64
+}
+
+func (V *VSite) String() string {
+	r := make([]string, 0, 6)
+	r = append(r, spf("%d %1d ", V.ID, V.FuncType))
+	for _, v := range V.Atoms {
+		r = append(r, spf("%d", v))
+	}
+	return strings.Join(r, "")
 }
 
 // Copies B into the receiver
@@ -265,8 +312,9 @@ func (A *VSite) Copy(B *VSite) {
 
 type Term struct {
 	FuncType   uint
-	IDs        []int
-	OneBased   int //0 if the indexes in Atom are 0-based, 1 if it's 1-based.
+	IDs        []int //1based, NOTE: will delete when ready
+	Indexes    []int //0based
+	OneBased   int   //0 if the indexes in Atom are 0-based, 1 if it's 1-based. NOTE: This will be deleted and we'll stuck to 0-index.
 	K          float64
 	Eq         float64
 	Constraint bool
@@ -274,11 +322,27 @@ type Term struct {
 	RB         []float64
 }
 
+var spf func(string, ...any) string = fmt.Sprintf
+
+func (T *Term) String() string {
+	r := make([]string, 0, 5)
+	r = append(r, spf("%1d ", T.FuncType))
+	for _, v := range T.IDs {
+		r = append(r, spf("%d", v))
+	}
+	return strings.Join(r, "")
+}
+
 func (A *Term) Copy(B *Term) {
 	if len(A.IDs) != len(B.IDs) {
 		A.IDs = make([]int, len(B.IDs))
 	}
 	copy(A.IDs, B.IDs)
+	if len(A.Indexes) != len(B.Indexes) {
+		A.Indexes = make([]int, len(B.Indexes))
+	}
+	copy(A.Indexes, B.Indexes)
+
 	A.OneBased = B.OneBased
 	A.FuncType = B.FuncType
 	A.K = B.K
