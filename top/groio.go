@@ -275,7 +275,7 @@ func cleanString(s string) string {
 }
 
 func (F *FF) ExclusionsFromGro(s string) error {
-	ex, err := parseints(fi(s)...)
+	ex, err := parseints(fi(s), true)
 	if err != nil {
 		return err
 	}
@@ -289,7 +289,7 @@ type exclusion []int
 func (e exclusion) ToGro() (string, error) {
 	ret := make([]string, 0, len(e)+1)
 	for _, v := range e {
-		ret = append(ret, sf("%4d", v))
+		ret = append(ret, sf("%4d", v+1)) //Gromacs indexes from 1
 	}
 	ret = append(ret, "\n")
 	return strings.Join(ret, " "), nil
@@ -364,14 +364,14 @@ func TermFromGro(s, header string) (T *Term, err error) {
 	}()
 	T = new(Term)
 	l := strings.Fields(cleanString(s))
-	T.OneBased = 1
 
 	//first the 'special' cases.
 
 	//r-b terms. don't have equilibrium values or force constants.
 	if header == "dihedrals" && len(l) == 11 {
 		// Ryckaert-Bellemans entonces
-		T.IDs, err = parseints(l[:4]...)
+		qerr(err)
+		T.Indexes, err = parseints(l[:4], true)
 		qerr(err)
 		T.FuncType = 3
 		T.RB, err = parsefloats(l[5:]...)
@@ -385,7 +385,8 @@ func TermFromGro(s, header string) (T *Term, err error) {
 	}
 	//constraints are especial because they lack force constants.
 	if header == "constraints" {
-		T.IDs, err = parseints(l[:2]...)
+		qerr(err)
+		T.Indexes, err = parseints(l[:2], true)
 		qerr(err)
 		T.Constraint = true
 		var ft int
@@ -410,7 +411,8 @@ func TermFromGro(s, header string) (T *Term, err error) {
 		ats = 4
 	}
 
-	T.IDs, err = parseints(l[:ats]...)
+	qerr(err)
+	T.Indexes, err = parseints(l[:ats], true)
 	qerr(err)
 	T.Constraint = false
 	var ft int
@@ -425,31 +427,26 @@ func TermFromGro(s, header string) (T *Term, err error) {
 
 }
 
-func (T *Term) writeAtoms() string {
-	add := func(i int) int {
-		//	return i + T.OneBased
-		if T.OneBased == 0 {
-			return i + 1
-		}
-		return i
+func (T *Term) writeAtoms(zerobased ...bool) string {
+	add := 1
+	if len(zerobased) > 0 && zerobased[0] {
+		add = 0
 	}
-	r := make([]string, 0, len(T.IDs))
-	for _, v := range T.IDs {
-		r = append(r, fmt.Sprintf("%4d", add(v)))
+	r := make([]string, 0, len(T.Indexes))
+	for _, v := range T.Indexes {
+		r = append(r, fmt.Sprintf("%4d", v+add))
 	}
 	return strings.Join(r, " ")
-
 }
 
 // Writes the term to a string in Gromacs top format.
 func (T *Term) ToGro() (string, error) {
 	ret := make([]string, 0, 15)
+	fmt.Println("Indexes", T.Indexes) //////////////////////////////
 	ret = append(ret, T.writeAtoms())
-	//	T.K = 678.99 //////////////////
 	if T.Vsite {
 		return "", nil //placeholder
 	}
-
 	flf := "%6.2f" //float format
 	ret = append(ret, fmt.Sprintf("%1d", T.FuncType))
 
@@ -488,18 +485,19 @@ func VSitesNFromGro(s string) (vsit *VSite, err error) {
 	if id < 0 || typ < 0 {
 		return nil, fmt.Errorf("ill-formatted vsiten string: %s", s)
 	}
-	vsit.ID = id
+	vsit.Index = id - 1
 	vsit.FuncType = typ
 	vsit.N = 0 //marks a vsitesn
-	var ids []int
+	var indexes []int
+
 	if typ != 3 {
-		ids = make([]int, 0, len(f[2:]))
+		indexes = make([]int, 0, len(f[2:]))
 		for _, v := range f[2:] {
 			num, err := strconv.Atoi(v)
 			if err != nil && num < 0 {
 				return nil, fmt.Errorf("ill-formatted vsiten string: %s Error: %w", s, err)
 			}
-			ids = append(ids, num)
+			indexes = append(indexes, num-1)
 		}
 	} else {
 		terms := len(f[2:])
@@ -516,12 +514,12 @@ func VSitesNFromGro(s string) (vsit *VSite, err error) {
 			if err != nil && num < 0 {
 				return nil, fmt.Errorf("ill-formatted vsiten string: %s Error: %w", s, err)
 			}
-			ids = append(ids, num)
+			indexes = append(indexes, num)
 			ws = append(ws, weight)
 		}
 		vsit.Factors = ws
 	}
-	vsit.Atoms = ids
+	vsit.Atoms = indexes
 	return vsit, err
 }
 
@@ -529,7 +527,7 @@ func VSitesNFromGro(s string) (vsit *VSite, err error) {
 // 'X' depends on the information in the receiver (the field 'N').
 func (V *VSite) ToGro() (string, error) {
 	ret := make([]string, 0, 8)
-	ret = append(ret, sf("%5d", V.ID))
+	ret = append(ret, sf("%5d", V.Index+1)) //Gromacs uses 1-based indexes, goChem uses zero-based.
 	ret = append(ret, sf("%2d", V.FuncType))
 	if V.N == 0 { //vsites_n
 		if V.FuncType == 3 && len(V.Factors) != len(V.Atoms) {
@@ -537,14 +535,14 @@ func (V *VSite) ToGro() (string, error) {
 		}
 		for i, v := range V.Atoms {
 			if V.FuncType == 3 {
-				ret = append(ret, sf("%5d %5.3f", v, V.Factors[i])) //each couple is an atom and a weight
+				ret = append(ret, sf("%5d %5.3f", v+1, V.Factors[i])) //each couple is an atom and a weight
 			} else {
-				ret = append(ret, sf("%5d", v)) //each couple is an atom and a weight
+				ret = append(ret, sf("%5d", v+1)) //each couple is an atom and a weight
 			}
 		}
 	} else {
 		for _, v := range V.Atoms {
-			ret = append(ret, sf("%5d", v)) //each couple is an atom and a weight
+			ret = append(ret, sf("%5d", v+1)) //each couple is an atom and a weight
 		}
 		//NOTE:Right now I'm assuming factors are just in Gromacs units, which
 		//is not consistent with 'regular' goChem units.

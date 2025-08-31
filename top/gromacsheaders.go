@@ -50,14 +50,21 @@ func runcq(command string, a ...interface{}) {
 	w.Run()
 }
 
-func parseints(s ...string) ([]int, error) {
+// Parses s, which is supposed to contain only integers, to []int
+// If the first zerobasedindex is given and true, it subtract 1 to each element of s to make the
+// returned slice zero-based.
+func parseints(s []string, zerobasedindex ...bool) ([]int, error) {
+	sub := 0
+	if len(zerobasedindex) > 0 && zerobasedindex[0] {
+		sub = 1
+	}
 	r := make([]int, 0, len(s))
 	for _, v := range s {
 		i, err := strconv.Atoi(v)
 		if err != nil {
 			return nil, err
 		}
-		r = append(r, i)
+		r = append(r, i-sub) //Gromacs indexes are 1-based so we subtract 1 to make it zero based, if we are told to.
 	}
 	return r, nil
 }
@@ -75,7 +82,7 @@ func parsefloats(s ...string) ([]float64, error) {
 }
 
 type Atom struct {
-	ID      int
+	Index   int
 	MolID   int
 	Name    string
 	PDBName string

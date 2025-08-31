@@ -9,19 +9,22 @@ import (
 
 func applyToTerms(f func(int) int, T []*Term) {
 	for i, v := range T {
-		for j, w := range v.IDs {
-			T[i].IDs[j] = f(w)
+		for j, w := range v.Indexes {
+			T[i].Indexes[j] = f(w)
+		}
+		for j, w := range v.Indexes {
+			T[i].Indexes[j] = f(w)
 		}
 	}
 }
 
-// Modifies the IDs of all atoms in the atoms, terms
+// Modifies the Indexes and IDs of all atoms in the atoms, terms
 // and vsite definitions according to f.
-func (F *FF) ModIDs(f func(int) int) {
+func (F *FF) ModIndexes(f func(int) int) {
 	for i := 0; i < F.Mol.Len(); i++ {
 		at := F.Mol.Atom(i)
 		at.SetIndex(f(at.Index()))
-		at.ID = f(at.ID)
+		//	at.ID = f(at.ID)
 	}
 	applyToTerms(f, F.Bonds)
 	applyToTerms(f, F.Impropers)
@@ -36,7 +39,7 @@ func (F *FF) ModIDs(f func(int) int) {
 		}
 	}
 	for _, v := range F.VSites {
-		v.ID = f(v.ID)
+		v.Index = f(v.Index)
 		for j, w := range v.Atoms {
 			v.Atoms[j] = f(w)
 		}
@@ -82,7 +85,7 @@ func (F *FF) Merge(F2 *FF, keepours bool, moveindexes ...bool) {
 		F.LJ = deleteRepeated(F2.LJ, F.LJ)
 
 	}
-	F2.ModIDs(sum)
+	F2.ModIndexes(sum)
 	for i := 0; i < F2.Mol.Len(); i++ {
 		F.Mol.AppendAtom(F2.Mol.Atom(i))
 	}
@@ -152,7 +155,7 @@ func containsSame[T ~[]E, E comparable](C1, C2 T) bool {
 
 }
 
-// Find the Terms with IDs that match the atom IDs in IDs. The match comparison
+// Find the Terms with Indexes that match the atom indexes given in Indexes. The match comparison
 // depends on the value of 'order'. Acceptable values are:
 // 's' (strict, only a term with the values in the same order as
 // given is considered).
@@ -160,25 +163,25 @@ func containsSame[T ~[]E, E comparable](C1, C2 T) bool {
 // 'a' (any, any order is accepted)
 // it only returns error if an invalid order is given, so, if that is
 // hardcoded, you may safely omit the error check.
-func FindTerm(T []*Term, IDs []int, order byte) (int, error) {
+func FindTerm(T []*Term, Indexes []int, order byte) (int, error) {
 	j := -1
-	rev := make([]int, 0, len(IDs))
-	copy(rev, IDs)
+	rev := make([]int, 0, len(Indexes))
+	copy(rev, Indexes)
 	slices.Reverse(rev)
 	for i, v := range T {
 		switch order {
 		case 's':
-			if slices.Equal(v.IDs, IDs) {
+			if slices.Equal(v.Indexes, Indexes) {
 				j = i
 				break
 			}
 		case 'r':
-			if slices.Equal(v.IDs, IDs) || slices.Equal(v.IDs, rev) {
+			if slices.Equal(v.Indexes, Indexes) || slices.Equal(v.Indexes, rev) {
 				j = i
 				break
 			}
 		case 'a':
-			if containsSame(v.IDs, IDs) {
+			if containsSame(v.Indexes, Indexes) {
 				j = i
 			}
 		default:
@@ -203,8 +206,7 @@ func DeleteAtomsAndVSites(F *FF, todel []int) *FF {
 	//Now the same for the VSites
 	vsites := make([]*VSite, 0, len(F.VSites)) //we don't know how many vsites we'll delete
 	for _, v := range F.VSites {
-		//	fmt.Println(v.ID, todel) ///////////////////////
-		if !slices.Contains(todel, v.ID) {
+		if !slices.Contains(todel, v.Index) {
 			vsites = append(vsites, v)
 		}
 	}
@@ -216,16 +218,17 @@ func DeleteAtomsAndVSites(F *FF, todel []int) *FF {
 // Returns FF like F but removing all atoms, bonded terms and exclusions that _only_
 // contain terms in todel or, if removecontaining[0] is given and true, all
 // bonded terms and exclusions that contains at least one of the terms in todel.
+// todel refers to indexes, so it's zero-based
 func DeleteTermsForAtomsAndVSites(F *FF, todel []int, removeallcontaining ...bool) *FF {
 	var dodel func([]int) bool
 	//here we decide what to delete
-	dodel = func(ids []int) bool {
+	dodel = func(indexes []int) bool {
 		//this one only deletes if ids ONLY contains atoms that
 		//are in todel
-		if len(ids) > len(todel) {
+		if len(indexes) > len(todel) {
 			return false
 		}
-		for _, v := range ids {
+		for _, v := range indexes {
 			if !slices.Contains(todel, v) {
 				return false
 			}
@@ -233,9 +236,9 @@ func DeleteTermsForAtomsAndVSites(F *FF, todel []int, removeallcontaining ...boo
 		return true
 	}
 	if len(removeallcontaining) > 0 && removeallcontaining[0] {
-		dodel = func(ids []int) bool {
+		dodel = func(indexes []int) bool {
 			//this one only deletes if ids has _any_ atom in todel
-			for _, v := range ids {
+			for _, v := range indexes {
 				if slices.Contains(todel, v) {
 					return true
 				}
@@ -248,7 +251,7 @@ func DeleteTermsForAtomsAndVSites(F *FF, todel []int, removeallcontaining ...boo
 	var DelTerms func([]*Term) []*Term = func(ts []*Term) []*Term {
 		ret := make([]*Term, 0, len(ts))
 		for _, v := range ts {
-			if dodel(v.IDs) {
+			if dodel(v.Indexes) {
 				continue
 			}
 			t2 := new(Term)
@@ -293,27 +296,28 @@ func DeleteTermsForAtomsAndVSites(F *FF, todel []int, removeallcontaining ...boo
 	return F2
 }
 
+// Creates a 'hole' in indexes and ids of size size after the
+// term with index after (so, for indexes 3,4,5,1,7, if we
+// request a hole of size 3 afrter 4, we get 3,4,8,1,10)
 func termHole(T []*Term, after, size int) []*Term {
 	for i, v := range T {
-		for j, w := range v.IDs {
+		for j, w := range v.Indexes {
 			if w > after {
-				T[i].IDs[j] += size
+				T[i].Indexes[j] += size
 			}
 		}
 	}
 	return T
 }
 
-// Returns FF like F but removing all atoms, bonded terms and exclusions that _only_
-// contain terms in todel or, if removecontaining[0] is given and true, all
-// bonded terms and exclusions that contains at least one of the terms in todel.
+// Shifts all atoms by shift
 func Shift(F *FF, shift int, shiftAtoms bool) {
 	//here we decide what to delete
 	//now a function to delete terms, since we'll do that a few times
 	var ShiftTerms func([]*Term) = func(ts []*Term) {
 		for _, v := range ts {
-			for j, _ := range v.IDs {
-				v.IDs[j] += shift
+			for j, _ := range v.Indexes {
+				v.Indexes[j] += shift
 			}
 
 		}
@@ -332,23 +336,24 @@ func Shift(F *FF, shift int, shiftAtoms bool) {
 	if shiftAtoms {
 		for i := 0; i < F.Len(); i++ {
 			at := F.Mol.Atom(i)
-			at.ID += shift
 			at.SetIndex(at.Index() + shift)
 		}
 	}
 	//Vsites get shifted even if atoms don't.
-	for i, _ := range F.VSites {
-		F.VSites[i].ID += shift
-
+	for i, v := range F.VSites {
+		F.VSites[i].Index += shift
+		for j, _ := range v.Atoms {
+			F.VSites[i].Atoms[j] += shift
+		}
 	}
 }
 
-// Changes all ids in the given terms according to the given map
+// Changes all indexes in the given terms according to the given map
 // modifies the terms and returns them.
 func switchterms(m map[int]int, te []*Term) []*Term {
 	for i, v := range te {
-		for j, w := range v.IDs {
-			te[i].IDs[j] = m[w]
+		for j, w := range v.Indexes {
+			te[i].Indexes[j] = m[w]
 		}
 	}
 	return te
@@ -366,6 +371,7 @@ func SwitchMap(oripos, newpos []int, fulllen int) map[int]int {
 }
 
 // Switches atoms from originalposition to newposition
+// Atoms DO NOT get switched.
 func Switch(originalposition, newposition []int, F *FF) *FF {
 	o := originalposition
 	n := newposition
@@ -381,9 +387,11 @@ func Switch(originalposition, newposition []int, F *FF) *FF {
 			F.Exclusions[i][j] = m[w]
 		}
 	}
-	//Vsites get shifted even if atoms don't.
-	for i, _ := range F.VSites {
-		F.VSites[i].ID += m[F.VSites[i].ID]
+	for i, v := range F.VSites {
+		F.VSites[i].Index = m[F.VSites[i].Index]
+		for j, w := range v.Atoms {
+			F.VSites[i].Atoms[j] = m[w]
+		}
 	}
 	return F
 }

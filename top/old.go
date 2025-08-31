@@ -423,7 +423,7 @@ func EditTermFunction(newterm string, atoms []int, headers2edit []string, revers
 				return "", fmt.Errorf("0 or too many elements in atom list: %d", len(atoms))
 			}
 			///		fmt.Println(len(st), atoms, st, s) ////////////////////////////////
-			ats, err := parseints(st[:len(atoms)]...)
+			ats, err := parseints(st[:len(atoms)])
 			if err != nil {
 				return "", fmt.Errorf("Can't parse numbers in line %s %w", s, err)
 			}
@@ -495,7 +495,7 @@ func SwitchAtomNumbersFunctions(tosub, replacement []int) TermSelect {
 				atoms = len(st) //all fields are atoms
 			}
 			///		fmt.Println(len(st), atoms, st, s) ////////////////////////////////
-			ats, err := parseints(st[:atoms]...)
+			ats, err := parseints(st[:atoms])
 			if err != nil {
 				return "", fmt.Errorf("Can't parse numbers in line %s %w", s, err)
 			}
@@ -512,7 +512,7 @@ func SwitchAtomNumbersFunctions(tosub, replacement []int) TermSelect {
 
 	vsitesn := func(s string) (string, error) {
 		st := fi(s)
-		ats, err := parseints(st...)
+		ats, err := parseints(st)
 		if err != nil {
 			return "", fmt.Errorf("Can't parse numbers in line %s %w", s, err)
 		}

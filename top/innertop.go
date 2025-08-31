@@ -82,8 +82,8 @@ func (F *FF) MolecularBonds(constraints ...bool) error {
 		list = append(list, F.Constraints...)
 	}
 	for i, v := range list {
-		at1 := F.Mol.Atom(v.IDs[0] - v.OneBased)
-		at2 := F.Mol.Atom(v.IDs[1] - v.OneBased)
+		at1 := F.Mol.Atom(v.Indexes[0])
+		at2 := F.Mol.Atom(v.Indexes[1])
 		b := &chem.Bond{Index: i, Dist: fakedistance, At1: at1, At2: at2}
 		at1.Bonds = append(at1.Bonds, b)
 		at2.Bonds = append(at2.Bonds, b)
@@ -236,7 +236,6 @@ func (A *AtomType) ToSigmaEpsilon() {
 }
 
 type LJPair struct {
-	//	IDs   []int
 	SigmaEpsilon bool
 	Names        []string
 	FuncType     int
@@ -277,17 +276,16 @@ func (A *LJPair) equal(B any) bool {
 }
 
 type VSite struct {
-	ID       int //1-based, NOTE: will probably delete when transitioned to Index
 	Index    int //0-based
 	N        int //0 for virtual_sistesn
 	FuncType int
-	Atoms    []int
+	Atoms    []int //zerobased
 	Factors  []float64
 }
 
 func (V *VSite) String() string {
 	r := make([]string, 0, 6)
-	r = append(r, spf("%d %1d ", V.ID, V.FuncType))
+	r = append(r, spf("%d %1d ", V.Index, V.FuncType))
 	for _, v := range V.Atoms {
 		r = append(r, spf("%d", v))
 	}
@@ -296,7 +294,7 @@ func (V *VSite) String() string {
 
 // Copies B into the receiver
 func (A *VSite) Copy(B *VSite) {
-	A.ID = B.ID
+	A.Index = B.Index
 	A.N = B.N
 	A.FuncType = B.FuncType
 	if len(A.Atoms) != len(B.Atoms) {
@@ -312,9 +310,7 @@ func (A *VSite) Copy(B *VSite) {
 
 type Term struct {
 	FuncType   uint
-	IDs        []int //1based, NOTE: will delete when ready
 	Indexes    []int //0based
-	OneBased   int   //0 if the indexes in Atom are 0-based, 1 if it's 1-based. NOTE: This will be deleted and we'll stuck to 0-index.
 	K          float64
 	Eq         float64
 	Constraint bool
@@ -327,23 +323,18 @@ var spf func(string, ...any) string = fmt.Sprintf
 func (T *Term) String() string {
 	r := make([]string, 0, 5)
 	r = append(r, spf("%1d ", T.FuncType))
-	for _, v := range T.IDs {
+	for _, v := range T.Indexes {
 		r = append(r, spf("%d", v))
 	}
 	return strings.Join(r, "")
 }
 
 func (A *Term) Copy(B *Term) {
-	if len(A.IDs) != len(B.IDs) {
-		A.IDs = make([]int, len(B.IDs))
-	}
-	copy(A.IDs, B.IDs)
 	if len(A.Indexes) != len(B.Indexes) {
 		A.Indexes = make([]int, len(B.Indexes))
 	}
 	copy(A.Indexes, B.Indexes)
 
-	A.OneBased = B.OneBased
 	A.FuncType = B.FuncType
 	A.K = B.K
 	A.Eq = B.Eq
