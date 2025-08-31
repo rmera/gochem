@@ -1,4 +1,4 @@
-package top
+package ff
 
 import (
 	"bufio"
@@ -66,7 +66,7 @@ func (c *cond) read(line string, defines []string) bool {
 // NOTE: Many Gromacs headers are supported, but not all. Notably, virtual_sitesX
 // headers, where X is between 1-4 are currently _not_ supported.
 // Only the generic virtual_sitesn are.
-func (F *FF) Fill(r StringReader, followIncludes bool, defines ...string) error {
+func (F *Top) Fill(r StringReader, followIncludes bool, defines ...string) error {
 	follow := followIncludes
 	var err error
 	var s string
@@ -170,7 +170,7 @@ func (F *FF) Fill(r StringReader, followIncludes bool, defines ...string) error 
 	return err
 }
 
-func (F *FF) AllToGro(r io.StringWriter) (err error) {
+func (F *Top) AllToGro(r io.StringWriter) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("%s", r)
@@ -274,7 +274,7 @@ func cleanString(s string) string {
 
 }
 
-func (F *FF) ExclusionsFromGro(s string) error {
+func (F *Top) ExclusionsFromGro(s string) error {
 	ex, err := parseints(fi(s), true)
 	if err != nil {
 		return err
@@ -303,7 +303,7 @@ func (e exclusion) ToGro() (string, error) {
 // molecule in ff. IF index is not given, the function will search the molecule to add the data to the
 // atom that matches the ID on the topology string. If a negative index is given, AtomDataFromGro will
 // create a new atom and append it to FF.Mol
-func (F *FF) AtomDataFromGro(s string, index ...int) (err error) {
+func (F *Top) AtomDataFromGro(s string, index ...int) (err error) {
 	s = cleanString(s)
 	var at *chem.Atom
 	defer func() {
@@ -349,7 +349,7 @@ func (F *FF) AtomDataFromGro(s string, index ...int) (err error) {
 }
 
 // Writes the ith (0-based) atom in the FF molecule to a Gromacs sopology line
-func (F *FF) Atom2Gro(i int) string {
+func (F *Top) Atom2Gro(i int) string {
 	A := F.Mol.Atom(i)
 	return fmt.Sprintf("    %5d  %4s %5d  %4s  %4s %5d  %6.4f \n", A.ID, A.Symbol, A.MolID, A.MolName, A.Name, A.ID, A.Charge)
 }

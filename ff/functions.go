@@ -1,4 +1,4 @@
-package top
+package ff
 
 import (
 	"fmt"
@@ -20,7 +20,7 @@ func applyToTerms(f func(int) int, T []*Term) {
 
 // Modifies the Indexes and IDs of all atoms in the atoms, terms
 // and vsite definitions according to f.
-func (F *FF) ModIndexes(f func(int) int) {
+func (F *Top) ModIndexes(f func(int) int) {
 	for i := 0; i < F.Mol.Len(); i++ {
 		at := F.Mol.Atom(i)
 		at.SetIndex(f(at.Index()))
@@ -66,7 +66,7 @@ func mergeTerms[T ~[]E, E any](T1, T2 T) T {
 // elements in the receiver, otherwise. Note that 2 LJ elements could be repeated
 // (i.e. refer to the same atoms) but have different values, so the choice between
 // keepours true or false is important.
-func (F *FF) Merge(F2 *FF, keepours bool, moveindexes ...bool) {
+func (F *Top) Merge(F2 *Top, keepours bool, moveindexes ...bool) {
 	disp := F.Mol.Len()
 	sum := func(i int) int {
 		return i + disp
@@ -195,7 +195,7 @@ func FindTerm(T []*Term, Indexes []int, order byte) (int, error) {
 // Deletes all atoms (and, if applicable, their virtual site definitions)
 // with IDs present in todel. It modifies F in place, and also returns it.
 // It does _not_ delete terms associated with the atoms.
-func DeleteAtomsAndVSites(F *FF, todel []int) *FF {
+func DeleteAtomsAndVSites(F *Top, todel []int) *Top {
 	//First we generate a new list of atoms without the ones to delete
 	nat := make([]*chem.Atom, 0, F.Len()-len(todel))
 	for i := 0; i < F.Len(); i++ {
@@ -219,7 +219,7 @@ func DeleteAtomsAndVSites(F *FF, todel []int) *FF {
 // contain terms in todel or, if removecontaining[0] is given and true, all
 // bonded terms and exclusions that contains at least one of the terms in todel.
 // todel refers to indexes, so it's zero-based
-func DeleteTermsForAtomsAndVSites(F *FF, todel []int, removeallcontaining ...bool) *FF {
+func DeleteTermsForAtomsAndVSites(F *Top, todel []int, removeallcontaining ...bool) *Top {
 	var dodel func([]int) bool
 	//here we decide what to delete
 	dodel = func(indexes []int) bool {
@@ -269,7 +269,7 @@ func DeleteTermsForAtomsAndVSites(F *FF, todel []int, removeallcontaining ...boo
 	//to alter the original.
 	mol := chem.NewTopology(0, 1)
 	mol.CopyAtoms(F.Mol)
-	F2 := NewFF(mol, F.SigmaEpsilon)
+	F2 := NewTop(mol, F.SigmaEpsilon)
 	F2.currentHeader = F.currentHeader
 	F2.VSites = F.VSites
 	F2 = DeleteAtomsAndVSites(F2, todel)
@@ -311,7 +311,7 @@ func termHole(T []*Term, after, size int) []*Term {
 }
 
 // Shifts all atoms by shift
-func Shift(F *FF, shift int, shiftAtoms bool) {
+func Shift(F *Top, shift int, shiftAtoms bool) {
 	//here we decide what to delete
 	//now a function to delete terms, since we'll do that a few times
 	var ShiftTerms func([]*Term) = func(ts []*Term) {
@@ -372,7 +372,7 @@ func SwitchMap(oripos, newpos []int, fulllen int) map[int]int {
 
 // Switches atoms from originalposition to newposition
 // Atoms DO NOT get switched.
-func Switch(originalposition, newposition []int, F *FF) *FF {
+func Switch(originalposition, newposition []int, F *Top) *Top {
 	o := originalposition
 	n := newposition
 	m := SwitchMap(o, n, F.Mol.Len())

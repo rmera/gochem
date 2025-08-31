@@ -25,4 +25,4 @@ confused with the gochem Topology structure). It's under development.
 Only Gromacs topologies can be read/written with the program's current version
 Charmm special terms are also not supported.
 */
-package top
+package ff

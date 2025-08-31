@@ -1,4 +1,4 @@
-package top
+package ff
 
 import (
 	"fmt"
@@ -20,7 +20,7 @@ func c6c12ToSigmaepsilon(c6, c12 float64) (sigma float64, epsilon float64) {
 	return math.Pow(c6/c12, (1 / 6)), math.Pow(c6, 2) / (4 * c12)
 }
 
-type FF struct {
+type Top struct {
 	SigmaEpsilon  bool //are LJ terms using sigma/epsilon, or C6/C12?
 	currentHeader string
 	Mol           *chem.Topology
@@ -36,7 +36,7 @@ type FF struct {
 }
 
 // Returns a string with the terms and the virtual sites
-func (F *FF) SmallString() string {
+func (F *Top) SmallString() string {
 	r := make([]string, 0, 30)
 	r = append(r, "Bonds")
 	for _, v := range F.Bonds {
@@ -63,7 +63,7 @@ func (F *FF) SmallString() string {
 
 // Returns the ith set of exclusions in 1-based notation
 // NOTE: Right now it doesn't work as exclusions _are_ 1 based.
-func (F *FF) Exclusions1(i int) []int {
+func (F *Top) Exclusions1(i int) []int {
 	s := F.Exclusions[i]
 	r := make([]int, len(s))
 	for i, v := range s {
@@ -74,7 +74,7 @@ func (F *FF) Exclusions1(i int) []int {
 
 // AssignBonds assigns bonds to a molecule based on a simple distance
 // criterium, similar to that described in DOI:10.1186/1758-2946-3-33
-func (F *FF) MolecularBonds(constraints ...bool) error {
+func (F *Top) MolecularBonds(constraints ...bool) error {
 	F.Mol.RemoveBonds()
 	fakedistance := 0.0
 	list := F.Bonds
@@ -95,12 +95,12 @@ func (F *FF) MolecularBonds(constraints ...bool) error {
 // returns a new and empty (but with some values set to defaults)
 // FF object. SigmaEpsilon is true if LJ terms are expressed as sigma/epsilon,
 // false for C6/C12
-func NewFF(mol *chem.Topology, SigmaEpsilon ...bool) *FF {
+func NewTop(mol *chem.Topology, SigmaEpsilon ...bool) *Top {
 	se := true //sigma-epsilon true is the form used by Martini3.
 	if len(SigmaEpsilon) > 0 {
 		se = SigmaEpsilon[0]
 	}
-	ret := new(FF)
+	ret := new(Top)
 	ret.Mol = mol
 	ret.SigmaEpsilon = se
 	ret.currentHeader = "NOHEADER"
@@ -108,7 +108,7 @@ func NewFF(mol *chem.Topology, SigmaEpsilon ...bool) *FF {
 }
 
 // Returns the nummber of atoms in the topology.
-func (F *FF) Len() int {
+func (F *Top) Len() int {
 	return F.Mol.Len()
 }
 
@@ -117,7 +117,7 @@ func (F *FF) Len() int {
 // but no LJ potential is assigned to it (normally, if the potentials are
 // defined for pair, rather than separately for atoms) and -1 if the type
 // is not found.
-func (F *FF) VdWForType(t string) float64 {
+func (F *Top) VdWForType(t string) float64 {
 	for _, v := range F.ATypes {
 		if v.Name == t {
 			return v.Epsilon
@@ -130,7 +130,7 @@ func (F *FF) VdWForType(t string) float64 {
 // atom type, if available. Returns zero if the pair is found
 // but no LJ potential is assigned to it and -1 if the pair
 // is not found.
-func (F *FF) VdWForPair(t1, t2 string) float64 {
+func (F *Top) VdWForPair(t1, t2 string) float64 {
 	for _, v := range F.LJ {
 		w := v.Names
 		if (t1 == w[0] && t2 == w[1]) || (t1 == w[1] && t2 == w[0]) {
@@ -141,8 +141,8 @@ func (F *FF) VdWForPair(t1, t2 string) float64 {
 }
 
 // Returns a copy of the receiver
-func (F *FF) Copy() *FF {
-	F2 := new(FF)
+func (F *Top) Copy() *Top {
+	F2 := new(Top)
 	mol := chem.NewTopology(0, 1)
 	for i := 0; i < F.Mol.Len(); i++ {
 		a := new(chem.Atom)

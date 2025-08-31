@@ -26,7 +26,7 @@
 Set of functions to automate some simple editing of top files
 */
 
-package top
+package ff
 
 import (
 	"fmt"
