@@ -13,6 +13,41 @@ import (
 	chem "github.com/rmera/gochem"
 )
 
+const (
+	//Conversions from Gromacs to goChem and back
+	//From Gromacs to goChem
+	KbFgro   = (chem.KJ2Kcal) / (chem.NM2A * chem.NM2A) //bonds
+	KangFgro = chem.KJ2Kcal                             //Gromacs uses radians in force constants. Note this also works for impropers
+	KRBFgro  = chem.KJ2Kcal
+	BondFgro = chem.NM2A
+	AngFgro  = chem.Deg2Rad
+
+	//From goChem to Gromacs
+	Kb2gro   = 1 / KbFgro
+	Kang2gro = chem.Kcal2KJ
+	KRB2gro  = chem.Kcal2KJ
+	Bond2gro = chem.A2NM
+	Ang2gro  = chem.Rad2Deg
+)
+
+// Ryckaert-Bellemans from Gromas to goChem . This modifies the given slice
+func rbFromGro(rb []float64) []float64 {
+	for i, v := range rb {
+		rb[i] = v * KRBFgro
+	}
+	return rb
+}
+
+// This allocates a new slice so the original is not modified
+func rbToGro(rb []float64) []float64 {
+	ret := make([]float64, len(rb))
+	copy(ret, rb)
+	for i, v := range ret {
+		ret[i] = v * KRB2gro
+	}
+	return ret
+}
+
 type cond struct {
 	reading bool
 }
@@ -176,16 +211,15 @@ func (F *Top) AllToGro(r io.StringWriter) (err error) {
 			err = fmt.Errorf("%s", r)
 		}
 	}()
-
 	if len(F.ATypes) > 0 {
 		_, err = r.WriteString("[ atomtypes ]\n")
 		qerr(err)
-		printGro(r, F.ATypes)
+		printGro(r, F.ATypes, 1, 1)
 	}
 	if len(F.LJ) > 0 {
 		_, err = r.WriteString("\n[ nonbond_params ]\n")
 		qerr(err)
-		printGro(r, F.LJ)
+		printGro(r, F.LJ, 1, 1)
 	}
 	_, err = r.WriteString("\n[ atoms ]\n")
 	qerr(err)
@@ -194,23 +228,23 @@ func (F *Top) AllToGro(r io.StringWriter) (err error) {
 		qerr(err)
 	}
 	_, err = r.WriteString("\n[ bonds ]\n")
-	printGro(r, F.Bonds)
+	printGro(r, F.Bonds, Bond2gro, Kb2gro)
 	_, err = r.WriteString("\n[ constraints ]\n")
-	printGro(r, F.Constraints)
+	printGro(r, F.Constraints, Bond2gro, Kb2gro)
 	_, err = r.WriteString("\n[ exclusions ]\n")
 	printExcluGro(r, F.Exclusions)
 	_, err = r.WriteString("\n[ angles ]\n")
-	printGro(r, F.Angles)
+	printGro(r, F.Angles, Ang2gro, Kang2gro)
 	_, err = r.WriteString("\n[ dihedrals ]\n")
-	printGro(r, F.Dihedrals)
+	printGro(r, F.Dihedrals, Ang2gro, Kang2gro)
 	_, err = r.WriteString("; Impropers\n")
-	printGro(r, F.Impropers)
+	printGro(r, F.Impropers, Ang2gro, Kang2gro)
 	_, err = r.WriteString("\n[ virtual_sitesn ]\n")
 	//while the ToGro() signature for the interface
 	//printGo takes requires returning an error, the only
 	//implementation that actually has an error to return
 	//is that of VSites.
-	err = printGro(r, F.VSites)
+	err = printGro(r, F.VSites, 1, 1)
 	qerr(err)
 
 	return nil
@@ -234,12 +268,12 @@ type FF struct {
 */
 
 type groer interface {
-	ToGro() (string, error)
+	ToGro(float64, float64) (string, error)
 }
 
-func printGro[G ~[]E, E groer](r io.StringWriter, g G) error {
+func printGro[G ~[]E, E groer](r io.StringWriter, g G, equnit, kunit float64) error {
 	for _, v := range g {
-		m, e := v.ToGro()
+		m, e := v.ToGro(equnit, kunit)
 		if e != nil {
 			return e
 		}
@@ -333,7 +367,7 @@ func (F *Top) AtomDataFromGro(s string, index ...int) (err error) {
 		}
 	}
 	if at == nil {
-		println("index:", ix) //////////////////////////////////
+		//	println("index:", ix) //////////////////////////////////
 		err = fmt.Errorf("Couldn't find atom with ID %d", ID)
 		return
 	}
@@ -375,6 +409,7 @@ func TermFromGro(s, header string) (T *Term, err error) {
 		qerr(err)
 		T.FuncType = 3
 		T.RB, err = parsefloats(l[5:]...)
+		T.RB = rbFromGro(T.RB)
 		qerr(err)
 		if len(T.RB) != 6 {
 			err = fmt.Errorf("R-B term detected but read %d parameters instead of the 6 expected", len(T.RB))
@@ -396,19 +431,30 @@ func TermFromGro(s, header string) (T *Term, err error) {
 		//		println(T.FuncType, "CONSTRAINTTYPE")    ///////////////////////////////////
 		T.Eq, err = strconv.ParseFloat(l[3], 64) //could be 3 if there is a function type but I don't think there is. Check
 		qerr(err)
+		T.Eq *= BondFgro //unit
 		return
 	}
 	//everything else is: atom1 ... atom(ats) functype eqval fconst
 	var ats int = -1
+	var equnits float64
+	var kunits float64
 	switch header {
 	case "bonds":
 		ats = 2
+		equnits = BondFgro
+		kunits = KbFgro
 	case "angles":
 		ats = 3
+		equnits = AngFgro
+		kunits = KangFgro
 	case "impropers":
 		ats = 4
+		equnits = AngFgro
+		kunits = KangFgro
 	case "dihedrals":
 		ats = 4
+		equnits = AngFgro
+		kunits = KangFgro
 	}
 
 	qerr(err)
@@ -421,8 +467,10 @@ func TermFromGro(s, header string) (T *Term, err error) {
 	T.FuncType = uint(ft)
 	T.Eq, err = strconv.ParseFloat(l[ats+1], 64) //could be 3 if there is a function type but I don't think there is. Check
 	qerr(err)
+	T.Eq *= equnits
 	T.K, err = strconv.ParseFloat(l[ats+2], 64) //could be 3 if there is a function type but I don't think there is. Check
 	qerr(err)
+	T.K *= kunits
 	return
 
 }
@@ -440,9 +488,15 @@ func (T *Term) writeAtoms(zerobased ...bool) string {
 }
 
 // Writes the term to a string in Gromacs top format.
-func (T *Term) ToGro() (string, error) {
+// Requires the unit conversion factors, which depends on what is in the term.
+func (T *Term) ToGro(equnit, kunit float64) (string, error) {
+	if equnit <= 0 {
+		equnit = 1.0
+	}
+	if kunit <= 0 {
+		kunit = 1.0
+	}
 	ret := make([]string, 0, 15)
-	fmt.Println("Indexes", T.Indexes) //////////////////////////////
 	ret = append(ret, T.writeAtoms())
 	if T.Vsite {
 		return "", nil //placeholder
@@ -451,15 +505,18 @@ func (T *Term) ToGro() (string, error) {
 	ret = append(ret, fmt.Sprintf("%1d", T.FuncType))
 
 	if len(T.RB) == 0 {
-		ret = append(ret, fmt.Sprintf(flf, T.Eq))
+		ret = append(ret, fmt.Sprintf(flf, T.Eq*equnit))
 	}
 	if !T.Constraint && len(T.RB) == 0 {
-		ret = append(ret, fmt.Sprintf(flf, T.K))
+		ret = append(ret, fmt.Sprintf(flf, T.K*kunit))
 	}
 	if len(T.RB) > 0 && len(T.RB) != 6 {
 		panic(fmt.Sprintf("grotop/Term.String: R-B potential must have 6 parameters, got %d", len(T.RB)))
 	}
-	for _, v := range T.RB {
+
+	RB := rbToGro(T.RB)
+
+	for _, v := range RB {
 		//	ret = append(ret, "nowe", fmt.Sprintf("****%6.4f****", v)) ///////////////////////
 		ret = append(ret, fmt.Sprintf(flf, v))
 	}
@@ -525,7 +582,8 @@ func VSitesNFromGro(s string) (vsit *VSite, err error) {
 
 // Returns a Gromacstop-formatted virtual_siteX string with the information in the receiver
 // 'X' depends on the information in the receiver (the field 'N').
-func (V *VSite) ToGro() (string, error) {
+// The arguments are only to fullfill an interface and theyare not used.
+func (V *VSite) ToGro(nousedunit1, nousedunit2 float64) (string, error) {
 	ret := make([]string, 0, 8)
 	ret = append(ret, sf("%5d", V.Index+1)) //Gromacs uses 1-based indexes, goChem uses zero-based.
 	ret = append(ret, sf("%2d", V.FuncType))
@@ -578,23 +636,18 @@ func AtomTypeFromGro(s string, sigmaep bool) (ret *AtomType, err error) {
 	//sigmaep is checked twice because there used to be just one pair of values to keep both
 	//c6/c12 and sigma epsilon. I tried to add a separate sigma epsilong without changing the
 	//code much.
-	if sigmaep {
-		ret.Sigma, ret.Epsilon, err = c6c12OrSigmaEpsilon(f[4], f[5], sigmaep)
-	} else {
-		ret.C6, ret.C12, err = c6c12OrSigmaEpsilon(f[4], f[5], sigmaep)
-	}
-	ret.SigmaEpsilon = sigmaep
+	ret.Sigma, ret.Epsilon, err = c6c12OrSigmaEpsilon(f[4], f[5], sigmaep)
+	ret.Sigma *= chem.NM2A
+	ret.Epsilon *= chem.KJ2Kcal
 	return ret, err
 }
 
-func (A *AtomType) ToGro() (string, error) {
+func (A *AtomType) ToGro(unused1, unused2 float64) (string, error) {
 	var c6, c12 float64
-	if A.SigmaEpsilon {
-		c6, c12 = A.Sigma, A.Epsilon
+	//s, e := A.Sigma*chem.Kcal2KJ, A.Epsilon*chem.A2NM
 
-	} else {
-		c6, c12 = A.C6, A.C12
-	}
+	c6, c12 = A.C6C12Gro()
+
 	return sf("%5s %5.3f %5.3f %1s %6.4e %6.4ef", A.Name, A.Mass, A.Charge, A.Ptype, c6, c12), nil
 }
 
@@ -610,42 +663,33 @@ func LJPairFromGro(s string, sigmaep bool) (ret *LJPair, err error) {
 	ret.Names = []string{f[0], f[1]}
 	ret.FuncType, err = strconv.Atoi(f[2])
 	qerr(err)
-	if sigmaep {
-		ret.Sigma, ret.Epsilon, err = c6c12OrSigmaEpsilon(f[3], f[4], sigmaep)
-	} else {
-
-		ret.C6, ret.C12, err = c6c12OrSigmaEpsilon(f[3], f[4], sigmaep)
-	}
-	ret.SigmaEpsilon = sigmaep
+	ret.Sigma, ret.Epsilon, err = c6c12OrSigmaEpsilon(f[3], f[4], sigmaep)
+	ret.Sigma *= chem.NM2A
+	ret.Epsilon *= chem.KJ2Kcal
 	return ret, err
 
 }
 
-func (L *LJPair) ToGro() (string, error) {
-	var c6, c12 float64
-	if L.SigmaEpsilon {
-		c6, c12 = L.Sigma, L.Epsilon
-
-	} else {
-		c6, c12 = L.C6, L.C12
-	}
+func (L *LJPair) ToGro(unused1, unused2 float64) (string, error) {
+	c6, c12 := L.C6C12Gro()
 	return sf("%5s %5s %1d %6.4e %6.4e\n", L.Names[0], L.Names[1], L.FuncType, c6, c12), nil
 }
 
 func c6c12OrSigmaEpsilon(num1, num2 string, sigmaepsilon bool) (float64, float64, error) {
-	var c6, c12 float64
+	var sig, ep float64
 	var err error
-	c6, err = strconv.ParseFloat(num1, 64)
+	sig, err = strconv.ParseFloat(num1, 64)
 	if err != nil {
 		return -1, -1, err
 	}
-	c12, err = strconv.ParseFloat(num2, 64)
+	ep, err = strconv.ParseFloat(num2, 64)
 	if err != nil {
 		return -1, -1, err
 	}
-	if sigmaepsilon {
-		c6, c12 = sigmaepsilonToc6c12(c6, c12)
+	if !sigmaepsilon {
+
+		sig, ep = c6c12ToSigmaepsilon(sig, ep)
 	}
-	return c6, c12, nil
+	return sig, ep, nil
 
 }

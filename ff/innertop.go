@@ -195,12 +195,10 @@ func copyTerms(T []*Term) []*Term {
 }
 
 type AtomType struct {
-	SigmaEpsilon bool //NOTE: might unexport this.
+	sigmaEpsilon bool //NOTE: might unexport this.
 	Name         string
 	Sigma        float64
 	Epsilon      float64
-	C6           float64
-	C12          float64
 	AtNum        int
 	Mass         float64
 	Charge       float64
@@ -209,10 +207,8 @@ type AtomType struct {
 
 // Copy puts a copy of B in the receiver
 func (A *AtomType) Copy(B *AtomType) {
-	A.SigmaEpsilon = B.SigmaEpsilon
+	A.sigmaEpsilon = B.sigmaEpsilon
 	A.Name = B.Name
-	A.C6 = B.C6
-	A.C12 = B.C12
 	A.Sigma = B.Sigma
 	A.Epsilon = B.Epsilon
 	A.AtNum = B.AtNum
@@ -221,51 +217,38 @@ func (A *AtomType) Copy(B *AtomType) {
 	A.Ptype = B.Ptype
 }
 
+func (A *AtomType) C6C12Gro() (float64, float64) {
+	return sigmaepsilonToc6c12(A.Sigma*chem.A2NM, A.Epsilon*chem.Kcal2KJ)
+}
+
 func (A *AtomType) equal(B any) bool {
 	b := B.(*AtomType)
 	return A.Name == b.Name
 }
 
-func (A *AtomType) ToC6C12() {
-	A.SigmaEpsilon = false
-	A.C6, A.C12 = sigmaepsilonToc6c12(A.Sigma, A.Epsilon)
-}
-func (A *AtomType) ToSigmaEpsilon() {
-	A.SigmaEpsilon = true
-	A.C6, A.C12 = c6c12ToSigmaepsilon(A.Sigma, A.Epsilon)
-}
-
 type LJPair struct {
-	SigmaEpsilon bool
-	Names        []string
-	FuncType     int
-	C6           float64
-	C12          float64
-	Sigma        float64
-	Epsilon      float64
+	Names    []string
+	FuncType int
+	Sigma    float64
+	Epsilon  float64
 }
 
 // Copies B into the receiver
 func (A *LJPair) Copy(B *LJPair) {
-	A.SigmaEpsilon = B.SigmaEpsilon
 	if len(A.Names) != len(B.Names) {
 		A.Names = make([]string, len(B.Names))
 	}
 	copy(A.Names, B.Names)
-	A.C6 = B.C6
-	A.C12 = B.C12
 	A.Sigma = B.Sigma
 	A.Epsilon = B.Epsilon
 	A.FuncType = B.FuncType
 }
 
-func (A *LJPair) ToC6C12() {
-	A.SigmaEpsilon = false
-	A.C6, A.C12 = sigmaepsilonToc6c12(A.Sigma, A.Epsilon)
+func (A *LJPair) C6C12Gro() (float64, float64) {
+	return sigmaepsilonToc6c12(A.Sigma*chem.A2NM, A.Epsilon*chem.Kcal2KJ)
 }
-func (A *LJPair) ToSigmaEpsilon() {
-	A.SigmaEpsilon = true
-	A.C6, A.C12 = c6c12ToSigmaepsilon(A.Sigma, A.Epsilon)
+func (A *LJPair) FillSigmaEpsilonFromC6C12(c6, c12 float64) {
+	A.Sigma, A.Epsilon = c6c12ToSigmaepsilon(c6, c12)
 }
 
 func (A *LJPair) equal(B any) bool {
