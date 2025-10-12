@@ -359,38 +359,25 @@ func switchterms(m map[int]int, te []*Term) []*Term {
 	return te
 }
 
-func SwitchMap(oripos, newpos []int, fulllen int) map[int]int {
-	m := make(map[int]int)
-	for i := 0; i < fulllen; i++ {
-		m[i] = i
-	}
-	for i, v := range oripos {
-		m[v] = newpos[i]
-	}
-	return m
-}
-
 // Switches atoms from originalposition to newposition
 // Atoms DO NOT get switched.
-func Switch(originalposition, newposition []int, F *Top) *Top {
-	o := originalposition
-	n := newposition
-	m := SwitchMap(o, n, F.Mol.Len())
-	switchterms(m, F.Bonds)
-	switchterms(m, F.Angles)
-	switchterms(m, F.Constraints)
-	switchterms(m, F.Impropers)
-	switchterms(m, F.Dihedrals)
-	F.Mol = chem.SwitchAtoms(o, n, F.Mol)
+func Switch(switchmap map[int]int, F *Top) *Top {
+	fmt.Println("map!", switchmap) //////////
+	switchterms(switchmap, F.Bonds)
+	switchterms(switchmap, F.Angles)
+	switchterms(switchmap, F.Constraints)
+	switchterms(switchmap, F.Impropers)
+	switchterms(switchmap, F.Dihedrals)
+	F.Mol = chem.SwitchAtoms(switchmap, F.Mol)
 	for i, v := range F.Exclusions {
 		for j, w := range v {
-			F.Exclusions[i][j] = m[w]
+			F.Exclusions[i][j] = switchmap[w]
 		}
 	}
 	for i, v := range F.VSites {
-		F.VSites[i].Index = m[F.VSites[i].Index]
+		F.VSites[i].Index = switchmap[F.VSites[i].Index]
 		for j, w := range v.Atoms {
-			F.VSites[i].Atoms[j] = m[w]
+			F.VSites[i].Atoms[j] = switchmap[w]
 		}
 	}
 	return F

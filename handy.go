@@ -30,7 +30,6 @@ package chem
 import (
 	"fmt"
 	"math"
-	"slices"
 	"strings"
 
 	v3 "github.com/rmera/gochem/v3"
@@ -843,25 +842,46 @@ func MoleculeFileRead(name string) (mol *Molecule, err error) {
 	return
 }
 
-// Switches atoms from the original posiions to the new positions in mol
-// The IDs and Indexes of the atoms are modified.
-// panics if oripos and newpos are not of the same lenght, as well as if one of the
-// indexes in newpos is out of range. If the indexes are badly constructed,
-// It could happen that atoms are orverwritten (say, if oripos=[0,1,2],newpos=[3,2,1]
-// the position 0 would end up empty/nil and 3 overwritten) The function does
-// check for empty/nil elements in the final topology and panics if one is found
-func SwitchAtoms(oripos, newpos []int, mol Atomer) *Topology {
-	if len(oripos) != len(newpos) {
-		panic(fmt.Sprintf("oripos (%d) and newpos (%d) must have the same lenght", oripos, newpos))
+// Creates a map from the old position of a set of atoms, to their new position. It takes the full lenght of the molecule,
+// so the indexes not present in oripos or newpos are assigned their same original position.
+// if an atom A appears in oripos and the atom B appears in the equivalent place in newpos, a map entry A->B will be created.
+// if no entry in oripos contains B, then an additional entry B->A will be created.
+func SwitchMap(oripos, newpos []int, fulllen int) map[int]int {
+	m := make(map[int]int)
+	for i, v := range oripos {
+		m[v] = newpos[i]
 	}
+	//if not given in the list, we also need to ensure that for every a that goes to b, the b element goes to a
+	//of course you might want a go to be, b go to c, c go to a. You need to give those explicitly in that case.
+	for i, v := range newpos {
+		if _, ok := m[v]; ok {
+			continue
+		}
+		m[v] = oripos[i]
+	}
+	//Finally, whatever wasn't mentioned in neither oripos nor newpos, keeps its place
+	for i := 0; i < fulllen; i++ {
+		if _, ok := m[i]; ok {
+			continue
+		}
+		m[i] = i
+	}
+
+	return m
+}
+
+// Switches each atom in mol from position i to position switchmap[i] for each i in the switchmap keys.
+// Returns a modified topology. mol itself is not affected (its atoms remain in the same order) but the Indexes and IDs
+// of the atoms, are, since SwitchAtoms doesn't make copies and resets IDs and Indexes to match the atoms's positions
+// in the returned topology.
+func SwitchAtoms(switchmap map[int]int, mol Atomer) *Topology {
 	ret := NewTopology(0, 1)
 	ret.Atoms = make([]*Atom, mol.Len())
 	for i := 0; i < mol.Len(); i++ {
 		at := mol.Atom(i)
-		j := i
-		s := slices.Index(oripos, i)
-		if s >= 0 {
-			j = s
+		j, ok := switchmap[i]
+		if !ok {
+			j = i
 		}
 		ret.Atoms[j] = at
 	}
@@ -875,18 +895,13 @@ func SwitchAtoms(oripos, newpos []int, mol Atomer) *Topology {
 	return ret
 }
 
-func SwitchCoords(oripos, newpos []int, vec *v3.Matrix) *v3.Matrix {
-	if len(oripos) != len(newpos) {
-		panic(fmt.Sprintf("oripos (%d) and newpos (%d) must have the same lenght", oripos, newpos))
-	}
+// Switches each atom in mol from position i to position switchmap[i] for each i in the switchmap keys,
+// returning the modified matrix. The original vec is not affected.
+func SwitchCoords(switchmap map[int]int, vec *v3.Matrix) *v3.Matrix {
 	ret := v3.Zeros(vec.Len())
-	m := make(map[int]int)
-	for i, v := range oripos {
-		m[v] = newpos[i]
-	}
 	finalpos := make([]int, ret.Len())
 	for i, _ := range finalpos {
-		n, ok := m[i]
+		n, ok := switchmap[i]
 		if ok {
 			finalpos[i] = n
 		} else {
