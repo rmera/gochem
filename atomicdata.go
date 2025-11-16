@@ -26,8 +26,8 @@
 
 package chem
 
-//A map for assigning mass to elements.
-//Note that just common "bio-elements" are present
+// A map for assigning mass to elements.
+// Note that just common "bio-elements" are present
 var symbolMass = map[string]float64{
 	"H":  1.0,
 	"C":  12.01,
@@ -54,9 +54,9 @@ var symbolMass = map[string]float64{
 	"I":  126.90,
 }
 
-//A map for assigning covalent radii to elements
-//Values from Cordero et al., 2008 (DOI:10.1039/B801115J)
-//Note that just common "bio-elements" are present
+// A map for assigning covalent radii to elements
+// Values from Cordero et al., 2008 (DOI:10.1039/B801115J)
+// Note that just common "bio-elements" are present
 var symbolCovrad = map[string]float64{
 	"H":  0.4,  // 0.31 I altered this one. Since H always has only one bond, it doesn't matter if I set a longer radius, the extra bonds will get eliminated later.
 	"C":  0.76, //the sp3 radius
@@ -83,10 +83,10 @@ var symbolCovrad = map[string]float64{
 	"I":  1.39,
 }
 
-//A map for assigning van der Waals radii to elements
-//Values from 10.1021/j100785a001 and 10.1021/jp8111556
-//metal radii from 10.1023/A:1011625728803
-//Note that just common "bio-elements" are present
+// A map for assigning van der Waals radii to elements
+// Values from 10.1021/j100785a001 and 10.1021/jp8111556
+// metal radii from 10.1023/A:1011625728803
+// Note that just common "bio-elements" are present
 var symbolVdwrad = map[string]float64{
 	"H":  1.10, // 0.31 I altered this one. Since H always has only one bond, it doesn't matter if I set a longer radius, the extra bonds will get eliminated later.
 	"C":  1.70, //the sp3 radius
@@ -113,10 +113,10 @@ var symbolVdwrad = map[string]float64{
 	"I":  1.98,
 }
 
-//A map for checking that atoms don't
-//have too many bonds. A value of 0 means
-//undefined, i.e. that this atom shouldn't
-//be checked for max bonds. I decided not to define it
+// A map for checking that atoms don't
+// have too many bonds. A value of 0 means
+// undefined, i.e. that this atom shouldn't
+// be checked for max bonds. I decided not to define it
 var symbolMaxBonds = map[string]int{
 	"H":  1, //this is the only one truly important.
 	"C":  4,
@@ -129,4 +129,28 @@ var symbolMaxBonds = map[string]int{
 	"F":  1,
 	"Br": 1,
 	"I":  1,
+}
+
+var Three2OneLetter = map[string]string{
+	"SER": "S",
+	"THR": "T",
+	"ASN": "N",
+	"GLN": "Q",
+	"SEC": "U", //Selenocysteine!
+	"CYS": "C",
+	"GLY": "G",
+	"PRO": "P",
+	"ALA": "A",
+	"VAL": "V",
+	"ILE": "I",
+	"LEU": "L",
+	"MET": "M",
+	"PHE": "F",
+	"TYR": "Y",
+	"TRP": "W",
+	"ARG": "R",
+	"HIS": "H",
+	"LYS": "K",
+	"ASP": "D",
+	"GLU": "E",
 }

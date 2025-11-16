@@ -270,6 +270,17 @@ func (Q *Calc) SetDefaults() {
 	Q.Memory = 3000
 }
 
+// Utilities here
+func (Q *Calc) ConstrainNoHs(mol chem.Atomer) {
+	c := make([]int, 0, 20)
+	for i := 0; i < mol.Len(); i++ {
+		if mol.Atom(i).Symbol != "H" {
+			c = append(c, i)
+		}
+	}
+	Q.CConstraints = append(Q.CConstraints, c...)
+}
+
 // isIn is a helper for the RamaList function,
 // returns true if test is in container, false otherwise.
 func isInInt(container []int, test int) bool {
