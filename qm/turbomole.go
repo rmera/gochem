@@ -34,6 +34,8 @@ package qm
 
 import (
 	"bufio"
+	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -61,6 +63,7 @@ type TMHandle struct {
 	marij        bool
 	dryrun       bool
 	basicInput   bool
+	jchoose      jobChoose
 }
 
 // Creates and initializes a new instance of TMRuner, with values set
@@ -509,25 +512,8 @@ func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q 
 	if err := def.Run(); err != nil {
 		return Error{noDefine, Turbomole, O.inputname, err.Error(), []string{"exec.Run", "BuildInput"}, true}
 	}
-	jc := jobChoose{}
-	jc.opti = func() {
-		O.command = "jobex -c 200"
-		if Q.RI {
-			O.command = O.command + " -ri"
-			if Q.OptTightness >= 2 {
-				O.command = O.command + "-gcart 4"
 
-			}
-		}
-	}
-	jc.forces = func() {
-		O.command = "NumForce -central"
-		if Q.RI {
-			O.command = O.command + " -ri"
-		}
-		O.addToControl([]string{" weight derivatives"}, nil, false, "$dft")
-	}
-	Q.Job.Do(jc)
+	O.setJob(Q)
 
 	//Now modify control
 	args := make([]string, 1, 2)
@@ -568,6 +554,35 @@ func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q 
 	}
 	return nil
 
+}
+
+func (O *TMHandle) setJob(Q *Calc) {
+	O.jchoose = jobChoose{}
+	O.jchoose.opti = func() {
+		O.command = "jobex -c 200"
+		if Q.RI {
+			O.command = O.command + " -ri"
+			if Q.OptTightness >= 2 {
+				O.command = O.command + "-gcart 4"
+
+			}
+		}
+	}
+	O.jchoose.forces = func() {
+		O.command = "NumForce -central"
+		if Q.RI {
+			O.command = O.command + " -ri"
+		}
+		O.addToControl([]string{" weight derivatives"}, nil, false, "$dft")
+	}
+
+	Q.Job.Do(O.jchoose)
+}
+
+func (O *TMHandle) NewJob(Q *Calc) error {
+	O.setJob(Q)
+	Q.Job.Do(O.jchoose)
+	return nil
 }
 
 var tMMethods = map[string]string{
@@ -659,6 +674,69 @@ func (O *TMHandle) Energy() (float64, error) {
 		err = Error{ErrNoEnergy, Turbomole, O.inputname, err.Error(), []string{"strconv.ParseFloat", "Energy"}, true}
 	}
 	return energy * chem.H2Kcal, err
+}
+
+func (O *TMHandle) FreeEnergy(T float64) (float64, float64, error) {
+	os.Chdir(O.inputname)
+	defer os.Chdir("..")
+	//The ammount of newlines is wrong, must fix
+	str := fmt.Sprintf("\n1\ntstart=%6.2f tend=%6.2f\nq\n", T, T)
+	def := exec.Command("freeh")
+	pipe, err := def.StdinPipe()
+	if err != nil {
+		return 0, 0, fmt.Errorf("TM/FreeEnergy: Unable to open input pipe for freeh")
+	}
+
+	defer pipe.Close()
+	pipe.Write([]byte(str))
+	var output []byte
+	if output, err = def.Output(); err != nil {
+		return 0, 0, fmt.Errorf("Unable to run freeh")
+	}
+	/*
+		f, err := os.Open("freeh.out")
+		if err != nil {
+			return 0, 0, fmt.Errorf("Couldn't open output file freeh.out")
+		}
+		defer f.Close()
+	*/
+	f := bytes.NewReader(output)
+	fio := bufio.NewReader(f)
+	var line string
+	cont := 0
+	startcont := false
+	readFromTag := 2
+	G := 0.0
+	S := 0.0
+	for line, err = fio.ReadString('\n'); err == nil; line, err = fio.ReadString('\n') {
+		if strings.Contains(line, "(K)      (MPa)                                 (kJ/mol)   (kJ/mol) (kJ/mol/K)") {
+			startcont = true
+			continue
+		}
+		if startcont {
+			cont++
+		}
+		if cont == readFromTag {
+			fi := strings.Fields(line)
+			G, err = strconv.ParseFloat(fi[5], 64)
+			if err != nil {
+				return 0, 0, err
+			}
+			S, err = strconv.ParseFloat(fi[7], 64)
+			if err != nil {
+				return 0, 0, err
+			}
+			S *= chem.KJ2Kcal
+			G *= chem.KJ2Kcal
+			break
+		}
+
+	}
+	if err == nil || errors.Is(err, io.EOF) {
+		return G, S, nil
+	}
+	return G, S, err
+
 }
 
 // OptimizedGeometry returns the coordinates for the optimized structure.
