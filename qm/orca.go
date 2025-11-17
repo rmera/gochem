@@ -40,17 +40,18 @@ import (
 // Note that the default methods and basis vary with each program, and even
 // for a given program they are NOT considered part of the API, so they can always change.
 type OrcaHandle struct {
-	defmethod   string
-	defbasis    string
-	defauxbasis string
-	defguess    string
-	previousMO  string
-	bsse        string
-	command     string
-	inputname   string
-	wrkdir      string
-	nCPU        int
-	orca4       bool
+	defmethod    string
+	defbasis     string
+	defauxbasis  string
+	defguess     string
+	previousMO   string
+	bsse         string
+	command      string
+	inputname    string
+	wrkdir       string
+	nCPU         int
+	orca4        bool
+	cosmorsready bool
 }
 
 // NewOrcaHandle initializes and returns a new OrcaHandle.
@@ -116,6 +117,7 @@ func (O *OrcaHandle) SetDefaults() {
 	}
 	cpu := runtime.NumCPU() / 2
 	O.nCPU = cpu
+	O.inputname = "gochem"
 }
 
 // BuildInput builds an input for ORCA based int the data in atoms, coords and C.
@@ -634,4 +636,132 @@ func (O *OrcaHandle) orcaNormalTermination() bool {
 		return true
 	}
 	return false
+}
+
+// Options for COSMO-RS. The Option NullHBonds should set the contribution of H-Bonds to the free energy to 0,
+// but I'm not at all sure it works. Use with care.
+type COSMORSOptions struct {
+	T          float64
+	SolvMol    *chem.Molecule
+	SolvName   string
+	NullHBonds bool //This
+}
+
+func DefaultCOSMORSOptions() *COSMORSOptions {
+	o := new(COSMORSOptions)
+	o.T = 298.15
+	o.SolvName = "water"
+	o.NullHBonds = false
+	return o
+}
+
+func (O *OrcaHandle) SetCOSMORS(coords *v3.Matrix, atoms chem.AtomMultiCharger, Options ...*COSMORSOptions) error {
+	var Op *COSMORSOptions
+	if len(Options) > 0 {
+		Op = Options[0]
+	} else {
+		Op = DefaultCOSMORSOptions()
+	}
+
+	str := []string{"%cosmors\n"}
+	oldinput := O.inputname
+	O.inputname += "_cosmors"
+	if Op.SolvMol != nil {
+		solvstruc := "solv.cosmorsxyz"
+		fout, err := os.Create(solvstruc)
+		if err != nil {
+			return fmt.Errorf("Couldn't create .cosmorsxyz file: %w", err)
+		}
+		fout.WriteString(fmt.Sprintf("%d\n%d %d\n", Op.SolvMol.Len(), Op.SolvMol.Charge(), Op.SolvMol.Multi()))
+		for i := 0; i < Op.SolvMol.Len(); i++ {
+			at := Op.SolvMol.Atom(i)
+			coord := Op.SolvMol.Coords[0].VecView(i)
+			fout.WriteString(fmt.Sprintf("%s %5.3f %5.3f %5.3f\n", at.Symbol, coord.At(0, 0), coord.At(0, 1), coord.At(0, 2)))
+		}
+		fout.Close()
+		str = append(str, "solventfilename \"solv\"\n")
+	} else {
+		if Op.SolvName == "" {
+			return fmt.Errorf("qm/Orca/SetCOSMORS: Neither solvent molecule nor name given!")
+		}
+		str = append(str, fmt.Sprintf("solvent \"%s\"\n", Op.SolvName))
+	}
+	if Op.T > 0 {
+		str = append(str, fmt.Sprintf("temp %5.2f\n", Op.T))
+	}
+	if Op.NullHBonds {
+		str = append(str, "sigmahb 10000\n") //NOTE: The plan is to set the hbond threshold to a crazy high value so no hbond is detected.
+	}
+	str = append(str, "end\n\n")
+
+	str = append(str, fmt.Sprintf("* xyz %d %d\n", atoms.Charge(), atoms.Multi()))
+	//now the coordinates
+	//	fmt.Println(atoms.Len(), coords.Rows()) ///////////////
+
+	for i := 0; i < atoms.Len(); i++ {
+		str = append(str, fmt.Sprintf("%-2s  %8.3f%8.3f%8.3f\n", atoms.Atom(i).Symbol, coords.At(i, 0), coords.At(i, 1), coords.At(i, 2)))
+	}
+	str = append(str, "*\n")
+	cosmo, err := os.Create(O.wrkdir + O.inputname + ".inp")
+	if err != nil {
+		return fmt.Errorf("qm/Orca/SetCOSMORS: Couldn't create COSMO-RS input file: %w", err)
+	}
+	defer cosmo.Close()
+	for _, v := range str {
+		cosmo.WriteString(v)
+	}
+
+	O.inputname = oldinput
+	O.cosmorsready = true
+	return nil
+}
+
+// Runs a previously set COSMO-RS calculation in ORCA,
+func (O *OrcaHandle) DoCOSMORS() (float64, error) {
+	//NOTE:  Some code from Energy() is repeated here, hopefully I'll abstract that part when I have some time.
+	oldinput := O.inputname
+	O.inputname += "_cosmors"
+	if !O.cosmorsready {
+		return -1, fmt.Errorf("Orca/DoCOSMORS: COSMO-RS calculation has not been set")
+	}
+	err := O.Run(true)
+	if err != nil {
+		return -1, fmt.Errorf("Orca/DoCOSMORS:Failed to run COSMO-RS calculation: %w", err)
+	}
+
+	f, err1 := os.Open(fmt.Sprintf("%s.out", O.wrkdir+O.inputname))
+	if err1 != nil {
+		return -1, fmt.Errorf("Orca/DoCOSMORS: Can't open COSMO-RS output: %w", err1)
+	}
+	defer f.Close()
+	f.Seek(-1, 2) //We start at the end of the file
+	energy := 0.0
+	var found bool
+	templateline := "Free energy of solvation (dGsolv)  :"
+	for i := 0; ; i++ {
+		line, err1 := getTailLine(f)
+		if err1 != nil {
+			return 0, fmt.Errorf("Orca/DoCOSMORS: Error COSMO-RS output: %w", err1)
+
+		}
+		if strings.Contains(line, "**ORCA TERMINATED NORMALLY**") {
+			err = nil
+		}
+		if strings.Contains(line, templateline) {
+			splitted := strings.Fields(line)
+			energy, err1 = strconv.ParseFloat(splitted[8], 64)
+			if err1 != nil {
+				return 0.0, fmt.Errorf("Orca/DoCOSMORS: Couldn't read deltaGSolv from output: %w", err1)
+			}
+			found = true
+			break
+		}
+	}
+	if !found {
+		return 0.0, fmt.Errorf("Orca/DoCOSMORS: Couldn't find deltaGSolv in output:")
+
+	}
+
+	O.inputname = oldinput
+	return energy, err
 }
