@@ -222,6 +222,7 @@ type IConstraint struct {
 // Calc is a structure for the general representation of a calculation
 // mostly independent of the QM program (although, of course, some methods will not work in some programs)
 type Calc struct {
+	Symmetry     string
 	Method       string
 	Basis        string
 	RI           bool

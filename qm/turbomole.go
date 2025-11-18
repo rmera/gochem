@@ -57,12 +57,14 @@ type TMHandle struct {
 	defgrid      int
 	previousMO   string
 	command      string
+	precommand   string
 	cosmoprepcom string
 	inputname    string
 	gimic        bool
 	marij        bool
 	dryrun       bool
 	basicInput   bool
+	symmetry     string
 	jchoose      jobChoose
 }
 
@@ -388,6 +390,7 @@ func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q 
 			return Error{"goChem/QM: Unable to build input", Turbomole, O.inputname, err.Error(), []string{"os.Mkdir", "BuildInput"}, true}
 		}
 	}
+	O.symmetry = Q.Symmetry
 	_ = os.Chdir(O.inputname)
 	defer os.Chdir("..")
 	//Set the coordinates in a slightly stupid way.
@@ -410,8 +413,9 @@ func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q 
 	//	go copy2pipe(stdout, coord, end)
 	//	<-end
 	io.Copy(coord, stdout)
-	coord.Close()                                 //not defearable
-	defstring := "\n\n\na coord\nired\ndesy\n*\n" //reduntant internals
+	coord.Close()
+	//not defearable
+	defstring := "\n\n\na coord\ndesy\nired\n*\n" //reduntant internals
 	if Q.CartesianOpt {
 		defstring = "\n\n\na coord\ndesy\n*\nno\n"
 	}
@@ -559,6 +563,7 @@ func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q 
 func (O *TMHandle) setJob(Q *Calc) {
 	O.jchoose = jobChoose{}
 	O.jchoose.opti = func() {
+		O.precommand = O.command
 		O.command = "jobex -c 200"
 		if Q.RI {
 			O.command = O.command + " -ri"
@@ -640,6 +645,10 @@ func (O *TMHandle) Run(wait bool) error {
 	defer os.Chdir("..")
 	var err error
 	filename := strings.Fields(O.command)
+	if O.precommand != "" {
+		precomm := exec.Command("sh", "-c", "nohup "+O.precommand+" >"+filename[0]+".out")
+		_ = precomm.Run() //we try to run the pre command but don't care too much if it doesn't work
+	}
 	//fmt.Println("nohup " + O.command + " > " + filename[0] + ".out")
 	command := exec.Command("sh", "-c", "nohup "+O.command+" >"+filename[0]+".out")
 	if wait == true {
@@ -681,6 +690,10 @@ func (O *TMHandle) FreeEnergy(T float64) (float64, float64, error) {
 	defer os.Chdir("..")
 	//The ammount of newlines is wrong, must fix
 	str := fmt.Sprintf("\n1\ntstart=%6.2f tend=%6.2f\nq\n", T, T)
+	if O.symmetry != "" {
+		sym := string(O.symmetry[1])
+		str = sym + str
+	}
 	def := exec.Command("freeh")
 	pipe, err := def.StdinPipe()
 	if err != nil {
