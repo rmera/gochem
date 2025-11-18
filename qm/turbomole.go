@@ -51,13 +51,14 @@ import (
 // TMHandle is the representation of a Turbomole (TM) calculation
 // This imlpementation supports only singlets and doublets.
 type TMHandle struct {
-	defmethod    string
-	defbasis     string
-	defauxbasis  string
-	defgrid      int
-	previousMO   string
-	command      string
-	precommand   string
+	defmethod   string
+	defbasis    string
+	defauxbasis string
+	defgrid     int
+	previousMO  string
+	command     string
+	precommand  string // Sometimes, a TM optimization fails, but works if you start with a SP before the optimization.
+	//so we always start with a SP. precommand contains the SP command to be run.
 	cosmoprepcom string
 	inputname    string
 	gimic        bool
