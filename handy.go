@@ -432,11 +432,17 @@ func ScaleBond(a1, a2 *v3.Matrix, newdist float64) {
 
 }
 
-// MakeWater Creates a water molecule at distance Angstroms from a2, in a direction that is angle radians from the axis defined by a1 and a2.
+// MakeWater Creates a water molecule (O first) at distance Angstroms from a2, in a direction that is angle radians from the axis defined by a1 and a2.
 // Notice that the exact position of the water is not well defined when angle is not zero. One can always use the RotateAbout
 // function to move the molecule to the desired location. If oxygen is true, the oxygen will be pointing to a2. Otherwise,
 // one of the hydrogens will.
-func MakeWater(a1, a2 *v3.Matrix, distance, angle float64, oxygen bool) *v3.Matrix {
+// *******************
+//
+//		API BREAK! This function created only the coordinates and returned a *v3.Matrix. It now creates the whole
+//	 water and returns a *Molecule
+//
+// *******************
+func MakeWater(a1, a2 *v3.Matrix, distance, angle float64, oxygen bool) *Molecule {
 	water := v3.Zeros(3)
 	const WaterOHDist = 0.96
 	const WaterAngle = 52.25
@@ -512,7 +518,15 @@ func MakeWater(a1, a2 *v3.Matrix, distance, angle float64, oxygen bool) *v3.Matr
 	v1.Unit(v1)
 	v1.Scale(WaterOHDist, v1)
 	water.AddVec(water, v1)
-	return water
+	//Now the topology
+	ats := []*Atom{&Atom{ID: 0, index: 0, Symbol: "O", Name: "OW", MolName: "WAT"}, &Atom{ID: 1, index: 1, Symbol: "H", Name: "OH1", MolName: "WAT"}, &Atom{ID: 2, index: 2, Symbol: "H", Name: "OH1", MolName: "WAT"}}
+	top := NewTopology(0, 1, ats)
+	top.FillVdw()
+	ret, err := NewMolecule(water, top, nil)
+	if err != nil {
+		panic("Failed to create water! This is almost surely a bug in the goChem MakeWater funciton or on one of the function it calls " + err.Error())
+	}
+	return ret
 }
 
 // FixNumbering will put the internal numbering+1 in the atoms and residue fields, so they match the current residues/atoms
