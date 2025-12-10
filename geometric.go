@@ -91,6 +91,20 @@ func RotatorAroundZ(gamma float64) (*v3.Matrix, error) {
 
 }
 
+// Euclidean distance between the first row vector of A and that of B.
+func Distance(A, B *v3.Matrix, scratch ...*v3.Matrix) float64 {
+	var t *v3.Matrix
+	a := A.VecView(0)
+	b := B.VecView(0)
+	if len(scratch) > 0 {
+		t = scratch[0]
+	} else {
+		t = v3.Zeros(1)
+	}
+	t.Sub(a, b)
+	return t.Norm(2)
+}
+
 // RotatorToNewZ takes a matrix a row vector (newz).
 // It returns a linear operator such that, when applied to a matrix mol ( with the operator on the right side)
 // it will rotate mol such that the z axis is aligned with newz.
