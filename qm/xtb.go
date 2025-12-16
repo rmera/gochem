@@ -174,7 +174,7 @@ func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q
 	if atoms == nil || coords == nil {
 		return Error{ErrMissingCharges, "XTB", O.inputname, "", []string{"BuildInput"}, true}
 	}
-	err := chem.XYZFileWrite(w+O.inputname+".xyz", coords, atoms)
+	err := chem.PDBFileWrite(w+O.inputname+".pdb", coords, atoms, nil)
 	if err != nil {
 		return Error{ErrCantInput, "XTB", O.inputname, "", []string{"BuildInput"}, true}
 	}
@@ -189,7 +189,7 @@ func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q
 	if Q.Method == "gfnff" {
 		O.gfnff = true
 	}
-	O.options = append(O.options, O.inputname+".xyz")
+	O.options = append(O.options, O.inputname+".pdb")
 	O.options = append(O.options, fmt.Sprintf("-c %d", atoms.Charge()))
 	O.options = append(O.options, fmt.Sprintf("-u %d", (atoms.Multi()-1)))
 	if O.nCPU > 1 {
@@ -303,10 +303,10 @@ func (O *XTBHandle) Run(wait bool) (err error) {
 	}
 
 	if O.gfnff {
-		com = fmt.Sprintf(" --gfnff %s.xyz   %s  %s -v > %s.out  2>&1", O.inputname, inputfile, extraoptions, O.inputname)
+		com = fmt.Sprintf(" --gfnff %s.pdb   %s  %s -v > %s.out  2>&1", O.inputname, inputfile, extraoptions, O.inputname)
 	} else {
 
-		com = fmt.Sprintf(" %s.xyz  %s  %s -v > %s.out  2>&1", O.inputname, inputfile, extraoptions, O.inputname)
+		com = fmt.Sprintf(" %s.pdb  %s  %s -v > %s.out  2>&1", O.inputname, inputfile, extraoptions, O.inputname)
 	}
 	if wait {
 		//It would be nice to have this logging as an option.
@@ -337,7 +337,7 @@ func (O *XTBHandle) OptimizedGeometry(atoms chem.Atomer) (*v3.Matrix, error) {
 	if !O.normalTermination() {
 		return nil, Error{ErrNoGeometry, XTB, inp, "Calculation didn't end normally", []string{"OptimizedGeometry"}, true}
 	}
-	mol, err := chem.XYZFileRead(O.wrkdir + "xtbopt.xyz") //Trying to run several calculations in parallel in the same directory will fail as the output has always the same name.
+	mol, err := chem.PDBFileRead(O.wrkdir + "xtbopt.pdb") //Trying to run several calculations in parallel in the same directory will fail as the output has always the same name.
 	if err != nil {
 		return nil, Error{ErrNoGeometry, XTB, inp, "", []string{"OptimizedGeometry"}, true}
 	}
