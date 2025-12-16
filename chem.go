@@ -140,6 +140,24 @@ func (T *Topology) SetMulti(i int) {
 	T.multi = i
 }
 
+//***NOTE: I just added this, it might not be worth keeping.
+
+// Returns the indexes of the non-H atoms in the topology, or, if
+// invert is given and true, the indexes of the H atoms.
+func (T *Topology) Heavy(invert ...bool) []int {
+	inv := false
+	if len(invert) > 0 {
+		inv = invert[0]
+	}
+	ret := make([]int, 0, T.Len()/3)
+	for i, v := range T.Atoms {
+		if v.Symbol == "H" && !inv {
+			ret = append(ret, i)
+		}
+	}
+	return ret
+}
+
 // FillMasses tries to get fill the  masses for atom that don't have one
 // by getting it from the symbol. Only a few common elements are supported
 func (T *Topology) FillMasses() {

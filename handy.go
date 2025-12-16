@@ -496,35 +496,35 @@ func MakeWater(a1, a2 *v3.Matrix, distance, angle float64, oxygen bool) *Molecul
 		v3.Add(v3, a2)
 		water, _ = RotateAbout(water, a2, v3, angle)
 	}
-	if oxygen {
-		return water
+	if !oxygen {
+
+		//we move things so an hydrogen points to a2 and modify the distance acordingly.
+		e1 := water.VecView(0)
+		e2 := water.VecView(1)
+		e3 := water.VecView(2)
+		if v1 == nil {
+			v1 = v3.Zeros(1)
+		}
+		if v2 == nil {
+			v2 = v3.Zeros(1)
+		}
+		v1.Sub(e2, e1)
+		v2.Sub(e3, e1)
+		axis := cross(v1, v2)
+		axis.Add(axis, e1)
+		water, _ = RotateAbout(water, e1, axis, deg2rad*(180-WaterAngle))
+		v1.Sub(e1, a2)
+		v1.Unit(v1)
+		v1.Scale(WaterOHDist, v1)
+		water.AddVec(water, v1)
 	}
-	//we move things so an hydrogen points to a2 and modify the distance acordingly.
-	e1 := water.VecView(0)
-	e2 := water.VecView(1)
-	e3 := water.VecView(2)
-	if v1 == nil {
-		v1 = v3.Zeros(1)
-	}
-	if v2 == nil {
-		v2 = v3.Zeros(1)
-	}
-	v1.Sub(e2, e1)
-	v2.Sub(e3, e1)
-	axis := cross(v1, v2)
-	axis.Add(axis, e1)
-	water, _ = RotateAbout(water, e1, axis, deg2rad*(180-WaterAngle))
-	v1.Sub(e1, a2)
-	v1.Unit(v1)
-	v1.Scale(WaterOHDist, v1)
-	water.AddVec(water, v1)
 	//Now the topology
-	ats := []*Atom{&Atom{ID: 0, index: 0, Symbol: "O", Name: "OW", MolName: "WAT"}, &Atom{ID: 1, index: 1, Symbol: "H", Name: "OH1", MolName: "WAT"}, &Atom{ID: 2, index: 2, Symbol: "H", Name: "OH1", MolName: "WAT"}}
+	ats := []*Atom{&Atom{ID: 0, index: 0, Symbol: "O", Name: "OW", MolName: "WAT"}, &Atom{ID: 1, index: 1, Symbol: "H", Name: "OH1", MolName: "WAT"}, &Atom{ID: 2, index: 2, Symbol: "H", Name: "OH2", MolName: "WAT"}}
 	top := NewTopology(0, 1, ats)
 	top.FillVdw()
-	ret, err := NewMolecule(water, top, nil)
+	ret, err := NewMolecule([]*v3.Matrix{water}, top, nil)
 	if err != nil {
-		panic("Failed to create water! This is almost surely a bug in the goChem MakeWater funciton or on one of the function it calls " + err.Error())
+		panic("Failed to create water! This is almost surely a bug in the goChem MakeWater funciton or in one of the function it calls " + err.Error())
 	}
 	return ret
 }
