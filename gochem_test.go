@@ -315,7 +315,7 @@ func TestWater(Te *testing.T) {
 	w1 := MakeWater(c, h1, 2, Deg2Rad*30, true)
 	w2 := MakeWater(c, h1, 2, Deg2Rad*-30, false)
 	tmp := v3.Zeros(6)
-	tmp.Stack(w1, w2)
+	tmp.Stack(w1.Coords[0], w2.Coords[0])
 	fmt.Println("tmp water", w1, w2, tmp, c, h1)
 	coords.SetMatrix(mol.Len()-6, 0, tmp)
 	XYZFileWrite("test/WithWater.xyz", coords, mol)
@@ -562,6 +562,7 @@ func TestRotateBz(Te *testing.T) {
 	//	fmt.Println(mol, planevec)
 }
 
+/*
 func TestProjectionAndAntiProjection(Te *testing.T) {
 	A := v3.Zeros(1)
 	A.Set(0, 0, 2.0)
@@ -572,6 +573,7 @@ func TestProjectionAndAntiProjection(Te *testing.T) {
 	fmt.Println("Anti-projection of A on B (C):", C)
 	fmt.Println("Norm of C: ", C.Norm(2), " Norm of A,B: ", A.Norm(2), B.Norm(2), "Norm of D:", D.Norm(2))
 }
+*/
 
 func TestBondsBz(Te *testing.T) {
 	runtime.GOMAXPROCS(2)

@@ -9,6 +9,7 @@ import (
 
 // I think this is small enough and general enough to be worth hardcoding. It's a formamide molecule, optimized at the
 // GFN2 level.
+// This is an xyz representation of formamide ( H2N-HC=O)
 const capstr string = "6\n\nC           -4.92794702449458        1.89045342665579       -0.07921100123582\nO           -4.70801763850576        3.04272114512478       -0.33847635299908\nN           -4.42554476863113        1.23149344587307        0.98228022653061\nH           -4.63126053618251        0.26640246053375        1.16518717959352\nH           -3.81743860256653        1.72542300625019        1.61607772779290\nH           -5.57786142961950        1.24519651556242       -0.69948777968212\n"
 
 const CN float64 = 1.35 //C-N distance in amide (aprox) in A

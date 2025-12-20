@@ -5,6 +5,11 @@ import (
 	v3 "github.com/rmera/gochem/v3"
 )
 
+// ComplexBBCap wraps a reusable capper to construct backbone terminal caps for peptides using the
+// BBHCap helper. It caps the residues in such a way that they contain amide groups in both ends
+// i.e., with a HC=O in the N-terminal part and with a NH2 in the C-terminal part.
+// It maintains shared capper state so multiple capping operations can reuse geometry/configuration.
+// Use this when repeatedly capping fragments to avoid re-initializing capper internals each time.
 type ComplexBBCap struct {
 	cp *capper
 }
@@ -20,11 +25,14 @@ func (CC *ComplexBBCap) Cap(c *v3.Matrix, mol *chem.Topology, tocapN, tocapC int
 
 }
 
-// CapBackBoneNoRef takes a sub-peptide, represented by c and mol, of a larger peptide and caps the N- side of the first residue
-// with MolID tocapN and the C- side of the residue with MolID tocapC (they can both be the same residue). If you only want to cap
-// one of both sides, you can give -1 for tocapN or tocapC to avoid adding an N-cap or C-cap, respectively.
-// By default, the capping atom will be added to the end of the corresponding residue, but you can put it at the end of the
-// c and mol by giving a true in putLast.
+// BBHCap caps a backbone fragment by adding terminal hydrogens on the N- and/or C-ends into both coordinates and topology.
+// It locates reference atoms (N/H/CA for N-term, C/O/CA for C-term) on the specified residue IDs to anchor the cap geometry.
+// When no capper is supplied, it uses H atoms.
+
+// When a capper is provided, it delegates geometry generation to that helper instead of the built-in construction.
+// Caps are inserted at the end of each residue by default, or appended to the full system if putLast is true.
+
+// Returns updated coordinate matrix and topology reflecting the newly inserted cap atoms.
 func BBHCap(c *v3.Matrix, mol *chem.Topology, tocapN, tocapC int, putLast bool, cp ...*capper) (*v3.Matrix, *chem.Topology) {
 	// new method to cap C=O & C-N. For C=O, take the vectors C-O & C-CA, make a copy of the C-CA one. Take the cross product between C-O and C-CA, and rotate the copy around the cross product until it is in the right position. (so ~60 degrees, I'd think).
 	var iN, iC, iCAN, iCAO, iO, iH int
