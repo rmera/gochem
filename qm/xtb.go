@@ -147,7 +147,7 @@ func (O *XTBHandle) seticonstraints(Q *Calc, xcontrol []string) []string {
 		for _, w := range v.CAtoms {
 			constra += strconv.Itoa(w+1) + ", " //1-based indexes for xtb
 		}
-		strings.TrimRight(constra, ",")
+		constra = strings.TrimRight(constra, ",")
 		if v.UseVal {
 			constra += fmt.Sprintf(" %4.2f\n", v.Val)
 		} else {
