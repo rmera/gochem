@@ -441,8 +441,9 @@ func ScaleBond(a1, a2 *v3.Matrix, newdist float64) {
 //		API BREAK! This function created only the coordinates and returned a *v3.Matrix. It now creates the whole
 //	 water and returns a *Molecule
 //
-// *******************
-func MakeWater(a1, a2 *v3.Matrix, distance, angle float64, oxygen bool) *Molecule {
+// ******************
+
+func makeWater(a1, a2 *v3.Matrix, distance, angle float64, oxygen bool) *Molecule {
 	water := v3.Zeros(3)
 	const WaterOHDist = 0.96
 	const WaterAngle = 52.25
@@ -527,6 +528,116 @@ func MakeWater(a1, a2 *v3.Matrix, distance, angle float64, oxygen bool) *Molecul
 		panic("Failed to create water! This is almost surely a bug in the goChem MakeWater funciton or in one of the function it calls " + err.Error())
 	}
 	return ret
+}
+
+func MakeWater(a1, a2 *v3.Matrix, distance, angle float64, oxygen bool) *Molecule {
+	const WaterOHDist = 0.96
+	const WaterAngle = 52.25
+
+	axis := v3.Zeros(1)
+	axis.Sub(a2, a1) //I'm not sure this shouldn't be a1,a2 but I think the current form is OK. It's supposed
+	//to point to a2.
+	axis.Unit(axis)
+
+	water, _ := v3.NewMatrix([]float64{0., 0., 0., 0.46087, -0.059, 0.84343, -0.93085, -0.03627, 0.24383})
+	o := water.VecView(0)
+	h1 := water.VecView(1)
+	//	h2 := water.VecView(2)
+	cross := v3.Zeros(1)
+	hs := water.View(1, 0, 2, 3)
+	water.AddVec(water, a1) //we now put the O at the position of a1
+
+	axiss := v3.Zeros(1)
+	axiss.Scale(distance, axis)
+
+	water.AddVec(water, axiss) //move the water along the axis to the (almost) final place
+
+	vv1 := v3.Zeros(1)
+	vv2 := v3.Zeros(1)
+
+	//Now we want h1 to point either towards of away from a1
+	vv1.Sub(o, h1)
+	vv2.Sub(o, a1)
+	cross.Cross(vv1, vv2)
+	cross.AddVec(cross, o)
+
+	scratch := v3.Zeros(1)
+
+	//the value of the 'desired' distance. positive is good.
+	DOH := func() float64 {
+		o := Distance(a1, water.VecView(0), scratch)
+		h1 := Distance(a1, water.VecView(1), scratch)
+		//	h2 := Distance(a1, water.VecView(2), scratch)
+
+		var d1 float64
+		if oxygen {
+			d1 = o - h1
+			//		d2 = o - h2
+		} else {
+			d1 = h1 - o
+			//		d2 = h1 - h2
+		}
+
+		return d1 //(d1 + d2) / 2
+
+	}
+
+	orientscratch := v3.Zeros(2)
+	orient := func(a float64) {
+		orientscratch, _ = RotateAbout(hs, o, cross, a)
+		water.SetVecs(orientscratch, []int{1, 2})
+	}
+
+	DOHprime := func() float64 {
+		epsilon := Deg2Rad / 2
+		fa := DOH()
+		orient(epsilon)
+		fah := DOH()
+		orient(-1 * epsilon) //return things to how they were.
+		return (fah - fa) / epsilon
+	}
+
+	//we now rotate until the O is facing a1
+	step := Deg2Rad //1 deg
+
+	//I get that I should this analitically. Some day.
+	minDistanceDiff := WaterOHDist - 0.05 //just a little allowance
+	for DOH() <= minDistanceDiff {        //minDistanceDiff {
+		p := DOHprime()
+		if p < 0 {
+			p = -1
+		} else {
+			p = 1
+		}
+		orient(step * p)
+		//	fmt.Println("miiira weeebrbrblbrlbrlbrlbr", DOH(), minDistanceDiff) ///////////////////
+	}
+
+	// water,_:=v3.NewMatrix([]float64{16.665611, -24.792167, 21.594104, 16.666321,-24.783306,20.634145, 16.739715, -23.867977, 21.843065 })
+
+	var v1, v2 *v3.Matrix
+	if angle != 0 {
+		v1 = v3.Zeros(1)
+		v2 = v3.Zeros(1)
+		v1.Sub(a1, a2)
+		v2.Copy(v1)
+		v2.Set(0, 2, v2.At(0, 2)+1) //a small modification. The idea is that its not colinear with v1
+		v4 := v3.Zeros(1)
+		v4.Cross(v1, v2)
+		v4.Add(v4, a1)
+		water, _ = RotateAbout(water, a1, v4, angle)
+	}
+
+	//Now the topology
+	ats := []*Atom{&Atom{ID: 0, index: 0, Symbol: "O", Name: "OW", MolName: "WAT"}, &Atom{ID: 1, index: 1, Symbol: "H", Name: "OH1", MolName: "WAT"}, &Atom{ID: 2, index: 2, Symbol: "H", Name: "OH2", MolName: "WAT"}}
+	top := NewTopology(0, 1, ats)
+	top.FillVdw()
+	ret, err := NewMolecule([]*v3.Matrix{water}, top, nil)
+	if err != nil {
+		panic("Failed to create water! This is almost surely a bug in the goChem MakeWater funciton or in one of the function it calls " + err.Error())
+	}
+	return ret
+
 }
 
 // FixNumbering will put the internal numbering+1 in the atoms and residue fields, so they match the current residues/atoms

@@ -756,16 +756,4 @@ func Projection(test, ref *v3.Matrix) *v3.Matrix {
 	return Uref
 }
 
-// AntiProjection returns a vector in the direction of ref with the magnitude of
-// a vector A would have if |test| was the magnitude of its projection
-// in the direction of test.
-func AntiProjection(test, ref *v3.Matrix) *v3.Matrix {
-	rr, _ := ref.Dims()
-	testnorm := test.Norm(2)
-	Uref := v3.Zeros(rr)
-	Uref.Unit(ref)
-	scalar := test.Dot(Uref)
-	scalar = (testnorm * testnorm) / scalar
-	Uref.Scale(scalar, Uref)
-	return Uref
-}
+
