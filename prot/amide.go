@@ -1,4 +1,4 @@
-package protcap
+package prot
 
 import (
 	"strings"
