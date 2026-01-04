@@ -64,6 +64,13 @@ var three2OneLetter = map[string]byte{
 	"GLU": 'E',
 }
 
+// Tries to guess a chemical element symbol from a PDB atom name. Mostly based on AMBER names.
+// It only deals with some common bio-elements. I'm not sure if I want to add this to the API.
+func SymbolFromName(name string) string {
+	s, _ := symbolFromName(name)
+	return s
+}
+
 // This tries to guess a chemical element symbol from a PDB atom name. Mostly based on AMBER names.
 // It only deals with some common bio-elements.
 func symbolFromName(name string) (string, error) {

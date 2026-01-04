@@ -1,7 +1,10 @@
 package prot
 
 import (
+	"fmt"
+	"os"
 	"slices"
+	"strings"
 
 	chem "github.com/rmera/gochem"
 )
@@ -93,4 +96,40 @@ func Charge(mol chem.Atomer, atomname string, carefulCheck ...bool) int {
 	}
 
 	return charge
+}
+
+// Returns the heavy atom bonded to the given hydrogen in one of the standard
+// 20 aminoacids (I don't have selenocysteine yet)
+func HeavyAtomBoundToH(aaname, atname string) (string, error) {
+	if len(aaname) < 3 {
+		return "", fmt.Errorf("")
+	}
+	//Unfortunately, I need to assume you have the environment variable set.
+	fname := os.Getenv("GOCHEM") + "/prot/oaa/" + strings.ToUpper(aaname) + ".pdb"
+	aa, err := chem.PDBFileRead(fname, true)
+	if err != nil {
+		return "", fmt.Errorf("Couldn't open file for residue %s: %w", aaname, err)
+	}
+	err = aa.AssignBonds(aa.Coords[0])
+	if err != nil {
+		return "", fmt.Errorf("Couldn't assign bonds to residue %s: %w", aaname, err)
+	}
+
+	var at *chem.Atom
+	for i := 0; i < aa.Len(); i++ {
+		at = aa.Atom(i)
+		if at.Name == atname {
+			break
+		}
+		at = nil
+	}
+	if at == nil {
+		return "", fmt.Errorf("Couldn't find atom %s", atname)
+
+	}
+	if len(at.Bonds) > 1 {
+		return "", fmt.Errorf(" Atom %s Doesn't seem to be an hydrogen. %d bonds were detected for it", aaname, len(at.Bonds))
+	}
+	at2 := at.Bonds[0].Cross(at)
+	return at2.Name, nil
 }

@@ -54,6 +54,7 @@ const (
 	defVdwFactor float64 = 1.2
 	defMaxAngle  float64 = 87
 	defAngleStep float64 = 5
+	defCutoff    float64 = 5 // a very liberal cutoff
 )
 
 // AngleScan contains options to perform angle scans to see if there is an angle in which 2 atoms
@@ -68,7 +69,7 @@ type AngleScan struct {
 
 // DefaultAngleScan returns the default setting for an AngleScan
 func DefaultAngleScan() *AngleScan {
-	return &AngleScan{Offset: defOffset, VdwFactor: defVdwFactor, Angles: []float64{defMaxAngle, defAngleStep}}
+	return &AngleScan{Offset: defOffset, VdwFactor: defVdwFactor, Angles: []float64{defMaxAngle, defAngleStep}, Cutoff: defCutoff}
 }
 
 //This is a naive, unoptimal, simple and incomplete implementation
