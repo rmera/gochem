@@ -305,9 +305,9 @@ func (O *TMHandle) addToControl(toappend []string, Q *Calc, before bool, where .
 }
 
 func (O *TMHandle) addCosmo(epsilon float64) error {
-	//The ammount of newlines is wrong, must fix
+	//The ammount of newlines is wrong, but it doesn't affect the result.
 	cosmostring := "" //a few newlines before the epsilon
-	if epsilon == 0 {
+	if epsilon <= 0 {
 		return nil
 	}
 	cosmostring = fmt.Sprintf("%s%3.1f\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nr all b\n*\n\n\n\n\n\n", cosmostring, epsilon)
@@ -323,7 +323,6 @@ func (O *TMHandle) addCosmo(epsilon float64) error {
 
 	}
 	return nil
-
 }
 
 func (O *TMHandle) addBasis(basisOrEcp string, basiselems []string, basis, defstring string) string {
@@ -420,6 +419,11 @@ func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q 
 	if Q.CartesianOpt {
 		defstring = "\n\n\na coord\ndesy\n*\nno\n"
 	}
+	// NOTE
+	//Symmetry detection in Turbomole is not working properly so I'll temporarily disable it here.
+	//
+	defstring = strings.Replace(defstring, "\ndesy", "", -1)
+
 	if atoms == nil || coords == nil {
 		return Error{ErrMissingCharges, Turbomole, O.inputname, "", []string{"BuildInput"}, true}
 	}
@@ -557,8 +561,14 @@ func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q 
 	if err != nil {
 		return errDecorate(err, "BuildInput")
 	}
-	return nil
+	if !strings.Contains(Q.Method, "hf") && Q.OptTightness > 2 {
+		err := O.addToControl([]string{"    weight derivatives"}, nil, false, "$dft")
+		if err != nil {
+			return errDecorate(err, "BuildInput")
+		}
+	}
 
+	return nil
 }
 
 func (O *TMHandle) setJob(Q *Calc) {
@@ -568,10 +578,9 @@ func (O *TMHandle) setJob(Q *Calc) {
 		O.command = "jobex -c 200"
 		if Q.RI {
 			O.command = O.command + " -ri"
-			if Q.OptTightness >= 2 {
-				O.command = O.command + "-gcart 4"
-
-			}
+		}
+		if Q.OptTightness >= 2 {
+			O.command = O.command + "-gcart 4"
 		}
 	}
 	O.jchoose.forces = func() {
