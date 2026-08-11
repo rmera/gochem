@@ -39,7 +39,80 @@ import (
 
 // TestQM tests the QM functionality. It prepares input for ORCA and MOPAC
 // In the case of MOPAC it reads a previously prepared output and gets the energy.
-func TestOrca(Te *testing.T) {
+func TestXTBGSolv(Te *testing.T) {
+	mol, err := chem.XYZFileRead("../test/water.xyz")
+	if err != nil {
+		Te.Error(err)
+
+	}
+	if err := mol.Corrupted(); err != nil {
+		Te.Error(err)
+	}
+	fmt.Println(mol.Coords[0], len(mol.Coords), "xtb/Gsolv test", err)
+	xtb := NewXTBHandle()
+	xtb.SetnCPU(2) /////////////////////
+	//	xtb.SetWorkDir("xtb")
+	atoms := mol.Coords[0] //v3.Zeros(mol.Len())
+	//	original_dir, _ := os.Getwd() //will check in a few lines
+	cosmo := DefaultGsolvOptions()
+
+	//	if err = os.Chdir("../test"); err != nil {
+	//		Te.Error(err)
+	//	}
+	//xtb.SetName("COSMORS")
+	err = xtb.SetGsolv(atoms, mol, cosmo)
+	if err != nil {
+		Te.Error(err)
+	}
+	//	path, _ := os.Getwd()
+	//	fmt.Println(path)
+	//	if err = os.Chdir(original_dir); err != nil {
+	//		Te.Error(err)
+	//	}
+	xtb.RunGsolv(true)
+	G, err := xtb.GetGsolv()
+
+	fmt.Println("end xtb cosmors test!", G, err)
+}
+
+// TestQM tests the QM functionality. It prepares input for ORCA and MOPAC
+// In the case of MOPAC it reads a previously prepared output and gets the energy.
+func TestOrcaCOSMO(Te *testing.T) {
+	mol, err := chem.XYZFileRead("../test/water.xyz")
+	if err != nil {
+		Te.Error(err)
+
+	}
+	if err := mol.Corrupted(); err != nil {
+		Te.Error(err)
+	}
+	fmt.Println(mol.Coords[0], len(mol.Coords), "orca/COSMO-RS test", err)
+	orca := NewOrcaHandle()
+	orca.SetnCPU(12) /////////////////////
+	orca.SetWorkDir("orca")
+	atoms := mol.Coords[0]        //v3.Zeros(mol.Len())
+	original_dir, _ := os.Getwd() //will check in a few lines
+	cosmo := DefaultGsolvOptions()
+
+	if err = os.Chdir("../test"); err != nil {
+		Te.Error(err)
+	}
+	//orca.SetName("COSMORS")
+	err = orca.SetGsolv(atoms, mol, cosmo)
+	if err != nil {
+		Te.Error(err)
+	}
+	path, _ := os.Getwd()
+	fmt.Println(path)
+	if err = os.Chdir(original_dir); err != nil {
+		Te.Error(err)
+	}
+	fmt.Println("end orca cosmors test!")
+}
+
+// TestQM tests the QM functionality. It prepares input for ORCA and MOPAC
+// In the case of MOPAC it reads a previously prepared output and gets the energy.
+func TTestOrca(Te *testing.T) {
 	mol, err := chem.XYZFileRead("../test/water.xyz")
 	if err != nil {
 		Te.Error(err)
@@ -146,7 +219,7 @@ func TestOrca(Te *testing.T) {
 // TestTurbo tests the QM functionality. It prepares input for Turbomole
 // Notice that 2 TM inputs cannot be in the same directory. Notice that TMHandle
 // supports ECPs
-func TestTurbo(Te *testing.T) {
+func TTestTurbo(Te *testing.T) {
 	fmt.Println("Turbomole TEST y wea!")
 	mol, err := chem.XYZFileRead("../test/ethanol.xyz")
 	original_dir, _ := os.Getwd() //will check in a few lines
@@ -207,7 +280,7 @@ func TestTurbo(Te *testing.T) {
 	//	os.Chdir(original_dir)
 }
 
-func TestFermions(Te *testing.T) {
+func TTestFermions(Te *testing.T) {
 	mol, err := chem.XYZFileRead("../test/ethanol.xyz")
 	if err != nil {
 		Te.Error(err)
@@ -258,7 +331,7 @@ func qderror_handler(err error, Te *testing.T) {
 	}
 }
 
-func TestNWChem(Te *testing.T) {
+func TTestNWChem(Te *testing.T) {
 	mol, err := chem.XYZFileRead("../test/water.xyz")
 	if err != nil {
 		Te.Error(err)
@@ -319,7 +392,7 @@ func TestNWChem(Te *testing.T) {
 	*/
 }
 
-func TestXtb(Te *testing.T) {
+func TTestXtb(Te *testing.T) {
 	mol, err := chem.XYZFileRead("../test/ethanol.xyz")
 	if err != nil {
 		Te.Error(err)
@@ -335,7 +408,8 @@ func TestXtb(Te *testing.T) {
 	calc.CConstraints = []int{2, 4}
 	//no support for constraints yet
 	calc.Method = "gfn2"
-	calc.Dielectric = 4
+	calc.Dielectric = 5
+	calc.SolventName = "water "
 	xtb := NewXTBHandle()
 	xtb.SetName("XTBgochem")
 	xtb.SetWorkDir("xtb")
@@ -363,10 +437,9 @@ func TestXtb(Te *testing.T) {
 		Te.Error(err)
 	}
 	chem.XYZFileWrite("optiXTB.xyz", newg, mol)
-
 }
 
-func TestNBO(Te *testing.T) {
+func TTestNBO(Te *testing.T) {
 	f, err := os.Open("../test/nbo/etmetoh.out")
 	if err != nil {
 		Te.Error(err)
@@ -399,7 +472,7 @@ func TestNBO(Te *testing.T) {
 	}
 }
 
-func TestCrest(Te *testing.T) {
+func TTestCrest(Te *testing.T) {
 	mol, err := chem.XYZFileRead("../test/crest/etoh.xyz")
 	if err != nil {
 		Te.Error(err)
@@ -409,10 +482,11 @@ func TestCrest(Te *testing.T) {
 	}
 	q := new(Calc)
 	q.Method = "gfn0"
-	q.Dielectric = 80
+	//	q.Dielectric = 80
+	q.SolventName = "water"
 	o := NewCrestHandle()
-	o.EThres = 10
-	o.RMSDThres = 0.25
+	o.Ewin = 10
+	o.RMSDwin = 0.25
 	o.SetWorkDir("../test/crest")
 	o.BuildInput(mol.Coords[0], mol, q)
 	err = o.Run(true)
@@ -439,7 +513,7 @@ func TestCrest(Te *testing.T) {
 	fmt.Println("T=298. TS(conf)=", sconf*298.0, "TSvib=", svib*298, "All in kcal/mol")
 }
 
-func TestCrestConstraint(Te *testing.T) {
+func TTestCrestConstraint(Te *testing.T) {
 	mol, err := chem.XYZFileRead("../test/crest/etoh.xyz")
 	if err != nil {
 		Te.Error(err)

@@ -49,17 +49,21 @@ type CrestHandle struct {
 	//Note that the default methods and basis vary with each program, and even
 	//for a given program they are NOT considered part of the API, so they can always change.
 	//This is unavoidable, as methods change with time
-	command        string
-	inputname      string
-	nCPU           int
-	options        []string
-	relconstraints bool
-	wrkdir         string
-	inputfile      string
-	RunType        string     //entropy, protonate, deprotonate, search (default)
-	Temperatures   [3]float64 //initial, final, step
-	EThres         float64
-	RMSDThres      float64
+	command         string
+	inputname       string
+	nCPU            int
+	options         []string
+	relconstraints  bool
+	wrkdir          string
+	inputfile       string
+	RunType         string     //entropy, protonate, deprotonate, search (default)
+	Temperatures    [3]float64 //initial, final, step
+	Ewin            float64
+	RMSDwin         float64 //maximum RMSD allowed between conformers
+	Ethres          float64 //threshold between conformer pairs
+	DisableTopCheck bool    //disable a check that CREST does regarding topology in the initial vs xtb-optimized structures.
+	Cluster         int     // -1 no cluster, 0 defer to clustertext
+	ClusterText     string  // loose, normal, tight, vtight, only used of Cluster==0
 }
 
 // NewCrestHandle initializes and returns an xtb handle
@@ -133,8 +137,10 @@ func (O *CrestHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger,
 		return fmt.Errorf("%s: Couldn't write xyz file: %w ", errid, err)
 	}
 	//	mem := ""
-
 	O.options = make([]string, 0, 6)
+
+	O.options = append(O.options, O.inputname+".xyz")
+
 	//	O.options = append(O.options, O.command)
 	O.options = append(O.options, fmt.Sprintf("--chrg %d", atoms.Charge()))
 	O.options = append(O.options, fmt.Sprintf("--uhf %d", (atoms.Multi()-1)))
@@ -147,10 +153,13 @@ func (O *CrestHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger,
 	} else {
 		O.options = append(O.options, "--"+Q.Method) //default method
 	}
-	if Q.Dielectric > 0 && Q.Method != "gfn0" { //as of the current version, gfn0 doesn't support implicit solvation
-		solvent, ok := dielectric2Solvent[int(Q.Dielectric)]
-		if ok {
-			O.options = append(O.options, "--alpb "+solvent)
+
+	if (Q.SolventName != "" || Q.Dielectric > 0) && Q.Method != "gfn0" { //as of the current version, gfn0 doesn't support implicit solvation
+		solvent2, ok := dielectric2Solvent[int(Q.Dielectric)]
+		if Q.SolventName == "" && ok {
+			O.options = append(O.options, "--alpb "+solvent2)
+		} else {
+			O.options = append(O.options, "--alpb "+Q.SolventName)
 		}
 	}
 
@@ -190,20 +199,39 @@ func (O *CrestHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger,
 		log.Printf("%s: Runtype %s not available, will do the CREST default (currently, v3)", errid, O.RunType)
 	}
 
+	//Added clustering only for --vX options
+	if strings.Contains(strings.ToLower(O.RunType), "--v") {
+		if O.Cluster >= 0 {
+			if O.Cluster == 0 {
+				O.options = append(O.options, fmt.Sprintf("--cluster %s", O.ClusterText))
+			} else {
+				O.options = append(O.options, fmt.Sprintf("--cluster %d", O.Cluster))
+			}
+
+		}
+
+	}
 	ts := O.Temperatures
 	if ts == [3]float64{0, 0, 0} {
 		ts = [3]float64{298.15, 299.15, 1}
 	}
 	O.options = append(O.options, fmt.Sprintf("--trange %5.2f %5.2f %5.2f", ts[0], ts[1], ts[2]))
 
-	if O.EThres > 0 { //crest expect this options in kcal, so no conversion needed
-		O.options = append(O.options, fmt.Sprintf("--ewin %4.1f", O.EThres))
+	if O.Ewin > 0 { //crest expect this options in kcal, so no conversion needed
+		O.options = append(O.options, fmt.Sprintf("--ewin %4.1f", O.Ewin))
 	}
-	if O.RMSDThres > 0 { //crest expect this options in kcal, so no conversion needed
-		O.options = append(O.options, fmt.Sprintf("--rthr %4.1f", O.RMSDThres))
+	if O.RMSDwin > 0 { //crest expect this options in kcal, so no conversion needed
+		O.options = append(O.options, fmt.Sprintf("--rthr %4.1f", O.RMSDwin))
+	}
+	if O.Ethres > 0 { //crest expect this options in kcal, so no conversion needed
+		O.options = append(O.options, fmt.Sprintf("--ethr %4.1f", O.Ewin))
 	}
 
 	O.options = append(O.options, fmt.Sprintf("--temp %5.2f", ts[0]))
+
+	if O.DisableTopCheck {
+		O.options = append(O.options, "--noreftopo")
+	}
 
 	if Q.CConstraints != nil || Q.IConstraints != nil {
 		xtbh := NewXTBHandle()
@@ -216,7 +244,6 @@ func (O *CrestHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger,
 		}
 		O.options = append(O.options, "--cinp "+constraintsfile+".inp")
 	}
-	O.options = append(O.options, O.inputname+".xyz")
 
 	return nil
 }
