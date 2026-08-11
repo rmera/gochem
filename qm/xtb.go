@@ -56,6 +56,7 @@ type XTBHandle struct {
 	force          float64
 	wrkdir         string
 	inputfile      string
+	SPH            bool //do single-point hessian
 }
 
 // NewXTBHandle initializes and returns an xtb handle
@@ -203,10 +204,12 @@ func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q
 		O.options = append(O.options, "--gfn "+m)    //default method
 	}
 
-	if Q.Dielectric > 0 && Q.Method != "gfn0" { //as of the current version, gfn0 doesn't support implicit solvation
-		solvent, ok := dielectric2Solvent[int(Q.Dielectric)]
-		if ok {
-			O.options = append(O.options, "--alpb "+solvent)
+	if (Q.SolventName != "" || Q.Dielectric > 0) && Q.Method != "gfn0" { //as of the current version, gfn0 doesn't support implicit solvation
+		solvent2, ok := dielectric2Solvent[int(Q.Dielectric)]
+		if Q.SolventName == "" && ok {
+			O.options = append(O.options, "--alpb "+solvent2)
+		} else {
+			O.options = append(O.options, "--alpb "+Q.SolventName)
 		}
 	}
 	//O.options = append(O.options, "-gfn")
@@ -251,7 +254,11 @@ func (O *XTBHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q
 		O.options = append(O.options, add)
 	}
 	jc.forces = func() {
-		O.options = append(O.options, "--ohess")
+		if O.SPH {
+			O.options = append(O.options, "--bhess")
+		} else {
+			O.options = append(O.options, "--ohess")
+		}
 	}
 
 	jc.md = func() {
@@ -647,3 +654,44 @@ var dielectric2Solvent = map[int]string{
 //		command.Stderr = ferr
 //		err = command.Run()
 //		fmt.Println(O.command+fmt.Sprintf(" %s.xyz %s > %s.out &", O.inputname, strings.Join(O.options[2:]," "), O.inputname)) ////////////////////////
+
+func (X *XTBHandle) SetGsolv(coords *v3.Matrix, atoms chem.AtomMultiCharger, Options ...*GsolvOptions) error {
+	var O *GsolvOptions
+	if len(Options) > 0 {
+		O = Options[0]
+	} else {
+		O = DefaultGsolvOptions()
+	}
+
+	q := new(Calc)
+	q.Method = "gfn2"
+	q.SolventName = O.SolvName
+	q.Job = &Job{Opti: true}
+	err := X.BuildInput(coords, atoms, q)
+	return err
+}
+
+func (X *XTBHandle) RunGsolv(wait bool) error {
+	X.Run(wait)
+	return nil
+}
+
+func (X *XTBHandle) GetGsolv() (float64, error) {
+	var err error
+	var G float64
+	inp := X.wrkdir + X.inputname
+	energyline := searchBackwards("-> Gsolv", fmt.Sprintf("%s.out", inp))
+	if energyline == "" {
+		return 0, fmt.Errorf("XTB/GetGSolv: Can't find Gsolv line")
+	}
+	split := strings.Fields(energyline)
+	if len(split) < 4 {
+		return 0, fmt.Errorf("XTB/GetGSolv: Badly formatted Gsolv line")
+	}
+	G, err = strconv.ParseFloat(split[3], 64)
+	if err != nil {
+		return 0, fmt.Errorf("XTB/GetGSolv: Badly formatted Gsolv line: %w", err)
+	}
+
+	return G * chem.H2Kcal, nil //err should be nil at this point.
+}

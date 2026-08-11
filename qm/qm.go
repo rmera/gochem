@@ -35,7 +35,7 @@ import (
 type InputBuilder interface {
 	//Sets the name for the job, used for input
 	//and output files. The extentions will depend on the program.
-	SetName(name string)
+	//	SetName(name string)
 
 	//BuildInput builds an input for the QM program based int the data in
 	//atoms, coords and C. returns only error.
@@ -147,24 +147,26 @@ func errDecorate(err error, caller string) error {
 
 // jobChoose is a structure where each QM handler has to provide a closure that makes the proper arrangements for each supported case.
 type jobChoose struct {
-	opti    func()
-	forces  func()
-	sp      func()
-	md      func()
-	charges func()
+	opti       func()
+	forces     func()
+	sp         func()
+	md         func()
+	charges    func()
+	deltaGsolv func()
 }
 
 // Job is a structure that define a type of calculations.
 // The user should set one of these to true,
 // and goChem will see that the proper actions are taken. If the user sets more than one of the
-// fields to true, the priority will be Opti>Forces>SP (i.e. if Forces and SP are true,
+// fields to true, the priority must be in t he same order they appear here: Opti>Forces>SP... (i.e. if Forces and SP are true,
 // only the function handling forces will be called).
 type Job struct {
-	Opti    bool
-	Forces  bool
-	SP      bool
-	MD      bool
-	Charges bool
+	Opti       bool
+	Forces     bool
+	SP         bool
+	MD         bool
+	Charges    bool
+	DeltaGsolv bool
 }
 
 // Do sets the job set to true in J, according to the corresponding function in plan. A "nil" plan
@@ -190,7 +192,10 @@ func (J *Job) Do(plan jobChoose) {
 		plan.charges()
 		return
 	}
-
+	if J.DeltaGsolv && (plan.deltaGsolv != nil) {
+		plan.deltaGsolv()
+		return
+	}
 	if plan.sp != nil { //the default option is a single-point
 		plan.sp()
 		return
@@ -222,6 +227,7 @@ type IConstraint struct {
 // Calc is a structure for the general representation of a calculation
 // mostly independent of the QM program (although, of course, some methods will not work in some programs)
 type Calc struct {
+	T            float64 //temperature
 	Symmetry     string
 	Method       string
 	Basis        string
@@ -241,7 +247,8 @@ type Calc struct {
 	IConstraints []*IConstraint
 	ECPElements  []string //list of elements with ECP.
 	//	IConstraints []IntConstraint //internal constraints
-	Dielectric float64
+	Dielectric  float64
+	SolventName string //name of the solvent.
 	//	Solventmethod string
 	Dispersion string //D2, D3, etc.
 	Others     string //analysis methods, etc
@@ -307,4 +314,21 @@ func isInString(container []string, test string) bool {
 		}
 	}
 	return false
+}
+
+// Options for COSMO-RS. The Option NullHBonds should set the contribution of H-Bonds to the free energy to 0,
+// but I'm not at all sure it works. Use with care.
+type GsolvOptions struct {
+	T          float64
+	SolvMols   []*chem.Molecule
+	SolvName   string
+	NullHBonds bool //This
+}
+
+func DefaultGsolvOptions() *GsolvOptions {
+	o := new(GsolvOptions)
+	o.T = 298.15
+	o.SolvName = "water"
+	o.NullHBonds = false
+	return o
 }

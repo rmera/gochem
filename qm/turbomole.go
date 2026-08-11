@@ -51,6 +51,7 @@ import (
 // TMHandle is the representation of a Turbomole (TM) calculation
 // This imlpementation supports only singlets and doublets.
 type TMHandle struct {
+	temp        float64
 	defmethod   string
 	defbasis    string
 	defauxbasis string
@@ -66,6 +67,7 @@ type TMHandle struct {
 	dryrun       bool
 	basicInput   bool
 	symmetry     string
+	ncpus        int //does nothing right now
 	jchoose      jobChoose
 }
 
@@ -83,7 +85,7 @@ const noCosmoPrep = "goChem/QM: Unable to run cosmoprep"
 
 // SetName sets the name of the subdirectory, in the current directory
 // where the calculation will be ran
-func (O *TMHandle) Name(name ...string) string {
+func (O *TMHandle) SetName(name ...string) string {
 	ret := O.inputname
 	if len(name) > 0 && name[0] != "" {
 		O.inputname = name[0]
@@ -91,6 +93,17 @@ func (O *TMHandle) Name(name ...string) string {
 	}
 	return ret
 
+}
+
+// sets and returns the temperature. if no value given, returns the current
+// one
+func (O *TMHandle) SetTemp(T ...float64) float64 {
+	ret := O.temp
+	if len(T) > 0 && T[0] >= 0 {
+		O.temp = T[0]
+		ret = T[0]
+	}
+	return ret
 }
 
 // SetMARIJ sets the multipole acceleration
@@ -107,6 +120,13 @@ func (O *TMHandle) SetDryRun(dry bool) {
 // SetCommand doesn't do anything, and it is here only for compatibility.
 // In TM the command is set according to the method. goChem assumes a normal TM installation.
 func (O *TMHandle) SetCommand(name string) {
+	//Does nothing
+}
+
+// SetnCPU doesn't do anything, and it is here only for compatibility.
+// In TM the CPUs are set via a shell variable. I might add something for this to set the relevant variable
+// but, for now, it just uses whatever the user has set.
+func (O *TMHandle) SetnCPU(int) {
 	//Does nothing again
 }
 
@@ -118,7 +138,7 @@ func (O *TMHandle) SetCosmoPrepCommand(name string) {
 
 // SetDefaults sets default values for TMHandle. default is an optimization at
 //
-//	TPSS-D3 / def2-SVP
+//	B97-3c
 //
 // Defaults are not part of the API, they might change as new methods appear.
 func (O *TMHandle) SetDefaults() {
@@ -131,6 +151,7 @@ func (O *TMHandle) SetDefaults() {
 	O.dryrun = false //define IS run by default.
 	O.inputname = "gochemturbo"
 	O.cosmoprepcom = "cosmoprep"
+	O.temp = 298.15
 }
 
 // addMARIJ adds the multipole acceleration if certain conditions are fullfilled:
@@ -379,6 +400,9 @@ func copy2pipe(pipe io.ReadCloser, file *os.File, end chan bool) {
 // Note that at this point the interface does not support multiplicities different from 1 and 2.
 // The number in atoms is simply ignored.
 func (O *TMHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger, Q *Calc) error {
+	if Q.T > 0 {
+		O.temp = Q.T
+	}
 	const noDefine = "goChem/QM: Unable to run define"
 	const nox2t = "goChem/QM: Unable to run x2t"
 	err := os.Mkdir(O.inputname, os.FileMode(0755))
@@ -582,13 +606,16 @@ func (O *TMHandle) setJob(Q *Calc) {
 		if Q.OptTightness >= 2 {
 			O.command = O.command + "-gcart 4"
 		}
+		if Q.OptTightness >= 3 {
+			O.addToControl([]string{" weight derivatives"}, nil, false, "$dft")
+		}
 	}
 	O.jchoose.forces = func() {
 		O.command = "NumForce -central"
 		if Q.RI {
 			O.command = O.command + " -ri"
 		}
-		O.addToControl([]string{" weight derivatives"}, nil, false, "$dft")
+		//		O.addToControl([]string{" weight derivatives"}, nil, false, "$dft")
 	}
 
 	Q.Job.Do(O.jchoose)
@@ -695,7 +722,15 @@ func (O *TMHandle) Energy() (float64, error) {
 	return energy * chem.H2Kcal, err
 }
 
-func (O *TMHandle) FreeEnergy(T float64) (float64, float64, error) {
+// NOTE: I need to define a FreeEnergy function that is simpler, uses a somehow known temperature so you don't have to give it
+// and returns only G, not S, plus an error.
+func (O *TMHandle) FreeEnergy() (float64, error) {
+	G, _, err := O.Thermo()
+	return G, err
+}
+
+func (O *TMHandle) Thermo() (float64, float64, error) {
+	T := O.temp
 	os.Chdir(O.inputname)
 	defer os.Chdir("..")
 	//The ammount of newlines is wrong, must fix
@@ -801,5 +836,55 @@ func getSecondToLastLine(f *bufio.Reader) (string, error) {
 			break
 		}
 	}
-	return prevline, Error{err.Error(), Turbomole, "", "Unknown", []string{"getSecondToLastLine"}, true}
+	if err != nil {
+		return prevline, Error{err.Error(), Turbomole, "", "Unknown", []string{"getSecondToLastLine"}, true}
+
+	}
+	return prevline, nil
+}
+
+// This can be called _after_ BuildInput has been called. Hopefully on a geometry previously
+// optimized with xtb.
+// It will run a forces calculation with XTB and put the hessian in the TM directory
+// to be used for an optimization. In my experience, doing makes optimizations faster.
+func (O *TMHandle) XTBHess(coord *v3.Matrix, mol chem.AtomMultiCharger, Q *Calc) error {
+	TMMethod := Q.Method
+	TMJob := Q.Job
+	Q.Job = &Job{Opti: false, Forces: true}
+	Q.Method = "gfn2"
+
+	xtb := NewXTBHandle()
+	xtb.BuildInput(coord, mol, Q)
+	err := xtb.Run(true)
+
+	Q.Method = TMMethod
+	Q.Job = TMJob
+	if err != nil {
+		return err
+	}
+
+	command := exec.Command("sh", "-c", "mv xtbenergykcal ./"+O.SetName())
+	err = command.Run()
+
+	if err != nil {
+		return err
+	}
+
+	command = exec.Command("sh", "-c", "mv hessian ./"+O.SetName())
+	err = command.Run()
+	if err != nil {
+		return err
+	}
+
+	err = O.AddToControl([]string{"$forceinit on", "carthess"}, true)
+	if err != nil {
+		return err
+	}
+	err = O.AddToControl([]string{"$hessian file=hessian"}, true)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
 }
