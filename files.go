@@ -470,6 +470,21 @@ func PDBStringWrite(coords *v3.Matrix, mol Atomer, bfact []float64) (string, err
 	return outstring, nil
 }
 
+// PDBFileWrite writes a PDB for the molecule mol and the coordinates Coords to a file name pdbname.
+func MultiPDBFileWrite(pdbname string, coords []*v3.Matrix, mol Atomer, Bfactors [][]float64) error {
+	out, err := os.Create(pdbname)
+	if err != nil {
+		return CError{err.Error(), []string{"os.Create", "PDBFileWrite"}}
+	}
+	defer out.Close()
+	fmt.Fprintf(out, "REMARK WRITTEN WITH GOCHEM :-) \n")
+	err = MultiPDBWrite(out, coords, mol, Bfactors)
+	if err != nil {
+		return errDecorate(err, "PDBFileWrite")
+	}
+	return nil
+}
+
 // MultiPDBWrite writes a multiPDB  for the molecule mol and the various coordinate sets in CandB, to the io.Writer given.
 // CandB is a list of lists of *matrix.DenseMatrix. If it has 2 elements or more, the second will be used as
 // Bfactors. If it has one element, all b-factors will be zero.
@@ -482,7 +497,7 @@ func MultiPDBWrite(out io.Writer, Coords []*v3.Matrix, mol Atomer, Bfactors [][]
 		return CError{"Failed to write in io.Writer" + err.Error(), []string{"io.Writer.Write", "MultiPDBWrite"}}
 	}
 
-	_, err := out.Write([]byte("REMARK WRITTEN WITH GOCHEM :-)")) //The model number starts with one
+	_, err := out.Write([]byte("REMARK WRITTEN WITH GOCHEM :-)\n")) //The model number starts with one
 	if err != nil {
 		return iowriterError(err)
 	}
