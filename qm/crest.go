@@ -56,6 +56,7 @@ type CrestHandle struct {
 	relconstraints  bool
 	wrkdir          string
 	inputfile       string
+	conffile        string
 	RunType         string     //entropy, protonate, deprotonate, search (default)
 	Temperatures    [3]float64 //initial, final, step
 	Ewin            float64
@@ -112,6 +113,7 @@ func (O *CrestHandle) SetDefaults() {
 	//		O.command = "./xtb"
 	//	}
 	cpu := runtime.NumCPU() / 2
+	O.conffile = "crest_conformers.xyz"
 	O.nCPU = cpu
 
 }
@@ -165,10 +167,13 @@ func (O *CrestHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger,
 
 	o := "--optlev vtight"
 	if Q.OptTightness > 0 {
-		if Q.OptTightness < 2 {
-			o = "--optlev normal"
+		if Q.OptTightness == 1 {
+			o = "--optlev loose"
 		}
 		if Q.OptTightness == 2 {
+			o = "--optlev normal"
+		}
+		if Q.OptTightness == 3 {
 			o = "--optlev tight"
 		}
 	}
@@ -200,8 +205,9 @@ func (O *CrestHandle) BuildInput(coords *v3.Matrix, atoms chem.AtomMultiCharger,
 	}
 
 	//Added clustering only for --vX options
-	if strings.Contains(strings.ToLower(O.RunType), "--v") {
+	if strings.Contains(strings.ToLower(O.RunType), "v") {
 		if O.Cluster >= 0 {
+			O.conffile = "crest_clustered.xyz"
 			if O.Cluster == 0 {
 				O.options = append(O.options, fmt.Sprintf("--cluster %s", O.ClusterText))
 			} else {
@@ -295,8 +301,7 @@ func (O *CrestHandle) ConformerEnergies() ([]float64, error) {
 	if !O.normalTermination() {
 		return nil, fmt.Errorf("%s: CREST run didn't finish normally", ei)
 	}
-
-	finp, err := os.Open(O.wrkdir + "crest_conformers.xyz")
+	finp, err := os.Open(O.wrkdir + O.conffile)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", ei, err)
 	}
@@ -340,13 +345,13 @@ func (O *CrestHandle) Conformers(asmolecule ...bool) (*chem.Molecule, *chem.XYZT
 		return nil, nil, fmt.Errorf("%s: CREST run didn't finish normally", ei)
 	}
 	if len(asmolecule) > 0 && asmolecule[0] {
-		mol, err := chem.XYZFileRead(O.wrkdir + "crest_conformers.xyz")
+		mol, err := chem.XYZFileRead(O.wrkdir + O.conffile)
 		if err != nil {
 			err = fmt.Errorf("%s: Failed to retrieve conformers: %w", ei, err)
 		}
 		return mol, nil, err
 	}
-	mol, traj, err := chem.XYZFileAsTraj(O.wrkdir + "crest_conformers.xyz")
+	mol, traj, err := chem.XYZFileAsTraj(O.wrkdir + O.conffile)
 	if err != nil {
 		err = fmt.Errorf("%s: Failed to retrieve conformers: %w", ei, err)
 	}
