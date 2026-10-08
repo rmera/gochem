@@ -26,8 +26,8 @@ import (
 	"log"
 	"math"
 	"runtime"
-	"sort"
 	"slices"
+	"sort"
 	"strings"
 
 	//	"sort"
@@ -478,25 +478,16 @@ func DistRank(coord *v3.Matrix, mol chem.Atomer, refindexes []int, residues []st
 	var distance float64
 	water := v3.Zeros(3)
 	var ref *v3.Matrix
-	ownresIDs := allResIDandChains(mol, refindexes) //We could call this upstream and just get this numbers, but I suspect
+	ownresIDs := allResIDandChains(mol, refindexes) //We could call this upstream and just get this numbers
 	ref = v3.Zeros(len(refindexes))
 	ref.SomeVecs(coord, refindexes)
 	cutoff := o.end
-	cutoffplus := cutoff + 3
-	//	chunk := NewTopology(0, 1)
-	tmp := v3.Zeros(1)
-	//	fmt.Println("Start looking!") ///////////////////
 	for i := 0; i < mol.Len(); i++ {
 		at := mol.Atom(i)
 		molname = at.MolName
 		id = at.MolID
 		chain = at.Chain
 		var test *v3.Matrix
-		//a little pre-screening for waters
-		if isInString([]string{"SOL", "WAT", "HOH"}, molname) && dist(ref.VecView(0), coord.VecView(i), tmp) > cutoffplus {
-			continue
-
-		}
 		if isInString(residues, molname) && !repeated(id, chain, ownresIDs) && (id != molid_skip || chain != chain_skip) {
 			expectedreslen := 6
 			indexes := make([]int, 1, expectedreslen)
@@ -535,7 +526,7 @@ func DistRank(coord *v3.Matrix, mol chem.Atomer, refindexes []int, residues []st
 				distance = MolShortestDist(test, ref)
 			}
 			if distance <= cutoff {
-				ranks = append(ranks, &molDist{Distance: distance, MolID: id, Chain:chain})
+				ranks = append(ranks, &molDist{Distance: distance, MolID: id, Chain: chain})
 			}
 			molid_skip = id
 			chain_skip = chain
@@ -614,29 +605,24 @@ func (M MolDistList) MolIDs() []int {
 }
 
 // MolIDs returns a slice with all the chains present, and, for a given chain, all the residue IDs.
-func (M MolDistList) MolIDsByChain() ([][]int,[]string){
-	ids:=make([][]int,0,1)
-	chains := make([]string, 0,1)
-	for i,v := range M {
-		if !slices.Contains(chains,v.Chain){
-			ch:=v.Chain
-			chains=append(chains,ch)
-			id:=make([]int,0,10)
-			for _,w:=range M[i+1:]{
-				if w.Chain==ch{
-					id=append(id,w.MolID)
+func (M MolDistList) MolIDsByChain() ([][]int, []string) {
+	ids := make([][]int, 0, 1)
+	chains := make([]string, 0, 1)
+	for i, v := range M {
+		if !slices.Contains(chains, v.Chain) {
+			ch := v.Chain
+			chains = append(chains, ch)
+			id := make([]int, 0, 10)
+			for _, w := range M[i+1:] {
+				if w.Chain == ch {
+					id = append(id, w.MolID)
 				}
 			}
-			ids=append(ids,id)
+			ids = append(ids, id)
 		}
 	}
-	return  ids,chains
+	return ids, chains
 }
-
-
-
-
-
 
 // Data returns a list with all the MolIDs and a list with all the distances
 // in the set
@@ -701,7 +687,7 @@ func dist(r, t, temp *v3.Matrix) float64 {
 }
 
 //NOTE: These will be replaced when the generic funcions
-//make it to Go's stdlib.
+//make it to Go's stdlib. OK maybe not xD
 
 // isInInt returns true if test is in container, false otherwise.
 func isInInt(container []int, test int) bool {
